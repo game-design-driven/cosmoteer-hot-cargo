@@ -11,6 +11,9 @@ aiset RegroupEnabled false
 # below picks a hunter by ID order (random IDs), which can be the first caller.
 aiset CallCooldownSeconds 1
 stageset Strike WaveGapSeconds 300
+# Since spec 196 a call starts when the players see the caller, inside the player ship's disruptor range, and its hits cut
+# the call. A wide sight margin starts the first calls out of that range, as before, so this part can check a completed call.
+aiset CallSightMargin 2500
 # A strike hunter spots the players and calls; the call brings the second group long before the 300 s gap.
 spawnstage Strike
 wait 1
@@ -24,6 +27,7 @@ expect ai_call_start >= 1
 expect ai_call_complete >= 1
 expect hunterwaves == 2
 expect hunterspending == 0
+aiset CallSightMargin 200
 # A long call, cut off by one disruptor hit.
 aiset CallSeconds 60
 spawnstage Strike
