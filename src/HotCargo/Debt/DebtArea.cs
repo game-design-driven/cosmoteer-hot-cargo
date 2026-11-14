@@ -167,6 +167,13 @@ public static class DebtArea
             g.HelperDamage = long.Parse(p[0], CultureInfo.InvariantCulture);
             g.PlayerDamage = long.Parse(p[1], CultureInfo.InvariantCulture);
         };
+        // debt_help_ask: the helpers ask for pay now, as after a quiet fight (sim; in co-op run it through "mp").
+        Autotest.Commands["debt_help_ask"] = _ =>
+        {
+            var g = R().State.Debt.Help ?? throw new InvalidOperationException("no helpers");
+            g.Hailer = g.Ships[0];
+            g.LeaveAt = R().State.GameSeconds + R().T.Debt.HelpWaitSeconds;
+        };
         // debt_help_answer pay|tab|claim: answers the helper's page as the acting player.
         Autotest.Commands["debt_help_answer"] = arg => R().Game.NetManager.EnqueueInput(DebtChoiceDomain.Pick(Target("helper"), arg.Trim() switch
         {
