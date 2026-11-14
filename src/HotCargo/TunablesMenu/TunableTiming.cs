@@ -37,7 +37,7 @@ public static class TunableTiming
         ["TacticsTunables.CallInterceptParts"] = Applies.NextUse,
         ["TacticsTunables.FallBackResupplyEnabled"] = Applies.NextUse,
         ["TacticsTunables.FallBackCrewFraction"] = Applies.NextUse,
-        ["TacticsTunables.FallBackDonorRange"] = Applies.NextUse,
+        ["TacticsTunables.FallBackPoolRange"] = Applies.NextUse,
         ["TechTunables.StartingResearch"] = Applies.NewRun,
         ["JourneyTunables.RunSectorCount"] = Applies.NextSystem,
         ["HunterTunables.Stages"] = Applies.NextSpawn,

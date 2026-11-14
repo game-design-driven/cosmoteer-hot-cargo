@@ -173,7 +173,9 @@ public static class ListenIn
         var root = game.Gui.RootWidget.ScreenRect;
         var below = mode.CommsToolbox is { SelfActive: true } box ? box.ScreenRect : mode._commsBtn is { SelfActive: true } btn ? btn.ScreenRect : (Rect?)null;
         _bar.X = below is { } r1 ? r1.X - root.X : 10f;
-        _bar.Y = below is { } r2 ? r2.Y - root.Bottom - Gap - _bar.Height : -80f - _bar.Height;
+        // The co-op resource switch (spec 1318) sits directly above the comms button, so the list goes above it.
+        float reserved = Tactics.ShareResourcesHud.ReservedHeight;
+        _bar.Y = below is { } r2 ? r2.Y - root.Bottom - Gap - _bar.Height - reserved : -80f - _bar.Height - reserved;
     }
 
     [HarmonyPatch(typeof(CommWindow), nameof(CommWindow.OnParented))]

@@ -415,6 +415,38 @@ mp debt_collect_pay
 waitfor debt_drop_share == 1 30
 on 1 waitfor debt_drop_share == 1 30
 
+step tactics.share-resources
+# Spec 1318-1320: player 1's ship sits next to player 0's. Player 1 has no steel, player 0 has 100. Turning the switch on adds
+# player 0's steel to what player 1 can use. The client turns sharing on with the real MP input: both machines agree, and player 1's crew rebuild a
+# part with player 0's steel.
+# Godmode completes a part under construction at once (it sets full health), so it is off while the part is rebuilt.
+mp godmode off
+mp share_steel 0 100
+mp share_steel 1 0
+mp share_near 1
+# Loose steel near the ships counts as usable and goes first, so the step removes it.
+mp share_clear
+wait 2
+expect share_on == 0
+share_mark
+on 1 share_mark
+on 1 share on
+waitfor share_on == 1 10
+on 1 waitfor share_on == 1 10
+expect share_p1_usable_gain >= 100
+on 1 expect share_p1_usable_gain >= 100
+on 1 waitfor share_hud == 1 5
+mp share_break 1
+wait 2
+waitfor share_p1_destroyed == 0 120
+on 1 waitfor share_p1_destroyed == 0 120
+expect share_p0_steel < 100
+on 1 expect share_p0_steel < 100
+on 1 share off
+waitfor share_on == 0 10
+on 1 waitfor share_on == 0 10
+mp godmode on
+
 step tech.trade-loss
 # Spec 17, 443, 1011: a new run. Each player's starter ship has 4 vaults and a share of the tech (4 + 4, or 3 + 3 + 2 with
 # 3 players); each player sells from their own ship. The last sale loses the run for all.

@@ -41,10 +41,10 @@ internal sealed class FallBackStrategy : AIStrategyModule
     [Serialize(Optional = true)] Time _since;
     [Serialize(Optional = true)] Time _cooldownUntil;
     [Serialize(Optional = true)] int _plan;
-    /// <summary>The donor ship or the station of the plan.</summary>
+    /// <summary>The faction mate or the station of the plan.</summary>
     [Serialize(Optional = true)] ObjectID _target;
     [Serialize(Alias = "Rock", Optional = true)] Ship? _rock;
-    /// <summary>The plan's one-time step is done: the station supplied the ship, the donor gave, or the ship reached its cover.</summary>
+    /// <summary>The plan's one-time step is done: the station supplied the ship, or it reached its faction mate or its cover.</summary>
     [Serialize(Optional = true)] bool _supplied;
 
     public FallBackStrategy(FallBackStrategyRules rules)
@@ -61,9 +61,6 @@ internal sealed class FallBackStrategy : AIStrategyModule
         });
     }
 
-    /// <summary>Tactics log event of a donor transfer (autotest field tactic_fallback_take).</summary>
-    public const string TakeEvent = "fallback_take";
-
     public RepairPlan Plan => _active ? (RepairPlan)_plan : RepairPlan.None;
     public bool Supplied => _supplied;
 
@@ -74,10 +71,10 @@ internal sealed class FallBackStrategy : AIStrategyModule
     /// <summary>True when the ship falls back to a station and is next to it.</summary>
     public bool AtStation(Ship ship) => Plan == RepairPlan.Station && Resupply.Station(ship, _target) is { } station && Resupply.AtStation(ship, station);
 
-    /// <summary>Place and hull radius of the donor or station of the plan, or null. For autotests.</summary>
+    /// <summary>Place and hull radius of the faction mate or station of the plan, or null. For autotests.</summary>
     public (Vector2 Center, float Radius)? TargetCenter(Ship ship) => Plan switch
     {
-        RepairPlan.Donor when HunterOrders.Sim(ship).Ships[_target] is { } donor => (donor.DetWorldCenter, donor.WorldBoundingRadius),
+        RepairPlan.Pool when PoolMate(ship) is { } mate => (mate.DetWorldCenter, mate.WorldBoundingRadius),
         RepairPlan.Station when Resupply.Station(ship, _target) is { } station => (station.Center, station.Radius),
         _ => null,
     };
@@ -128,7 +125,7 @@ internal sealed class FallBackStrategy : AIStrategyModule
         return (RepairPlan)_plan switch
         {
             RepairPlan.Cover => Cover(ship, ai, threat, t),
-            RepairPlan.Donor => Donor(ship, ai, threat, t),
+            RepairPlan.Pool => Pool(ship, ai, threat, t),
             RepairPlan.Station => Station(ship, ai, threat, t),
             RepairPlan.Away => Away(ship, ai, threat, t),
             var plan => throw new InvalidOperationException($"fall back: no plan after a pick ({plan})"),
@@ -153,12 +150,12 @@ internal sealed class FallBackStrategy : AIStrategyModule
         var lacking = Resupply.Lacking(ship);
         bool shortOfCrew = Resupply.ShortOfCrew(ship, t);
         var rock = threat is null ? null : CoverStrategy.FindRock(ship, threat, t);
-        var donor = Resupply.FindDonor(ship, lacking, t);
+        var mate = Resupply.FindPoolMate(ship, lacking, t);
         var station = Resupply.FindStation(ship);
-        var plan = RepairModel.PickPlan(lacking.Count > 0, shortOfCrew, new RepairOptions(rock is not null, donor is not null, station is not null));
+        var plan = RepairModel.PickPlan(lacking.Count > 0, shortOfCrew, new RepairOptions(rock is not null, mate is not null, station is not null));
         SetPlan(plan, plan switch
         {
-            RepairPlan.Donor => donor!.UniqueID,
+            RepairPlan.Pool => mate!.UniqueID,
             RepairPlan.Station => station!.Value.Id,
             _ => default,
         }, plan == RepairPlan.Cover ? rock : null);
@@ -201,24 +198,30 @@ internal sealed class FallBackStrategy : AIStrategyModule
     }
 
     /// <summary>
-    /// Spec 1307: fly next to the donor and take the resources at once. Then repair as in the away plan, within the trip time.
-    /// One donor visit per fall back, so a ship does not drain its allies one share after another.
+    /// Spec 1307: fly next to the faction mate, within the pool range, then hold there and repair from the pool.
     /// </summary>
-    bool Donor(Ship ship, ShipAI ai, Ship? threat, TacticsTunables t)
+    bool Pool(Ship ship, ShipAI ai, Ship? threat, TacticsTunables t)
     {
-        if (_supplied) return Away(ship, ai, threat, t);
-        if (HunterOrders.Sim(ship).Ships[_target] is not { } donor || !donor.IsLiveWith(ship) || ship.IsEnemiesWith(donor))
-            return Repick(ship, threat, t, "donor lost");
-        if (!Resupply.InTransferRange(ship, donor))
+        if (PoolMate(ship) is not { } mate) return Repick(ship, threat, t, "faction mate lost");
+        // The ship stops at its docking spot, well inside the pool range: the vanilla repair stops its engines, and a ship that
+        // stopped at the edge of the range coasts out of it.
+        if (!Resupply.InPoolRange(ship, mate) || HunterOrders.EdgeDistance(ship, mate) > t.FallBackDockGap * 1.5f)
         {
-            Ai.PersonalityStrategy.MoveGuarded(ship, Resupply.Beside(ship, donor.DetWorldCenter, donor.WorldBoundingRadius, t.FallBackDockGap), t.FallBackDockGap * 0.5f, threat, t);
+            Ai.PersonalityStrategy.MoveGuarded(ship, Resupply.Beside(ship, mate.DetWorldCenter, mate.WorldBoundingRadius, t.FallBackDockGap), t.FallBackDockGap * 0.5f, threat, t);
             return true;
         }
-        int moved = Resupply.TakeFrom(ship, donor, t);
+        if (!_supplied) TacticsLog.Event(ship, Tactic.FallBack, $"repairs from the pool next to {mate.Metadata.PlainShipName}");
+        // In the pool plan the flag marks the arrival, so the log line shows once.
         _supplied = true;
-        TacticsLog.Event(ship, TakeEvent, $"takes {moved} units from {donor.Metadata.PlainShipName}");
-        return Away(ship, ai, threat, t);
+        return RepairHere(ship, ai, t);
     }
+
+    /// <summary>The faction mate of the pool plan while it is alive and still of the ship's faction, else null.</summary>
+    Ship? PoolMate(Ship ship) =>
+        Plan == RepairPlan.Pool && HunterOrders.Sim(ship).Ships[_target] is { } mate && mate.IsLiveWith(ship) && ResourcePool.Pools(ship, mate) ? mate : null;
+
+    /// <summary>True when the ship falls back to a faction mate and is within its pool range.</summary>
+    public bool AtPoolMate(Ship ship) => PoolMate(ship) is { } mate && Resupply.InPoolRange(ship, mate);
 
     /// <summary>Spec 1308: fly to the station, take its free supply once, then hold there and repair with the station crews.</summary>
     bool Station(Ship ship, ShipAI ai, Ship? threat, TacticsTunables t)

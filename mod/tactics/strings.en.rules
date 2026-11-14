@@ -7,6 +7,12 @@ HotCargoAi
 	CallInterceptFmt = "{0}: distress call from {1} intercepted early. It takes longer."
 	JumpedOutFmt = "{0} jumped away."
 
+	// Co-op resource sharing (spec 1318). {0} is the player name.
+	ShareButtonOn = "Share resources: ON"
+	ShareButtonOff = "Share resources: OFF"
+	ShareOnFmt = "{0} turned resource sharing on. All players' ships within 400 build and repair from each other's stock."
+	ShareOffFmt = "{0} turned resource sharing off. Each player builds from their own ships again."
+
 	// Labels on the ship marker: player-facing threats only, never the enemy plan (spec 368).
 	LabelCallingFmt = "CALLING HELP {0}%"
 	LabelJumpFmt = "JUMP OUT {0}s"

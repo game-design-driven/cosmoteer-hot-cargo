@@ -108,7 +108,7 @@ internal static class PersonalityAutotest
 
         // aispawn <group> <count> [tier] [tag]: hostile AI ships near the player. group: a faction ID (military ships with the Normal AI;
         // the players become wanted by it) or "pirates" (one unique hostile index for the run). tier: default the sector tier.
-        // tag: a builtin ship tag, default "combat" ("trade": ships with cargo bays). Test only.
+        // tag: a builtin ship tag, default "combat" ("trade": ships with cargo bays, on the faction's civilian player). Test only.
         Autotest.Commands["aispawn"] = arg =>
         {
             var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -217,7 +217,8 @@ internal static class PersonalityAutotest
             : GameApp.Rules.Factions.FirstOrDefault(f => f.ID.ToString() == group) ?? throw new InvalidOperationException($"no faction '{group}'");
         // Pirates of one test share one index, so ships of two spawns are allies.
         if (faction is null && _pirates?.Run != run) _pirates = (run, career.AllocUniquePlayerIndex());
-        int allegiance = faction?.MilitaryPlayerIndex ?? _pirates!.Value.Index;
+        // Faction ships that are not combat ships (trade ships) belong to the faction's civilian player, like the game's traders.
+        int allegiance = faction is null ? _pirates!.Value.Index : tag == Combat ? faction.MilitaryPlayerIndex : faction.CivilianPlayerIndex;
         float direction = sim.Rand.Direction();
         for (int i = 0; i < count; i++)
         {
