@@ -1,5 +1,8 @@
 HotCargoUx
 {
+	// Ping (spec 1500 and later): the label of the local player's ping in single player
+	PingYou = "You"
+
 	// Heat panel
 	Title = "HOT CARGO"
 	SectorFmt = "SECTOR {0} / {1}"

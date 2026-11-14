@@ -397,6 +397,19 @@ public static class Autotest
     const float StasisShipRadius = 800f;
 
     /// <summary>
+    /// Screenshots: fits a square of this world size around the camera center, also in a minimized test slot (UI only).
+    /// </summary>
+    public static void FitCamera(Cosmoteer.Simulation.SimRoot sim, float size)
+    {
+        var view = sim.Camera.ViewController;
+        // A minimized test slot window has no viewport size, so ZoomToFit zooms out all the way. Then the zoom fits the screenshot
+        // height (1440 pixels in the test slots). Revisit if screens.sh uses another resolution.
+        if (view._scene.Viewport.GetViewportRect().Size.Y > 1) view.ZoomToFit(new Halfling.Geometry.Vector2(size));
+        else view.FRTargetZoomScale = view.FRZoomScale = Math.Clamp(view.TransformWorldScaleToFrame(size * view.Node.WorldUniformScale / 1440f),
+            view.FRMinZoomScale, view.FRMaxZoomScale);
+    }
+
+    /// <summary>
     /// Test only. A point at least <paramref name="minDistance"/> from <paramref name="target"/> where a ship of radius
     /// <paramref name="shipRadius"/> overlaps no solid object: live AI ships and asteroids, and ships, asteroids and gates in stasis.
     /// A teleport into an unloaded area must not land on objects that load out of stasis around the ship, or they crush it.
@@ -511,20 +524,27 @@ public static class Autotest
         // The timeout counts game seconds while a run is active. waitforreal: the same with a timeout in real seconds.
         Commands["waitfor"] = arg => WaitForField(arg, real: false);
         Commands["waitforreal"] = arg => WaitForField(arg, real: true);
-        // openspace <distance>: moves the fleet to the nearest point at least <distance> from every station (live or in stasis) and
-        // clear of suns, on rings around the fleet. For fights that must not depend on which faction owns a nearby station.
+        // openspace <station distance> [ship distance]: moves the fleet to the nearest point at least that far from every station and,
+        // when given, from every other ship (live or in stasis, wrecks left out), clear of suns, on rings around the fleet. For tests
+        // that must not depend on the start world: which faction owns a nearby station, or which patrols and raiders wait near it.
         Commands["openspace"] = arg =>
         {
             var sim = Game?.Sim ?? throw new InvalidOperationException("no game");
-            float clearance = float.Parse(arg, CultureInfo.InvariantCulture);
+            var args = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (args.Length is < 1 or > 2) throw new InvalidOperationException("openspace needs: <station distance> [ship distance]");
+            float clearance = float.Parse(args[0], CultureInfo.InvariantCulture);
+            float shipClearance = args.Length == 2 ? float.Parse(args[1], CultureInfo.InvariantCulture) : 0f;
             var from = SimQueries.FleetCenter(sim) ?? throw new InvalidOperationException("no player ships");
             var stations = SimQueries.TaggedShips(sim, new("station")).Select(t => t.Location).ToList();
+            var others = sim.Ships.Where(s => !s.IsHumanPlayerShip && !s.IsJunk).Select(s => s.DetWorldCenter)
+                .Concat(sim.Stasis.OfType<Cosmoteer.Simulation.Stasis.StasisShipSpawner>().Select(s => s.Location)).ToList();
             var avoid = GameApp.Rules.CareerMode.Wanted.PoliceSpawnAvoidableDoodadTags;
             for (int ring = 0; ring < 40; ring++)
                 for (int k = 0; k < 16; k++)
                 {
                     var p = from + Halfling.Geometry.Vector2.FromAngle(k * MathF.Tau / 16f) * (ring * 500f);
-                    if (stations.Any(s => s.DistanceTo(p) < clearance) || sim.ShouldAIAvoidLocation(p, avoid, 1000f)) continue;
+                    if (stations.Any(s => s.DistanceTo(p) < clearance) || others.Any(s => s.DistanceTo(p) < shipClearance)
+                        || sim.ShouldAIAvoidLocation(p, avoid, 1000f)) continue;
                     float offset = 0f;
                     foreach (var ship in sim.Ships.HumanPlayerSignificantShips.ToList())
                     {
@@ -535,7 +555,7 @@ public static class Autotest
                     Wait(3);
                     return;
                 }
-            throw new InvalidOperationException($"no point {clearance:0} from every station within 19,500 of the fleet");
+            throw new InvalidOperationException($"no point {clearance:0} from every station and {shipClearance:0} from every ship within 19,500 of the fleet");
         };
         Commands["godmode"] = arg =>
         {

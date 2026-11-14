@@ -1,0 +1,17 @@
+# Co-op ping screenshots (spec 1500 to 1505). The client pings its own ship, the host pings a point near its own ship.
+# Host in a windowed test slot (graphics), client in a headless test slot (scripts/screens-mp.sh). {PORT} is the host port.
+render on
+mphost {PORT}
+mpstart 2
+mp ev_set Enabled false
+mp pu_set Enabled false
+closepanel
+waitfor mpmark >= 1 120
+waitfor ping_count == 1 30
+ping space 500 -250
+waitfor ping_count == 2 30
+wait 2
+screenshot ping
+mp mpmark 2
+waitfor mpconnected == 0 120
+quit

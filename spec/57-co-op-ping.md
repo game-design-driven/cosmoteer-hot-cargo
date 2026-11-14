@@ -1,0 +1,11 @@
+## 57. Co-op ping
+
+A player marks a point or an object for every player. Code: `src/HotCargo/Ux/Ping.cs`, the pure rules in `Ux/PingModel.cs`. Number: `Ux.PingSeconds`.
+
+1500. **Ping.** Alt + left click in space, or on the minimap, places a ping that every player sees, also in single player (a marker for yourself). It goes through the `HotCargoPing` MP input, so every machine gets it. The ping is UI state: it changes no sim state, no integrity hash and no save, and a jump or a load ends it.
+1501. **Binding.** Vanilla Alt + left click in space also selects or deselects ships (the selection click ignores modifiers), and on the minimap it moves the camera. A ping takes that click: the vanilla action does not run. Build mode and the other tools keep their vanilla Alt actions (Alt is the erase cursor in build mode), because the ping hooks only the normal ship control click (`PlayerInputHandler.InputSelectShipsAndParts`) and the minimap click. Decision (user): Alt + left click, in space only.
+1502. **Marker.** A ping shows as a pulsing vanilla indicator with the custom marker icon, in the pinging player's color (the voter order of requirement 601) and with the player's name ("You" in single player). Like other indicators it shows at the screen edge with its distance when it is off the screen, and on the minimap. A click on it moves the camera there. It flashes once with the vanilla ping sound when it arrives.
+1503. **One per player.** A new ping of a player replaces that player's ping. Pings of different players stay side by side.
+1504. **Lifetime.** A ping ends `Ux.PingSeconds` (30) real seconds after it arrives on a machine. 0 turns pings off, and Alt + left click does what it does in the vanilla game.
+1505. **Follow.** A ping on a ship, station or wreck (the ship under the mouse) shows at that object's center while the object moves, and ends early when the object no longer exists in the system. A ping in space stays at its point.
+1506. **Tests.** Unit tests `PingModelTests` (replace, lifetime, follow). Co-op step `ux.ping` in `tests/autotest-mp/coop-core.txt`: the client pings its ship, both machines show the ping on the ship as an indicator, a second ping replaces it, a short lifetime ends it on both. Screenshots: `tests/screens/ping.host.txt` and `ping.client.txt`.

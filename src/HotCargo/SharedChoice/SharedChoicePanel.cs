@@ -179,7 +179,8 @@ public sealed class SharedChoicePanel
         return SharedChoices.Format("StatusVoteTimerFmt", votes, voterCount, Math.Ceiling(left));
     }
 
-    static Color ColorOf(IReadOnlyList<MessengerID> voters, MessengerID player)
+    /// <summary>A player's marker color, by the player's place in the voter order. Also the color of the player's ping (spec 1502).</summary>
+    internal static Color ColorOf(IReadOnlyList<MessengerID> voters, MessengerID player)
     {
         int i = voters.ToList().IndexOf(player);
         return PlayerColors[(i < 0 ? 0 : i) % PlayerColors.Length];

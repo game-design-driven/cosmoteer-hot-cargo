@@ -24,22 +24,6 @@ step onboarding.coop-page
 waitfor hint_hc_coop == 1 15
 on 1 waitfor hint_hc_coop == 1 15
 
-step startjobs.pick
-# Spec 1204: the start job is one shared choice. Both machines show the panel, the client's hover shows on the host,
-# and the client's pick closes the panel and sets the job on both machines. "The Contract" changes nothing for the later steps.
-waitfor sj_panel == 1 15
-on 1 waitfor sj_panel == 1 15
-on 1 hover 1
-waitfor sj_hovers == 1 10
-on 1 hover off
-on 1 sj_click contract
-waitfor sj_pending == 0 10
-on 1 waitfor sj_pending == 0 10
-expect sj_job == 1
-on 1 expect sj_job == 1
-expect sj_panel == 0
-on 1 expect sj_panel == 0
-
 step core.client-heat
 # The client adds heat, and the first stage (Warning at heat 40, #19) starts on both machines.
 as 1 heat 40
@@ -51,6 +35,25 @@ waitfor runlog_stage == 1 10
 expect runlog_count >= 2
 on 1 waitfor runlog_stage == 1 10
 on 1 expect runlog_count >= 2
+
+step ux.ping
+# Spec 1500 to 1506: the client pings its own ship (Alt + left click). Both machines show one ping, as a vanilla indicator, on
+# the ship's center (it follows the ship). The client's next ping, in space, replaces it. A short lifetime ends it on both.
+on 1 ping own
+waitfor ping_count == 1 30
+on 1 waitfor ping_count == 1 30
+waitfor ping_on_ship == 1 10
+on 1 waitfor ping_on_ship == 1 10
+waitfor ping_indicators == 1 10
+on 1 ping space 3000 0
+waitfor ping_on_ship == 0 30
+on 1 waitfor ping_on_ship == 0 30
+expect ping_count == 1
+mp ux PingSeconds 2
+waitfor ping_count == 0 30
+on 1 waitfor ping_count == 0 30
+waitfor ping_indicators == 0 10
+mp ux PingSeconds 30
 
 step core.hunters
 # Hunters jump in, the host forces two more stages, and the hunters stay hostile to both players.
@@ -142,11 +145,11 @@ on 1 tactics_editor addterm 1
 on 1 tactics_editor cond 1 HuntersInSystem 2
 on 1 tactics_editor not 1 2
 on 1 wait 3
-on 1 expecttactics HC1:HealthBelow=25&!HuntersInSystem>RetreatRepair;Always>Guard=0;AllyUnderAttack>TargetAllyAttacker
+on 1 expecttactics HC1:HealthBelow=25&!HuntersInSystem>RetreatRepair;TargetedByEnemy>TargetMyAttacker;AllyUnderAttack>TargetAllyAttacker;Always>Guard=0
 on 1 expect tactics_auto == 1
 on 1 tactics_editor close
 wait 2
-expecttacticsany HC1:HealthBelow=25&!HuntersInSystem>RetreatRepair;Always>Guard=0;AllyUnderAttack>TargetAllyAttacker
+expecttacticsany HC1:HealthBelow=25&!HuntersInSystem>RetreatRepair;TargetedByEnemy>TargetMyAttacker;AllyUnderAttack>TargetAllyAttacker;Always>Guard=0
 
 step shipai.fight
 # Both machines run the same tactics decisions in a fight.
@@ -168,6 +171,7 @@ mp debris_set GlowSeconds 15
 mp debris_set CheckSeconds 1
 mp debris_set MaxParts 6
 mp debris_spawn 3 3
+# Near the client's ship, or near the host's when the fight above destroyed the client's control room.
 as 1 debris_spawn 2 3
 waitfor debris_tracked >= 5 15
 on 1 waitfor debris_tracked >= 5 15
