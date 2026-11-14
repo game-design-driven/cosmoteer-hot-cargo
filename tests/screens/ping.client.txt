@@ -1,0 +1,8 @@
+# Co-op ping screenshots, client side (headless): pings its own ship once the game runs.
+mpjoin 127.0.0.1:{PORT}
+mpready
+wait 5
+ping own
+mp mpmark 1
+waitfor mpmark >= 2 120
+quit
