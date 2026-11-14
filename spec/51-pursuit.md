@@ -21,7 +21,7 @@ The heat clock is the core resource. The heat stages still start the waves (sect
 910. **Scout roll.** When the `ScoutStage` stage (Warning) starts, the first ship of its first group rolls `ScoutChance` (0.5) with `sim.Rand`. On success it becomes a reporting scout: it flies to the relay nearest to it (`FtlGate.GetGates`) and does not fight.
 911. **Tells.** A scout's ship marker shows "REPORTING", a bar of how far it got toward the relay and its distance. A chat line says that it runs for the relay. In stasis it keeps flying to the relay.
 912. **Report.** A scout within `ScoutRelayRadius` (400) of its relay reports: it jumps out (FTL effect, then removal, no wreck), heat + `ScoutReportHeat` (15), a center text and a chat line "Scout reported your position: heat +15". During an outage the gain is blocked and the text says +0.
-913. **Stopped.** A scout that is destroyed, becomes a wreck, surrenders, makes a truce, loses the hunter tag (it agreed to leave, requirement 562) or jumps out while it flees (requirement 195) reports nothing. A jump of the players to another system ends every scout.
+913. **Stopped.** A scout that is destroyed, becomes a wreck, surrenders, makes a truce, loses the hunter tag (it agreed to leave, requirement 562, or the players took it over, requirement 1511) or jumps out while it flees (requirement 195) reports nothing. A jump of the players to another system ends every scout.
 914. **Budget.** At most one scout per Warning start. Expected heat per sector is 15 × 0.5 × the share of scouts that escape: about +3 to +4 (BALANCE.md).
 
 ### Relay blockade

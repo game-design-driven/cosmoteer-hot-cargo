@@ -41,7 +41,10 @@ static class DiplomacyTick
 
     static float Roll(Ship ship, ulong salt) => new FastRand((uint)ship.UniqueID, salt).Single();
 
-    /// <summary>Hunters that agreed to leave: the FTL jump-out effect at Due, then removal, like a fleeing hunter (spec 195).</summary>
+    /// <summary>
+    /// Hunters that agreed to leave: the FTL jump-out effect at Due, then removal, like a fleeing hunter (spec 195).
+    /// A leaving ship that becomes a wreck stays; a wreck that the players claim is their ship (spec 1511).
+    /// </summary>
     static void TickLeaving(Run run, SimRoot sim)
     {
         var list = S(run).Leaving;
@@ -50,7 +53,7 @@ static class DiplomacyTick
         {
             var l = list[i];
             var ship = sim.Ships[l.Ship];
-            if (ship is null || !ship.ExistsInSim(sim)) { list.RemoveAt(i--); continue; }
+            if (ship is null || !ship.ExistsInSim(sim) || ship.IsJunk || ship.IsHumanPlayerShip) { list.RemoveAt(i--); continue; }
             if (!l.Jumping && now >= l.Due)
             {
                 _ = ship.Renderer.AnimateFtlJumpOut(ship.WorldFlightDirection);

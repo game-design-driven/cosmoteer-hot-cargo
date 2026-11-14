@@ -53,6 +53,19 @@ expect huntershostile == 1
 on 1 hunters client
 on 1 expect huntershostile == 1
 
+step hunters.capture
+# Playtest 2026-11-15: the players took over a hunter, repaired it and jumped it to a station, then the game desynced.
+# Spec 1511: a taken hunter is a normal player ship on both machines and stays. Spec 1510: money that the parallel ship update
+# adds (a refund of expired pre-purchases) is never lost, so the money of both players is the same on both machines.
+mp takehunters
+wait 2
+expect hunterstaken >= 1
+expect huntertagplayers == 0
+on 1 expect hunterstaken >= 1
+on 1 expect huntertagplayers == 0
+mp moneyrace 2000
+wait 2
+
 step tunablesmenu.host-edit
 # Spec 504: the host's menu change reaches the client through the tunables input. A menu edit keeps the file's other values.
 waitfor menu_ready == 1 30

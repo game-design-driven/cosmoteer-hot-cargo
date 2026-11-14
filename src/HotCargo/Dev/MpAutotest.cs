@@ -181,6 +181,21 @@ public static class MpAutotest
         };
         Autotest.Commands["mpstep"] = arg => Autotest.SimStep = arg;
         Autotest.Commands["mpend"] = _ => _ended = true;
+        // moneyrace <adds> (in the sim: "mp moneyrace N"): each human player gets 1 money N times from worker threads, as in the
+        // parallel ship update, then loses it again. Fails when an add is lost (spec 1510). Test only.
+        // .NET threads, not FastParallel: the headless sim does not start FastParallel.
+        Autotest.Commands["moneyrace"] = arg =>
+        {
+            int adds = int.Parse(arg, CultureInfo.InvariantCulture);
+            var game = Autotest.RequireRun().Game;
+            var players = game.HumanPlayersIndexes.Select(i => game.GetPlayerState(i, deterministic: true)).ToList();
+            var before = players.Select(p => p.Money).ToList();
+            Parallel.For(0, adds * players.Count, new ParallelOptions { MaxDegreeOfParallelism = 4 }, i => players[i % players.Count].AddMoney(1));
+            var lost = players.Select((p, k) => before[k] + adds - p.Money).ToList();
+            foreach (var p in players) p.AddMoney(-adds);
+            if (lost.Any(n => n != 0)) throw new InvalidOperationException($"parallel money adds lost: [{string.Join(", ", lost)}] of {adds} per player");
+            Log.Info($"AUTOTEST moneyrace: {adds} parallel adds per player, none lost");
+        };
         // follow (client): says ready in every game setup, runs the commands that the host sends ("on"), and quits when the host ends.
         Autotest.Commands["follow"] = _ =>
         {
