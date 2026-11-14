@@ -103,6 +103,7 @@ internal sealed class TacticsEditor : WindowBox
         Close();
         _open = new TacticsEditor(run, ship);
         run.Game.Gui.FloatingWindows.AddChild(_open);
+        Ux.UxKit.FitToScreen(_open, run.Game.Gui.RootWidget.ScreenRect);
     }
 
     internal static void Close()
