@@ -1,0 +1,20 @@
+# Mission details from the Nearby Missions list (spec 1129): the mission log with the mission selected, after a click on its name.
+# Windowed test slot (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+closepanel
+wait 1
+ev_set Enabled false
+godmode
+chain_force black_box
+chain_tostation
+chain_accept
+wait 2
+pause on
+wait 1
+screenshot ux-details-before
+ux_open_details HotCargoChain
+wait 2
+screenshot ux-details-after
+quit
