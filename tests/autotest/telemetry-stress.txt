@@ -26,3 +26,4 @@ selfprof report stress
 frameprof report stress
 telestats
 quit
+# runner: pc

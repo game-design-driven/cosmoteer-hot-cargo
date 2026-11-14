@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run autotests in the headless sim host (tools/headless-sim) on this machine (macOS or Linux, also in CI), in parallel,
 # and print a summary.
-# Usage: autotest-sim.sh [timeout-per-test] [test ...]
+# Usage: autotest-sim.sh [timeout-per-test] [test ...]   (the first argument is the timeout only when it is a number)
 # - No test names: every tests/autotest/*.txt. Co-op sessions run with their names (mp:<session>, scripts/autotest-sim-mp.sh):
 #   two processes on 127.0.0.1 with the real-time clock. A session takes 2 slots and has no retry (its steps report on their own).
 # - Same pass rule as autotest.sh: the log has "telename <name>", AUTOTEST DONE, and no AUTOTEST FAIL or ERROR line.
@@ -13,8 +13,8 @@
 # Needs the game files in ../.game (scripts/pull-game.sh). Exit code 0 only if every test passed.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-TIMEOUT="${1:-400}"
-shift || true
+TIMEOUT=400
+if [[ -n "${1:-}" && "$1" != *[!0-9]* ]]; then TIMEOUT="$1"; shift; fi
 source scripts/autotest-lib.sh
 
 TESTS=()
