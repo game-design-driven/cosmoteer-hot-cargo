@@ -142,10 +142,10 @@ The prune of 2026-11-14 classified every game test with evidence: git history (f
 | shipai-hotcargo | KEEP | Tactics facts read tech, heat, hunters and timers in the game. | 68 |
 | shipai-save | KEEP | Critical save and load of tactics and designs. | 78 |
 | stash-rolls | KEEP | Outcomes in the world; fixes 15a99bb, 2ac5725, 35c15be. | 85 |
-| tactics-combat-repair | KEEP | Complex AI: repairs cancel under fire. | - |
-| tactics-fallback-cover | KEEP | New complex fall-back behavior. | - |
-| tactics-fallback-donor | KEEP | Complex: resources move between ships, then repair. | - |
-| tactics-fallback-station | KEEP | Complex: station gives crew and resources. | - |
+| tactics-combat-repair | KEEP | Complex AI: repairs cancel under fire; runs in a quiet world ([#133](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/133)). | - |
+| tactics-fallback-cover | KEEP | New complex fall-back behavior; runs in a quiet world ([#133](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/133)). | - |
+| tactics-fallback-donor | KEEP | Complex: resources move between ships, then repair; runs in a quiet world ([#133](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/133)). | - |
+| tactics-fallback-station | KEEP | Complex: station gives crew and resources; runs in a quiet world ([#133](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/133)). | - |
 | tech-count | KEEP | Tech count; kept over the co-op step. | 59 |
 | tech-design-vaults | KEEP | Run start; fixes ee4b44c, 454f50e. | 95 |
 | tech-drop | KEEP | Tech loss: crates or burn. | 55 |
