@@ -67,6 +67,7 @@ public static class HunterSpawner
     /// <summary>Spec 191. Spawns the groups that are due. Runs inside the sim tick.</summary>
     internal static void OnTick(Run run, SimRoot sim, double dt) => Errors.Guard("hunter waves", () =>
     {
+        ReleaseCaptured(run, sim);
         DropHeldFuel(run, sim);
         var pending = run.State.Hunters.Pending;
         if (!run.PressureActive) { pending.Clear(); return; }
@@ -263,6 +264,23 @@ public static class HunterSpawner
                 salvageFraction: 0f, destroyed: true, isPlayer: false, sourceShip: ship, inheritVelocity: Vector2.Zero);
             Log.Info($"hunters: dead hunter {h.Ship} dropped {dropped} of {h.Amount} held fuel");
             held.RemoveAt(i--);
+        }
+    }
+
+    /// <summary>
+    /// Spec 1511. A hunter ship that the players took over (a claimed wreck) becomes a normal player ship: it loses the hunter tag,
+    /// its held fuel and the hunter AI. So no hunter rule (pursuit, stasis, waves, fuel, relay watch, telemetry) counts it again.
+    /// Runs inside the sim tick, so every machine releases the ship at the same tick. Saves from before this rule heal at load.
+    /// </summary>
+    static void ReleaseCaptured(Run run, SimRoot sim)
+    {
+        foreach (var ship in sim.Ships.HumanPlayerShips)
+        {
+            if (!ship.HasTag(HunterTag)) continue;
+            ship.Tags?.Remove(HunterTag);
+            ForgetHeldFuel(run, ship);
+            if (Ai.AiGate.IsHunterAi(ship)) ship.AI = null;
+            Log.Info($"hunters: {ship.Metadata.PlainShipName} id={ship.UniqueID} belongs to player {ship.Metadata.PlayerIndex} now, no longer a hunter");
         }
     }
 

@@ -3,6 +3,10 @@
 newgame run
 wait 8
 ev_set Enabled false
+# A quiet world: no scavengers or Wayfarers arrive, and nearby enemies are cleared before the test ships spawn, so no other
+# fight keeps the ship from repairing.
+scav_set Enabled false
+fr_set PayForwardChance 0
 godmode on
 tacticlog on
 aiset FleeOnVanilla false

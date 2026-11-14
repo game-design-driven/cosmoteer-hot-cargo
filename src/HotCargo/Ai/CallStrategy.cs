@@ -46,7 +46,8 @@ internal sealed class CallStrategy(CallStrategyRules rules) : AIStrategyModule
     /// <summary>Length of the running call: CallSeconds, or CallInterceptSeconds when a player sensor intercepted it (spec 1300).</summary>
     [Serialize(Optional = true)] float _callSeconds;
     [Serialize(Optional = true)] Time _cooldownUntil;
-    [Serialize(Optional = true)] bool _sawEnemy;
+    /// <summary>True while the ship is seen by the players (spec 196). A call starts when this turns true.</summary>
+    [Serialize(Optional = true)] bool _seen;
     [Serialize(Optional = true)] float _lastHealth = -1f;
     [Serialize(Alias = "Target", Optional = true)] Ship? _target;
     [Serialize(Alias = "Assist", Optional = true)] Ship? _assist;
@@ -66,7 +67,7 @@ internal sealed class CallStrategy(CallStrategyRules rules) : AIStrategyModule
         _callStart.GetIntegrityHash(iHash);
         _callSeconds.GetIntegrityHash(iHash);
         _cooldownUntil.GetIntegrityHash(iHash);
-        _sawEnemy.GetIntegrityHash(iHash);
+        _seen.GetIntegrityHash(iHash);
         _assistUntil.GetIntegrityHash(iHash);
         (_target?.UniqueID ?? default).GetIntegrityHash(iHash);
         (_assist?.UniqueID ?? default).GetIntegrityHash(iHash);
@@ -93,8 +94,10 @@ internal sealed class CallStrategy(CallStrategyRules rules) : AIStrategyModule
         _lastHealth = health;
         var spotted = AiGate.NearestHumanEnemy(ship);
         // Spec 361: with personalities on, only ships with the Call trait call. Every ship can still answer.
-        bool triggered = spotted is not null && (!_sawEnemy || damaged) && AiGate.PersonalityAllows(ship, Trait.Call, t);
-        _sawEnemy = spotted is not null;
+        // Spec 196: the ship calls when the players first see it (not when it first shows as a radar blip), or on damage.
+        bool seen = spotted is not null && AiGate.SeenByPlayers(ship, t);
+        bool triggered = spotted is not null && ((seen && !_seen) || damaged) && AiGate.PersonalityAllows(ship, Trait.Call, t);
+        _seen = seen;
 
         bool inStorm = AiGate.InStorm(ship, t);
         // Listeners and other callers are looked up only when a call could start, because the lookups walk the ship list.
@@ -135,7 +138,7 @@ internal sealed class CallStrategy(CallStrategyRules rules) : AIStrategyModule
 
     public override AIStrategyModule Clone(AIParameters? parameters) => new CallStrategy(rules)
     {
-        _calling = _calling, _callStart = _callStart, _callSeconds = _callSeconds, _cooldownUntil = _cooldownUntil, _sawEnemy = _sawEnemy,
+        _calling = _calling, _callStart = _callStart, _callSeconds = _callSeconds, _cooldownUntil = _cooldownUntil, _seen = _seen,
         _lastHealth = _lastHealth, _target = _target, _assist = _assist, _assistUntil = _assistUntil,
     };
 

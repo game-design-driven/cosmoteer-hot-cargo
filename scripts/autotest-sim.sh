@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run autotests in the headless sim host (tools/headless-sim) on this machine (macOS or Linux, also in CI), in parallel,
 # and print a summary.
-# Usage: autotest-sim.sh [timeout-per-test] [test ...]
+# Usage: autotest-sim.sh [timeout-per-test] [test ...]   (the first argument is the timeout only when it is a number)
 # - No test names: every tests/autotest/*.txt. Co-op sessions run with their names (mp:<session>, scripts/autotest-sim-mp.sh):
 #   two processes on 127.0.0.1 with the real-time clock. A session takes 2 slots and has no retry (its steps report on their own).
 # - Same pass rule as autotest.sh: the log has "telename <name>", AUTOTEST DONE, and no AUTOTEST FAIL or ERROR line.
@@ -13,8 +13,8 @@
 # Needs the game files in ../.game (scripts/pull-game.sh). Exit code 0 only if every test passed.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-TIMEOUT="${1:-400}"
-shift || true
+TIMEOUT=400
+if [[ -n "${1:-}" && "$1" != *[!0-9]* ]]; then TIMEOUT="$1"; shift; fi
 source scripts/autotest-lib.sh
 
 TESTS=()
@@ -63,25 +63,28 @@ run_mp() {
   # so every other taker would judge the lock stale and remove it.
   locks="$(take_sim_slots "$me" 2)"
   out="$RUN_DIR/$1.out"
-  # The real-time budget of a session. Its waits count game seconds (requirement 1007), so a sim that runs at half speed on a
-  # loaded machine needs twice the wall time. Revisit if sessions often run near this budget.
-  SIM_STAGE="$STAGE" scripts/autotest-sim-mp.sh "tests/autotest-mp/$name.txt" "$((TIMEOUT * 2 + 200))" > "$out" 2>&1 || rc=$?
+  # The real-time budget of a session: its timeout (the "# timeout:" line or the runner's), doubled. Its waits count game
+  # seconds (requirement 1007), so a sim that runs at half speed on a loaded machine needs twice the wall time. Revisit if
+  # sessions often run near this budget.
+  local t; t="$(test_timeout "tests/autotest-mp/$name.txt" "$TIMEOUT")" || return 1
+  SIM_STAGE="$STAGE" scripts/autotest-sim-mp.sh "tests/autotest-mp/$name.txt" "$((t * 2 + 200))" > "$out" 2>&1 || rc=$?
   rm -rf $locks
   return $rc
 }
 
 # One run. Prints the log path; returns 0 on a pass.
 run_once() {
-  local name="$1" log save lock rc=0 t0=$SECONDS me=$BASHPID
+  local name="$1" log save lock rc=0 t0=$SECONDS me=$BASHPID t
+  t="$(test_timeout "tests/autotest/$name.txt" "$TIMEOUT")" || return 1
   # $me: this run's process. Inside "$(...)" $BASHPID is the short-lived substitution subshell (see run_mp).
   lock="$(take_sim_slots "$me" 1)"
   log="$LOG_DIR/$name.$(date +%Y%m%d-%H%M%S).sim.log"
   save="$(mktemp -d)"
   { echo "telename $name"; speed_line "tests/autotest/$name.txt"; cat "tests/autotest/$name.txt"; } > "$save/script.txt"
-  SIM_STAGE="$STAGE" SIM_SAVE="$save" timeout "$TIMEOUT" tools/headless-sim/run.sh autotest "$save/script.txt" > "$log" 2>&1 || rc=$?
+  SIM_STAGE="$STAGE" SIM_SAVE="$save" timeout "$t" tools/headless-sim/run.sh autotest "$save/script.txt" > "$log" 2>&1 || rc=$?
   rm -rf "$lock"
   { echo; echo "=== hot_cargo_log.txt"; cat "$save/Mods/hot_cargo/csharp/hot_cargo_log.txt" 2>/dev/null; } >> "$log"
-  [[ $rc -eq 124 ]] && echo "== timeout after $TIMEOUT s" >> "$log"
+  [[ $rc -eq 124 ]] && echo "== timeout after $t s" >> "$log"
   echo "== timing $name total=$((SECONDS - t0))" >> "$log"
   rm -rf "$save"
   echo "$log"

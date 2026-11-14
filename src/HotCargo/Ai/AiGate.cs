@@ -102,6 +102,22 @@ public static class AiGate
         return best;
     }
 
+    /// <summary>
+    /// Spec 196. True when a human player sees the ship (vanilla sight, Ship.IsWithinSightOfPlayer: deterministic sim state), or
+    /// when a human enemy ship is within its own sight radius + CallSightMargin of the ship, center to the ship's hull.
+    /// </summary>
+    public static bool SeenByPlayers(Ship ship, TacticsTunables t)
+    {
+        if (Run.Current is not { } run) return false;
+        foreach (int human in run.Game.HumanPlayersIndexes)
+            if (ship.IsWithinSightOfPlayer(human)) return true;
+        foreach (var human in HunterOrders.Sim(ship).Ships.HumanPlayerSignificantShips)
+            if (ship.IsEnemiesWith(human)
+                && human.DetWorldCenter.DistanceTo(ship.DetWorldCenter) <= human.Sensors.SightRadius + ship.WorldBoundingRadius + t.CallSightMargin)
+                return true;
+        return false;
+    }
+
     /// <summary>Significant AI ships on the same team, without the ship itself. Same team = same faction, or the same hunter or pirate group.</summary>
     public static IEnumerable<Ship> Allies(Ship ship)
     {

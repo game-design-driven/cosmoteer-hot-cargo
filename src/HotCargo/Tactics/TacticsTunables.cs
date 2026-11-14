@@ -157,6 +157,11 @@ public sealed class TacticsTunables
     [Serialize(Optional = true)] public string[] CallInterceptParts = ["cosmoteer.sensor_array"];
     /// <summary>Allies within this distance of the caller hear the call.</summary>
     [Serialize(Optional = true)] public float CallRange = 6000f;
+    /// <summary>
+    /// A ship calls when the players first see it, or when a human ship comes this much closer than "in its sight" would need
+    /// (sight radius + this margin, spec 196). 0: only real sight. A radar blip alone never starts a call.
+    /// </summary>
+    [Serialize(Optional = true)] public float CallSightMargin = 200f;
     /// <summary>A ship that called, was stopped or answered a call does not call again for this long.</summary>
     [Serialize(Optional = true)] public float CallCooldownSeconds = 60f;
     /// <summary>An ally that answered a call hunts the caller's target for this long.</summary>
@@ -193,6 +198,7 @@ public sealed class TacticsTunables
         require(FleeHealthFraction is >= 0 and <= 1 && FleeRecoverFraction is >= 0 and <= 1, "Tactics.FleeHealthFraction and FleeRecoverFraction must be 0 to 1");
         require(FleeChance is >= 0 and <= 1, "Tactics.FleeChance must be 0 to 1");
         require(CallSeconds > 0 && CallInterceptSeconds > 0 && CallRange > 0, "Tactics.CallSeconds, CallInterceptSeconds and CallRange must be above 0");
+        require(CallSightMargin >= 0, "Tactics.CallSightMargin must be 0 or more");
         require(CallStormStrength is > 0 and <= 1, "Tactics.CallStormStrength must be above 0 and at most 1");
         require(RegroupMinGroup >= 1, "Tactics.RegroupMinGroup must be 1 or more");
         require(FallBackTripSeconds > 0 && FallBackArriveDistance > 0 && FallBackPoolRange >= 0,
