@@ -1,0 +1,32 @@
+# Spec 1128: a left-click on a mission's marker highlights that mission in the Nearby Missions list, for a chain stage and a Hot Cargo
+# mission. The marker click goes through the indicator's own click controller; the headless sim draws no indicators, so there it
+# calls the indicator source's OnClicked, which the click calls. A click in space cannot be pressed by a test, so ux_click_area runs
+# the area logic at the center of the area.
+newgame run
+wait 8
+ev_set Enabled false
+chain_force black_box
+chain_tostation
+chain_accept
+expect chain_accepted == 1
+# A chain stage: a click on its marker.
+ux_highlight_mark HotCargoChain
+ux_click_marker HotCargoChain
+expect ux_highlight_marked == 1
+wait 1
+expect ux_highlight_shown == 1
+# A Hot Cargo mission (Courier Job): a click on its marker moves the highlight.
+ev_courier_offer
+ev_courier_accept
+ux_highlight_mark HotCargoCourier
+ux_click_marker HotCargoCourier
+expect ux_highlight_marked == 1
+wait 1
+expect ux_highlight_shown == 1
+# The chain stage again, by a click inside its area.
+ux_highlight_mark HotCargoChain
+ux_click_area HotCargoChain
+expect ux_highlight_marked == 1
+wait 1
+expect ux_highlight_shown == 1
+quit

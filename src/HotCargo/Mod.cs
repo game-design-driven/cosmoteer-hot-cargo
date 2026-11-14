@@ -33,6 +33,7 @@ public static class Mod
             Balance.BalanceArea.Register();
             ShipAi.ShipAiArea.Register();
             Autonomy.AutonomyArea.Register();
+            Scavenge.ScavengeArea.Register();
             Scaling.ScalingArea.Register();
             RunModes.RunModesArea.Register();
             Factions.FactionsArea.Register();
@@ -50,7 +51,6 @@ public static class Mod
             Dev.Invariants.Register();
             Dev.Playthrough.Register();
             // Last: its run log hooks run after the hooks of the other areas.
-            StartJobs.StartJobsArea.Register();
             RunRecord.RunRecordArea.Register();
             Onboarding.OnboardingArea.Register();
             Log.Info($"harmony patched {harmony.GetPatchedMethods().Count()} methods; mod root {ModRoot}");
