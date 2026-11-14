@@ -31,3 +31,4 @@ expect desyncs == 0
 expect selfprof_pct_tick < 25
 
 end
+# runner: pc

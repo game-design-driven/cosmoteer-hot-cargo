@@ -50,55 +50,13 @@ waitfor dip_vaulttech == 6 30
 waitfor dip_leaving >= 1 60
 waitfor hunters == 0 60
 
-step diplomacy.hire
-as 1 dip_spawn friend 250
-wait 3
-as 1 dip hire friend 0
-waitfor dip_friendhired == 1 30
-waitfor dip_hires >= 1 30
-
-step relays.bribe
-# Spec 958, 960: pirates hold the relays. The client selects credits on the bribe page from its own machine (its multiselect
-# input), and the host submits the offer through the shared choice input. Both machines see the relays open and the guards stand down.
-mp contract_money 100000
-mp rl_here pirates
-waitfor rl_guards >= 2 60
-# The guards spawn at the relay, often in stasis far from the fleet: bring them next to the client's ship and hold them there.
-# A start ship's comms range is short, and a free guard hovers at its edge, so the page would open and close.
-as 1 rl_guardsnear
-waitfor rl_live >= 1 15
-# Guards that were in stasis wake free; a second call holds the live ones.
-as 1 rl_guardsnear
-# The host submits, so the host's own ship must be able to call the guard (the input checks the chooser's ship).
-waitfor rl_callable == 1 30
-on 1 rl_pick money price
-waitfor rl_picks >= 1 30
-rl_bribe
-waitfor rl_blocks == 0 60
-expect rl_bribed == 1
-expect rl_guards == 0
-on 1 expect rl_blocks == 0
-on 1 expect rl_guards == 0
-
-step scaling.waves
-# A hunter wave and an event group get factor times the ships on both machines (2, or 3 with 3 players).
-# Two ships of the sector tier: the Warning response of the last sector (#19 removed the Patrol stage).
-mp stageset Warning EarlyScale 1
-mp spawnstage Warning
-@2p waitfor hunters >= 4 30
-@2p expect hunters == 4
-@3p waitfor hunters >= 6 30
-@3p expect hunters == 6
-mp ev_spawn TollGuards
-wait 3
-counttag hc_ev_toll
-@2p expect tagcount == 6
-@3p expect tagcount == 9
-
 step sharedchoice.listen-hunter
 # Spec 1131 to 1137 in vote mode: the host talks to a hunter and the client listens. Both vote to fight; the vote is unanimous on
 # both machines. The host's dialogue with an enemy pauses the game (vanilla setting), so the vote decides in its input (spec 604).
 # The client's listen window closes after the host's channel.
+# A hunter to talk to: a Warning wave on both machines.
+mp spawnstage Warning
+waitfor hunters >= 1 30
 mp sc_reset
 votemode on
 waitfor sc_votemode == 1 10
@@ -126,38 +84,6 @@ on 1 waitfor listen_open == 0 30
 pause off
 waitfor ev_paused == 0 10
 
-step missions.escort
-# Offers and sides, then the escort: the freighter steers to the jump point when a player is near, and arrival completes it.
-mp hc_generate all
-# An escort offer can exist before the generation, so the mark tells when it ran.
-mp mpmark 1
-waitfor mpmark >= 1 20
-waitfor hc_offers_escort >= 1 20
-expect hc_allies_vs_player == 0
-expect hc_allies_vs_target >= 2
-expect hc_escort_vs_player == 0
-expect hc_escort_raiders == 0
-mp hc_accept escort
-waitfor hc_active_escort == 1 20
-mp hc_escort_goto
-wait 5
-expect hc_escort_steering == 1
-# Spec 36 (#16): the convoy ambush spawns in the sim on both machines.
-mp hc_escort_ambush
-waitfor hc_escort_raiders >= 2 20
-expect hc_raiders_vs_player >= 2
-expect hc_raiders_vs_escort >= 2
-mp hc_escort_arrive
-waitfor hc_escort_done == 1 30
-expect hc_escort_marker == 0
-
-step missions.shady-roll
-# The client accepts the shady offer and flies there. The trap rolls on arrival with sim.Rand and the heat formula.
-mp heat 50
-as 1 hc_accept shady
-as 1 hc_shady_goto
-waitfor hc_trap_state >= 1 30
-
 step missions.trap
 # A forced trap. The client kills the ambush; the reward pays both players. Spec 331 raises the base 2 ambushers.
 mp hc_generate shady
@@ -181,6 +107,9 @@ mp aiset CallInterceptParts cosmoteer.control_room_small
 mp airocks 6 600
 mp aispawn pirates 3 2
 mp spawnstage Strike
+# Spec 196: a call starts when the players see the caller. The Strike hunters come next to the host's ship, in its sight.
+wait 1
+mp hunternear all 600
 mp aispawn monolith 3 2
 # Spec 1313: the spawned pirates and Monolith ships fall back and pick repair plans on both machines.
 mp aidamage new 0.3
@@ -193,28 +122,6 @@ expect ai_call_intercept >= 1
 on 1 expect ai_call_intercept >= 1
 expect tactic_fallback >= 1
 on 1 expect tactic_fallback >= 1
-
-step worlds.current
-# Spec 221, 227: a current painted on both machines pushes the host's ship the same way on both. Co-op tests cannot jump,
-# so "worlds paint" makes the current in the starting system. A new run: with 3 players, the ai.personalities fight can
-# destroy the host's ship (godmode does not save parts that one hit destroys), and this step needs it.
-mprestart
-mp godmode on
-mp ev_set Enabled false
-mp worlds paint
-mp worlds goto current
-wait 3
-expect worlds_ship_in_current > 0.5
-wait 5
-expect worlds_flow_speed > 2
-on 1 expect worlds_ship_in_current > 0.5
-on 1 expect worlds_flow_speed > 2
-# A crate dropped in the current floats with it on both machines (the item push is sim state, in the integrity hash).
-mp tech_set LossGraceSeconds 600
-mp tech drop 1
-wait 6
-expect worlds_item_flow_speed > 5
-on 1 expect worlds_item_flow_speed > 5
 
 step pursuit.coop
 # Spec 912, 934, in a new run: the client's stage start sends a reporting scout, and its report raises heat on both machines.
@@ -251,84 +158,6 @@ expect pu_hacker_done == 1
 expect pu_moneyspent == 0
 on 1 expect pu_moneyspent == 30000
 on 1 expect pu_outage >= 200
-
-step tech.coop-count
-# Spec 65, 442, 449, in a new run: each player holds a different amount, a vault is destroyed, the client's ship becomes a
-# derelict. Both machines show the same total, equal to the units in the vault storage. "mytech" is the local player's tech.
-mprestart
-mp godmode off
-mp ev_set Enabled false
-mp tech_set LossGraceSeconds 600
-# Starting vaults are at full health: 4 units for each player (3 + 3 + 2 with 3 players, spec 17). The tech count updates in the first sim tick of the new run.
-waitfor tech == 8 15
-expect vaultminhealth == 3000
-expect vaultunits == 8
-@2p expect mytech == 4
-@3p expect mytech == 3
-on 1 expect vaultminhealth == 3000
-@2p on 1 expect mytech == 4
-@3p on 1 expect mytech == 3
-mp tech remove 1
-wait 1
-expect tech == 7
-expect vaultunits == 7
-@2p expect mytech == 3
-@3p expect mytech == 2
-# Damage costs no tech while the vault stands. A destroyed vault drops its units as crates, in every machine's count.
-mp tech_set VaultTechLossChance 0
-mp vault damage 0.6
-wait 1
-expect tech == 7
-expect vaultunits == 7
-# The host's first vault holds 1 unit after the removal.
-mp vault destroy
-wait 1
-expect tech == 6
-expect vaultunits == 6
-expect techcrates == 1
-@2p expect mytech == 2
-@3p expect mytech == 1
-on 1 expect tech == 6
-on 1 expect vaultunits == 6
-on 1 expect techcrates == 1
-@2p on 1 expect mytech == 4
-@3p on 1 expect mytech == 3
-# The client's ship becomes a derelict. Its units (4, or 3 with 3 players) still count, the loss timer stays off, and its blip shows them.
-as 1 tech derelict
-wait 2
-expect tech == 6
-expect vaultunits == 6
-@2p expect derelicttech == 4
-@2p expect derelicttag == 4
-@3p expect derelicttech == 3
-@3p expect derelicttag == 3
-expect losstimer == 0
-@2p on 1 expect derelicttech == 4
-@2p on 1 expect derelicttag == 4
-@3p on 1 expect derelicttech == 3
-@3p on 1 expect derelicttag == 3
-on 1 expect losstimer == 0
-
-step tech.loss-timer
-# Spec 443, in a new run (8 tech): tech at 0 starts the timer on both machines, tech back stops it, and the timer ends the run.
-mprestart
-# The loss must happen: godmode blocks it, and its switch stays on across a restart.
-mp godmode off
-mp ev_set Enabled false
-mp tech_set LossGraceSeconds 30
-mp tech drop 8
-waitfor losstimer == 1 30
-expect techcrates == 8
-expect losstimerleft <= 30
-on 1 expect losstimer == 1
-on 1 expect techcrates == 8
-as 1 tech add 2
-waitfor losstimer == 0 30
-expect lost == 0
-mp tech remove 2
-waitfor losstimer == 1 30
-waitfor lost == 1 60
-on 1 waitfor lost == 1 30
 
 step journey.buyer-win
 # A new run: the Buyer appears, the client flies to it and sells tech from its own machine, and the run is won on both.

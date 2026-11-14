@@ -6,7 +6,7 @@
 # --telemetry: after the tests, copy the telemetry of every slot to ../.telemetry (scripts/pull-telemetry.sh) and write a report
 #   of the runs that these tests made (tools/telemetry). The report path is printed at the end.
 # - No test names: every tests/autotest/*.txt and every co-op session (mp:<session>, see coop_sessions in autotest-lib.sh).
-# - Test names: only those, for example "tech-sell mp:coop-economy" (autotest-affected.sh passes its list this way).
+# - Test names: only those, for example "tech-start mp:coop-economy" (autotest-affected.sh passes its list this way).
 #   "mp3:<session>" runs a session with 3 players (the host and 2 clients, 3 slots).
 # Each test retries once (see autotest.sh); a pass on the retry counts as FLAKY, not as a failure.
 # The suite builds and stages the mod once (scripts/stage.sh) and every test deploys that stage (HOT_CARGO_STAGE),

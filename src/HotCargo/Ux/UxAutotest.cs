@@ -72,6 +72,15 @@ static class UxAutotest
             MissionHighlight.FromPoint(run, area.Center);
             Autotest.Wait(1);
         };
+        // Spec 1129. ux_open_details <metatype ID>: what a left-click on that mission's name in the Nearby Missions list runs (a test
+        // cannot click the list). The field ux_details_shown is 1 while the open mission log shows the mission of ux_highlight_mark.
+        Autotest.Commands["ux_open_details"] = arg =>
+        {
+            var run = Autotest.RequireRun();
+            MissionDetails.Open(run.Game, LatestOfType(run, arg.Trim()));
+            Autotest.Wait(1);
+        };
+        Autotest.Fields["ux_details_shown"] = () => _highlightMarked is { } m && MissionDetails.Shows(Autotest.RequireRun().Game, m) ? 1 : 0;
         Autotest.Commands["ux_highlight_mark"] = arg => _highlightMarked = LatestOfType(Autotest.RequireRun(), arg.Trim());
         Autotest.Fields["ux_highlight_marked"] = () => _highlightMarked is { } m && MissionHighlight.Current == m ? 1 : 0;
         Autotest.Fields["ux_highlight_shown"] = () => MissionHighlight.ShownInList(Autotest.RequireRun().Game) ? 1 : 0;

@@ -39,7 +39,7 @@ The mod checks at the first frame of a run that each trigger has a page and each
 
 ### Co-op (multiplayer) tests
 
-Co-op tests are sessions: `tests/autotest-mp/<session>.txt` (`coop-core`, `coop-economy`, `coop-combat`, `coop-shared`, where both humans share one player index, and `coop-stress`, a cost measure for spec 42). Run one with `scripts/autotest-all.sh 400 mp:<session>` or `scripts/autotest-mp.sh tests/autotest-mp/<session>.txt [timeout]`. Run them all with `scripts/autotest-mp-all.sh`.
+Co-op tests are sessions: `tests/autotest-mp/<session>.txt` (`coop-core`, `coop-economy`, `coop-combat`, `coop-autonomy`, `coop-friendly`, `coop-shared`, where both humans share one player index, and `coop-stress`, a cost measure for spec 42 that runs on the PC only). Run one with `scripts/autotest-all.sh 400 mp:<session>` or `scripts/autotest-mp.sh tests/autotest-mp/<session>.txt [timeout]`. Run them all with `scripts/autotest-mp-all.sh`.
 
 - The script takes two test slots. One slot hosts a co-op career, and the other slot joins it over UDP on `127.0.0.1`. Both run headless with `--nosteam`, through the LAN lobby and game setup screens.
 - The session file is the host's script and holds all choreography. The client runs `tests/autotest-mp/client.txt`: it joins, then follows the host. A `client: <command>` line in the session file runs on the client before it joins (local settings).
@@ -78,7 +78,7 @@ The game runs on a Windows PC that a person also uses. `autotest.sh` runs headle
 - A change makes the spec lines that it touches true in the same PR.
 - A failed test that the PR does not touch: check the same test on `main` first. A failure that shows only with the change belongs to the PR. A flaky or infrastructure failure counts as passing: rerun the failed jobs (in the merge queue: add the PR again) and say so in the PR. A failure that also shows on `main` blocks the merge until `main` is fixed.
 
-Parallel autotests work, also from one worktree: `deploy.sh` holds a build lock. `scripts/autotest-affected.sh` runs the smoke tests of the areas a change touches (`tests/TIERS.md`); name a test after its area folder (`tech-sell` for `src/HotCargo/Tech`).
+Parallel autotests work, also from one worktree: `deploy.sh` holds a build lock. `scripts/autotest-affected.sh` runs the smoke tests of the areas a change touches (`tests/TIERS.md`); name a test after its area folder (`tech-start` for `src/HotCargo/Tech`).
 - Never commit personal machine data: user home paths, machine names, Steam IDs. `scripts/check-private.sh` checks this, and CI runs it on every PR and in the merge queue. Machine settings go in `scripts/pc.local.sh` (git ignores it).
 
 ## Releases

@@ -1,4 +1,5 @@
-# Call interception (spec 1300-1303): a call takes CallSeconds, or CallInterceptSeconds when a player sensor part reaches the caller.
+# Call trigger (spec 196): no call from a radar blip, a call once seen. Call interception (spec 1300-1303): a call takes CallSeconds,
+# or CallInterceptSeconds when a player sensor part reaches the caller.
 newgame run
 wait 8
 ev_set Enabled false
@@ -13,8 +14,14 @@ stageset Strike WaveGapSeconds 300
 aiset CallEnabled false
 spawnstage Strike
 wait 1
-hunternear all 500
+# Spec 196: hunters on the player's radar but out of sight (radar blips) do not call.
+hunternear all 1500
 aiset CallEnabled true
+waitfor ai_blips >= 1 10
+wait 8
+expect ai_call_start == 0
+# Close enough to be seen: the call starts.
+hunternear all 500
 # The starting ship has no sensor array: the call takes CallSeconds.
 waitfor ai_calling >= 1 30
 expect ai_call_seconds == 22
