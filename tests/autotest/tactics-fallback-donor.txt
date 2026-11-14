@@ -3,6 +3,10 @@
 newgame run
 wait 8
 ev_set Enabled false
+# A quiet world: no scavengers or Wayfarers arrive, and nearby enemies are cleared before the test ships spawn, so no other
+# fight keeps the ship from repairing.
+scav_set Enabled false
+fr_set PayForwardChance 0
 godmode on
 tacticlog on
 aiset FleeOnVanilla false
@@ -17,6 +21,7 @@ aiset FallBackTripSeconds 600
 aitrait Pirate Raiders FallBack 1
 aitrait Pirate Ambushers FallBack 1
 openspace 6000
+fr_kill_enemies
 aispawn pirates 2 3 trade
 # Vanilla pools the stock of own-player ships within 400, so the donor starts further away.
 ainear 1 0 1500
