@@ -87,5 +87,5 @@ Look at each image before you commit it. Crop anything that shows a user name, a
 
 - `tests/autotest/ux-basic.txt` (headless slot): heat panel on and off, two stage alerts, hull integrity after damage, map open and close, comms pause (pause on open, unpause on close, a pause by hand stays), one ship alert when the own ship is destroyed, the loss path through the patched game-over screen. Any failed UI patch logs an ERROR line and fails the test.
 - `tests/autotest/ux-more.txt` (headless slot): dialogue key 1 picks an event option, the watched supplies (battery in, carbon out), the several-parts info, a damage ping, one low supply alert (thresholds raised above 100 %, no second alert), the trade hints at a station, comms over the map with the comms pause (on and off), the wanted line, and on a multiselect event page a digit that toggles a row and Enter that submits.
-- `tests/autotest/ux-missions.txt` (headless slot): kind icons in the comms missions list, the chain badge, the filter, and that the filter stays for the next comms window.
+- The mission filter: unit tests `MissionSelectModelTests`.
 - `tests/screens/*.txt` (windowed test slot): the screenshots above.

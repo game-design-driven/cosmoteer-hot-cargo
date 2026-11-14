@@ -80,15 +80,15 @@ Checked and true to the text: Convoy Duty, Joint Strike, Drone Siege, Sunside Or
 
 | # | State |
 |---|---|
-| 1 | Fixed: `events-courier`, `events-courier-handover`, `events-courier-lost`, co-op step `events.courier` (coop-economy) |
+| 1 | Fixed: `events-courier-handover`, `events-courier-lost`, co-op step `events.courier` (coop-economy) |
 | 2 | Fixed: `chains-extraction` |
-| 3 | Fixed: `chains-blackbox` |
+| 3 | Fixed: `chains-later` (the recorder hand-over) |
 | 4 | Fixed: `mechanics-prototype` |
 | 5 | Fixed: `mechanics-salvage` |
 | 6 | Fixed: the text names no convoy (spec 1143) |
 | 7 | Fixed: the crate drifts loose beside the courier (spec 1142), `chains-later` |
-| 8 | Fixed: the crate drifts out of the depot wreck (spec 1142), `chains-cargo` |
-| 9 | Fixed: the processors drift out of Rook's wreck (spec 1142), `chains-cargo` |
+| 8 | Fixed: the crate drifts out of the depot wreck (spec 1142), `chains-later` |
+| 9 | Fixed: the processors drift out of Rook's wreck (spec 1142), `chains-later` |
 | 10 | Kept: crew count as a need; the loot is real |
 | 11 | Fixed: the recorder is a real item (spec 1144), `worlds-sundive`, `worlds-solar` |
 | 12 | Fixed by PR #18 (mission text): the text no longer says "come alone"; the trap it names is real (spec 39, 40) |

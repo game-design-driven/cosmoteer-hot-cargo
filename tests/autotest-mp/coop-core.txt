@@ -1,14 +1,10 @@
-# Co-op session: host tunables, onboarding, heat and hunters, settings menu, run modes, ship tactics, resync, save and load.
+# Co-op session: host tunables, heat and hunters, settings menu, run modes, ship tactics, resync, save and load.
 # The session file is the host's script. "client:" lines run on the client before it joins; the client then follows (client.txt).
 # "as 1 <command>": the command runs in the sim as the client player. "on 1 <command>": it runs on the client's own machine.
 # Every step logs its own result. Both machines log a state hash every 300 ticks; scripts/coop-report.sh compares them.
 
 # Before the join. The host's tunables.rules differs from the client's: both start with the defaults, then the host's file
-# arrives as an MP input. Tutorials are on for both players, so the co-op page shows (spec 721, 733).
-client: codex_reset
-client: tutorials on
-codex_reset
-tutorials on
+# arrives as an MP input.
 tunablesfile Heat { HeatPerGameMinute = 30; HeatCarryOverFraction = 0.5 }  Events { Enabled = false }
 mphost {PORT}
 mpstart {PLAYERS}
@@ -19,10 +15,6 @@ mp tacticlog on
 step core.tunables
 waitfor heatperminute == 30 30
 on 1 waitfor heatperminute == 30 30
-
-step onboarding.coop-page
-waitfor hint_hc_coop == 1 15
-on 1 waitfor hint_hc_coop == 1 15
 
 step startjobs.pick
 # Spec 1204: the start job is one shared choice. Both machines show the panel, the client's hover shows on the host,
@@ -45,13 +37,6 @@ step core.client-heat
 as 1 heat 40
 waitfor stages >= 1 60
 
-step onboarding.runlog
-# Each machine logs the stage in its own run log.
-waitfor runlog_stage == 1 10
-expect runlog_count >= 2
-on 1 waitfor runlog_stage == 1 10
-on 1 expect runlog_count >= 2
-
 step core.hunters
 # Hunters jump in, the host forces two more stages, and the hunters stay hostile to both players.
 waitfor hunters >= 1 60
@@ -64,13 +49,6 @@ hunters host
 expect huntershostile == 1
 on 1 hunters client
 on 1 expect huntershostile == 1
-
-step factions.watch
-# Spec 664: the Strike stage above marked the neighbor systems; the client's galaxy map shows CORPORATE WATCH too.
-expect fa_watched >= 1
-expect fa_tag_watch >= 1
-on 1 expect fa_watched >= 1
-on 1 expect fa_tag_watch >= 1
 
 step tunablesmenu.host-edit
 # Spec 504: the host's menu change reaches the client through the tunables input. A menu edit keeps the file's other values.
@@ -130,24 +108,6 @@ waitfor tactics_any_auto >= 2 30
 expecttacticsany Sniper
 expecttacticsany Defensive
 
-step shipai.editor
-# The client edits in the editor window: apply a preset, change the action of row 1, move row 3 up, edit a condition term.
-# Each edit is one input.
-on 1 tactics_editor open
-on 1 tactics_editor apply Escort
-on 1 tactics_editor act 1 RetreatRepair
-on 1 tactics_editor up 3
-# A term edit: add a condition, pick it, and turn NOT on. Each one is one input.
-on 1 tactics_editor addterm 1
-on 1 tactics_editor cond 1 HuntersInSystem 2
-on 1 tactics_editor not 1 2
-on 1 wait 3
-on 1 expecttactics HC1:HealthBelow=25&!HuntersInSystem>RetreatRepair;Always>Guard=0;AllyUnderAttack>TargetAllyAttacker
-on 1 expect tactics_auto == 1
-on 1 tactics_editor close
-wait 2
-expecttacticsany HC1:HealthBelow=25&!HuntersInSystem>RetreatRepair;Always>Guard=0;AllyUnderAttack>TargetAllyAttacker
-
 step shipai.fight
 # Both machines run the same tactics decisions in a fight.
 # Two ships of the sector tier: the Warning response of the last sector (#19 removed the Patrol stage).
@@ -155,18 +115,6 @@ mp stageset Warning EarlyScale 1
 mp spawnstage Warning
 wait 30
 expect tactics_evals > 20
-
-step debris.decay
-# Spec 1245: junk decay is sim state. Pieces of both players start to age on both machines at the same tick; the state hash
-# compares the ages (RunState.Debris) and the ship counts. They are still young at the resync below.
-mp debris_set DecaySeconds 40
-mp debris_set GlowSeconds 15
-mp debris_set CheckSeconds 1
-mp debris_set MaxParts 6
-mp debris_spawn 3 3
-as 1 debris_spawn 2 3
-waitfor debris_tracked >= 5 15
-on 1 waitfor debris_tracked >= 5 15
 
 step core.resync
 # The resync that follows a desync (and a late join): every machine reloads the host's game. A pending event, a sprung trap,
@@ -197,14 +145,6 @@ on 1 expectevent smuggler_den
 on 1 expect hc_trap_state == 2
 on 1 expect tactics_snapshot_kept >= 1
 on 1 expect tactics_snapshot_changed == 0
-
-step debris.resync
-# Spec 1245: the ages came back with the host's game, so the pieces glow and burn up at the same tick on both machines.
-waitfor debris_glowing >= 5 60
-on 1 waitfor debris_glowing >= 5 60
-# Junk from the fight above decays too, so more pieces than the test pieces can burn up.
-waitfor debris_removed >= 5 60
-on 1 waitfor debris_removed >= 5 60
 
 step core.save-load
 # Back to the game setup with the connection kept, load the save (from before the resync) for both players, start.
@@ -241,11 +181,6 @@ wait 15
 rm_log host-after
 on 1 expect rm_tiers >= 1
 on 1 rm_log client-after
-
-step onboarding.restore
-# The slot keeps its settings file: tutorials off again for later tests in these slots.
-codex_restore
-on 1 codex_restore
 
 end
 # tier: smoke

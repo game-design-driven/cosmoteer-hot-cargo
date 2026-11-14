@@ -249,6 +249,17 @@ public class ShipAiModelTests
         Assert.Single(ShipAiModel.RemoveTerm(new TacticRow(Cond.Always, 0, Act.Kite, 0), 0).Terms);
     }
 
+    [Fact]
+    public void Removing_a_middle_term_keeps_the_or_with_its_own_term()
+    {
+        // HealthBelow=20 & !CarryingTech | EnemiesAtLeast=3, the editor's remove button on term 2 (spec 420).
+        var row = new TacticRow([new Term(Cond.HealthBelow, 20), new Term(Cond.CarryingTech, 0, Not: true), new Term(Cond.EnemiesAtLeast, 3, Or: true)],
+            Act.RetreatRepair, 0);
+        var removed = ShipAiModel.RemoveTerm(row, 1);
+        Assert.Equal([new Term(Cond.HealthBelow, 20), new Term(Cond.EnemiesAtLeast, 3, Or: true)], removed.Terms);
+        Assert.Equal("HC1:HealthBelow=20|EnemiesAtLeast=3>RetreatRepair", ShipAiModel.Encode([removed]));
+    }
+
     [Theory]
     [InlineData(Cond.HeatStageAtLeast, 3, true)]
     [InlineData(Cond.HeatStageAtLeast, 4, false)]
