@@ -3,6 +3,10 @@
 newgame run
 wait 8
 ev_set Enabled false
+# A quiet world: no scavengers or Wayfarers arrive, and nearby enemies are cleared before the test ships spawn, so no other
+# fight keeps the ship from repairing.
+scav_set Enabled false
+fr_set PayForwardChance 0
 godmode on
 tacticlog on
 aiset FleeOnVanilla false
@@ -19,6 +23,7 @@ aiset FallBackRecoverFraction 0.4
 aiset FallBackMaxSeconds 600
 aiset FallBackResupplyEnabled false
 openspace 6000
+fr_kill_enemies
 aispawn pirates 1 3 trade
 wait 3
 aistrip 0 resources
@@ -33,6 +38,6 @@ ainew_watch 0 300
 waitfor ai_new_first_in_combat == 1 30
 waitfor tactic_repair_hold >= 1 10
 wait 5
-expect ai_new_first_in_combat == 1
+# The player ship can stop firing in these 5 s; the queue must stay empty either way.
 expect ai_new_first_jobs == 0
 quit

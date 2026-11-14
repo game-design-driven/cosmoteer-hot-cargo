@@ -1,5 +1,5 @@
 # Debris decay (spec 1240 to 1246), single player: small loose junk glows, then burns up. A wreck with more than MaxParts parts
-# and tech crates stay. With the switch off, junk stays and nothing is tracked.
+# and tech crates stay. The ages survive a save and load. With the switch off, junk stays and nothing is tracked.
 # tier: smoke
 newgame run
 wait 5
@@ -18,6 +18,11 @@ expect junk >= 4
 waitfor debris_tracked == 3 10
 expect debris_candidates == 3
 waitfor debris_glowing == 3 20
+# Spec 1245: the ages come back with a loaded game (a co-op resync loads the host's game the same way), so the pieces
+# still glow after the load and burn up on time.
+save debris
+load debris
+waitfor debris_glowing == 3 15
 waitfor debris_removed == 3 30
 expect debris_tracked == 0
 expect junk >= 1

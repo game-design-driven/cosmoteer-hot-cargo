@@ -49,7 +49,7 @@ public static class HunterArea
             HunterSpawner.Hunters(Sim()).Count(h => h.Commands.CurConfirmedCommand is Cosmoteer.Ships.Commands.AttackCommand);
 
         // takehunters: the players take over every live hunter, like the capture claim (mech_capture_claim): it becomes a wreck,
-        // then a ship of the first player. It keeps the hunter tag. Test only.
+        // then a ship of the first player. The next sim tick releases it (spec 1511). Test only.
         Autotest.Commands["takehunters"] = _ =>
         {
             var sim = Sim();
@@ -62,9 +62,10 @@ public static class HunterArea
                 Log.Info($"AUTOTEST players took over hunter {h.Metadata.PlainShipName} id={h.UniqueID}");
             }
         };
-        // Hunter-tagged ships that the players own: all of them, and the ones that "takehunters" did not take (spec 1002: must be 0).
-        Autotest.Fields["hunterstaken"] = () => HumanHunterShips().Count();
-        Autotest.Fields["huntersjoined"] = () => HumanHunterShips().Count(s => !_taken.Contains(s.UniqueID));
+        // Ships that "takehunters" took that are still player ships in this system (spec 1511: the ship stays).
+        Autotest.Fields["hunterstaken"] = () => Sim().Ships.HumanPlayerShips.Count(s => _taken.Contains(s.UniqueID));
+        // Player ships with the hunter tag (spec 1511: 0 one tick after a takeover).
+        Autotest.Fields["huntertagplayers"] = () => Sim().Ships.HumanPlayerShips.Count(s => s.HasTag(HunterSpawner.HunterTag));
         // Player indexes of the hunters, live and in stasis (spec 1003: 1 when hunters exist).
         Autotest.Fields["huntersides"] = () => HunterSpawner.SideIndexes(Sim(), (CareerSimModeManager)Sim().Mode).Count;
         Autotest.Fields["hunterstasis"] = () => SimQueries.TaggedShips(Sim(), HunterSpawner.HunterTag).Count(h => h.Live is null);
@@ -117,8 +118,6 @@ public static class HunterArea
     }
 
     static SimRoot Sim() => Autotest.RequireRun().Game.Sim;
-
-    static IEnumerable<Ship> HumanHunterShips() => Sim().Ships.Where(s => s.HasTag(HunterSpawner.HunterTag) && s.IsHumanPlayerShip);
 
     static Vector2 FleetCenter(SimRoot sim) => SimQueries.FleetCenter(sim) ?? throw new InvalidOperationException("no human ships");
 

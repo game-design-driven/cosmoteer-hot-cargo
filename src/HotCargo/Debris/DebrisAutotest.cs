@@ -16,7 +16,8 @@ static class DebrisAutotest
     internal static void Register()
     {
         Autotest.Commands["debris_set"] = arg => Autotest.SetField(R().T.Debris, arg);
-        // debris_spawn <count> [parts] [speed]: loose junk pieces near the acting player's first ship, each a row of [parts] armor blocks
+        // debris_spawn <count> [parts] [speed]: loose junk pieces near the acting player's first ship, or near the first human ship by ID
+        // when a fight left that player without a ship (godmode cannot stop a one-hit kill). Each piece is a row of [parts] armor blocks
         // (default 3), with no crew and no resources. [speed] (default 0) sends them drifting and spinning, like pieces of a destroyed ship.
         // Fixed seeds and sim positions, so every co-op machine makes the same pieces.
         Autotest.Commands["debris_spawn"] = arg =>
@@ -26,7 +27,8 @@ static class DebrisAutotest
             int parts = p.Length > 1 ? int.Parse(p[1], CultureInfo.InvariantCulture) : 3;
             float speed = p.Length > 2 ? float.Parse(p[2], CultureInfo.InvariantCulture) : 0f;
             var sim = R().Game.Sim;
-            var home = Autotest.ActingShip(sim) ?? throw new InvalidOperationException("no ship of the acting player");
+            var home = Autotest.ActingShip(sim) ?? sim.Ships.HumanPlayerShips.OrderBy(s => s.UniqueID).FirstOrDefault()
+                ?? throw new InvalidOperationException("no human ship");
             var armor = home.Rules.PartsByID[new ID<PartRules>("cosmoteer.armor")];
             for (int i = 0; i < count; i++)
             {
