@@ -1,0 +1,23 @@
+# Mission highlight (spec 1128): the Nearby Missions list before and after a left-click on a mission's marker.
+# Windowed test slot (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+closepanel
+wait 1
+ev_set Enabled false
+godmode
+chain_force black_box
+chain_tostation
+chain_accept
+wait 2
+ev_courier_offer
+ev_courier_accept
+wait 2
+pause on
+wait 1
+screenshot ux-highlight-before
+ux_click_marker HotCargoChain
+wait 2
+screenshot ux-highlight-after
+quit

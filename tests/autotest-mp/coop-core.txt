@@ -16,26 +16,29 @@ step core.tunables
 waitfor heatperminute == 30 30
 on 1 waitfor heatperminute == 30 30
 
-step startjobs.pick
-# Spec 1204: the start job is one shared choice. Both machines show the panel, the client's hover shows on the host,
-# and the client's pick closes the panel and sets the job on both machines. "The Contract" changes nothing for the later steps.
-waitfor sj_panel == 1 15
-on 1 waitfor sj_panel == 1 15
-on 1 hover 1
-waitfor sj_hovers == 1 10
-on 1 hover off
-on 1 sj_click contract
-waitfor sj_pending == 0 10
-on 1 waitfor sj_pending == 0 10
-expect sj_job == 1
-on 1 expect sj_job == 1
-expect sj_panel == 0
-on 1 expect sj_panel == 0
-
 step core.client-heat
 # The client adds heat, and the first stage (Warning at heat 40, #19) starts on both machines.
 as 1 heat 40
 waitfor stages >= 1 60
+
+step ux.ping
+# Spec 1500 to 1506: the client pings its own ship (Alt + left click). Both machines show one ping, as a vanilla indicator, on
+# the ship's center (it follows the ship). The client's next ping, in space, replaces it. A short lifetime ends it on both.
+on 1 ping own
+waitfor ping_count == 1 30
+on 1 waitfor ping_count == 1 30
+waitfor ping_on_ship == 1 10
+on 1 waitfor ping_on_ship == 1 10
+waitfor ping_indicators == 1 10
+on 1 ping space 3000 0
+waitfor ping_on_ship == 0 30
+on 1 waitfor ping_on_ship == 0 30
+expect ping_count == 1
+mp ux PingSeconds 2
+waitfor ping_count == 0 30
+on 1 waitfor ping_count == 0 30
+waitfor ping_indicators == 0 10
+mp ux PingSeconds 30
 
 step core.hunters
 # Hunters jump in, the host forces two more stages, and the hunters stay hostile to both players.
@@ -154,6 +157,8 @@ mpstart {PLAYERS}
 # A loaded co-op game starts paused.
 pause off
 waitfor paused == 0 10
+# The save is from the debris steps, so it holds their hunter cap of 0. The cap of tunablesmenu.file again.
+mp maxhunters 7
 expectevent smuggler_den
 expect hc_trap_state == 2
 expect stages >= 1

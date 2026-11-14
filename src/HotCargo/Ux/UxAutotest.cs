@@ -11,6 +11,14 @@ namespace HotCargo.Ux;
 /// <summary>Autotest commands and fields for the batch 2 UX items (UX.md V7 to V15, H8). Test aids only.</summary>
 static class UxAutotest
 {
+    static Cosmoteer.Modes.Career.Missions.Mission? _highlightMarked;
+
+    static Cosmoteer.Modes.Career.Missions.Mission LatestOfType(Core.Run run, string metatype)
+    {
+        var id = new ID<Cosmoteer.Modes.Career.Missions.MissionMetatype>(metatype);
+        return run.Mode.Missions.LastOrDefault(m => m.MetatypeID.Equals(id)) ?? throw new InvalidOperationException($"no {metatype} mission in the log");
+    }
+
     internal static void Register()
     {
         RegisterMissionSelect();
@@ -36,6 +44,37 @@ static class UxAutotest
             var run = Autotest.RequireRun();
             run.Mode.SimMode.Wanted.WarTriggeredByPlayer(TechAutotest.NearestStation());
         };
+        // Spec 1128. ux_click_marker <metatype ID>: clicks the indicator of the latest mission of that type, through the indicator's own
+        // click controller, as a mouse click does. ux_click_area <metatype ID>: the logic of a left-click on empty space at the center
+        // of that mission's area (a test cannot press the mouse in space). ux_highlight_mark <metatype ID> remembers that mission; the
+        // field ux_highlight_marked is 1 while it is the highlighted one, ux_highlight_shown 1 while the list shows it highlighted.
+        Autotest.Commands["ux_click_marker"] = arg =>
+        {
+            var run = Autotest.RequireRun();
+            var m = LatestOfType(run, arg.Trim());
+            var poi = run.Game.Sim.Doodads.OfType<Cosmoteer.Simulation.Doodads.POIDoodad>().Where(m.IsPOIAssociated).OrderBy(p => p.UniqueID).FirstOrDefault()
+                ?? throw new InvalidOperationException($"the latest {arg.Trim()} mission has no marker in this system");
+            var indicator = run.Game.Gui._indicators.FirstOrDefault(kv => kv.Key is Cosmoteer.Simulation.Doodads.POIDoodad.POIIndicatorSource s && s.Doodad == poi).Value;
+            if (indicator is not null) indicator.Components.OfType<Halfling.Gui.Components.Input.WidgetClickController>().First().InvokeClicked();
+            else
+            {
+                // The headless sim draws no screen, so it has no indicator widgets. A click on one calls its source's OnClicked.
+                Log.Info($"AUTOTEST marker {poi.UniqueID} has no indicator widget (no screen); calling the indicator source's OnClicked");
+                new Cosmoteer.Simulation.Doodads.POIDoodad.POIIndicatorSource(poi).OnClicked();
+            }
+            Autotest.Wait(1);
+        };
+        Autotest.Commands["ux_click_area"] = arg =>
+        {
+            var run = Autotest.RequireRun();
+            var area = LatestOfType(run, arg.Trim()).Objectives.Select(o => o.GetAreaLocation(run.Game)).FirstOrDefault(c => c is not null)
+                ?? throw new InvalidOperationException($"the latest {arg.Trim()} mission has no area in this system");
+            MissionHighlight.FromPoint(run, area.Center);
+            Autotest.Wait(1);
+        };
+        Autotest.Commands["ux_highlight_mark"] = arg => _highlightMarked = LatestOfType(Autotest.RequireRun(), arg.Trim());
+        Autotest.Fields["ux_highlight_marked"] = () => _highlightMarked is { } m && MissionHighlight.Current == m ? 1 : 0;
+        Autotest.Fields["ux_highlight_shown"] = () => MissionHighlight.ShownInList(Autotest.RequireRun().Game) ? 1 : 0;
         // selectparts: selects every part of the player ship, so the parts card shows the several-parts info.
         Autotest.Commands["selectparts"] = _ =>
         {

@@ -20,6 +20,9 @@ public static class Screenshot
 {
     static bool _forceRender;
 
+    /// <summary>True after "render on": the game draws, so a screenshot works.</summary>
+    internal static bool ForceRender => _forceRender;
+
     internal static void Register(Harmony harmony)
     {
         // The WDX platform assembly is not referenced at build time, so the patch target is found by name.
