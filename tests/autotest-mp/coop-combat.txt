@@ -26,12 +26,13 @@ counttag pirate
 
 step debt.help
 # Spec 1435, 1437: helpers ask for pay; the client puts it on the tab from its machine; both machines show the same debt.
-mp debt_set HelpCalmSeconds 2
+# Enemies near the fleet can keep the fight going here; debt-help checks the end of the fight, so this step asks at once.
 mp debt_help_spawn
 mp debt_help_share 500 500
-waitfor debt_help_hailed == 1 60
+mp debt_help_ask
+# The client's ship next to the helper, so the hail does not wait for the helper's AI to leave its targets.
 as 1 debt_goto helper
-wait 2
+waitfor debt_help_hailed == 1 120
 on 1 debt_help_answer tab
 waitfor debt_count == 1 30
 on 1 waitfor debt_count == 1 30
