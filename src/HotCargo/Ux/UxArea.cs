@@ -70,6 +70,7 @@ public static class UxArea
         Autotest.Fields["ping_count"] = () => Ping.Count;
         Autotest.Fields["ping_on_ship"] = () => Ping.OnHumanShips(Autotest.RequireRun().Game.Sim);
         Autotest.Fields["ping_indicators"] = () => Cosmoteer.Simulation.ObjectIndicatorSource.GetAllInScene(Autotest.RequireRun().Game.Sim).OfType<Ping.PingIndicator>().Count();
+        ScreenSize.RegisterCommands();
         // render on|off: draw while minimized, for screenshots (windowed test slots, scripts/screens.sh; headless slots have no graphics).
         // "on" also closes the vanilla Steam notice: test slots run with --nosteam, and the notice would cover every screenshot.
         Autotest.Commands["render"] = arg =>

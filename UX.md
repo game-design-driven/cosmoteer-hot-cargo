@@ -50,6 +50,7 @@ A failing UI patch logs one error, shows it in the overlay, and leaves the vanil
 | V16 | Ship blips of your own fleet in another system: no "under attack" sign. | — | Off-screen blips in the same system are V8. Ships in another system are in stasis and take no damage. | — | low | — | not needed |
 | V17 | Trade, missions and crew hire happen in the comms window while the fight goes on. | A comms window with a station or ship pauses the game. Closing the last comms window unpauses, but only if this feature paused it, so a pause by hand stays. Off by default in multiplayer, because one player's comms window pauses every player. | `Ux/CommsPause.cs`: postfixes on `CommWindow.OnParented` and `OnUnparenting`; the pause uses `MPSetPausedInput`, like the pause key. | `PauseOnComms`, `PauseOnCommsMultiplayer` | high | S | done |
 | V18 | An off-screen blip at the left or right screen edge centers its label on the blip, so half of a long label (a ship name, "CALLING HELP 30%") runs off the screen. | Near those edges the label aligns toward the screen. | `Ux/EdgeLabels.cs`: postfix on `ObjectIndicator.Update`. | `EdgeLabels` | low | S | done |
+| V19 | A left-click on a mission's marker only moves the camera there. The Nearby Missions list does not show which mission it is, and it has no selection. | The click also highlights that mission in the Nearby Missions list (vanilla selected list background), and the list shows it near the top. A left-click inside a mission's area in space does the same, when it hits no ship. | Postfix on `POIDoodad.POIIndicatorSource.OnClicked` (vanilla `GetMissionAssociation`); after `PlayerInputHandler.InputSelectShipsAndParts`; postfix on `Mission.PrioritizeOnHud` and `MissionsHud.OnUpdateUIState`. | `MissionHighlight` | medium | S | done |
 
 Already in vanilla, so not changed: camera north (Backspace), idle crew filter (crew roster), crew distance warning, auto slow when an enemy shows (`AutoSlowWhenEnemySpotted`), on-ship part indicators, pinned resources (right-click in the resources box), Sell Surplus and Buy Needed in the trade menu.
 
@@ -74,6 +75,7 @@ Look at each image before you commit it. Crop anything that shows a user name, a
 | `contracts.txt` | contract terms (paid, rival, informant, discreet) in the comms Missions tab with the Accept button, open contracts in the heat panel, the mission log with a contract, a convoy and a drone siege, a story chain offer, its log entry, a chain page and the standing offer |
 | `world.txt` | a calling hunter, a fleeing hunter, sector arrival texts, the current HUD, the heat zone line, a deep space map tooltip, the Buyer tag far and near |
 | `title.txt` | the main menu title |
+| `readability.txt` | each Hot Cargo window and panel at each window size and UI scale of the readability pass, with a fit report in the log (spec 1480, 1481) |
 
 ### How the capture works (no focus, no visible window)
 
@@ -81,7 +83,8 @@ Look at each image before you commit it. Crop anything that shows a user name, a
 2. The D3D11 graphics manager skips all drawing while the window is minimized: `CanRender => !Window.IsMinimized` (HalflingPlatformWDX), read by `Director.DoDraw`.
 3. The autotest command `render on` patches that getter to return true (`Ux/Screenshot.cs`). The game then draws each frame into the swap chain back buffer, which keeps the last window size. `Present` still skips, because DXGI reports the minimized window as occluded. Nothing shows on the screen, and the window never gets focus.
 4. `screenshot NAME` waits for the end of a frame, copies the back buffer (`GraphicsManager.GetEndOfFrameScreenShot`) and saves `Mods/hot_cargo/screenshots/NAME.png`. It hides the hover tooltips for that frame, because the real cursor rests somewhere over the hidden window. It never moves the real cursor.
-5. Hover tooltips do not show in a capture, so `tipshow map|mapcur|station|fame|text <xml>` shows one at a fixed spot, and `tipclear` removes it.
+5. `window W H` resizes the back buffer of the minimized window (spec 1480), so a capture can have another size than the window had at start.
+6. Hover tooltips do not show in a capture, so `tipshow map|mapcur|station|fame|text <xml>` shows one at a fixed spot, and `tipclear` removes it.
 
 ## Tests
 
