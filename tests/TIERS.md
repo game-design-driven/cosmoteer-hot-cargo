@@ -23,7 +23,7 @@ The prune of 2026-11-14 classified every game test with evidence: git history (f
 | Test | Class | Reason | CI s (before) |
 |---|---|---|---|
 | ai-call | KEEP | Hunters: a finished call brings the next group; disruptor and EMP stop calls. | 65 |
-| ai-call-intercept | DELETE | Small counter mechanic; most lines read tunable values; 0 CI failures. | 53 |
+| ai-call-intercept | KEEP | New AI rule: no call from a radar blip, a call once seen (spec 196, [#132](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/132)); sensor interception. | 53 |
 | ai-cover | TO_UNIT | Cover spot and peek/hide cycle: PersonalityModelTests (CoverSpot, NextCoverPhase). | 59 |
 | ai-flee | KEEP | Hunters: a disarmed hunter flees and jumps out of the system. | 48 |
 | ai-flee-station | KEEP | New complex flee-to-station path (spec 1314 to 1316). | - |
@@ -209,10 +209,10 @@ The policy above, applied to every game test with the evidence that the Audit se
 
 | | Before | After |
 |---|---|---|
-| Game tests in CI | 154 (147 single player + 7 co-op) | 122 (116 + 6) |
-| Removed | | 30: 17 deleted, 13 replaced by unit tests (`startjobs-pick` left with its feature on main) |
+| Game tests in CI | 154 (147 single player + 7 co-op) | 123 (117 + 6) |
+| Removed | | 29: 16 deleted, 13 replaced by unit tests (`startjobs-pick` left with its feature on main) |
 | Out of CI, on the PC only | 4 | 6 (`telemetry-stress`, `coop-stress` moved) |
-| Single-player CI time | 11,660 s | 9,820 s (−16 %) |
+| Single-player CI time | 11,660 s | 9,873 s (−15 %) |
 | Co-op sessions, local (core, combat, economy, autonomy, friendly) | 1,749 s | 1,297 s (−26 %) |
 | Co-op CI time | 2,029 s | about 1,320 s (estimate: the measured −26 %, `coop-stress` out) |
 | Co-op steps removed | | 29 (core 7, combat 8, economy 9, friendly 4, autonomy 1) |
