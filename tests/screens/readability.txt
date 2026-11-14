@@ -1,0 +1,45 @@
+# Readability pass (spec 1480, 1481): each Hot Cargo surface at each window size and UI scale of the pass, with a fit report
+# ("ux: fit [...]" lines in the log) and a screenshot. Windowed test slot (needs graphics).
+# The same script without "render on" runs in the headless sim and gives the fit reports only.
+render on
+wait 4
+matrix pastruns | pr_sample ; pr_click ; wait 1.5 | pr_close ; rr_clear
+codex_reset
+tutorials on
+newgame run
+wait 10
+pause off
+matrix intro
+closepanel
+ev_set Enabled false
+pu_set Enabled false
+ev_set StationEventChance 0
+godmode on
+wait 2
+matrix hud
+matrix event | event distress_beacon ; wait 1 | uxpick 3 ; wait 1 ; uxpick 1 ; wait 1
+matrix settings | menu open ; wait 1.5 | menu close ; wait 1
+select
+wait 1
+matrix shipai | tactics_editor open ; wait 2 | tactics_editor close ; wait 1
+stage
+wait 4
+careerlog
+wait 2
+matrix careerlog
+codex_open hc_heat
+wait 2
+matrix howtoplay
+event broken_down
+waitfor ev_carrier == 1 30
+ev_carrier_goto
+listen_target carrier
+waitfor listen_reach == 1 30
+ev_open carrier
+wait 2
+matrix comms-long
+win
+wait 2
+matrix win
+codex_restore
+quit

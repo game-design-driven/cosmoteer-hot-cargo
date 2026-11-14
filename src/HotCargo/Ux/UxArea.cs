@@ -50,6 +50,7 @@ public static class UxArea
 
     static void AddAutotestCommands()
     {
+        ScreenSize.RegisterCommands();
         // render on|off: draw while minimized, for screenshots (windowed test slots, scripts/screens.sh; headless slots have no graphics).
         // "on" also closes the vanilla Steam notice: test slots run with --nosteam, and the notice would cover every screenshot.
         Autotest.Commands["render"] = arg =>
