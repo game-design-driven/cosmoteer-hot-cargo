@@ -68,6 +68,19 @@ expect huntershostile == 1
 on 1 hunters client
 on 1 expect huntershostile == 1
 
+step hunters.capture
+# Playtest 2026-11-15: the players took over a hunter, repaired it and jumped it to a station, then the game desynced.
+# Spec 1511: a taken hunter is a normal player ship on both machines and stays. Spec 1510: money that the parallel ship update
+# adds (a refund of expired pre-purchases) is never lost, so the money of both players is the same on both machines.
+mp takehunters
+wait 2
+expect hunterstaken >= 1
+expect huntertagplayers == 0
+on 1 expect hunterstaken >= 1
+on 1 expect huntertagplayers == 0
+mp moneyrace 2000
+wait 2
+
 step factions.watch
 # Spec 664: the Strike stage above marked the neighbor systems; the client's galaxy map shows CORPORATE WATCH too.
 expect fa_watched >= 1
