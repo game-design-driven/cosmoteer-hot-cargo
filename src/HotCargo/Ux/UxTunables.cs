@@ -88,4 +88,9 @@ public sealed class UxTunables
     /// to this height; a longer page scrolls.
     /// </summary>
     [Serialize(Optional = true)] public float CommsMaxScreenShare = 0.9f;
+    /// <summary>
+    /// Seconds that a ping (Alt + left click in space or on the minimap) stays. Every player sees it. 0 turns pings off, and
+    /// Alt + left click then does what it does in the vanilla game.
+    /// </summary>
+    [Serialize(Optional = true)] public float PingSeconds = 30f;
 }

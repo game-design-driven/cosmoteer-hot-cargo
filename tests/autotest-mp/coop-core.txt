@@ -36,6 +36,25 @@ expect runlog_count >= 2
 on 1 waitfor runlog_stage == 1 10
 on 1 expect runlog_count >= 2
 
+step ux.ping
+# Spec 1500 to 1506: the client pings its own ship (Alt + left click). Both machines show one ping, as a vanilla indicator, on
+# the ship's center (it follows the ship). The client's next ping, in space, replaces it. A short lifetime ends it on both.
+on 1 ping own
+waitfor ping_count == 1 30
+on 1 waitfor ping_count == 1 30
+waitfor ping_on_ship == 1 10
+on 1 waitfor ping_on_ship == 1 10
+waitfor ping_indicators == 1 10
+on 1 ping space 3000 0
+waitfor ping_on_ship == 0 30
+on 1 waitfor ping_on_ship == 0 30
+expect ping_count == 1
+mp ux PingSeconds 2
+waitfor ping_count == 0 30
+on 1 waitfor ping_count == 0 30
+waitfor ping_indicators == 0 10
+mp ux PingSeconds 30
+
 step core.hunters
 # Hunters jump in, the host forces two more stages, and the hunters stay hostile to both players.
 waitfor hunters >= 1 60

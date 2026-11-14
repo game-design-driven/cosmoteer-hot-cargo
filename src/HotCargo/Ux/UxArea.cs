@@ -40,6 +40,7 @@ public static class UxArea
             {
                 UxKit.Guard("ship alerts", ShipAlerts.OnFrame);
                 if (Run.Current is { } run) UxKit.Guard("markers", () => Markers.Update(run));
+                if (Run.Current is { } pingRun) UxKit.Guard("pings", () => Ping.OnFrame(pingRun));
                 if (App.Director.States.OfType<Cosmoteer.Game.GameRoot>().FirstOrDefault() is not { } game) return;
                 UxKit.Guard("damage pings", () => DamagePings.OnFrame(game));
                 UxKit.Guard("low supplies", () => LowSupplies.OnFrame(game));
@@ -50,6 +51,25 @@ public static class UxArea
 
     static void AddAutotestCommands()
     {
+        // ping own | ping space <dx> <dy>: a ping from this machine like an Alt + left click (spec 1500): on its first own ship, or at
+        // that offset from the ship in space. Fields: live pings, pings on a human ship's center, ping indicators in the sim.
+        Autotest.Commands["ping"] = arg =>
+        {
+            var game = Autotest.RequireRun().Game;
+            var own = game.Sim.Ships.LocalPlayerShips.OrderBy(s => s.UniqueID).FirstOrDefault() ?? throw new InvalidOperationException("no own ship");
+            var p = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            switch (p)
+            {
+                case ["own"]: Ping.SendForTest(game, own, default); break;
+                case ["space", var dx, var dy]:
+                    Ping.SendForTest(game, null, own.WorldCenter + new Halfling.Geometry.Vector2(float.Parse(dx, CultureInfo.InvariantCulture), float.Parse(dy, CultureInfo.InvariantCulture)));
+                    break;
+                default: throw new InvalidOperationException("ping needs: own | space dx dy");
+            }
+        };
+        Autotest.Fields["ping_count"] = () => Ping.Count;
+        Autotest.Fields["ping_on_ship"] = () => Ping.OnHumanShips(Autotest.RequireRun().Game.Sim);
+        Autotest.Fields["ping_indicators"] = () => Cosmoteer.Simulation.ObjectIndicatorSource.GetAllInScene(Autotest.RequireRun().Game.Sim).OfType<Ping.PingIndicator>().Count();
         // render on|off: draw while minimized, for screenshots (windowed test slots, scripts/screens.sh; headless slots have no graphics).
         // "on" also closes the vanilla Steam notice: test slots run with --nosteam, and the notice would cover every screenshot.
         Autotest.Commands["render"] = arg =>
