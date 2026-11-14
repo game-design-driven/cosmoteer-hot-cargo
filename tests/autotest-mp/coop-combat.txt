@@ -107,6 +107,9 @@ mp aiset CallInterceptParts cosmoteer.control_room_small
 mp airocks 6 600
 mp aispawn pirates 3 2
 mp spawnstage Strike
+# Spec 196: a call starts when the players see the caller. The Strike hunters come next to the host's ship, in its sight.
+wait 1
+mp hunternear all 600
 mp aispawn monolith 3 2
 # Spec 1313: the spawned pirates and Monolith ships fall back and pick repair plans on both machines.
 mp aidamage new 0.3
