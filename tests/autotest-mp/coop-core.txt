@@ -171,6 +171,7 @@ mp debris_set GlowSeconds 15
 mp debris_set CheckSeconds 1
 mp debris_set MaxParts 6
 mp debris_spawn 3 3
+# Near the client's ship, or near the host's when the fight above destroyed the client's control room.
 as 1 debris_spawn 2 3
 waitfor debris_tracked >= 5 15
 on 1 waitfor debris_tracked >= 5 15
