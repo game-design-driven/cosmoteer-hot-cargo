@@ -24,21 +24,6 @@ counttag pirate
 @2p expect tagcount == 8
 @3p expect tagcount == 12
 
-step debt.help
-# Spec 1435, 1437: helpers ask for pay; the client puts it on the tab from its machine; both machines show the same debt.
-# Enemies near the fleet can keep the fight going here; debt-help checks the end of the fight, so this step asks at once.
-mp debt_help_spawn
-mp debt_help_share 500 500
-mp debt_help_ask
-# The client's ship next to the helper, so the hail does not wait for the helper's AI to leave its targets.
-as 1 debt_goto helper
-waitfor debt_help_hailed == 1 120
-on 1 debt_help_answer tab
-waitfor debt_count == 1 30
-on 1 waitfor debt_count == 1 30
-expect debt_ratio == 1
-on 1 expect debt_ratio == 1
-
 step diplomacy.payoff
 # Spec 587 (#25): the client ticks tech on the hunter page, and the draft is shared, so the host adds money to it. The client
 # sends the pay-off through the shared choice input. Both machines see the hunters leave and the same vault tech.
@@ -230,6 +215,22 @@ mp tech drop 1
 wait 6
 expect worlds_item_flow_speed > 5
 on 1 expect worlds_item_flow_speed > 5
+
+step debt.help
+# Spec 1435, 1437: before the restart of pursuit.coop, so its teleport and its debt touch no later step.
+# helpers ask for pay; the client puts it on the tab from its machine; both machines show the same debt.
+# Enemies near the fleet can keep the fight going here; debt-help checks the end of the fight, so this step asks at once.
+mp debt_help_spawn
+mp debt_help_share 500 500
+mp debt_help_ask
+# The client's ship next to the helper, so the hail does not wait for the helper's AI to leave its targets.
+as 1 debt_goto helper
+waitfor debt_help_hailed == 1 120
+on 1 debt_help_answer tab
+waitfor debt_count == 1 30
+on 1 waitfor debt_count == 1 30
+expect debt_ratio == 1
+on 1 expect debt_ratio == 1
 
 step pursuit.coop
 # Spec 912, 934, in a new run: the client's stage start sends a reporting scout, and its report raises heat on both machines.
