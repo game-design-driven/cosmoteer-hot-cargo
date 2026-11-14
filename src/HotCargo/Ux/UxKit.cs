@@ -160,6 +160,23 @@ public static class UxKit
         string tag = fraction >= 0.75f ? "good" : fraction >= 0.4f ? "limited_color" : "bad";
         return $"<{tag}>{fraction * 100f:0}%</{tag}>";
     }
+
+    /// <summary>Space kept between a fitted window and each side of the screen.</summary>
+    const float WindowMargin = 10f;
+
+    /// <summary>
+    /// Spec 1482: shrinks a window to fit its screen with a margin, and centers it. Its minimum size shrinks with it, so a small screen
+    /// shows the whole window. Limit: it runs when the window opens; a resize of the game window while it is open does not fit it again.
+    /// Revisit if players resize the game window with these windows open.
+    /// </summary>
+    public static void FitToScreen(WindowBox window, Halfling.Geometry.Rect screen)
+    {
+        if (screen.Width <= 2f * WindowMargin || screen.Height <= 2f * WindowMargin) throw new ArgumentException($"no room for a window on screen {screen}");
+        var size = new Halfling.Geometry.Vector2(Math.Min(window.Size.X, screen.Width - 2f * WindowMargin), Math.Min(window.Size.Y, screen.Height - 2f * WindowMargin));
+        var min = window.ResizeController.MinSize;
+        window.ResizeController.MinSize = new Halfling.Geometry.Vector2(Math.Min(min.X, size.X), Math.Min(min.Y, size.Y));
+        window.ScreenRect = Halfling.Geometry.Rect.CenteredOn(screen.Center, size);
+    }
 }
 
 /// <summary>A tooltip text that is computed each time the game reads it.</summary>

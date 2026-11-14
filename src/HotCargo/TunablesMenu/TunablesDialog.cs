@@ -179,7 +179,7 @@ internal sealed class TunablesDialog : DialogBase
     public override void Pushed()
     {
         base.Pushed();
-        _window.Location = RootWidget.ScreenRect.Center - _window.Size / 2f;
+        Ux.UxKit.FitToScreen(_window, RootWidget.ScreenRect);
         Open = this;
     }
 
