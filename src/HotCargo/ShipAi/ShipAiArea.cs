@@ -52,42 +52,96 @@ public static class ShipAiArea
         }
     }
 
-    /// <summary>An "AI" box in the info row of the ships card, for one selected ship that the local player commands. A click opens the editor.</summary>
+    /// <summary>
+    /// Spec 410: the "AI" button of the ships card. One selected ship: a box in the info row. Several selected ships: vanilla hides the
+    /// info row (ShipsCard.UpdateForMultipleShips), so a second button sits in its own box at the card's right edge. A click opens the
+    /// editor like Ctrl+K: for the first selected own ship; its "Apply to selected" reaches the others.
+    /// </summary>
     [HarmonyPatch(typeof(ShipsCard), MethodType.Constructor, typeof(GameRoot), typeof(GameGui), typeof(IRectProvider))]
     static class CardButton
     {
-        internal static readonly ConditionalWeakTable<ShipsCard, Button> Buttons = new();
+        internal sealed record Pair(Button Single, Button Multi, LayoutBox MultiBox);
+
+        internal static readonly ConditionalWeakTable<ShipsCard, Pair> Buttons = new();
 
         static void Postfix(ShipsCard __instance) => Errors.Guard("tactics card button", () =>
         {
-            var b = new Button { Width = 56f };
+            var single = NewButton("HotCargoShipAi/CardTip");
+            __instance._infoIconsBox.Children.Add(single);
+            var multi = NewButton("HotCargoShipAi/CardMultiTip");
+            var box = new LayoutBox { SelfActive = false };
+            box.NineSlice.Flags = NineSliceFlags.None;
+            box.DockMode = DockMode.Right;
+            box.AutoSize.AutoWidthMode = AutoSizeMode.Enable;
+            box.Children.LayoutAlgorithm = LayoutAlgorithms.StretchTopToBottom;
+            box.Children.BorderPadding = new Borders(0f, 0f, 41f, 41f);
+            box.AddChild(multi);
+            __instance.DockedChildren.Add(box);
+            Buttons.AddOrUpdate(__instance, new Pair(single, multi, box));
+        });
+
+        static Button NewButton(string tipKey)
+        {
+            var b = new Button();
             b.CopySettingsFrom(WidgetRules.Instance.FlatButton);
-            b.Width = 56f;
+            b.Width = 72f;
+            b.Height = 34f;
             b.StateNormalTextRenderer.XmlFormatting = true;
             b.StateHighlightedTextRenderer.XmlFormatting = true;
             b.StatePressedTextRenderer.XmlFormatting = true;
-            b.ToolTips.TextProvider = new Ux.LiveText(() => Strings.GetText("HotCargoShipAi/CardTip"));
-            b.Clicked += (_, _) => Errors.Guard("tactics card click", () =>
+            b.ToolTips.TextProvider = new Ux.LiveText(() => Strings.GetText(tipKey));
+            b.Clicked += (_, _) => Errors.Guard("tactics card click", Click);
+            return b;
+        }
+
+        /// <summary>Same ship as Ctrl+K: the first selected own ship.</summary>
+        internal static void Click()
+        {
+            if (Run.Current is { } run && Selected(run.Game.Sim).FirstOrDefault() is { } ship) TacticsEditor.Open(run, ship);
+        }
+
+        /// <summary>The selected human ships that the local player commands, by ID.</summary>
+        internal static List<Ship> Selected(SimRoot sim) =>
+            sim.PlayerInput.SelectedCommandableShips.Where(s => s.IsHumanPlayerShip).OrderBy(s => s.UniqueID).ToList();
+
+        /// <summary>The button text for these ships; null hides the button.</summary>
+        internal static string? Text(IReadOnlyList<Ship> ships)
+        {
+            if (Run.Current is null || ships.Count == 0) return null;
+            int on = ships.Count(s => ShipTactics.Of(s) is { Auto: true });
+            return ShipAiModel.CardStateOf(on, ships.Count) switch
             {
-                if (Run.Current is { } run && run.Game.Sim.PlayerInput.SelectedCommandableShips.OrderBy(s => s.UniqueID).FirstOrDefault() is { } ship)
-                    TacticsEditor.Open(run, ship);
-            });
-            __instance._infoIconsBox.Children.Add(b);
-            Buttons.AddOrUpdate(__instance, b);
-        });
+                CardState.On => Strings.GetText("HotCargoShipAi/CardOn"),
+                CardState.Off => Strings.GetText("HotCargoShipAi/CardOff"),
+                CardState.Mixed => Strings.FormatText("HotCargoShipAi/CardMixedFmt", on, ships.Count),
+                var state => throw new ArgumentOutOfRangeException(nameof(ships), state, null),
+            };
+        }
     }
 
     [HarmonyPatch(typeof(ShipsCard), nameof(ShipsCard.UpdateForSingleShip))]
     static class CardUpdate
     {
-        static void Postfix(ShipsCard __instance, Ship ship)
+        static void Postfix(ShipsCard __instance, Ship ship) => Errors.Guard("tactics card update", () =>
         {
-            if (!CardButton.Buttons.TryGetValue(__instance, out var b)) return;
-            b.SelfActive = Run.Current is not null && ship.Commands.IsCommandableByLocalPlayer && ship.IsHumanPlayerShip;
-            if (!b.SelfActive) return;
-            bool auto = ShipTactics.Of(ship) is { Auto: true };
-            b.Text = Strings.GetText(auto ? "HotCargoShipAi/CardOn" : "HotCargoShipAi/CardOff");
-        }
+            if (!CardButton.Buttons.TryGetValue(__instance, out var pair)) return;
+            bool own = ship.Commands.IsCommandableByLocalPlayer && ship.IsHumanPlayerShip;
+            pair.Single.SelfActive = own && Run.Current is not null;
+            if (pair.Single.SelfActive) pair.Single.Text = CardButton.Text([ship])!;
+            pair.MultiBox.SelfActive = false;
+        });
+    }
+
+    [HarmonyPatch(typeof(ShipsCard), nameof(ShipsCard.UpdateForMultipleShips))]
+    static class CardUpdateMulti
+    {
+        static void Postfix(ShipsCard __instance) => Errors.Guard("tactics card update", () =>
+        {
+            if (!CardButton.Buttons.TryGetValue(__instance, out var pair)) return;
+            string? text = CardButton.Text(CardButton.Selected(__instance.Sim));
+            pair.MultiBox.SelfActive = text is not null;
+            if (text is not null) pair.Multi.Text = text;
+        });
     }
 
     // ---- Autotest
@@ -186,6 +240,14 @@ public static class ShipAiArea
             if (arg == "none") input.SelectShips([]);
             else input.SelectShips(Sim().Ships.HumanPlayerShips.Where(s => s.Commands.IsCommandableByLocalPlayer).ToList());
         };
+        // The AI buttons of the ships card (spec 410): -1 hidden, else the CardState (0 off, 1 mixed, 2 on). The card updates in UI frames.
+        Autotest.Fields["tactics_card_single"] = () => CardField(p => p.Single);
+        Autotest.Fields["tactics_card_multi"] = () => CardField(p => p.Multi);
+        // tactics_card_update: one vanilla update of the ships card, as a UI frame does it (ShipsCard.OnUpdatingUIState runs before UI
+        // input, and a headless game has no UI input pass). UI only.
+        Autotest.Commands["tactics_card_update"] = _ => Autotest.RequireRun().Game.Gui.ShipGui.ShipsCard.OnUpdatingUIState(null, EventArgs.Empty);
+        // tactics_card_click: a click on the AI button of the ships card. UI only.
+        Autotest.Commands["tactics_card_click"] = _ => CardButton.Click();
         Autotest.Fields["design_rows"] = () => _loadedDesign is null ? -1 : ShipTactics.Of(_loadedDesign)?.Rows.Count ?? 0;
         Autotest.Fields["design_hash"] = () => ShipAiModel.StableHash(_loadedDesign is null ? "" : ShipTactics.Of(_loadedDesign)?.Text ?? "");
         Autotest.Fields["design_auto"] = () => _loadedDesign is not null && ShipTactics.Of(_loadedDesign) is { Auto: true } ? 1 : 0;
@@ -372,6 +434,22 @@ public static class ShipAiArea
             Log.Info($"AUTOTEST TACTICS {arg}: ship={ship.Metadata.PlainShipName} auto={t?.Auto} waiting={t?.Waiting} target={t?.TargetRow} move={t?.MoveRow} " +
                      $"matched={t?.Matched} cmd={ship.Commands.CurConfirmedCommand?.GetType().Name} health={HunterOrders.HealthFraction(ship):0.00} text='{t?.Text}'");
         };
+    }
+
+    static int CardField(Func<CardButton.Pair, Button> button)
+    {
+        var card = Autotest.RequireRun().Game.Gui.ShipGui.ShipsCard;
+        if (!CardButton.Buttons.TryGetValue(card, out var pair)) throw new InvalidOperationException("the ships card has no AI buttons");
+        var b = button(pair);
+        // IsActive: the button and every parent are active (vanilla hides the info row with several ships).
+        if (!b.IsActive) return -1;
+        string text = b.Text;
+        if (text == Strings.GetText("HotCargoShipAi/CardOn")) return (int)CardState.On;
+        if (text == Strings.GetText("HotCargoShipAi/CardOff")) return (int)CardState.Off;
+        var ships = CardButton.Selected(Sim());
+        int on = ships.Count(x => ShipTactics.Of(x) is { Auto: true });
+        if (text == Strings.FormatText("HotCargoShipAi/CardMixedFmt", on, ships.Count)) return (int)CardState.Mixed;
+        throw new InvalidOperationException($"the AI card button shows '{text}'");
     }
 
     static Dictionary<Cosmoteer.Game.ObjectID, (string Text, bool Auto)>? _snapshot;

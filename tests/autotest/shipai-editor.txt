@@ -52,7 +52,15 @@ expect tactics_presets == 0
 tactics_editor auto on
 tactics_editor close
 tactics_ally
+# The copy takes the design's Auto switch: turn it off, so 1 of 2 ships has Auto on.
+tactics_ship 1
+tacticsauto off
+tactics_ship 0
 tactics_select all
+# Spec 410: with several ships selected, the ships card shows the multi-ship AI button: Auto is on in 1 of 2 ships.
+tactics_card_update
+expect tactics_card_multi == 1
+expect tactics_card_single == -1
 tactics_editor open
 tactics_editor toselected
 wait 2
@@ -60,5 +68,12 @@ tactics_ship 1
 expecttactics Escort
 expect tactics_auto == 1
 tactics_ship 0
+tactics_card_update
+expect tactics_card_multi == 2
+# A click on the button opens the editor, like Ctrl+K.
+tactics_editor close
+expect tactics_editor == 0
+tactics_card_click
+expect tactics_editor == 1
 tactics_editor close
 quit
