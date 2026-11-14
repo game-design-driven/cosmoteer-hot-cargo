@@ -24,7 +24,9 @@ static class PoolAutotest
             int player = p;
             Autotest.Fields[$"share_p{player}_steel"] = () => First(player).Resources.GetResourceTotal(Steel, includeStored: true, includeCarried: false);
             Autotest.Fields[$"share_p{player}_usable_steel"] = () => First(player).Resources.GetUsableConstructionResourceTotal(Steel, includeAnticipated: false);
-            Autotest.Fields[$"share_p{player}_destroyed"] = () => First(player).DestroyedParts.Count;
+            // Queued repairs and rebuilds: queuing a rebuild removes the destroyed-part mark at once, so this shows when the work is done.
+            Autotest.Fields[$"share_p{player}_queued"] = () => Resupply.QueuedRepairs(First(player));
+            Autotest.Fields[$"share_p{player}_blocked"] = () => First(player).OptionalConstructionManager?.HasAnyBlocked == true ? 1 : 0;
         }
         // share_mark: remembers player 1's usable steel; share_p1_usable_gain is the change since. Loose resources near the ship
         // count as usable too, so the step compares before and after the switch.

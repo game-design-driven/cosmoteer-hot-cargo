@@ -84,3 +84,36 @@ static class AllowShareResourcesPatch
         if (mpInput is ShareResourcesInput) __result = true;
     }
 }
+
+/// <summary>
+/// Spec 1307, 1318. Construction takes stock from another ship with a transfer job (ResourceManager.TransferConstructionResourcesTo,
+/// ManualResourceTransfer), and that job is valid only while the source ship is commandable by the job ship's player
+/// (ResourceTransferJob.IsSourceValid). While that one check runs, a source ship that pools with the job's ship counts as
+/// commandable. Nothing else changes: no player gets command over another player's ship.
+/// </summary>
+[HarmonyPatch(typeof(Cosmoteer.Ships.Crew.Jobs.ResourceTransferJob), "IsSourceValid")]
+static class PooledTransferScope
+{
+    /// <summary>The ship of the transfer job whose source is being checked, or null outside the check.</summary>
+    [ThreadStatic] internal static Ship? JobShip;
+
+    static void Prefix(Cosmoteer.Ships.Crew.Jobs.ResourceTransferJob __instance) =>
+        JobShip = __instance.TradeType == Cosmoteer.Ships.Crew.Jobs.TradeType.None ? __instance.Ship : null;
+
+    static Exception? Finalizer(Exception? __exception)
+    {
+        JobShip = null;
+        return __exception;
+    }
+}
+
+[HarmonyPatch(typeof(Cosmoteer.Ships.Commands.CommandManager), nameof(Cosmoteer.Ships.Commands.CommandManager.IsCommandableBy))]
+static class PooledTransferCommandable
+{
+    static void Postfix(Cosmoteer.Ships.Commands.CommandManager __instance, int playerIndex, ref bool __result)
+    {
+        if (__result || PooledTransferScope.JobShip is not { } jobShip || jobShip.Metadata.PlayerIndex != playerIndex) return;
+        try { __result = ResourcePool.Pools(__instance.Ship, jobShip); }
+        catch (Exception ex) { Errors.Report("pooled transfer", ex.Message, ex); }
+    }
+}
