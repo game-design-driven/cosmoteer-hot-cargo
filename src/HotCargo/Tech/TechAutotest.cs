@@ -136,8 +136,8 @@ static class TechAutotest
         };
         // resourcesview on|off: opens the vanilla Resources view, where the vault fill toggles show (spec 1546).
         Autotest.Commands["resourcesview"] = arg => Active().Game.Gui.ShipGui.ResourcesToolbox.SelfActive = arg == "on";
-        // Spec 1550: the heat panel shows the decay line.
-        Autotest.Fields["decaypanel"] = () => TechDecay.PanelLine(Active()) is { } line && Ui.HeatPanel.TechText.Contains(line) ? 1 : 0;
+        // Spec 1550: the heat panel shows the decay line. The time at its end ticks, so only the part before it counts.
+        Autotest.Fields["decaypanel"] = () => TechDecay.PanelLine(Active()) is { } line && Ui.HeatPanel.TechText.Contains(line[..line.LastIndexOf("<b>", StringComparison.Ordinal)]) ? 1 : 0;
     }
 
     static Run Active() => Autotest.RequireRun();
