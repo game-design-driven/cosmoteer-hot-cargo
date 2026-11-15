@@ -1,6 +1,5 @@
 using Cosmoteer;
 using HotCargo.Core;
-using HotCargo.StartJobs;
 
 namespace HotCargo.RunRecord;
 
@@ -23,6 +22,9 @@ public static class Recorder
     /// <summary>The last entry that this machine checked for each run, without its end date. A frame with the same numbers does nothing.</summary>
     static RunEntry? _checked;
 
+    /// <summary>Spec 1220, 1232: why the file did not read, or null. The career log block and the Past Runs window show it.</summary>
+    public static string? LoadError { get; private set; }
+
     /// <summary>True after a file that does not read: the record stops for this game session and never overwrites that file.</summary>
     static bool _broken;
 
@@ -39,7 +41,9 @@ public static class Recorder
         catch (Exception ex) when (ex is IOException or InvalidDataException or System.Text.Json.JsonException or UnauthorizedAccessException)
         {
             _broken = true;
-            Errors.Report("run record", $"cannot read {FilePath}; the record stays as it is: {ex.Message}", ex);
+            LoadError = $"{FilePath}: {ex.Message}";
+            // The player's own file, not a mod failure: it shows where the record shows (spec 1220), not in the error overlay.
+            Log.Info($"run record: cannot read {FilePath}; the record stays as it is: {ex.Message}");
             return null;
         }
     }
@@ -66,7 +70,6 @@ public static class Recorder
     internal static RunEntry Entry(Run run)
     {
         var s = run.State;
-        var job = StartJobs.StartJobs.Job(run);
         bool won = s.Result == RunResult.Won;
         return new RunEntry(
             Id: run.Mode.Init.RandSeed.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -76,11 +79,9 @@ public static class Recorder
             Delivered: s.DeliveredUnits,
             Seconds: Math.Round(s.GameSeconds),
             Sector: s.SectorIndex,
-            Sectors: run.SectorCount(),
+            Sectors: run.T.Journey.RunSectorCount,
             PeakHeat: MathF.Round(s.RunRecord.PeakHeat),
             VaultsLost: s.Log.Count(e => e.Kind == Onboarding.RunLogKind.Loss),
-            Job: job?.Id ?? "",
-            JobName: job is null ? "" : StartJobs.StartJobs.Name(job),
             Players: run.Game.HumanPlayerCount);
     }
 
@@ -89,6 +90,7 @@ public static class Recorder
     {
         _checked = null;
         _broken = false;
+        LoadError = null;
         Runs = null;
     }
 }

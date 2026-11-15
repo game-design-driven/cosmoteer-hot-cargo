@@ -66,6 +66,10 @@ public sealed class UxTunables
     [Serialize(Optional = true)] public bool DialogueKeys = true;
     /// <summary>Fixes the mission HUD distance for other systems (vanilla divides light years by 1000) and adds the jump count.</summary>
     [Serialize(Optional = true)] public bool MissionDistance = true;
+    /// <summary>A left-click on a mission's marker or area highlights that mission in the Nearby Missions list (spec 1128).</summary>
+    [Serialize(Optional = true)] public bool MissionHighlight = true;
+    /// <summary>A left-click on a mission's name in the Nearby Missions list opens the mission log with that mission (spec 1129).</summary>
+    [Serialize(Optional = true)] public bool MissionDetails = true;
     /// <summary>Galaxy map node tooltip: route jumps, visited state, missions there, Hot Cargo heat and sector.</summary>
     [Serialize(Optional = true)] public bool MapNodeDetails = true;
     /// <summary>Labels of off-screen blips at the left or right screen edge align toward the screen, so they do not run off it.</summary>
@@ -88,4 +92,9 @@ public sealed class UxTunables
     /// to this height; a longer page scrolls.
     /// </summary>
     [Serialize(Optional = true)] public float CommsMaxScreenShare = 0.9f;
+    /// <summary>
+    /// Seconds that a ping (Alt + left click in space or on the minimap) stays. Every player sees it. 0 turns pings off, and
+    /// Alt + left click then does what it does in the vanilla game.
+    /// </summary>
+    [Serialize(Optional = true)] public float PingSeconds = 30f;
 }

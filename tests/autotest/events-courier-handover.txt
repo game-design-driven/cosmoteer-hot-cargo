@@ -8,6 +8,12 @@ worlds jumpto hc_trade_hub
 ev_tostation
 wait 2
 expect ev_courier_offers == 1
+# Once per system (spec 1101): a new arrival in the same system does not add a second offer.
+ev_arrive
+wait 2
+ev_tostation
+wait 2
+expect ev_courier_offers == 1
 # Spec 1119: with the offer selected in the station's comms, the accept button follows the storage at once, without a reselect.
 ev_courier_ui open
 waitfor ev_courier_ui_open == 1 15

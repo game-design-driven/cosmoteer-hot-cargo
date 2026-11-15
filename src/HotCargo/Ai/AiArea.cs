@@ -33,6 +33,9 @@ public static class AiArea
     public static void Register()
     {
         foreach (string name in EventNames) Autotest.Fields[$"ai_{name}"] = () => TacticsLog.Count(name);
+        // Spec 196: hunters that the local player has on radar but cannot see (a radar blip only).
+        Autotest.Fields["ai_blips"] = () => HunterSpawner.Hunters(Sim()).Count(h =>
+            h.IsWithinRadarOfPlayer(Sim().RequireGame().LocalPlayerIndex) && !h.IsWithinSightOfPlayer(Sim().RequireGame().LocalPlayerIndex));
         Autotest.Fields["ai_calling"] = () => Sim().Ships.Count(s => s.AI?.GetStrategyModule<CallStrategy>() is { Calling: true });
         // Spec 1300: the longest running call, in seconds (0 with no call).
         Autotest.Fields["ai_call_seconds"] = () => Sim().Ships.Select(s => s.AI?.GetStrategyModule<CallStrategy>()).OfType<CallStrategy>().Where(m => m.Calling).Select(m => (double)m.CallSeconds).DefaultIfEmpty(0).Max();

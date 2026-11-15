@@ -85,7 +85,8 @@ static class CareerPatches
         iHash.AddHash(s.SharedChoice.Boxes.Sum(b => b.Votes.Count) * 2 + (s.SharedChoice.VoteMode ? 1 : 0));
         iHash.AddHash((int)(s.Debt.Total % int.MaxValue) * 31 + s.Debt.Collectors.Count);
         iHash.AddHash((int)(((s.Debt.Help?.HelperDamage ?? -1) * 31 + (s.Debt.Help?.PlayerDamage ?? -1)) % int.MaxValue));
-        iHash.AddHash(s.StartJobs.Pending ? -1 : StartJobs.StartJobsModel.Serial([s.StartJobs.Job]));
+        iHash.AddHash(s.Scavenge.Seen.Count);
+        iHash.AddHash((int)(s.Scavenge.ProvokedUntil * 10));
         // string.GetHashCode is random per process, so it would differ between clients. This hash is stable.
         int tunables = 0;
         foreach (char c in run.State.TunablesHash) tunables = tunables * 31 + c;

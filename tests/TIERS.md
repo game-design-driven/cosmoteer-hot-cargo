@@ -9,110 +9,182 @@ Three tiers of tests:
 | full | every game test | `scripts/integrate.sh` merge batches (`AUTOTEST_TIER=full`), `scripts/autotest-all.sh` | about 2.5 h of slot time |
 
 Rules:
+- Game tests only for critical systems (run start, jumps, vaults and tech, hunters and heat, co-op sync and desync, save and load, the playthrough), complex areas and areas with real bug history. Rolls, weights and formulas go to unit tests. No game test of text, layout, a single tunable value, vanilla behavior or a duplicate of another test.
 - Put logic (math, rules, state machines) in a `*Model.cs` file with no game types, and test it there.
-- A game test checks what only the game can show: spawns, AI, physics, UI, saves, co-op sync, vanilla integration. It may compare a game value with a model value (a "gap" field). It does not test the model again with other inputs.
+- A game test checks what only the game can show: spawns, AI, physics, UI behavior (not text or layout), saves, co-op sync, vanilla integration. It may compare a game value with a model value (a "gap" field). It does not test the model again with other inputs.
 - Each area has one smoke test: it loads and runs the main flow. An area without a smoke test runs all its tests in the smoke tier.
 - A touched area always runs every co-op session with a step of the area (`step <area>.<name>`): they guard co-op determinism. A change in shared code runs every smoke test and the co-op session marked smoke (`coop-core`).
 - Put the marker at the end of the file, after `quit`, so it does not conflict with edits at the top. The `# runner: pc` line (headless sim) goes there too.
 
 ## Audit
 
-Time: median wall time per run from `../.state/logs` (deploy, game start and script). Tier: what the checks need. Unit: the model that covers the logic of the checks.
+The prune of 2026-11-14 classified every game test with evidence: git history (fix commits that a test caught), failures in CI runs on pull requests and merge queue groups, the flaky log, local runs in every worktree, and the run time in the last full CI run. Classes: KEEP; PC (kept, runs on the PC only, `# runner: pc`); TO_UNIT (removed, the named unit tests cover it); DELETE (removed). Co-op steps: each kept step checks that host and client stay in sync or a co-op-only flow (inputs, money split, shared choices, resync, save and load). A step that single player already covers, or that checks text or one value, went.
 
-Actions: **smoke** (in the smoke tier), keep (full tier only), done (changed in this branch), proposed (for later, after the area's open fixes land).
-
-### Single player
-
-| Test | Time | Checks | Needs the game for | Unit | Action |
-|---|---|---|---|---|---|
-| ai-call | 87 s | call start, complete, interrupt by disruptor and EMP, storm block | AI radar, weapon hits, storms | AiModel.NextCall | keep |
-| ai-call-intercept | 60 s | call time, and the longer call that a player sensor intercepts | AI radar, sensors | AiModel.NextCall | keep |
-| tactics-fallback-cover | 50 s | a damaged ship with resources hides behind a rock and repairs | AI movement, crew repair | RepairModel.PickPlan | keep |
-| tactics-fallback-donor | 60 s | a damaged cargo ship takes resources from an ally and repairs | resource transfer, crew repair | RepairModel.DonorGives | keep |
-| tactics-fallback-station | 50 s | a damaged faction ship gets crew and repairs at a station | stations, crew spawn, repair | RepairModel.PickPlan | keep |
-| ai-cover | 68 s | a ship hides behind a rock | AI movement, line of sight | PersonalityModel.CoverSpot, NextCoverPhase | keep |
-| ai-flee | 79 s | roll once, unarmed runs, flee jump | AI, damage, jumps | AiModel.NextFlee | keep |
-| ai-personality | 69 s | personalities by faction, heavy ships never kite | ship builds, spawns | PersonalityModel | **smoke** |
-| ai-team | 71 s | team shares target | AI targets | PersonalityModel.AssignRoles | keep |
-| balance-hunter-floor | 93 → 58 s | route tier floor on a real spawn | hunter spawn pool | TierCapModel.RouteTier | done: `sectorindex 4` in place of three jumps |
-| balance-rules | 92 s | fuel rules, blueprint price, peak tier cap, station fuel floor, fame over the cap | vanilla rules, stations, jumps | TierCapModel, BalanceModel, HeatModel | **smoke** |
-| chains-content | 91 s | every page renders, transport loss fails the stage | rules load, spawns | ChainModel.Validate, Classify | keep |
-| chains-fail | 90 s | abandon input, refusal, save mid-chain, Return mission | mission log input, save | ChainModel.Match | keep |
-| chains-later | 114 s | guarded wreck pay, Arrival page, careful targeting, tech reward | comms pay, spawns | ChainModel | keep |
-| chains-walk | 80 s | chains load, offer in comms, result, choice, loop, end | comms, MP input | ChainModel | **smoke** |
-| contracts-contracts | 71 s | fee, bonus, flat heat, refused accept, rival dismissal | accept input, money | ContractsModel.Fee, Bonus | **smoke** |
-| contracts-trail | 122 s | trail heat after 20 s, informant sell-out, save | sim tick, save | ContractsModel.TrailPerMinute | proposed: shorter trail wait (contracts fixes open) |
-| contracts-value | 55 s | tech value fraction, notoriety ratchet | run state | TechModel.Value | keep |
-| core | 89 s | heat, stages, fame heat, save and load | run hooks, save | HeatModel | **smoke** |
-| diplomacy-friends | 100 s | hold, fee, betrayal, hire, mercenaries, wanted | comms pages, AI, money | DiplomacyModel | keep |
-| diplomacy-hunters | 142 s | hand-over, punishment combos, bluff, deal crowd, demand hail | comms pages, hunters leave | DiplomacyModel, MultiChoiceModel | keep |
-| diplomacy-surrender | 96 s | demand, fuel overflow, yield offer, players surrender | AI, fuel, comms | DiplomacyModel.SurrenderChance | **smoke** |
-| events-abandoned | 99 s | hulk loot, hold reveal, blast, relic ship | proximity triggers | EventModel | keep |
-| events-batch2 | 78 s | five events: spawns, flags, toll by heat, Buyer price | rules, spawns, prices | EventModel.HeatScaledUnits, BuyerPriceAfter | keep |
-| events-courier | 65 s | courier offer, contact out of stasis | stations, stasis | — | keep |
-| events-hail | 78 s | ship hails, players hail, attack mid-dialogue | comms | — | keep |
-| events-outcomes | 89 s | every event renders, choices change money, heat, tech, flags | rules, MP input | EventModel | **smoke** |
-| events-research | 67 s | research offers from the tech tree | vanilla tech tree | EventModel.BuildResearchTrade | keep |
-| events-save | 79 s | pending event after save and load | save | — | keep |
-| events-tow | 69 s | Dead in Space, Tow Job, live text tokens | missions, text | — | keep |
-| events-triggers | 77 s | Start, Arrival, Signal, Station triggers | game hooks | EventModel.CooldownOver | keep |
-| events-unavoidable | 67 s | every choice costs, per-run cap | rules | EventModel.UnderRunLimit | keep |
-| events-wanted | 68 s | warning, Wanted trigger, clear vanilla wanted | vanilla wanted | EventModel.WantedWarning | keep |
-| factions-combat-jump | 123 s | blind spin-up time, jump waits for a save block | hyperdrive, combat | FactionsModel.BlindSpinDone | keep |
-| factions-jumps | 161 s | heat cut of clear, watched and blind jumps; blind fuel and damage | jumps (one per game) | FactionsModel.HeatKept | keep |
-| factions-peace | 17 s (Mac) | ally faction and hunters do not target each other in ally space; no hire there; neutral control | AreEnemies, AI targeting, hunters | FactionsModel.Peace, HunterPeace.Covers | keep |
-| factions-prices | 55 s | markup by heat, crew price, refusal message | trade prices, comms | FactionsModel.MarkupFactor, CrewFactor | **smoke** |
-| factions-zones | 89 → 73 s | ally zone, shelter, fence prices, zone rate, markers | map factions, sim tick | FactionsModel.TimeHeatFactor, NotorietyFactor | done: one rate measurement in place of two |
-| hunters-spawn | 100 s | stage spawns, distance, tier, strike waves, save | spawns, AI | WaveModel | **smoke** |
-| hunters-tactics | 114 s | every tactic acts | AI | TacticsModel | keep |
-| hunters-takeover | 33 s | players take over a hunter, then new hunters stay hostile; a wave joins the hunters in stasis; save | spawns, stasis, ownership | — | keep |
-| hunters-waves | 128 s | strike scaling by sector, wave gaps, save, fuel drop | spawns, save | WaveModel | proposed: shorter late-sector gap (hunter fixes open) |
-| journey-jump | 77 s | Buyer appears through the real jump hook | jumps | — | keep |
-| journey-run | 152 s | run map, tier cap, Buyer price, save, win | map generation, trade | TierCapModel | **smoke** |
-| mechanics-holdout | 118 s | hold clock, waves, done, fail, leave early | spawns, positions | MechanicsModel | keep |
-| mechanics-listening | 91 s | scout, scan range, intensive pay, leave early | spawns, positions | MechanicsModel | keep |
-| mechanics-offers | 69 s | rules load, chance tunable, forced offers, sun seam | — | — | done: merged into mechanics-placement |
-| mechanics-placement | 77 → 89 s | chance tunable, forced offers, real placement in three systems | system generation | MechanicsModel.Gap | **smoke** (with mechanics-offers) |
-| mechanics-prototype | 100 s | core on the carrier, wreck, break, surrender | objectives | — | keep |
-| mechanics-salvage | 122 s | tow and capture: done and fail | objectives | — | keep |
-| mechanics-save | 100 s | every mechanics objective in a save | save | — | keep |
-| mechanics-survey-mining | 146 s | survey markers, sun mining, delivery | flight, ore, trade | — | keep |
-| missions-escort | 74 s | escort accept, steering, arrival | AI steering | — | **smoke** |
-| missions-offers | 53 s | offers and the sides of AI ships | spawns, factions | — | keep |
-| missions-save | 89 s | escort and trap in a save | save | — | keep |
-| missions-shady | 68 s | trap roll on arrival, ambush pays | spawns | MissionModel.TrapChance | keep |
-| onboarding-hints | 118 s | each trigger shows its page once | codex UI, settings | — | **smoke** |
-| onboarding-log | 185 s | run log lines for each kind, save | career log UI, trade, win | — | proposed: cheaper sale and win steps (onboarding fixes open) |
-| runmodes-difficulty | 110 → 87 s | every level has a row, hard combination through vanilla inputs | vanilla settings inputs, sim tick | PressureModel | **smoke**; done: one rate measurement in place of two |
-| runmodes-ironman | 109 s | Ironman save deleted on a loss | files, game over screen | — | keep |
-| runmodes-music | 63 s | battle music at the last stage | vanilla music | — | keep |
-| runmodes-paneltip | 67 s | heat panel tooltip lines | UI | — | keep |
-| scaling-counts | 55 s | enemy counts for 1 to 3 players | spawns | ScalingModel | **smoke** |
-| scaling-ui | 58 s | new career screen slider, save | UI, save | ScalingModel.Snap | keep |
-| shipai-basic | 110 s | tactics rows on a real ship | AI orders, weapons | ShipAiModel.Evaluate | **smoke** |
-| shipai-save | 101 s | tactics in saves and design files | save, design files | ShipAiModel.Encode, Decode | keep |
-| tech-drop | 76 s | destroyed vault: crates or burn, crew collect | crew, construction | TechModel | keep |
-| tech-hunters | 68 s | hunter takes crates, wreck spills them | AI | — | keep |
-| tech-outside | 102 s | vault outside the hull, move tool, loss timer | ship design, crew | — | keep |
-| tech-sell | 106 s | sale through the trade window, loss on the last sale | trade inputs | TechModel.Value | keep |
-| tech-start | 123 s | starting vaults, price, damage steps, save; price after 55 s | ship design, save | TechModel.Value, UnitsLostToDamage | **smoke**; proposed: drop the 55 s price wait (tech fixes open) |
-| tech-timer | 175 s | loss timer, crate markers, save; loss after 60 s | crew, save | — | proposed: shorter grace after the load (tech fixes open) |
-| telemetry-basic | 97 s | session file events, overhead | game hooks, files | — | **smoke** |
-| telemetry-run | 256 s | every event kind in a scripted three-system run | whole game | — | keep |
-| tunablesmenu-live | 67 s | settings window applies, writes the file, rejects bad values | UI, files | — | **smoke** |
-| ux-basic | 80 s | panels, comms pause, ship alert, loss panel | UI | — | **smoke** |
-| ux-more | 80 s | dialogue keys, supplies, trade hints, comms on the map | UI | — | keep |
-| worlds-current | 150 s | a ship and a crate drift in the current and out of it | physics | WorldsModel.Push, WorldsModel.ItemDrift | keep |
-| worlds-fit | 89 → 85 s | map archetypes, hazard tooltip, real placement in each archetype, trade hub offers | system generation, UI | — | **smoke** (with worlds-map) |
-| worlds-lair | 79 s | lair found only near it | proximity | — | keep |
-| worlds-map | 68 s | map archetypes, hazard tooltip, trade hub | — | — | done: merged into worlds-fit |
-| worlds-pass | 114 s | hold the pass: done and fail | positions, waves | WorldsModel.PassStep | keep |
-| worlds-save | 92 s | pass and sundive in a save | save | — | keep |
-| worlds-solar | 91 s | heat by depth, sundive | sun damage | WorldsModel.HeatDepth | keep |
+| Test | Class | Reason | CI s (before) |
+|---|---|---|---|
+| ai-call | KEEP | Hunters: a finished call brings the next group; disruptor and EMP stop calls. | 65 |
+| ai-call-intercept | KEEP | New AI rule: no call from a radar blip, a call once seen (spec 196, [#132](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/132)); sensor interception. | 53 |
+| ai-cover | TO_UNIT | Cover spot and peek/hide cycle: PersonalityModelTests (CoverSpot, NextCoverPhase). | 59 |
+| ai-flee | KEEP | Hunters: a disarmed hunter flees and jumps out of the system. | 48 |
+| ai-flee-station | KEEP | New complex flee-to-station path (spec 1314 to 1316). | - |
+| ai-personality | KEEP | AI smoke test: faction rules, builds and strategies on vanilla AIs. | 48 |
+| ai-team | TO_UNIT | Team roles: PersonalityModelTests (AssignRoles). | 38 |
+| ai-weakside | TO_UNIT | Weak and strong sides: PersonalityModelTests (three side-profile tests). | 59 |
+| autonomy-basic | KEEP | Complex area: Computer manning, ownership, wrecks; fix 7eff9be. | 134 |
+| autonomy-escort | KEEP | Only escort guarding and return check against real hunters. | 60 |
+| autonomy-looter | DELETE | Duplicate of co-op step autonomy.looter. | 55 |
+| autonomy-miner | KEEP | Start-world fix elsewhere. | 61 |
+| autonomy-miner-aim | KEEP | Regression test for fix 568e210. | 60 |
+| autonomy-salvager | KEEP | Salvage jobs on a wreck: AI and physics. | 183 |
+| autonomy-supply | KEEP | Only buy-and-transfer check. | 58 |
+| balance-hunter-floor | KEEP | Hunters: a real spawn uses the route-tier floor. | 375 |
+| balance-rules | KEEP | Station fuel floor (fix da82271); smoke test. | 218 |
+| chains-blackbox | DELETE | Duplicate of chains-later (recorder, broker hand-over, payment). | 115 |
+| chains-cargo | DELETE | Loose crate reward: duplicate of chains-later. | 46 |
+| chains-content | KEEP | Every chain page renders and every stage spawns. | 71 |
+| chains-extraction | KEEP | Crew hand-over in comms; added with fix e857807. | 71 |
+| chains-fail | KEEP | Save and load mid-chain, real abandon input. | 94 |
+| chains-guard | KEEP | Start-world fix elsewhere. | 54 |
+| chains-later | KEEP | Widest chain flow, shelter after save and load. | 91 |
+| chains-rivals-start | DELETE | Duplicate of chains-guard (offer guards neutral). | 46 |
+| chains-walk | KEEP | Chains smoke test. | 68 |
+| contracts-contracts | KEEP | Contracts smoke test: accept input, refused accept, fee money. | 121 |
+| contracts-rivals | DELETE | Title markup text; dismissal duplicates contracts-contracts. | 69 |
+| contracts-trail | KEEP | Informant heat on the sim tick, terms after save and load. | 79 |
+| contracts-value | KEEP | Notoriety ratchet sits in Run.cs, not a model; move it before this goes. | 85 |
+| core | KEEP | Core heat loop and save and load; smoke test; CI baseline. | 73 |
+| core-playthrough | KEEP | The playthrough that blocks merges. | 181 |
+| debris-decay | KEEP | Debris smoke test; it deletes world objects. | 55 |
+| debt-core | KEEP | New complex feature: loan, collectors, wanted state. | - |
+| debt-missions | KEEP | Mission payout hooks and refinance offer. | - |
+| debt-help | KEEP | New complex feature: help spawns in a fight, real hits of both sides count, the hail and each answer. | - |
+| diplomacy-friends | KEEP | Start-world fix elsewhere. | 67 |
+| diplomacy-hunters | KEEP | Hunters; game fix acbc92b. | 64 |
+| diplomacy-surrender | KEEP | Surrender smoke test (PC only). | PC |
+| events-abandoned | KEEP | Relic and hulk spawns; caught a bug (d014687). | 62 |
+| events-batch2 | TO_UNIT | Toll, Buyer price and flag age: EventModelTests. | 44 |
+| events-courier | DELETE | Same steps as events-courier-handover; its once-per-system check moved there. | 78 |
+| events-courier-handover | KEEP | Hand-over objective with bug history (b522f78, 9f47a58). | 166 |
+| events-courier-lost | KEEP | Guards fix 9ae1abb. | 165 |
+| events-courier-opened | KEEP | Contact turns hostile or jumps away. | 95 |
+| events-hail | KEEP | Event pages in vanilla comms; fix d399801. | 56 |
+| events-items | KEEP | Item actions, loose drops, tracer heat. | 85 |
+| events-listen | KEEP | Start-world fix elsewhere. | 186 |
+| events-offbooks | KEEP | Real comms click path; fix d399801. | 140 |
+| events-options | TO_UNIT | Option gating is need and cost math: EventModelTests. | 69 |
+| events-outcomes | KEEP | Events smoke test; validates every event. | 53 |
+| events-rescue | KEEP | Tug tow uses AI movement. | 92 |
+| events-research | TO_UNIT | Offer rates and premiums: EventModelTests (research trade and sale). | 32 |
+| events-save | KEEP | Save and load of a pending page. | 97 |
+| events-tow | KEEP | Tow Job objective success and failure. | 69 |
+| events-triggers | KEEP | Arrival, Signal and Station triggers start every event. | 69 |
+| events-unavoidable | TO_UNIT | Per-run cap and option gating: EventModelTests. | 48 |
+| events-wanted | KEEP | Vanilla wanted with heat stages and hunters. | 52 |
+| factions-combat-jump | KEEP | Jumps: a jump in a fight. | 45 |
+| factions-controller | KEEP | Seed-dependent station placement. | 267 |
+| factions-jumps | KEEP | Jumps and heat: relay and blind jumps. | 249 |
+| factions-peace | KEEP | Ally peace in game AI; kept over the co-op step (3 fix commits). | 82 |
+| factions-prices | KEEP | Smoke test; station refusals. | 52 |
+| factions-watch | KEEP | Watch marks: a heat mechanic; kept over the co-op step. | 89 |
+| factions-zones | KEEP | Heat: the tick applies zone factors. | 37 |
+| friendly-apprentice | KEEP | Kill count and joining the fleet need the game. | 189 |
+| friendly-debtor | DELETE | Duplicate of co-op step friendly.debtor. | - |
+| friendly-forward | KEEP | Fix 166793b changed the game. | - |
+| friendly-join | DELETE | Duplicate of co-op step friendly.join. | 65 |
+| friendly-riddle | DELETE | Event data on the event system; events-outcomes covers effects. | - |
+| friendly-trader | DELETE | Event options and payments; events-outcomes and events.options-draft cover them. | 90 |
+| hunters-spawn | KEEP | Critical: stage spawns, hostility, strike waves, save and load. | 80 |
+| hunters-tactics | KEEP | Critical: hunter tactic modules load and act. | 66 |
+| hunters-takeover | KEEP | Playtest bug: new hunters joined the players (fix 8c10445). | 54 |
+| hunters-waves | KEEP | Wave gaps, waiting groups across save and load, fuel drop. | 230 |
+| journey-jump | KEEP | Buyer appears through the real jump hook. | 122 |
+| journey-newgame-check | KEEP | Run start: presets legal, vanilla starter refused. | 59 |
+| journey-run | KEEP | Journey smoke test. | 168 |
+| mechanics-holdout | KEEP | Shared hold-out objective. | 65 |
+| mechanics-listening | KEEP | Intensive pay rule is not in a model yet; move it before this goes. | 43 |
+| mechanics-placement | KEEP | Smoke test: real generation places missions. | 134 |
+| mechanics-prototype | KEEP | Bug history (4461489). | 102 |
+| mechanics-salvage | KEEP | Bug history (7aa795d). | 119 |
+| mechanics-save | KEEP | Save and load of every mechanics objective type. | 79 |
+| mechanics-survey-mining | KEEP | Only storm survey and sun mining test. | 75 |
+| missions-escort | KEEP | Smoke test; fixes 665d356, 2debd57. | 70 |
+| missions-escort-ambush | KEEP | Raider targeting (fix 665d356). | 55 |
+| missions-markers | KEEP | Regression test for fix 1483c8c. | 115 |
+| missions-offers | KEEP | Offers and AI sides; kept over the co-op step. | 60 |
+| missions-save | KEEP | Save and load of custom mission objectives. | 82 |
+| missions-shady | KEEP | Shady roll and trap; kept over the co-op step. | 54 |
+| onboarding-hints | KEEP | Onboarding smoke test (PC only). | PC |
+| onboarding-log | KEEP | Run log hooks, saved with the run. | 215 |
+| pursuit-blockade | KEEP | Bug history (4614036, d25f1c4); heat. | 72 |
+| pursuit-director | TO_UNIT | Ramp, fleet factor band, ship counts, pacer: PursuitModelTests. | 60 |
+| pursuit-hacker | KEEP | Heat deal and money; fix b94d6bd. | 71 |
+| pursuit-outage | KEEP | Heat: the outage blocks gains, losses apply. | 56 |
+| pursuit-scout | KEEP | Heat source through AI movement. | 55 |
+| relays-blind | KEEP | Jumps: the blind jump out of a closed relay (#96). | 51 |
+| relays-closed | KEEP | Jumps; bug history (#96). | 64 |
+| relays-fee | KEEP | Jumps: the toll opens the relays. | 60 |
+| relays-map | KEEP | Only test of a real rolled lockdown. | 90 |
+| relays-pirates | KEEP | Complex comms and AI; fix 294bd14. | 97 |
+| runmodes-difficulty | KEEP | Difficulty pressure through vanilla inputs; heat and hunters. | 48 |
+| runmodes-ironman | KEEP | Deletes save files on a loss: player data. | 121 |
+| runmodes-music | DELETE | Cosmetic audio switch; 0 failures. | 60 |
+| runmodes-paneltip | DELETE | Tooltip text; PressureModelTests cover the factors. | 81 |
+| runrecord-entry | KEEP | Writes the past-runs file: persistent player data. | 193 |
+| runrecord-pastruns | TO_UNIT | Past Runs sorting, best row and a bad file: RunRecordModelTests. | - |
+| scaling-counts | KEEP | Co-op scaling over real spawn paths; smoke test; fix 519dd32. | 54 |
+| scaling-ui | DELETE | One setting value persists in a screen; coop-combat checks the setting in the game. | 73 |
+| scavenge-basic | KEEP | New complex AI behavior: salvage, fetch and sell. | - |
+| scavenge-factions | KEEP | New complex AI behavior of pirates and faction ships. | - |
+| scavengers-faction | KEEP | New faction: arrivals, provocation, fleeing. | - |
+| shipai-basic | KEEP | Ship tactics smoke test. | 262 |
+| shipai-calls | TO_UNIT | EnemyCalling fact and disruptor rows: ShipAiModelTests. | 70 |
+| shipai-editor | TO_UNIT | Term edits and presets: ShipAiModelTests, plus a new RemoveTerm test. | 74 |
+| shipai-formation | KEEP | Start-world fix elsewhere. | 81 |
+| shipai-hotcargo | KEEP | Tactics facts read tech, heat, hunters and timers in the game. | 68 |
+| shipai-save | KEEP | Critical save and load of tactics and designs. | 78 |
+| stash-rolls | KEEP | Outcomes in the world; fixes 15a99bb, 2ac5725, 35c15be. | 85 |
+| tactics-combat-repair | KEEP | Complex AI: repairs cancel under fire; runs in a quiet world ([#133](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/133)). | - |
+| tactics-fallback-cover | KEEP | New complex fall-back behavior; runs in a quiet world ([#133](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/133)). | - |
+| tactics-fallback-donor | KEEP | Complex: resources move between ships, then repair; runs in a quiet world ([#133](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/133)). | - |
+| tactics-fallback-station | KEEP | Complex: station gives crew and resources; runs in a quiet world ([#133](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/133)). | - |
+| tech-count | KEEP | Tech count; kept over the co-op step. | 59 |
+| tech-design-vaults | KEEP | Run start; fixes ee4b44c, 454f50e. | 95 |
+| tech-drop | KEEP | Tech loss: crates or burn. | 55 |
+| tech-fit-vaults | KEEP | Vaults and tech: every starter maps to a vault preset; main menu, cheap. | - |
+| tech-hunters | KEEP | A hunter takes tech crates. | 54 |
+| tech-move | KEEP | Fix 1489053 (moving a vault cost tech). | 45 |
+| tech-outside | KEEP | Fix c797dea (crew paths). | 75 |
+| tech-sell | DELETE | Duplicate of co-op step tech.trade-loss and the playthrough's sale. | 95 |
+| tech-start | KEEP | Tech smoke test; CI baseline. | 96 |
+| tech-timer | KEEP | Save and load of a running loss timer. | 116 |
+| telemetry-basic | KEEP | Only telemetry test (PC only). | PC |
+| telemetry-run | KEEP | Makes the data for the telemetry report (PC only). | PC |
+| telemetry-stress | PC | A benchmark with no expect lines: now PC only, run on demand. | 159 |
+| tunablesmenu-file | KEEP | File reload and tune requests; 3 CI failures in queue groups. | 44 |
+| tunablesmenu-live | KEEP | Settings window smoke test. | 64 |
+| ux-basic | KEEP | UX smoke test: the patches build and run headless. | 60 |
+| ux-highlight | DELETE | A marker click highlights a list row: UI convenience. | - |
+| ux-missions | TO_UNIT | The filter: MissionSelectModelTests; icons are UI counts. | 65 |
+| ux-more | KEEP | Patch-target bug d204779. | 59 |
+| worlds-current | KEEP | Start-world fix elsewhere. | 61 |
+| worlds-fit | KEEP | Worlds smoke test. | 101 |
+| worlds-lair | DELETE | One distance check; worlds-fit covers the lair spawn. | 68 |
+| worlds-pass | TO_UNIT | Pass state machine: WorldsModelTests (pass hold, loss, waves). | 69 |
+| worlds-rings | KEEP | Seed-dependent placement; fix 212d6ea. | 86 |
+| worlds-save | KEEP | Save and load of worlds objectives. | 81 |
+| worlds-solar | KEEP | Sundive survival (fix 73ccc56). | 60 |
+| worlds-sundive | KEEP | Mission item rules (fix 796ff9e). | 75 |
+| mp:coop-autonomy | KEEP | Looter under the co-op hash. The miner step removed. | 236 |
+| mp:coop-combat | KEEP | Host settings, votes, AI fights, money split. 8 steps removed, 3 restarts fewer. | 552 |
+| mp:coop-core | KEEP | The broad sync session: tunables, resync, save and load. 7 steps removed. | 388 |
+| mp:coop-economy | KEEP | Who pays, money split, drafts, votes. 9 steps removed. | 349 |
+| mp:coop-friendly | KEEP | Ship ownership and payback to the client. 4 steps removed. | 118 |
+| mp:coop-shared | KEEP | The only test of shared-index co-op. | 101 |
+| mp:coop-stress | PC | A cost measure (spec 42): now PC only, run on demand. | 285 |
 
 ### Co-op
 
-Co-op tests are 4 sessions (`tests/autotest-mp/`): `coop-core`, `coop-economy`, `coop-combat` and `coop-stress` (a cost measure, spec 42). Each session checks determinism with a hash of the whole run state and has one step for each old co-op test check. A touched area runs every session with a step of the area. `coop-core` is the co-op smoke test for shared code. The old 21 tests map to steps as listed in the session files (the step names start with the area).
+Co-op tests are sessions (`tests/autotest-mp/`): `coop-core` (the broad sync session: tunables input, resync, save and load), `coop-combat`, `coop-economy`, `coop-autonomy`, `coop-friendly`, `coop-shared` (one shared player index) and `coop-stress` (a cost measure, spec 42, on the PC only). Each session compares a hash of the whole run state on both machines, so a step that adds no client input still finds a desync.
 
 ## Findings
 
@@ -131,3 +203,20 @@ Medians from `../.state/logs` (November 2026). A co-op test counts as two slots 
 | `autotest-affected.sh` after a Core change | 100 tests, 12,257 s | 23 tests, 2,332 s (ideal 6.5 min) |
 | `autotest-affected.sh` after an Events change | 13 tests, 1,163 s | 3 tests, 408 s |
 | Unit tests | 145 | 149 |
+
+### The prune of 2026-11-14
+
+The policy above, applied to every game test with the evidence that the Audit section names. Single-player times: the last full CI run on main (2026-11-14), for tests that it ran. Co-op times: one local run of the changed sessions before and after, 7 tests at once on the same Mac.
+
+| | Before | After |
+|---|---|---|
+| Game tests in CI | 154 (147 single player + 7 co-op) | 123 (117 + 6) |
+| Removed | | 29: 16 deleted, 13 replaced by unit tests (`startjobs-pick` left with its feature on main) |
+| Out of CI, on the PC only | 4 | 6 (`telemetry-stress`, `coop-stress` moved) |
+| Single-player CI time | 11,660 s | 9,873 s (−15 %) |
+| Co-op sessions, local (core, combat, economy, autonomy, friendly) | 1,749 s | 1,297 s (−26 %) |
+| Co-op CI time | 2,029 s | about 1,320 s (estimate: the measured −26 %, `coop-stress` out) |
+| Co-op steps removed | | 29 (core 7, combat 8, economy 9, friendly 4, autonomy 1) |
+| Unit tests | 344 | 345 (one new: `RemoveTerm` keeps the OR with its term) |
+
+Kept on purpose, against a shorter suite: tests of new complex features with their own spec (`ai-flee-station`, `relays-blind`), and single-player tests whose co-op step went instead (`factions-peace`, `factions-watch`, `missions-offers`, `missions-shady`, `tech-count`). Not done yet: the shorten proposals (long fixed waits in kept tests), and the moves of the rules in `contracts-value` and `mechanics-listening` into models so that those tests can go.

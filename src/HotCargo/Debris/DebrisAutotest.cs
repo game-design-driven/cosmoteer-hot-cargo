@@ -16,7 +16,8 @@ static class DebrisAutotest
     internal static void Register()
     {
         Autotest.Commands["debris_set"] = arg => Autotest.SetField(R().T.Debris, arg);
-        // debris_spawn <count> [parts] [speed]: loose junk pieces near the acting player's first ship, each a row of [parts] armor blocks
+        // debris_spawn <count> [parts] [speed]: loose junk pieces near the acting player's first ship, or near the first human ship by ID
+        // when a fight left that player without a ship (godmode cannot stop a one-hit kill). Each piece is a row of [parts] armor blocks
         // (default 3), with no crew and no resources. [speed] (default 0) sends them drifting and spinning, like pieces of a destroyed ship.
         // Fixed seeds and sim positions, so every co-op machine makes the same pieces.
         Autotest.Commands["debris_spawn"] = arg =>
@@ -26,7 +27,8 @@ static class DebrisAutotest
             int parts = p.Length > 1 ? int.Parse(p[1], CultureInfo.InvariantCulture) : 3;
             float speed = p.Length > 2 ? float.Parse(p[2], CultureInfo.InvariantCulture) : 0f;
             var sim = R().Game.Sim;
-            var home = Autotest.ActingShip(sim) ?? throw new InvalidOperationException("no ship of the acting player");
+            var home = Autotest.ActingShip(sim) ?? sim.Ships.HumanPlayerShips.OrderBy(s => s.UniqueID).FirstOrDefault()
+                ?? throw new InvalidOperationException("no human ship");
             var armor = home.Rules.PartsByID[new ID<PartRules>("cosmoteer.armor")];
             for (int i = 0; i < count; i++)
             {
@@ -59,13 +61,7 @@ static class DebrisAutotest
                 .Select(s => s.DetWorldCenter.DistanceTo(home.DetWorldCenter)).Order().Take(3).ToList();
             if (near.Count == 0) throw new InvalidOperationException("no tracked junk piece");
             home.FocusCamera(playSound: false);
-            var view = sim.Camera.ViewController;
-            float size = (near.Max() + 120f) * 2f;
-            // A minimized test slot window has no viewport size, so ZoomToFit zooms out all the way. Then the zoom fits the
-            // screenshot height (1440 pixels in the test slots). Revisit if screens.sh uses another resolution.
-            if (view._scene.Viewport.GetViewportRect().Size.Y > 1) view.ZoomToFit(new Vector2(size));
-            else view.FRTargetZoomScale = view.FRZoomScale = Math.Clamp(view.TransformWorldScaleToFrame(size * view.Node.WorldUniformScale / 1440f),
-                view.FRMinZoomScale, view.FRMaxZoomScale);
+            Autotest.FitCamera(sim, (near.Max() + 120f) * 2f);
         };
         Autotest.Fields["junk"] = () => R().Game.Sim.Ships.Count(s => s.IsJunk && !s.Rules.IsAsteroid);
         Autotest.Fields["debris_tracked"] = () => R().State.Debris.Since.Count;

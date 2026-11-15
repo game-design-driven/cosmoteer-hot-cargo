@@ -23,6 +23,10 @@ debt_help_share 400 600
 waitfor debt_help_asking == 1 30
 waitfor debt_help_hailed == 1 120
 debt_page helper
+# Spec 1416, 1433: the helper's page is the debt page alone: three choices, no hire or hold-tech offers.
+debt_look helper
+expect debt_page_other_lines == 0
+expect debt_page_debt_parts == 3
 debt_help_answer pay
 wait 1
 expect debt_help == 0

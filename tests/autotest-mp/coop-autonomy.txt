@@ -1,4 +1,4 @@
-# Co-op session: autonomous ships (spec 1075, 1082). A looter and a miner of the host run on both machines: Funnel pickups,
+# Co-op session: autonomous ships (spec 1075, 1082) and scavengers (spec 1338). A looter and a miner of the host run on both machines: Funnel pickups,
 # Computer manning, mining, the instant sale and the money must match (the state hash compares them). Its own run: the steps
 # need the quiet start system with its station and asteroids. See coop-core.txt for "client:", "as 1", "on 1" and steps.
 mphost {PORT}
@@ -32,24 +32,27 @@ mp auto_loot gold 1 24 120
 waitfor auto_money_gain > 0 400
 on 1 waitfor auto_money_gain > 0 30
 
-step autonomy.miner
-# Spec 1077: the Computer mans the mining laser on both machines; the ship mines and the Funnel takes the ore in. It starts next to
-# the nearest live asteroid: the step checks that both machines mine the same, not the flight (autonomy-miner covers that), and a
-# busy machine runs the sim slower than real time.
-mp auto_build Miner asteroid yarden_zamir.computer@2,0,1 cosmoteer.mining_laser_small@3,0,1 yarden_zamir.targeted_reactor@2,2 cosmoteer.storage_2x2@0,0 yarden_zamir.funnel@0,2 cosmoteer.thruster_small@0,4 cosmoteer.thruster_small@3,4 cosmoteer.thruster_small@0,-2,2 cosmoteer.thruster_small@3,-2,2 cosmoteer.thruster_small@-2,0,1 cosmoteer.thruster_small@-2,2,1 cosmoteer.thruster_small@4,2,3
-# The build runs in the sim some ticks after the line (later on a busy machine): wait for the ship on both machines.
-auto_ship Miner
-waitfor auto_ship_live == 1 60
-on 1 auto_ship Miner
-on 1 waitfor auto_ship_live == 1 60
-tactics_ship Miner
-tactics HC1:CargoAbove=25>GoToStation=0;StationInRange&CargoToSell>Sell;LootWithin=600>CollectLoot;AsteroidWithin=20000>Mine;Always>ReturnToFleet
-tacticsauto on
-auto_ship Miner
-waitfor auto_salvage_jobs >= 1 300
-waitfor auto_cargo >= 1 300
-on 1 auto_ship Miner
-on 1 expect auto_manned == 1
-on 1 waitfor auto_cargo >= 1 60
+step scavenge.collect
+# Spec 1338: an NPC scavenger waits out the cooldown, salvages a wreck, fetches loose steel and sells at the station. The ages are run
+# state and the module runs on both machines; the state hash compares them, so a divergence fails the step.
+mp scav_set CooldownSeconds 60
+mp scav_spawn Scav station
+scav_ship Scav
+waitfor scav_live == 1 60
+on 1 scav_ship Scav
+on 1 waitfor scav_live == 1 60
+auto_ship Scav
+on 1 auto_ship Scav
+mp auto_wreck 0,500
+mp auto_loot steel 5 3 200
+# The wreck reaches the sim some ticks after the line. Earlier steps leave junk, so the age count alone does not show it.
+waitfor scav_wreck_parts > 0 60
+waitfor scav_target > 0 300
+expect scav_idle == 1
+waitfor scav_cargo > 0 400
+on 1 waitfor scav_cargo > 0 60
+mp scav_set FullFraction 0.01
+waitfor scav_sold > 0 300
+on 1 waitfor scav_sold > 0 60
 
 end

@@ -12,7 +12,6 @@ using Halfling;
 using Halfling.Geometry;
 using HotCargo.Core;
 using HotCargo.RunModes;
-using HotCargo.StartJobs;
 
 namespace HotCargo.Hunters;
 
@@ -68,6 +67,7 @@ public static class HunterSpawner
     /// <summary>Spec 191. Spawns the groups that are due. Runs inside the sim tick.</summary>
     internal static void OnTick(Run run, SimRoot sim, double dt) => Errors.Guard("hunter waves", () =>
     {
+        ReleaseCaptured(run, sim);
         DropHeldFuel(run, sim);
         var pending = run.State.Hunters.Pending;
         if (!run.PressureActive) { pending.Clear(); return; }
@@ -116,7 +116,7 @@ public static class HunterSpawner
     /// the difficulty factors (spec 682). Spec 305: the route tier floor.</summary>
     static (int Ships, int Tier) Plan(Run run, SimRoot sim, StageResponse r)
     {
-        float progress = WaveModel.Progress(run.State.SectorIndex, run.SectorCount());
+        float progress = WaveModel.Progress(run.State.SectorIndex, run.T.Journey.RunSectorCount);
         int ships = run.Pressure().Ships(ScaleShips(run, sim, WaveModel.ShipCount(r.ShipCount, r.EarlyScale, progress)));
         int tier = BaseTier(run) + WaveModel.TierOffset(r.TierOffset, r.EarlyTierReduction, progress) + RunModes.Difficulty.ExtraHunterTiers(run);
         return (ships, tier);
@@ -195,7 +195,7 @@ public static class HunterSpawner
         for (int i = 0; i < count; i++)
         {
             var ship = PickShip(sim, t, tier);
-            Vector2 loc = SpawnLocation(sim, fleetCenter, waveDirection, halfArc, t);
+            Vector2 loc = SpawnLocation(sim, fleetCenter, waveDirection, halfArc, new Range<float>(t.SpawnDistanceMin, Math.Max(t.SpawnDistanceMin, t.SpawnDistanceMax)));
             var spawner = new StasisShipSpawner(sim, ship.ID, loc, SpawnedShipFeatures.None, sim.Rand.UInt64(), [HunterTag])
             {
                 AI = new ID<ShipAIRules>(AiId),
@@ -267,6 +267,23 @@ public static class HunterSpawner
         }
     }
 
+    /// <summary>
+    /// Spec 1511. A hunter ship that the players took over (a claimed wreck) becomes a normal player ship: it loses the hunter tag,
+    /// its held fuel and the hunter AI. So no hunter rule (pursuit, stasis, waves, fuel, relay watch, telemetry) counts it again.
+    /// Runs inside the sim tick, so every machine releases the ship at the same tick. Saves from before this rule heal at load.
+    /// </summary>
+    static void ReleaseCaptured(Run run, SimRoot sim)
+    {
+        foreach (var ship in sim.Ships.HumanPlayerShips)
+        {
+            if (!ship.HasTag(HunterTag)) continue;
+            ship.Tags?.Remove(HunterTag);
+            ForgetHeldFuel(run, ship);
+            if (Ai.AiGate.IsHunterAi(ship)) ship.AI = null;
+            Log.Info($"hunters: {ship.Metadata.PlainShipName} id={ship.UniqueID} belongs to player {ship.Metadata.PlayerIndex} now, no longer a hunter");
+        }
+    }
+
     /// <summary>A hunter that jumps out of the system takes its held fuel with it.</summary>
     public static void ForgetHeldFuel(Run run, Ship ship) => run.State.Hunters.HeldFuel.RemoveAll(h => h.Ship == ship.UniqueID);
 
@@ -289,11 +306,14 @@ public static class HunterSpawner
 
     static readonly ID<SimObjectSpawner> StationTag = new("station");
 
-    static Vector2 SpawnLocation(SimRoot sim, Vector2 center, float waveDirection, float halfArc, HunterTunables t)
+    /// <summary>
+    /// A spot distance from the center, within halfArc of the direction, clear of suns and at least distance.Min from every station.
+    /// Hunter waves and scavengers (spec 1343) arrive here.
+    /// </summary>
+    internal static Vector2 SpawnLocation(SimRoot sim, Vector2 center, float waveDirection, float halfArc, Range<float> distance)
     {
         var wanted = GameApp.Rules.CareerMode.Wanted;
-        var distance = new Range<float>(t.SpawnDistanceMin, Math.Max(t.SpawnDistanceMin, t.SpawnDistanceMax));
-        // Every station keeps at least SpawnDistanceMin, as the fleet's own station does, so a hunter never arrives in a station's guns
+        // Every station keeps at least distance.Min (SpawnDistanceMin), as the fleet's own station does, so a hunter never arrives in a station's guns
         // (stations sit closer together in the smaller systems, spec 105). Stations in stasis count too: they wake up and fire.
         var stations = SimQueries.TaggedShips(sim, StationTag).Select(s => s.Location).ToList();
         Vector2 loc = center;
@@ -303,7 +323,7 @@ public static class HunterSpawner
             float angle = waveDirection + sim.Rand.Single(new Range<float>(-halfArc, halfArc));
             loc = center + Vector2.FromAngle(angle) * sim.Rand.Single(distance);
             if (!sim.ShouldAIAvoidLocation(loc, wanted.PoliceSpawnAvoidableDoodadTags, wanted.PoliceSpawnAvoidableDoodadBuffer)
-                && stations.All(s => s.DistanceTo(loc) >= t.SpawnDistanceMin)) break;
+                && stations.All(s => s.DistanceTo(loc) >= distance.Min)) break;
         }
         return loc;
     }
