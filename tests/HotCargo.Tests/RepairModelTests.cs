@@ -5,18 +5,21 @@ namespace HotCargo.Tests;
 
 public class RepairModelTests
 {
-    static readonly RepairOptions All = new(HasRock: true, HasPoolMate: true, HasStation: true);
+    static readonly RepairOptions All = new(HasRock: true, HasPoolMate: true, HasWreck: true, HasStation: true);
 
     [Fact]
-    public void Plan_order_is_cover_pool_station_away()
+    public void Plan_order_is_cover_pool_wreck_station_away()
     {
         Assert.Equal(RepairPlan.Cover, RepairModel.PickPlan(lacksResources: false, shortOfCrew: false, All));
         Assert.Equal(RepairPlan.Pool, RepairModel.PickPlan(lacksResources: true, shortOfCrew: false, All));
-        Assert.Equal(RepairPlan.Station, RepairModel.PickPlan(lacksResources: true, shortOfCrew: false, All with { HasPoolMate = false }));
+        Assert.Equal(RepairPlan.Wreck, RepairModel.PickPlan(lacksResources: true, shortOfCrew: false, All with { HasPoolMate = false }));
+        Assert.Equal(RepairPlan.Station, RepairModel.PickPlan(lacksResources: true, shortOfCrew: false, All with { HasPoolMate = false, HasWreck = false }));
+        // A wreck gives resources, not crew: a ship that is only short of crew goes to a station.
+        Assert.Equal(RepairPlan.Station, RepairModel.PickPlan(lacksResources: false, shortOfCrew: true, All with { HasRock = false }));
         // A faction mate shares resources, not crew: crew come only from a station.
         Assert.Equal(RepairPlan.Station, RepairModel.PickPlan(lacksResources: false, shortOfCrew: true, All));
         Assert.Equal(RepairPlan.Away, RepairModel.PickPlan(lacksResources: false, shortOfCrew: false, All with { HasRock = false }));
-        Assert.Equal(RepairPlan.Away, RepairModel.PickPlan(lacksResources: true, shortOfCrew: true, new(false, false, false)));
+        Assert.Equal(RepairPlan.Away, RepairModel.PickPlan(lacksResources: true, shortOfCrew: true, new(false, false, false, false)));
     }
 
     [Fact]
@@ -42,6 +45,7 @@ public class RepairModelTests
     {
         Assert.Equal(180f, RepairModel.TimeLimit(RepairPlan.Station, 45f, 180f));
         Assert.Equal(180f, RepairModel.TimeLimit(RepairPlan.Pool, 45f, 180f));
+        Assert.Equal(180f, RepairModel.TimeLimit(RepairPlan.Wreck, 45f, 180f));
         Assert.Equal(45f, RepairModel.TimeLimit(RepairPlan.Cover, 45f, 180f));
         Assert.Equal(45f, RepairModel.TimeLimit(RepairPlan.Away, 45f, 180f));
     }

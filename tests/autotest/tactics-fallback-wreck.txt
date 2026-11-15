@@ -1,0 +1,45 @@
+# Fall back to a wreck (spec 1305, 1321): a damaged pirate cargo ship without resources, with no faction mate and no friendly
+# station, salvages a ripe wreck with the scavenge functions, then repairs.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+playerweapons off
+# A quiet world. Scavenging stays on for its age check, but no scavenger arrives and faction ships do not scavenge on their own,
+# so the collecting comes from the fall back plan.
+scav_set SpawnChance 0
+scav_set FactionEnabled false
+fr_set PayForwardChance 0
+tacticlog on
+aiset FleeOnVanilla false
+aiset RegroupOnVanilla false
+aiset CallOnVanilla false
+aiset CoverEnabled false
+aiset BaitEnabled false
+aiset TeamEnabled false
+aijitter 0
+aitrait Pirate Raiders FallBack 1
+aitrait Pirate Ambushers FallBack 1
+# A big cargo ship repairs slowly: give the crew time.
+aiset FallBackTripSeconds 600
+aiset FallBackMaxSeconds 600
+openspace 6000
+fr_kill_enemies
+aispawn pirates 1 3 trade
+ainew_watch 0 1500
+wait 3
+# The damage comes with fall back off, so the loose resources can be ripe (scavenge cooldown) before the plan is picked.
+aiset FallBackEnabled false
+aistrip 0 resources
+aidamage 0 0.3
+# A wreck on the ship's radar, beyond the vanilla reach of 400.
+ainew_wreck 0 900
+wait 4
+scav_age 200
+expect ai_new_first_scav_targets >= 1
+aiset FallBackEnabled true
+waitfor ai_fb_wreck >= 1 30
+waitfor ai_new_first_steel > 0 120
+waitfor ai_fb_active == 0 400
+expect ai_new_first_health >= 0.6
+quit

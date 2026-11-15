@@ -126,6 +126,7 @@ internal sealed class FallBackStrategy : AIStrategyModule
         {
             RepairPlan.Cover => Cover(ship, ai, threat, t),
             RepairPlan.Pool => Pool(ship, ai, threat, t),
+            RepairPlan.Wreck => Wreck(ship, threat, t),
             RepairPlan.Station => Station(ship, ai, threat, t),
             RepairPlan.Away => Away(ship, ai, threat, t),
             var plan => throw new InvalidOperationException($"fall back: no plan after a pick ({plan})"),
@@ -151,8 +152,10 @@ internal sealed class FallBackStrategy : AIStrategyModule
         bool shortOfCrew = Resupply.ShortOfCrew(ship, t);
         var rock = threat is null ? null : CoverStrategy.FindRock(ship, threat, t);
         var mate = Resupply.FindPoolMate(ship, lacking, t);
+        // Spec 1321: the scavenge pick; it needs free room in the storage bays.
+        bool wreck = lacking.Count > 0 && Run.Current is { } run && Scavenge.Scavenger.FindTarget(run, ship) is not null;
         var station = Resupply.FindStation(ship);
-        var plan = RepairModel.PickPlan(lacking.Count > 0, shortOfCrew, new RepairOptions(rock is not null, mate is not null, station is not null));
+        var plan = RepairModel.PickPlan(lacking.Count > 0, shortOfCrew, new RepairOptions(rock is not null, mate is not null, wreck, station is not null));
         SetPlan(plan, plan switch
         {
             RepairPlan.Pool => mate!.UniqueID,
@@ -214,6 +217,19 @@ internal sealed class FallBackStrategy : AIStrategyModule
         // In the pool plan the flag marks the arrival, so the log line shows once.
         _supplied = true;
         return RepairHere(ship, ai, t);
+    }
+
+    /// <summary>
+    /// Spec 1321: collect from the nearest wreck or loose resources with the scavenge functions until the ship lacks nothing or no
+    /// target is left, then pick the plan again (usually cover or away, where it repairs with what it collected).
+    /// </summary>
+    bool Wreck(Ship ship, Ship? threat, TacticsTunables t)
+    {
+        if (Run.Current is not { } run) throw new InvalidOperationException("fall back: wreck plan without a run");
+        if (Resupply.Lacking(ship, ownOnly: true).Count == 0) return Repick(ship, threat, t, "collected what it lacked");
+        if (Scavenge.Scavenger.FindTarget(run, ship) is not { } target) return Repick(ship, threat, t, "no wreck or loose resources left");
+        Scavenge.Scavenger.Work(run, ship, target);
+        return true;
     }
 
     /// <summary>The faction mate of the pool plan while it is alive and still of the ship's faction, else null.</summary>

@@ -146,6 +146,7 @@ The prune of 2026-11-14 classified every game test with evidence: git history (f
 | tactics-combat-repair | KEEP | Complex AI: repairs cancel under fire; runs in a quiet world ([#133](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/133)). | - |
 | tactics-fallback-cover | KEEP | New complex fall-back behavior; runs in a quiet world ([#133](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/133)). | - |
 | tactics-fallback-pool | 60 s | a damaged combat ship repairs from a faction mate's stock | pooled crew construction | PoolModel.Pools | keep |
+| tactics-fallback-wreck | 60 s | a damaged cargo ship salvages a ripe wreck, then repairs | scavenge pick and collect, crew repair | RepairModel.PickPlan | keep |
 | tactics-fallback-station | KEEP | Complex: station gives crew and resources; runs in a quiet world ([#133](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/133)). | - |
 | tech-count | KEEP | Tech count; kept over the co-op step. | 59 |
 | tech-design-vaults | KEEP | Run start; fixes ee4b44c, 454f50e. | 95 |

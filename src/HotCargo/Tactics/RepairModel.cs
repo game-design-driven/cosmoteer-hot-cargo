@@ -2,21 +2,22 @@ namespace HotCargo.Tactics;
 
 /// <summary>
 /// Spec 1305. Where a ship that falls back repairs. None: no plan picked yet.
-/// Hook for spec 1312: a Scavenge plan goes between Pool and Station when the scavenge behavior lands.
+/// The values are saved with the ship, so a new plan goes at the end; the pick order is in PickPlan.
 /// </summary>
-public enum RepairPlan { None, Cover, Pool, Station, Away }
+public enum RepairPlan { None, Cover, Pool, Station, Away, Wreck }
 
 /// <summary>What the ship can reach when it picks a plan.</summary>
-public readonly record struct RepairOptions(bool HasRock, bool HasPoolMate, bool HasStation);
+public readonly record struct RepairOptions(bool HasRock, bool HasPoolMate, bool HasWreck, bool HasStation);
 
 /// <summary>Pure repair plan decisions (spec 1305-1309) on plain numbers. No game types.</summary>
 public static class RepairModel
 {
-    /// <summary>Spec 1305: the first plan that applies, in the order cover, pool, station, away.</summary>
+    /// <summary>Spec 1305: the first plan that applies, in the order cover, pool, wreck, station, away.</summary>
     public static RepairPlan PickPlan(bool lacksResources, bool shortOfCrew, RepairOptions o)
     {
         if (!lacksResources && !shortOfCrew && o.HasRock) return RepairPlan.Cover;
         if (lacksResources && o.HasPoolMate) return RepairPlan.Pool;
+        if (lacksResources && o.HasWreck) return RepairPlan.Wreck;
         if ((lacksResources || shortOfCrew) && o.HasStation) return RepairPlan.Station;
         return RepairPlan.Away;
     }
@@ -37,7 +38,7 @@ public static class RepairModel
         return lacking;
     }
 
-    /// <summary>Spec 1309: pool and station trips get the longer time limit.</summary>
+    /// <summary>Spec 1309: pool, wreck and station trips get the longer time limit.</summary>
     public static float TimeLimit(RepairPlan plan, float maxSeconds, float tripSeconds) =>
-        plan is RepairPlan.Pool or RepairPlan.Station ? tripSeconds : maxSeconds;
+        plan is RepairPlan.Pool or RepairPlan.Wreck or RepairPlan.Station ? tripSeconds : maxSeconds;
 }
