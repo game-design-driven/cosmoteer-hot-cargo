@@ -162,6 +162,21 @@ on 1 expect hc_trap_state == 2
 on 1 expect tactics_snapshot_kept >= 1
 on 1 expect tactics_snapshot_changed == 0
 
+step missions.escort-ambush
+# Playtest 2026-11-15: after a resync, the convoy freighter reached the ambush point at a different tick on each machine,
+# the raiders spawned at different spots, and the game desynced (spec 1512). Objectives read the sim position of their ships.
+mp hc_generate escort
+mp hc_accept escort
+mp hc_escort_goto
+pause off
+wait 3
+# Just before the ambush point. The freighter flies on and springs the ambush itself.
+mp hc_escort_advance 0.25
+pause off
+waitfor hc_escort_raiders >= 2 60
+on 1 waitfor hc_escort_raiders >= 2 60
+wait 5
+
 step core.save-load
 # Back to the game setup with the connection kept, load the save (from before the resync) for both players, start.
 mplobby

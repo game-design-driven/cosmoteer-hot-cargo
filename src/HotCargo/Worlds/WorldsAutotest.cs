@@ -280,7 +280,7 @@ static class WorldsAutotest
             // goto lair <distance>: that far from the lair of the accepted raid, on its +X side.
             case ["goto", "lair", var distText]:
             {
-                var lair = Objective<FindLairObjective>().Lair.Location ?? throw new InvalidOperationException("lair is not in this system");
+                var lair = Objective<FindLairObjective>().Lair.DetLocation() ?? throw new InvalidOperationException("lair is not in this system");
                 Teleport(lair + new Vector2(float.Parse(distText, CultureInfo.InvariantCulture), 0f));
                 break;
             }

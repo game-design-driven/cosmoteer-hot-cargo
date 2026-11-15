@@ -148,10 +148,10 @@ internal sealed class ShadyTrapObjective : Objective
     void OnTick(object? sender, SimRoot sim)
     {
         if (Mission is null || State != ShadyTrapState.Waiting || sim != Mission.Game.Sim || sim.NodeId() != Site.MapNodeID) return;
-        if (Site.Location is { } siteLoc) LastSiteLocation = siteLoc;
+        if (Site.DetLocation() is { } siteLoc) LastSiteLocation = siteLoc;
         if (LastSiteLocation is not { } at) return;
         if (SimQueries.NearestHumanShip(sim, at) is not { } nearest) return;
-        bool reached = Site.Location is null || nearest.DetWorldCenter.DistanceTo(at) <= TriggerDistance;
+        bool reached = Site.DetLocation() is null || nearest.DetWorldCenter.DistanceTo(at) <= TriggerDistance;
         if (reached) Resolve(sim, nearest.DetWorldCenter);
     }
 

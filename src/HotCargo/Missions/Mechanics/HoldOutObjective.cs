@@ -173,7 +173,7 @@ internal sealed class HoldOutObjective : Objective
         if (Completion != CompletionState.InProgress) return null;
         if (Phase == HoldOutPhase.Positioning && BaseLocation is { } b && game.Sim?.MapNode?.UniqueID == Target.MapNodeID)
             return new Circle(b, MechanicsArea.TunablesFor(game).ScanRange);
-        return Target.Location is { } at ? new Circle(at, Settings(game).GuardRadius) : null;
+        return Target.DetLocation() is { } at ? new Circle(at, Settings(game).GuardRadius) : null;
     }
 
     public override bool IsShipAssociated(MetaShip ship) => Completion == CompletionState.InProgress && Target.TargetMetaShip == ship;

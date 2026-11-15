@@ -70,7 +70,7 @@ public static class MechanicsArea
         Autotest.Fields["mech_chance_siege"] = () => MissionArea.FindGroup(RequireSim(), Find("siege").GroupTag).SpawnChance;
 
         // Hold-outs (spec 132, 137).
-        Autotest.Commands["mech_hold_goto"] = _ => MissionArea.TeleportPlayers(Hold().Target.Location ?? throw new InvalidOperationException("hold-out target is not in this system"));
+        Autotest.Commands["mech_hold_goto"] = _ => MissionArea.TeleportPlayers(Hold().Target.DetLocation() ?? throw new InvalidOperationException("hold-out target is not in this system"));
         Autotest.Commands["mech_hold_skip"] = arg => Hold().GuardedSeconds += double.Parse(arg, CultureInfo.InvariantCulture);
         Autotest.Commands["mech_hold_kill"] = _ => RemoveShip(Hold().Target.TargetShip ?? throw new InvalidOperationException("hold-out target is not live"));
         Autotest.Commands["mech_order"] = arg =>
@@ -146,7 +146,7 @@ public static class MechanicsArea
 
         // Sun mining (spec 138): helion ore deposits on live asteroids, and their distance to the nearest sun.
         Autotest.Commands["mech_sun_goto"] = _ => MissionArea.TeleportPlayers(SunOreShips().FirstOrDefault()?.DetWorldCenter ?? SunOreStasis().First());
-        Autotest.Commands["mech_deliver_goto"] = _ => MissionArea.TeleportPlayers(Deliver().ToShip.Location ?? throw new InvalidOperationException("delivery station is not in this system"));
+        Autotest.Commands["mech_deliver_goto"] = _ => MissionArea.TeleportPlayers(Deliver().ToShip.DetLocation() ?? throw new InvalidOperationException("delivery station is not in this system"));
         Autotest.Commands["mech_deliver"] = arg => TestDeliver(int.Parse(arg, CultureInfo.InvariantCulture));
         Autotest.Fields["mech_sun_ore_asteroids"] = () => SunOreShips().Count() + SunOreStasis().Count();
         Autotest.Fields["mech_sun_ore_units"] = () => SunOreShips().Sum(s => s.Parts.Where(p => p.Rules.Resources.Any(r => r.Type == OreId)).Sum(p => p.Rules.Resources.First(r => r.Type == OreId).Quantity));
@@ -330,7 +330,7 @@ public static class MechanicsArea
     {
         var o = Tow();
         Ship hulk = o.Hulk.Live(RequireSim()) ?? throw new InvalidOperationException("hulk is not live; run mech_tow_goto and wait");
-        Vector2 station = o.Station.Location ?? throw new InvalidOperationException("station is not in this system");
+        Vector2 station = o.Station.DetLocation() ?? throw new InvalidOperationException("station is not in this system");
         Vector2 at = station + new Vector2(hulk.DetWorldBoundingCircle.Radius + 700f, 0f);
         Autotest.Teleport(hulk, at);
         MissionArea.TeleportPlayers(at + new Vector2(0f, 800f));

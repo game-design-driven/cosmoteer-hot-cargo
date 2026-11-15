@@ -60,14 +60,14 @@ public static class MissionArea
         };
         Autotest.Commands["hc_generate"] = TestGenerate;
         Autotest.Commands["hc_accept"] = TestAccept;
-        Autotest.Commands["hc_escort_goto"] = _ => TeleportPlayers(RequireEscort().Escort.Location ?? throw new InvalidOperationException("escort is not in this system"));
+        Autotest.Commands["hc_escort_goto"] = _ => TeleportPlayers(RequireEscort().Escort.DetLocation() ?? throw new InvalidOperationException("escort is not in this system"));
         Autotest.Commands["hc_escort_arrive"] = _ => TestEscortArrive();
         Autotest.Commands["hc_escort_diag"] = arg => LogEscort(arg);
         Autotest.Commands["hc_escort_advance"] = arg => TestEscortAdvance(float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture));
         Autotest.Commands["hc_escort_ambush"] = _ =>
         {
             var o = RequireEscort();
-            o.SpringAmbush(RequireSim(), o.Escort.Location ?? throw new InvalidOperationException("escort is not in this system"));
+            o.SpringAmbush(RequireSim(), o.Escort.DetLocation() ?? throw new InvalidOperationException("escort is not in this system"));
             Autotest.Wait(2);
         };
         // Test slots start with empty settings, so tutorial codex pages are unseen. The combat tutorial pauses the game
@@ -75,7 +75,7 @@ public static class MissionArea
         Autotest.Commands["hc_assault_goto"] = _ => TeleportPlayers(TaggedShips(RequireSim(), "hc_assault_ally").First().Location);
         Autotest.Commands["hc_shady_spring"] = _ => TestShadySpring();
         Autotest.Commands["hc_kill_ambush"] = _ => TestKillAmbush();
-        Autotest.Commands["hc_shady_goto"] = _ => TeleportPlayers(RequireTrap().Site.Location ?? throw new InvalidOperationException("shady site is not in this system"));
+        Autotest.Commands["hc_shady_goto"] = _ => TeleportPlayers(RequireTrap().Site.DetLocation() ?? throw new InvalidOperationException("shady site is not in this system"));
         // Remembers money and the escort distance, for hc_money_gain and hc_escort_progress.
         Autotest.Commands["hc_mark"] = _ =>
         {
@@ -150,7 +150,7 @@ public static class MissionArea
         return mission.Rewards.OfType<HeatReward>().SingleOrDefault() ?? throw new InvalidOperationException("the escort has no convoy cover reward");
     }
 
-    static float EscortDistance() => RequireEscort() is var o && o.Escort.Location is { } at ? at.DistanceTo(o.Destination) : -1f;
+    static float EscortDistance() => RequireEscort() is var o && o.Escort.DetLocation() is { } at ? at.DistanceTo(o.Destination) : -1f;
 
     static Run RequireRun() => Autotest.RequireRun();
     static SimRoot RequireSim() => RequireRun().Game.Sim ?? throw new InvalidOperationException("no sim");
@@ -291,7 +291,7 @@ public static class MissionArea
         string player = string.Join(" ", sim.Ships.HumanPlayerSignificantShips.Select(s => $"{s.DetWorldCenter}"));
         if (ship is null)
         {
-            Log.Info($"AUTOTEST ESCORT {label}: not live; location={o.Escort.Location} spawner={o.Escort.TargetSpawner?.GetType().Name} dest={o.Destination} players={player} paused={sim.IsPaused.Confirmed} clockPaused={sim.Clock.Paused} scale={sim.Clock.ScaleFactor} t={sim.LogicalTime} runSeconds={RequireRun().State.GameSeconds:0.0}");
+            Log.Info($"AUTOTEST ESCORT {label}: not live; location={o.Escort.DetLocation()} spawner={o.Escort.TargetSpawner?.GetType().Name} dest={o.Destination} players={player} paused={sim.IsPaused.Confirmed} clockPaused={sim.Clock.Paused} scale={sim.Clock.ScaleFactor} t={sim.LogicalTime} runSeconds={RequireRun().State.GameSeconds:0.0}");
             return;
         }
         var ai = ship.AI;

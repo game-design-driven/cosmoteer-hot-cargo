@@ -31,6 +31,14 @@ public static class SimQueries
 
     public static bool HasTag(this StasisSpawner s, ID<SimObjectSpawner> tag) => StasisTags(s)?.Contains(tag) == true;
 
+    /// <summary>
+    /// Spec 1512. Where a mission target ship is in the sim: the live ship's DetWorldCenter, else its stasis spawner. Null when it is
+    /// in neither. Use it in sim logic instead of ObjectiveTargetShip.Location: that reads Ship.Location, the scene node position
+    /// that rendering moves, so it differs between machines (playtest 2026-11-15, convoy ambush desync).
+    /// </summary>
+    public static Vector2? DetLocation(this Cosmoteer.Modes.Career.Missions.Objectives.ObjectiveTargetShip target) =>
+        target.TargetShip?.DetWorldCenter ?? target.TargetSpawner?.Location;
+
     /// <summary>A ship with a spawn tag, live (Live is set) or in stasis.</summary>
     public readonly record struct TaggedShip(ObjectID Id, int PlayerIndex, Vector2 Location, Ship? Live);
 

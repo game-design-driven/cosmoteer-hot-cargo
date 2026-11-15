@@ -364,7 +364,7 @@ public static class EventsArea
         Autotest.Commands["ev_contact_goto"] = _ =>
         {
             var h = OpenHandOvers().FirstOrDefault() ?? throw new InvalidOperationException("no open hand-over");
-            var at = h.Contact.Location ?? throw new InvalidOperationException("the hand-over contact is not in this system");
+            var at = h.Contact.DetLocation() ?? throw new InvalidOperationException("the hand-over contact is not in this system");
             MoveNextTo(RequireSim(), at, h.Contact.TargetShip?.WorldBoundingRadius + 300f ?? 1200f);
         };
         // ev_deliver_ship: moves the delivered ship of the first open hand-over next to its contact, and the fleet beside it. Test only.
@@ -372,7 +372,7 @@ public static class EventsArea
         {
             var h = OpenHandOvers().FirstOrDefault(o => o.DeliveredShipId is not null) ?? throw new InvalidOperationException("no open hand-over with a ship to deliver");
             var ship = RequireSim().Ships[h.DeliveredShipId!.Value] ?? throw new InvalidOperationException("the ship to deliver is not live; run ev_goto on it first");
-            var at = h.Contact.Location ?? throw new InvalidOperationException("the hand-over contact is not in this system");
+            var at = h.Contact.DetLocation() ?? throw new InvalidOperationException("the hand-over contact is not in this system");
             // The contact can be in stasis (no size known): 900 from its center clears a trade station and stays within DeliveryRadius.
             float offset = h.Contact.TargetShip?.WorldBoundingRadius + 300f ?? 900f;
             Autotest.Teleport(ship, at + new Vector2(offset + ship.WorldBoundingRadius, 0));
@@ -650,7 +650,7 @@ public static class EventsArea
             CompletionState.Failed => 2,
             var c => throw new InvalidOperationException($"unexpected tow state {c}"),
         };
-        Autotest.Fields["ev_tow_dist"] = () => RequireTow() is var o && o.Towed.Location is { } at ? at.DistanceTo(o.Destination) : -1;
+        Autotest.Fields["ev_tow_dist"] = () => RequireTow() is var o && o.Towed.DetLocation() is { } at ? at.DistanceTo(o.Destination) : -1;
         // ev_spawn <generator>: runs a generator from spawns.rules around the fleet, like a Spawn outcome. Test only.
         Autotest.Commands["ev_spawn"] = arg =>
         {
