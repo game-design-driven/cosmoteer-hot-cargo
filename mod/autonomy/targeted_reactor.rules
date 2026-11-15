@@ -1,6 +1,6 @@
 // Targeted reactor (spec 1053). reactor_small with half its battery output, sent straight into the BatteryStorage of each part
 // that touches one of its sides (one vanilla ResourceStorageProxy per outside edge tile). No crew can take power from it, and
-// crew cannot walk through it. Art: sprites/targeted_reactor (tools/sprites/make_sprites.py): a sealed core with an emitter toward each side.
+// crew cannot walk through it. Art (spec 1057): a sealed core with a power coupler on each side and an arrow toward each side on the roof.
 Part : <./Data/ships/terran/reactor_small/reactor_small.rules>/Part
 {
 	NameKey = "HotCargoAutonomy/TargetedReactor"
@@ -73,19 +73,25 @@ Part : <./Data/ships/terran/reactor_small/reactor_small.rules>/Part
 		PowerLeft0 : PowerUp0 { PartLocation = [-1, 0] }
 		PowerLeft1 : PowerUp0 { PartLocation = [-1, 1] }
 
-		// Own art (sprites/targeted_reactor, tools/sprites/make_sprites.py). These names replace the vanilla visual components.
+		// Art (spec 1057, docs/part-art.md): the vanilla deck and walls by reference, and the own layers in sprites/targeted_reactor
+		// (tools/sprites/make_sprites.py). These names replace the vanilla visual components.
+		Deck00 : <part_art.rules>/DeckTile {}
+		Deck10 : <part_art.rules>/DeckTile { Location = [1.5, 0.5] }
+		Deck01 : <part_art.rules>/DeckTile { Location = [0.5, 1.5] }
+		Deck11 : <part_art.rules>/DeckTile { Location = [1.5, 1.5] }
 		Graphics
 		{
 			Type = Graphics
 			Location = [1, 1]
 			OperationalToggle = IsOperational
+			// The machine on the deck. The turrets layer draws between the floors and the doodads.
 			Floor
 			{
-				Layer = "floors"
+				Layer = "turrets"
 				DamageLevels [
-					{ File = "sprites/targeted_reactor/floor.png"; Size = [2, 2] }
-					{ File = "sprites/targeted_reactor/floor_33.png"; Size = [2, 2] }
-					{ File = "sprites/targeted_reactor/floor_66.png"; Size = [2, 2] }
+					{ File = "sprites/targeted_reactor/machine.png"; Size = [2, 2] }
+					{ File = "sprites/targeted_reactor/machine_33.png"; Size = [2, 2] }
+					{ File = "sprites/targeted_reactor/machine_66.png"; Size = [2, 2] }
 				]
 			}
 			OperationalDoodad
@@ -106,15 +112,7 @@ Part : <./Data/ships/terran/reactor_small/reactor_small.rules>/Part
 				Layer = "lights_add"
 				DamageLevels [ { File = "sprites/targeted_reactor/lights.png"; Size = [2, 2] } ]
 			}
-			Walls
-			{
-				Layer = "walls"
-				DamageLevels [
-					{ File = "sprites/targeted_reactor/walls.png"; Size = [2, 2] }
-					{ File = "sprites/targeted_reactor/walls_33.png"; Size = [2, 2] }
-					{ File = "sprites/targeted_reactor/walls_66.png"; Size = [2, 2] }
-				]
-			}
+			Walls = &<part_art.rules>/Walls2x2
 			Roof
 			{
 				Layer = "roofs"
@@ -123,6 +121,17 @@ Part : <./Data/ships/terran/reactor_small/reactor_small.rules>/Part
 					{ File = "sprites/targeted_reactor/roof_33.png"; NormalsFile = "sprites/targeted_reactor/roof_normals_33.png"; Size = [2, 2] }
 					{ File = "sprites/targeted_reactor/roof_66.png"; NormalsFile = "sprites/targeted_reactor/roof_normals_66.png"; Size = [2, 2] }
 				]
+			}
+			OperationalRoofDoodad
+			{
+				Layer = "roof_doodads"
+				DamageLevels [ { File = "sprites/targeted_reactor/roof_glows.png"; Size = [2, 2] } ]
+			}
+			// Like reactor_small: a light over the roof, so its normal map shows.
+			OperationalRoofLighting
+			{
+				Layer = "roof_lights_fancy"
+				DamageLevels [ { File = "./Data/ships/common/light_blob.png"; Size = [5, 5]; Z = 2.5; VertexColor = [180, 255, 77] } ]
 			}
 		}
 		ReactorLights_NonOverclocked_Components { Type = ToggledComponents; Toggle = IsOperational; Components {} }
