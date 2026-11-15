@@ -33,6 +33,9 @@ expect balance_fame_heat_gap >= -0.05
 expect balance_fame_heat_gap <= 0.2
 # A high floor in the next system: every trade station there loads with at least the floor (tier 2 or 3: 2000 x 0.09 to 0.11 = 180 to 220 fuel).
 balance_set StationFuelPerMillion 2000
+# The arrival can be next to enemies, and a ship that they disable is no longer moved by balance_visit, so no station
+# loads. This test checks the station stock, not the fight.
+godmode on
 balance_route
 wait 12
 expect balance_station_fuel_floor >= 180
