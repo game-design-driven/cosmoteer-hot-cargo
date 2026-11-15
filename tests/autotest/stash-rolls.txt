@@ -87,7 +87,8 @@ expect st_state >= 1
 # Real generation (spec 970): with OfferChance 1, the next new system gets a stash offer right after it generates.
 st_set OfferChance 1
 jump
-wait 20
-expect sector == 2
+# The jump runs in real time (no run tick, spec 1007): wait for the arrival, not a fixed time.
+waitfor sector == 2 20
+wait 2
 expect st_offers >= 1
 quit

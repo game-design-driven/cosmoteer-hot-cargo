@@ -18,8 +18,9 @@ wait 1
 expect rl_marked == 1
 expect rl_maptag == 1
 fa_jump relay
-wait 20
-expect sector == 2
+# The jump runs in real time (no run tick, spec 1007): wait for the arrival, not a fixed time.
+waitfor sector == 2 20
+wait 2
 expect rl_active == 1
 expect rl_started == 1
 expect rl_blocks == 1

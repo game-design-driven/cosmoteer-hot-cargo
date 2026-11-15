@@ -35,8 +35,8 @@ expect buyermission == 0
 buyer goto
 wait 2
 buyer sell 2
-wait 45
-expect won == 1
+# After the win, waits count real seconds (spec 1007), so wait for the win itself.
+waitfor won == 1 45
 expect delivered >= 1
 expect score > 0
 log won

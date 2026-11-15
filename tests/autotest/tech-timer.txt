@@ -35,6 +35,6 @@ expect losstimer == 1
 expect losstimerleft <= 55
 expect techcrates == 8
 expect lost == 0
-wait 60
-expect lost == 1
+# After the loss, waits count real seconds (spec 1007), so wait for the loss itself.
+waitfor lost == 1 60
 quit
