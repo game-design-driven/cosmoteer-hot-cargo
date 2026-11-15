@@ -4,6 +4,7 @@
 # Usage: test-slot-locks.sh            runs every scenario; exit code 0 when all checks hold. TEST_SLOTS: slot count (default 6).
 # Checks: no slot has two holders, at most LIMIT slots are taken, every taker finishes, stale locks of dead owners are
 # cleaned without removing new locks, and a co-op taker holds the pair lock at most HOT_CARGO_PAIR_WAIT (+ a poll) seconds.
+# Called by: by hand, after a change to the lock code in autotest-lib.sh.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 LIMIT=4

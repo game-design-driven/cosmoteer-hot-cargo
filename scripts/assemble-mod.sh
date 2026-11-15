@@ -4,6 +4,7 @@
 # - strings/en.rules = mod/strings/en.rules + every mod/<area>/strings.en.rules.
 # Areas own separate files, so parallel work never edits the same file.
 # Each actions.rules holds only Action objects { ... }, without an outer list.
+# Exit code non-zero when a step fails. Called by: stage.sh and package.sh.
 set -euo pipefail
 SRC="$(cd "$(dirname "$0")/../mod" && pwd)"
 OUT="$1"

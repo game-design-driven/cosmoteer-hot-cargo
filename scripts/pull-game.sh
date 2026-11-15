@@ -2,6 +2,7 @@
 # Copy game DLLs, symbols, .rules files, ship designs (*.ship.png) and name generator files (*.markov) from the PC into ../.game,
 # then decompile. The headless sim (tools/headless-sim) needs the ship and name files. Only copies files: safe while the player plays.
 # Run again after a game update.
+# Exit code 1 when the decompiled code has no game version. Called by: by hand, once per machine and after a game update.
 source "$(dirname "$0")/pc.sh"
 mkdir -p "$SHARED_GAME/Bin" "$SHARED_GAME/Data" "$SHARED_GAME/StandardMods"
 pc 'tar.exe -cf - -C "'"$PC_GAME_DIR"'\Bin" Cosmoteer.dll Cosmoteer.pdb Cosmoteer.xml HalflingCore.dll HalflingCore.pdb HalflingCore.xml HalflingPlatformWDX.dll HalflingPlatformWDX.pdb Cosmoteer.deps.json' | tar -xf - -C "$SHARED_GAME/Bin"

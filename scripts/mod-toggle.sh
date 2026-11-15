@@ -4,6 +4,7 @@
 # The first change keeps a backup: settings.rules.hot_cargo_bak.
 # The game writes EnabledMods as a multi-line list with paths relative to the save folder (for example Mods/hot_cargo).
 # This script rewrites the list on one line and keeps the other entries as they are.
+# Exit code: the exit code of the PC call. Called by: install-player.sh, keep-installed.sh and vault-saved-ships.sh.
 source "$(dirname "$0")/pc.sh"
 MODE="${1:?usage: mod-toggle.sh on|off}"
 pc "$PS_PATHS"'

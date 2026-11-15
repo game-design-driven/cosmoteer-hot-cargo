@@ -5,6 +5,8 @@
 # Usage: refresh-game-refs.sh [--push]   Without --push it only shows what would change.
 # Layout, the same as ../.game: Bin/, Data/ and StandardMods/example_mod/, exactly the files that pull-game.sh copies (not
 # decompiled/). The repo's own clone lives in <container>/.game-refs.
+# Exit code 0 when nothing changed or the push worked; 1 when ../.game is incomplete or a file is not tracked.
+# Called by: by hand, after scripts/pull-game.sh (hot-cargo-game-update skill).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 GAME="$(cd .. && pwd)/.game"

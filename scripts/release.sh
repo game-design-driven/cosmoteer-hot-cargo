@@ -6,6 +6,7 @@
 # origin/main whose required checks (branch protection of main, for example build, private-data and game-tests) and the
 # full-suite check (every game test) all passed in CI. --commit picks one; it must be on origin/main and green. The zip is built in a scratch worktree there.
 # Set FORCE=1 to skip the check (not for normal use).
+# Exit code 1 when no commit is tested, the tag exists or an argument is wrong. Called by: the coordinator (hot-cargo-release).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION="${1:?usage: release.sh <version> [--commit <sha>]}"; shift

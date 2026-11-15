@@ -4,17 +4,17 @@ The spike below ran on the Mac. The same host (tools/headless-sim) now also runs
 
 Question: can a .NET 10 host on macOS (arm64) run the real game logic with Hot Cargo, so that game tests do not need the Windows PC?
 
-## Verdict: GO, in use for single-player tests
+## Verdict: GO, in use for game tests
 
 `tools/headless-sim/` boots the real `GameApp` without a window, loads the vanilla rules and the Hot Cargo mod, applies the Hot Cargo Harmony patches and runs the real game loop. Existing `tests/autotest/*.txt` scripts run unchanged. No game file and no Hot Cargo source changed.
 
-75 of the 79 single-player tests pass on the Mac. The other 4 and the 21 co-op tests stay on the PC (see "Test results"). All 79 run in about 8 minutes with 8 runs in parallel, and no PC slot.
+In the spike, 75 of the 79 single-player tests passed on the Mac (see "Test results"). Now every test without the line `# runner: pc` runs in the sim, co-op sessions included. All 79 run in about 8 minutes with 8 runs in parallel, and no PC slot.
 
 ## How to run
 
 1. Copy the game files once (again after a game update): `scripts/pull-game.sh`. It copies only files, so it is safe while the player plays.
 2. Run tests: `scripts/autotest-sim.sh [timeout] [test ...]`. No test names: every single-player test.
-3. The tests that a change touches: `scripts/autotest-affected.sh`. It runs single-player tests on the Mac and the others on the PC, at the same time.
+3. The tests that a change touches: `scripts/autotest-affected.sh`. It runs tests in the sim on the Mac, co-op sessions included, and tests with `# runner: pc` on the PC, at the same time.
 
 `autotest-sim.sh`:
 
@@ -28,7 +28,7 @@ Which runner a test uses:
 
 - A test with the line `# runner: pc` stays on the PC. The line before it says why.
 - Co-op sessions (`tests/autotest-mp/`) run on the Mac too, as two sim processes on 127.0.0.1 (`scripts/autotest-sim-mp.sh`). Both keep the real-time clock (`SIM_REALTIME=1`), because network requests and lockstep read the game clock. Encoding the co-op ship icon (`TextureData.SaveTo`, FreeImage) writes a blank PNG.
-- `integrate.sh` sets `AUTOTEST_SIM=0`: merges keep the PC suite as the gate.
+- `integrate.sh` sets `AUTOTEST_SIM=0`: its tests run on the PC.
 - Without the game files on the Mac, `autotest-affected.sh` runs every test on the PC.
 
 `tools/headless-sim/run.sh` runs the host once:
@@ -136,8 +136,7 @@ Not tried: crossgen of the IL-only copies for osx-arm64, a warm pool of booted h
 
 ## Open items
 
-- CI: the private game-refs repository holds only the DLLs. CI would also need `Data/` and the ship files there.
-- The headless sim does not prove that the Windows build works. The release gate stays a full PC pass (`scripts/release.sh`).
+- The headless sim does not prove that the Windows build works. The release gate is the CI `full-suite` check in the sim (`scripts/release.sh`), so no gate runs the Windows build. The `# runner: pc` tests run only by hand.
 
 Risks:
 

@@ -12,6 +12,7 @@
 #   runs more tests than necessary, never fewer.
 # - A script that builds a script path from variables (for example "$dir/$name.sh") is not found. If a script starts to
 #   do that, change this rule.
+# Exit code 0. The kind is the output.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

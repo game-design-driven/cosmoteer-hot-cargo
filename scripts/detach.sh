@@ -3,6 +3,7 @@
 # A killed caller, watcher or agent shell does not stop it. Prints the log path. Wait with: scripts/suite-wait.sh <log>
 # The log starts with "== suite pid <pid>" and ends with "== suite exit <code>".
 # Usage: detach.sh <name> <command> [args...]
+# Exit code 1 for a missing command. Called by: autotest-all.sh, autotest-affected.sh and integrate.sh (--detach).
 set -euo pipefail
 NAME="${1:?usage: detach.sh <name> <command> [args...]}"
 shift

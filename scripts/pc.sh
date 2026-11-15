@@ -6,6 +6,7 @@
 # - empty or "main": the player's own Cosmoteer save folder and Mods folder. The game runs with a window (minimized).
 # - any other name, for example "t1": a test instance with its own save folder %USERPROFILE%\HotCargoSlots\<SLOT>.
 #   It runs headless (no window, no graphics, no audio) with --nosteam, so several can run at the same time.
+# Sourced by every script that calls the PC. refuse_if_player_hold exits the caller with code 3.
 set -euo pipefail
 # Machine-specific values (PC_MACHINE, optional PC_GAME_DIR) live in scripts/pc.local.sh, which git ignores.
 # Put it in ../_shared/scripts/pc.local.sh so every worktree gets it. Example content:

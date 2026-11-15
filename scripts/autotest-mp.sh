@@ -8,6 +8,8 @@
 # "{PORT}" becomes the host's UDP port (35870 + host slot number), so parallel sessions do not collide.
 # The host starts first. The clients start when the host log shows "AUTOTEST hosting".
 # scripts/coop-report.sh gives the verdict from the host log and each client log. A run is retried only when nothing ran (empty host log).
+# Exit code 0 on PASS, 1 on FAIL, 2 for a bad PLAYERS value or a missing session, 3 when the PC refused the link.
+# Called by: autotest-all.sh (test names mp:<session> and mp3:<session>), or by hand.
 set -euo pipefail
 SESSION="${1:?usage: autotest-mp.sh <session file> [timeout]}"
 TIMEOUT="${2:-600}"

@@ -11,6 +11,7 @@
 # - Parallel runs: HOT_CARGO_SIM_JOBS, default from the cores and the memory (see below). The limit is for the whole machine:
 #   runs of every worktree share the slot locks /tmp/hot_cargo_sim_slot_<n>.lock.
 # Needs the game files in ../.game (scripts/pull-game.sh). Exit code 0 only if every test passed.
+# Called by: agents, autotest-affected.sh and ci-sim-tests.sh (CI).
 set -uo pipefail
 cd "$(dirname "$0")/.."
 TIMEOUT=400
