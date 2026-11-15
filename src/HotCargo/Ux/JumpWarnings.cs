@@ -87,7 +87,7 @@ static class JumpWarnings
     };
 
     /// <summary>Spec 1564: the tooltip of a ship in the jump window.</summary>
-    static string WindowTip(GameRoot game, Ship ship)
+    internal static string WindowTip(GameRoot game, Ship ship)
     {
         if (!On || !ship.ExistsInSim(game.Sim)) return "";
         var f = Facts(game, ship);
@@ -233,25 +233,28 @@ static class JumpWarnings
 
     static string StrandedText(MapNode node, int ships) => UxKit.Format("StrandedFmt", Halfling.StringTools.EscapeForXml(node.Name), ships);
 
+    /// <summary>The "SHIP LOST" banner of the last ship lasts about 5 s (ShipAlerts.Banner). The center text waits for it, so the two do not overlap.</summary>
+    const double StrandedNoticeDelay = 6;
+
     static object? _strandedSim;
-    static bool _wasStranded;
+    static double? _strandedSince;
+    static bool _strandedTold;
     internal static int StrandedNotices;
 
-    /// <summary>Spec 1567: one center text and one chat line when the players become stranded in a sim. A new sim starts quiet.</summary>
+    /// <summary>Spec 1567: one center text and one chat line once the players are stranded for a few seconds. A new sim starts quiet.</summary>
     static void StrandedNotice(GameRoot game, Cosmoteer.Simulation.SimRoot sim)
     {
         if (Run.Current is not { } run || run.Game != game || run.State.Result != RunResult.Running) return;
-        var s = Stranded(run);
-        if (!ReferenceEquals(sim, _strandedSim)) { _strandedSim = sim; _wasStranded = false; }
-        bool now = s is not null;
-        if (now && !_wasStranded)
-        {
-            StrandedNotices++;
-            string text = StrandedText(s!.Value.Node, s.Value.Ships);
-            Log.Info($"ux: stranded, fleet waits in {s.Value.Node.Name} ({s.Value.Ships} ships)");
-            UxKit.CenterText(game, $"<bad>{text}</bad>");
-            UxKit.ChatLine(game, $"<bad>{text}</bad>");
-        }
-        _wasStranded = now;
+        if (!ReferenceEquals(sim, _strandedSim)) { _strandedSim = sim; _strandedSince = null; _strandedTold = false; }
+        if (Stranded(run) is not { } s) { _strandedSince = null; _strandedTold = false; return; }
+        double now = App.Clock.Time.Seconds;
+        _strandedSince ??= now;
+        if (_strandedTold || now - _strandedSince < StrandedNoticeDelay) return;
+        _strandedTold = true;
+        StrandedNotices++;
+        string name = Halfling.StringTools.EscapeForXml(s.Node.Name);
+        Log.Info($"ux: stranded, fleet waits in {s.Node.Name} ({s.Ships} ships)");
+        UxKit.CenterText(game, $"<bad>{UxKit.Format("StrandedCenterFmt", name)}</bad>");
+        UxKit.ChatLine(game, $"<bad>{StrandedText(s.Node, s.Ships)}</bad>");
     }
 }

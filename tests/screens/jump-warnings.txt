@@ -1,0 +1,46 @@
+# Jump warnings (spec 1560 to 1569): the join notice, the hover line, the spin-up window with TOO BIG and its tooltip,
+# the ENGAGE dialog, and the stranded fleet line. RUNNER=mac scripts/screens.sh tests/screens/jump-warnings.txt <out-dir>
+render on
+newgame
+wait 8
+closepanel
+wait 1
+ev_set Enabled false
+godmode on
+pause off
+jw_twin save
+fa_drive
+wait 2
+jw_twin spawn
+wait 2
+screenshot jump-01-join-notice
+tipshow jumpship
+wait 1
+screenshot jump-02-hover
+tipclear
+fa_torelay
+wait 2
+fa_gatejump
+waitfor fa_ready == 1 120
+fa_set BlindFuelFactor 100
+fa_blind on
+wait 3
+tipshow jumptip
+wait 1
+screenshot jump-03-window-too-big
+tipclear
+fa_blind off
+fa_gatejump
+waitfor fa_ready == 1 120
+wait 1
+screenshot jump-04-window
+jw_engage
+wait 1
+screenshot jump-05-dialog
+jw_answer no
+wait 1
+jw_strand
+waitfor ux_stranded == 1 10
+wait 8
+screenshot jump-06-stranded
+quit

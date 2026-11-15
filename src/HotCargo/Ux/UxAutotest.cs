@@ -167,7 +167,11 @@ static class UxAutotest
                 "item" => Walk(run.Game.Gui.RootWidget).OfType<Events.ItemActionButton>().FirstOrDefault(b => b.SelfActive)?.ToolTips.TextProvider?.Text
                     ?? throw new InvalidOperationException("no item action button shows"),
                 "text" when parts.Length == 2 => parts[1],
-                _ => throw new InvalidOperationException("tipshow needs: map | mapcur | station | fame | item | text <xml>"),
+                // The hover text and the jump window tooltip of the first own ship that stays behind (spec 1562, 1564).
+                "jumpship" => run.Game.Sim.Mode.GetShipMouseOverText(run.Game.Sim.Ships.LocalPlayerSignificantShips.OrderBy(s => s.UniqueID)
+                    .FirstOrDefault(s => JumpWarnings.Standing(run.Game, s).Reason != StayReason.None) ?? throw new InvalidOperationException("no own ship stays behind")),
+                "jumptip" => JumpWarnings.WindowTip(run.Game, FirstStaying(run)),
+                _ => throw new InvalidOperationException("tipshow needs: map | mapcur | station | fame | item | jumpship | jumptip | text <xml>"),
             };
             TipClear(run.Game.Gui);
             var screen = run.Game.Gui.RootWidget.ScreenRect;
@@ -300,6 +304,11 @@ static class UxAutotest
 
     static byte[]? _twinDesign;
 
+    static Cosmoteer.Ships.Ship FirstStaying(Core.Run run) =>
+        run.Game.Sim.Ships.LocalPlayerSignificantShips.Where(s => JumpWarnings.PlannedReason(run.Game, s) != StayReason.None)
+            .OrderBy(s => JumpWarnings.PlannedReason(run.Game, s) != StayReason.TooBig).ThenBy(s => s.UniqueID).FirstOrDefault()
+        ?? throw new InvalidOperationException("no own ship stays behind");
+
     /// <summary>Spec 1569: jump warnings. A copy of the starter ship stands in for a captured ship (the starter ships have no hyperdrive).</summary>
     static void RegisterJumpWarnings()
     {
@@ -350,6 +359,16 @@ static class UxAutotest
             var dialog = App.Director.States.OfType<Halfling.Gui.Dialogs.TwoButtonDialog>().LastOrDefault();
             return dialog is null ? -1 : dialog.MessageLabel.Text?.Split('\n').Count(l => l.StartsWith("  ", StringComparison.Ordinal)) ?? 0;
         };
+        // jw_strand: screenshots only. Destroys every human ship here and records 4 waiting ships in the nearest other system, like a
+        // fleet left behind (spec 1566). Not for game tests: the waiting ships do not exist.
+        Autotest.Commands["jw_strand"] = _ =>
+        {
+            var run = Autotest.RequireRun();
+            run.Mode._nodeData[NearestOtherNode(run)].NumFriendlyShips = 4;
+            foreach (var ship in run.Game.Sim.Ships.HumanPlayerShips.ToList())
+                foreach (var part in ship.Parts.ToList()) part.Health = 0;
+        };
+        Autotest.Fields["ux_stranded"] = () => JumpWarnings.Stranded(Autotest.RequireRun()) is null ? 0 : 1;
         // jw_engage: the ENGAGE click of the jump window (FtlJumpGui.OnJumpClicked, through the jump dialog patch).
         Autotest.Commands["jw_engage"] = _ => Autotest.RequireRun().Game.Gui.FtlJumpGui.OnJumpClicked(null, EventArgs.Empty);
         // jw_answer yes|no: presses a button of the jump dialog, like the player.
