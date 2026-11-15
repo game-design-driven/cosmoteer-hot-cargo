@@ -12,14 +12,16 @@ SESSION="${1:?usage: autotest-sim-mp.sh <session file> [timeout]}"
 TIMEOUT="${2:-600}"
 source scripts/autotest-lib.sh
 NAME="$(basename "$SESSION" .txt)"
-STAGE="${SIM_STAGE:-}"
+STAGE="${SIM_STAGE:-}" OWN_STAGE=""
 if [[ -z "$STAGE" ]]; then
-  STAGE="$(mktemp -d)"
+  STAGE="$(mktemp -d)" OWN_STAGE="$STAGE"
   { dotnet build tools/headless-sim/HeadlessSim.csproj -c Release -nologo -v quiet -clp:ErrorsOnly && scripts/stage.sh "$STAGE"; } > "$STAGE.build.log" 2>&1 \
     || { cat "$STAGE.build.log"; echo "== build failed"; exit 1; }
 fi
 T0=$SECONDS
 HOST_SAVE="$(mktemp -d)" CLIENT_SAVE="$(mktemp -d)"
+# The save folders and an own stage are copies of the mod; the run log keeps what they hold. Also on a stopped run.
+trap 'rm -rf "$HOST_SAVE" "$CLIENT_SAVE"; if [[ -n "$OWN_STAGE" ]]; then rm -rf "$OWN_STAGE" "$OWN_STAGE.build.log"; fi' EXIT
 # A free port: the OS picks one for a moment, then the host takes it. Parallel sessions get different ports.
 # A random port in 40000-59999: parallel sessions rarely meet, and mphost fails with a clear message when the port is taken.
 PORT=$((40000 + RANDOM % 20000))
@@ -48,6 +50,5 @@ echo "== timing mp-$NAME (sim) total=$((SECONDS - T0)) port=$PORT" | tee -a "$RU
 echo "== $NAME: log $RUN_LOG"
 RC=0
 scripts/coop-report.sh "$HOST_LOG" <(cat "$CLIENT_LOG" 2>/dev/null) | tee -a "$RUN_LOG" || RC=1
-rm -rf "$HOST_SAVE" "$CLIENT_SAVE"
 if [[ $RC -eq 0 ]]; then echo "== MP AUTOTEST OK $NAME (sim)"; else echo "== MP AUTOTEST FAILED $NAME (sim, log $RUN_LOG)"; fi
 exit $RC

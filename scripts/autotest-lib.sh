@@ -9,11 +9,51 @@ REPO_ROOT="$(cd "$LIB_DIR/.." && pwd)"
 SLOTS_ENV="$(cd "$REPO_ROOT/.." && pwd)/.state/slots.env"
 load_slot_settings() { if [[ -f "$SLOTS_ENV" ]]; then set -a; source "$SLOTS_ENV"; set +a; fi; SLOTS="${HOT_CARGO_SLOTS:-6}"; }
 load_slot_settings
-# Full logs of every run stay here, one folder per worktree, so a later run in the same slot cannot overwrite them.
+# Full logs of every run stay here, one folder per worktree, so a later run in the same slot cannot overwrite them. They stay
+# HOT_CARGO_TEST_OUTPUT_HOURS (default 24); the newest run of each worktree stays longer (prune_all_test_output).
 # Logs, flaky list and pass markers live in <container>/.state (next to .bare and .game), not in /tmp, so they survive a restart.
 STATE_DIR="${HOT_CARGO_STATE:-$(cd "$REPO_ROOT/.." && pwd)/.state}"
 LOG_DIR="${HOT_CARGO_LOG_DIR:-$STATE_DIR/logs/$(basename "$REPO_ROOT")}"
 mkdir -p "$LOG_DIR"
+
+# Test output age limit: HOT_CARGO_TEST_OUTPUT_HOURS (.state/slots.env), default 24. The Mac disk filled up twice with logs,
+# run folders and stage copies (2026-11-15).
+test_output_hours() {
+  local h="${HOT_CARGO_TEST_OUTPUT_HOURS:-24}"
+  [[ -n "$h" && "$h" != *[!0-9]* ]] || { echo "HOT_CARGO_TEST_OUTPUT_HOURS must be a number of hours, not '$h'" >&2; return 1; }
+  echo "$h"
+}
+# prune_test_output <folder> [run folder pattern, default run-*]: deletes the files and folders directly in <folder> that are
+# older than the limit, except the newest run: the newest folder that matches the pattern and everything at least as new as
+# its build.log (the logs that this run wrote). Without such a folder it keeps the newest entry. It refuses any folder that
+# is not test output (.state/logs/<worktree>, or the .runs folder of the cosmoteer-macos runners).
+prune_test_output() {
+  local dir="$1" pattern="${2:-run-*}" hours run ref keep=()
+  hours="$(test_output_hours)" || return 1
+  case "$dir" in */.state/logs/*|*/.runs) ;; *) echo "prune_test_output: $dir is not a test output folder" >&2; return 1 ;; esac
+  [[ -d "$dir" ]] || return 0
+  run="$(ls -td "$dir"/$pattern/ 2>/dev/null | head -1)"; run="${run%/}"
+  if [[ -n "$run" && -f "$run/build.log" ]]; then ref="$run/build.log" keep=(! -path "$run")
+  else
+    ref="$(ls -t "$dir" | head -1)"
+    [[ -n "$ref" ]] || return 0
+    ref="$dir/$ref"
+  fi
+  find "$dir" -mindepth 1 -maxdepth 1 -mmin +$((hours * 60)) ! -newer "$ref" ! -path "$ref" "${keep[@]}" -exec rm -rf {} +
+}
+# Prunes all test output on this machine: each worktree folder in .state/logs (prune_test_output), loose files in .state/logs,
+# and the sim save and stage folders that a stopped run left in the temp folder (tmp.* with Mods/hot_cargo or build/hot_cargo).
+# Called at the start of every sim run (autotest-sim.sh).
+prune_all_test_output() {
+  local hours d
+  hours="$(test_output_hours)" || return 1
+  for d in "$STATE_DIR"/logs/*/; do prune_test_output "${d%/}"; done
+  find "$STATE_DIR/logs" -mindepth 1 -maxdepth 1 -type f -mmin +$((hours * 60)) -delete
+  for d in "${TMPDIR:-/tmp}"/tmp.*; do
+    if [[ -d "$d/Mods/hot_cargo" || -d "$d/build/hot_cargo" ]] && [[ -n "$(find "$d" -maxdepth 0 -mmin +$((hours * 60)))" ]]; then rm -rf "$d"
+    elif [[ "$d" == *.build.log && -n "$(find "$d" -maxdepth 0 -mmin +$((hours * 60)))" ]]; then rm -f "$d"; fi
+  done
+}
 
 # Modification time of a file in seconds: GNU stat (Linux, CI) first, then BSD stat (macOS).
 mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null; }
