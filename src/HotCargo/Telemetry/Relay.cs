@@ -33,6 +33,9 @@ static class Relay
 
     static BaseMPManager? _mp;
     static RpcManager? _rpc;
+    static IChannel? _channel;
+    /// <summary>A lobby return or a closed connection closes the channel before the telemetry session ends.</summary>
+    static bool Connected => _channel is { IsOpen: true };
     static RpcActionInvoker<string, long, byte[]>? _chunk;
     static RpcActionInvoker<string, long>? _answer;
 
@@ -62,9 +65,10 @@ static class Relay
 
     static void Frame()
     {
-        if (Run.Current is not { } run || !On(run) || !Attach(run) || _mp!.IsHost || Session.Current is not { } s) return;
+        if (Run.Current is not { } run || !On(run) || !Attach(run) || _mp!.IsHost || !Connected || Session.Current is not { } s) return;
         long t0 = Stats.Enter();
         try { SendNext(s, App.Clock.Time.Seconds); }
+        catch (InvalidOperationException) when (!Connected) { }
         finally { Stats.Exit(t0); }
     }
 
@@ -79,6 +83,7 @@ static class Relay
         _nextScan = 0;
         var splitter = mp._splitter;
         var channel = splitter.IsChannelOpen(ChannelId) ? splitter[ChannelId] : splitter.OpenChannel(ChannelId);
+        _channel = channel;
         _rpc = new RpcManager(GameApp.Messenger, channel, mp._serializer, mp.IsHost);
         _chunk = _rpc.RegisterRpc(new RpcAction<string, long, byte[]>(OnChunk), "HotCargoTeleChunk", TransmitMode.Reliable);
         _answer = _rpc.RegisterRpc(new RpcAction<string, long>(OnAnswer), "HotCargoTeleLength", TransmitMode.Reliable);
@@ -132,14 +137,19 @@ static class Relay
     /// </summary>
     internal static void SendRest(Session s)
     {
-        if (_mp is null || _mp.IsHost || _chunk is null || !On(s.Run)) return;
+        if (_mp is null || _mp.IsHost || _chunk is null || !On(s.Run) || !Connected) return;
         int chunk = TestChunkBytes ?? ChunkBytes;
-        foreach (string name in RunFiles(s))
+        try
         {
-            long size = SafeLength(Path.Combine(Folder, name));
-            for (long at = Confirmed.GetValueOrDefault(name); at < size; at += chunk)
-                _chunk(name, at, Read(Path.Combine(Folder, name), at, (int)Math.Min(chunk, size - at)), RpcReceivers.Server);
+            foreach (string name in RunFiles(s))
+            {
+                long size = SafeLength(Path.Combine(Folder, name));
+                for (long at = Confirmed.GetValueOrDefault(name); at < size; at += chunk)
+                    _chunk(name, at, Read(Path.Combine(Folder, name), at, (int)Math.Min(chunk, size - at)), RpcReceivers.Server);
+            }
         }
+        // The connection can close while the game closes. The rest then waits for the next join of the run.
+        catch (InvalidOperationException) when (!Connected) { Log.Info("telemetry relay: the connection closed before the rest was sent"); }
     }
 
     /// <summary>Bytes of the client's run files that the host has not confirmed. A file whose host length is not known yet counts whole.</summary>
