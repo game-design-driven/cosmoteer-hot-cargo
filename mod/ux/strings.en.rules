@@ -154,7 +154,7 @@ HotCargoUx
 	JumpDialogLineFmt = "  {0}: {1}"
 	JumpDialogAsk = "Jump anyway?"
 	// Spec 1567: {0} system, {1} ships there
-	// Payment hint (spec PAYHINT): {0} mission name
+	// Payment hint (spec 1600): {0} mission name
 	PaymentHereLine = "<fame_color>Call a station here to collect payment</fame_color>"
 	PaymentHintFmt = "{0}: call a station here to collect payment."
 	StrandedCenterFmt = "NO SHIP HERE. YOUR FLEET WAITS IN {0}"

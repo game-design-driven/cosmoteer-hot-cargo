@@ -1,7 +1,7 @@
 namespace HotCargo.Ux;
 
 /// <summary>
-/// Spec PAYHINT: when the players get the payment hint. Vanilla Visit missions (and other missions paid by "any station in a system")
+/// Spec 1600: when the players get the payment hint. Vanilla Visit missions (and other missions paid by "any station in a system")
 /// end in two steps: the arrival, then the receive payment button in the comms of a station of that system. Players miss the second step.
 /// </summary>
 public static class PaymentHintModel
