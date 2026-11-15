@@ -89,7 +89,12 @@ public static class LossTimer
     /// It checks ships in jump limbo instead of GameRoot.IsDoingNodeJump: that flag follows local animations and the local FTL autosave
     /// setting, so it changes at different ticks on each multiplayer machine. Jump limbo changes only at synchronized jump signals.
     /// </summary>
-    static bool CountIsCertain(Run run, SimRoot sim) =>
-        !sim.Ships.IsDoingLocalJump && run.Game.ShipsInJumpLimbo.Count == 0 &&
-        run.Mode._nodeData.All(kv => kv.Key == run.Game.CurrentMapNode || kv.Value.NumFriendlyShips == 0);
+    static bool CountIsCertain(Run run, SimRoot sim) => PauseReason(run, sim) is null;
+
+    /// <summary>Why the count is uncertain now (spec 12): local_jump, jump_limbo or ships_elsewhere. Null when it is certain. Reads sim state only.</summary>
+    internal static string? PauseReason(Run run, SimRoot sim) =>
+        sim.Ships.IsDoingLocalJump ? "local_jump"
+        : run.Game.ShipsInJumpLimbo.Count > 0 ? "jump_limbo"
+        : run.Mode._nodeData.Any(kv => kv.Key != run.Game.CurrentMapNode && kv.Value.NumFriendlyShips > 0) ? "ships_elsewhere"
+        : null;
 }

@@ -32,6 +32,8 @@ public sealed class TelemetrySaveData
 {
     [Serialize] public string RunId = "";
     [Serialize(Optional = true)] public int Sessions;
+    /// <summary>Spec 1589: run game seconds of each accept, by mission ID, so mission.ended has its duration after a load.</summary>
+    [Serialize(Optional = true)] public Dictionary<string, double> Accepted = new();
 }
 
 /// <summary>
@@ -88,9 +90,16 @@ sealed class Session
     readonly Dictionary<string, double> _heatAccrual = [];
     readonly List<(string Cause, double At)> _techHints = [];
 
+    // ---- Fights (spec 1588) and the loss timer state (spec 1590)
+    FightJoiner? _fights;
+    readonly Lock _fightGate = new();
+    string _lossTimer = "";
+
     // ---- Missions
     readonly HashSet<ObjectID> _offersSeen = [];
-    readonly Dictionary<ObjectID, double> _accepted = [];
+    /// <summary>Run game seconds of each accept by mission ID. The save keeps them (spec 1589).</summary>
+    readonly Dictionary<string, double> _accepted = [];
+    internal Dictionary<string, double> AcceptedCopy() { lock (_accepted) return new(_accepted); }
     MissionManager? _log;
 
     // ---- Ships
@@ -140,7 +149,11 @@ sealed class Session
         if (Run.Current is not { } run || run.Mode != mode) return;
         if (!run.T.Telemetry.Enabled) { Tele.SetMask(null); return; }
         string runId = !newRun && saved is { RunId.Length: > 0 } ? saved.RunId : $"r{DateTime.Now:yyyyMMdd-HHmmss}-{Random.Shared.Next(0x10000):x4}";
-        var s = new Session(run, runId, newRun ? 1 : (saved?.Sessions ?? 0) + 1);
+        string folder = Path.Combine(Mod.ModRoot, "telemetry");
+        string[] files = Directory.Exists(folder) ? [.. Directory.EnumerateFiles(folder).Select(f => Path.GetFileName(f))] : [];
+        int number = TelemetryModel.SessionNumber(newRun ? 0 : saved?.Sessions ?? 0, files, runId);
+        var s = new Session(run, runId, number);
+        if (saved is not null && !newRun) foreach (var (id, at) in saved.Accepted) s._accepted[id] = at;
         Current = s;
         Stats.Reset();
         Perf.ResetSession();
@@ -152,7 +165,9 @@ sealed class Session
         else Tele.Emit(Cat.Run, "run.loaded", w => { w.WriteString("result", run.State.Result.ToString()); w.WriteNumber("sessions", s.SessionNumber); });
         // In co-op a load of a running game is a resync (after a desync) or a join; the game built a new game from the host's state.
         if (loaded && run.IsMultiplayer) Tele.Emit(Cat.Coop, "mp.game_loaded", w => { w.WriteBoolean("host", run.Game.NetManager.IsHost); w.WriteNumber("players", run.Game.HumanPlayersIndexes.Count()); });
-        Log.Info($"telemetry: session {s.SessionId} of run {s.RunId} writes {s.FilePath}");
+        if (loaded && run.IsMultiplayer) FleetTelemetry.AfterResync(s);
+        // Spec 1585: the file name only. The folder holds the user folder and the Steam ID.
+        Log.Info($"telemetry: session {s.SessionId} (number {s.SessionNumber}) of run {s.RunId} writes {Path.GetFileName(s.FilePath)}");
     }
 
     static readonly Lock EndGate = new();
@@ -165,6 +180,7 @@ sealed class Session
     static void EndLocked(string reason)
     {
         if (Current is not { } s) return;
+        s.CloseFight();
         Tele.Emit(Cat.Run, "session.end", w =>
         {
             w.WriteString("reason", reason);
@@ -177,6 +193,9 @@ sealed class Session
             Tele.Num(w, "writer_ms", Stats.Ms(Interlocked.Read(ref Stats.WriterTicks)));
             w.WriteNumber("frames", Perf.SessionFrames);
             Tele.Num(w, "frame_ms", Perf.SessionFrameMs);
+            Tele.Num(w, "paused_s", Perf.SessionPausedMs / 1000);
+            Tele.Num(w, "build_s", Perf.SessionBuildMs / 1000);
+            Tele.Num(w, "play_s", Perf.SessionPlayMs / 1000);
             w.WriteNumber("ticks", Perf.SessionTicks);
             Tele.Num(w, "tick_ms", Perf.SessionTickMs);
             Tele.Num(w, "overhead_pct_wall", Stats.Ms(Interlocked.Read(ref Stats.OverheadTicks)) * 100 / (s.RealSeconds * 1000));
@@ -418,6 +437,8 @@ sealed class Session
             }
         }
         StoryDiff();
+        if (Tele.On(Cat.Tech)) LossTimerState(sim);
+        if (Tele.On(Cat.Combat)) { TickFight(); FleetTelemetry.RememberFleet(this, sim); }
         int players = Game.HumanPlayersIndexes.Count();
         if (players != _players)
         {
@@ -491,6 +512,72 @@ sealed class Session
         Tele.Emit(Cat.Heat, "heat.strike_wave", w => w.WriteNumber("live_hunters", HunterSpawner.Hunters(sim).Count()));
     }
 
+    // ---- Fights (spec 1588): damage windows and wrecks joined into one event per fight. Wrecks can come from worker threads.
+
+    FightJoiner Fights => _fights ??= new FightJoiner(T.FightGapSeconds);
+
+    internal void FightWindow(IReadOnlyDictionary<string, long> damage)
+    {
+        Fight? ended;
+        lock (_fightGate) ended = Fights.AddWindow(Run.State.GameSeconds, T.AccrualSeconds, Run.State.SectorIndex, damage);
+        EmitFight(ended);
+    }
+
+    internal void FightDestroyed(string side)
+    {
+        Fight? ended;
+        lock (_fightGate) ended = Fights.AddDestroyed(Run.State.GameSeconds, Run.State.SectorIndex, side);
+        EmitFight(ended);
+    }
+
+    internal void FightCrewDied() { lock (_fightGate) Fights.AddCrewDeath(); }
+
+    void CloseFight()
+    {
+        Fight? ended;
+        lock (_fightGate) ended = Fights.Close();
+        EmitFight(ended);
+    }
+
+    void TickFight()
+    {
+        Fight? ended;
+        lock (_fightGate) ended = Fights.Tick(Run.State.GameSeconds, Run.State.SectorIndex);
+        EmitFight(ended);
+    }
+
+    static void EmitFight(Fight? f)
+    {
+        if (f is not null) Tele.Emit(Cat.Combat, "combat.fight", f, static (w, x) => TelemetryModel.WriteFight(w, x));
+    }
+
+    // ---- Loss timer (spec 1590): running, paused with the reason, or idle. Emitted when the state changes.
+
+    void LossTimerState(SimRoot sim)
+    {
+        var s = Run.State;
+        string? pause = s.FleetTech == 0 ? LossTimer.PauseReason(Run, sim) : null;
+        string state = pause is not null ? "paused" : LossTimer.IsRunning(Run) ? "running" : "idle";
+        string key = state + pause;
+        if (key == _lossTimer) return;
+        _lossTimer = key;
+        Tele.Emit(Cat.Tech, "tech.loss_timer", w =>
+        {
+            w.WriteString("state", state);
+            if (pause is not null) w.WriteString("reason", pause);
+            w.WriteBoolean("timer_running", LossTimer.IsRunning(Run));
+            Tele.Num(w, "elapsed_s", s.SecondsWithoutTech);
+            if (LossTimer.SecondsLeft(Run) is { } left) Tele.Num(w, "left_s", left);
+            if (pause == "ships_elsewhere")
+            {
+                w.WriteStartObject("waiting");
+                foreach (var (node, data) in Run.Mode._nodeData.Where(kv => kv.Key != Game.CurrentMapNode && kv.Value.NumFriendlyShips > 0).OrderBy(kv => kv.Key.Name))
+                    w.WriteNumber(node.Name, data.NumFriendlyShips);
+                w.WriteEndObject();
+            }
+        });
+    }
+
     // ---- Jumps and systems
 
     internal void BeforeSwitch()
@@ -501,14 +588,23 @@ sealed class Session
         _jumpHeatKept = Run.Hooks.JumpHeatKept(Run);
         // The ships are in jump limbo now, so the fleet tech count drops to 0 until they arrive.
         AddTechHint("jump");
+        CloseFight();
+        // Spec 1582: the ships in jump limbo jump; the human ships still in the old system stay behind.
+        var path = FleetTelemetry.JumpPath(Game);
+        var jumped = Game.ShipsInJumpLimbo.Where(sh => sh.IsHumanPlayerShip).OrderBy(sh => sh.UniqueID).ToList();
+        var left = Game.Sim is { } old ? old.Ships.HumanPlayerSignificantShips.Where(sh => !jumped.Contains(sh)).OrderBy(sh => sh.UniqueID).ToList() : [];
         Tele.Emit(Cat.Run, "run.jump", w =>
         {
             w.WriteString("from", _system);
+            if (Game.DestinationMapNode.Confirmed is { } to) w.WriteString("to", to.Name);
             w.WriteString("kind", _jumpKind);
             Tele.Num(w, "heat_kept", _jumpHeatKept);
             Tele.Num(w, "stay_s", _simSeconds - _enteredSim);
             w.WriteNumber("open_contracts", ContractBook.Open(Run).Count());
+            TelemetryModel.WriteJumpShips(w, "jumped", jumped.Select(sh => FleetTelemetry.JumpShipOf(sh, path)));
+            TelemetryModel.WriteJumpShips(w, "left", left.Select(sh => FleetTelemetry.JumpShipOf(sh, path)));
         });
+        if (Tele.On(Cat.Combat)) FleetTelemetry.EmitLeftBehind(left);
     }
 
     internal static void OnSystemEntered(Run run, bool firstVisit)
@@ -708,7 +804,7 @@ sealed class Session
 
     void OnMissionAdded(object? sender, Mission m)
     {
-        _accepted[m.MissionID] = _simSeconds;
+        lock (_accepted) _accepted[m.MissionID.ToString()] = Run.State.GameSeconds;
         _missionsAcceptedInSystem++;
         Tele.Emit(Cat.Missions, "mission.accepted", w =>
         {
@@ -722,7 +818,8 @@ sealed class Session
     {
         string result = MissionResult(m);
         if (result == "success") _missionsDoneInSystem++;
-        double? since = _accepted.Remove(m.MissionID, out double at) ? _simSeconds - at : null;
+        double? since;
+        lock (_accepted) since = _accepted.Remove(m.MissionID.ToString(), out double at) ? Run.State.GameSeconds - at : null;
         Tele.Emit(Cat.Missions, "mission.ended", w =>
         {
             WriteMission(w, m);
@@ -860,13 +957,10 @@ sealed class Session
         }
     }
 
-    internal static string Side(Ship ship)
-    {
-        if (ship.IsHumanPlayerShip) return "player";
-        if (ship.IsJunk) return "derelict";
-        if (ship.HasTag(HunterSpawner.HunterTag)) return "hunter";
-        return HostileToPlayers(ship) ? "hostile" : "neutral";
-    }
+    /// <summary>Spec 1580: the one side of a ship for every event (FleetTelemetry.SideOf). Outside a session: by the hunter tag and hostility.</summary>
+    internal static string Side(Ship ship) =>
+        Current is { } s && ship.Sim == s.Game.Sim ? FleetTelemetry.SideOf(s, ship, ship.IsJunk ? TelemetryModel.JunkPlayer : ship.Metadata.PlayerIndex)
+        : ship.IsHumanPlayerShip ? "player" : ship.IsJunk ? "derelict" : ship.HasTag(HunterSpawner.HunterTag) ? "hunter" : HostileToPlayers(ship) ? "hostile" : "neutral";
 
     static bool HostileToPlayers(Ship ship)
     {
