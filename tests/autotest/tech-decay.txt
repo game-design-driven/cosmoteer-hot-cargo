@@ -5,7 +5,7 @@ newgame run 0 vanilla
 wait 8
 ev_set Enabled false
 tech_set LossGraceSeconds 600
-# Long enough for the vault build below.
+# Long enough for the crew transfer below.
 tech_set DecaySeconds 1200
 expect vaults == 0
 expect tech == 8
@@ -14,10 +14,8 @@ expect storagetech == 8
 expect decayleft > 0
 expect decaytip == 1
 expect decaypanel == 1
-# Spec 1543: a vault that crew build takes tech from normal storage, without an order.
-vault steel 32
-vault build
-waitfor vaultsbuilt == 1 240
+# Spec 1543: a new vault takes tech from normal storage: crew carry it over without an order.
+vault outside
 waitfor outsidetech == 4 240
 expect storagetech == 4
 expect decayed == 0

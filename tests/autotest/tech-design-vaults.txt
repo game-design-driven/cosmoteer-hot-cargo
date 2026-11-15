@@ -18,4 +18,5 @@ expect designmatches == 1
 # No vault may go on a storage bay: each grabbed bay goes back, and the hull has no other 2x2 room, so the design stays as it was.
 vaultbuild vanilla 0 nobay
 expect vaultsbuiltindesign == 0
+expect vaultnoroom == 1
 quit

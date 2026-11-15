@@ -46,8 +46,16 @@ static class VaultDesigns
                 bayCells = design.BlueprintParts.Where(p => p.Rules.Components.OfType<FlexResourceGridRules>().Any()).SelectMany(p => p.Rect).ToHashSet();
                 storageBefore = StorageParts(design);
             }
-            var (ship, line) = Build(new Batch(game, "", "", NewGameCheck.RequiredUnits(coop: false), new(), []), (string)file.FilePath,
-                noBay ? c => !bayCells.Contains(c) : null);
+            Ship? ship;
+            string line;
+            _noRoom = false;
+            try
+            {
+                (ship, line) = Build(new Batch(game, "", "", NewGameCheck.RequiredUnits(coop: false), new(), []), (string)file.FilePath,
+                    noBay ? c => !bayCells.Contains(c) : null);
+            }
+            // Spec 441: a hull without room keeps its design; the caller reports it.
+            catch (StartingVault.NoRoomException ex) { (ship, line, _noRoom) = (null, ex.Message, true); }
             Log.Info($"AUTOTEST vaultbuild {file.FilePath}: {line}");
             _built = ship is null ? 0 : ship.BlueprintParts.Count(p => p.Rules.ID == Vaults.VaultId);
             _storageKept = ship is not null && StorageParts(ship) == storageBefore;
@@ -67,6 +75,8 @@ static class VaultDesigns
         // 1 when the design kept all its storage parts (a bay with no vault on its tiles goes back).
         Autotest.Fields["storagekept"] = () => _storageKept ? 1 : 0;
         Autotest.Fields["vaultsbuiltindesign"] = () => _built;
+        // 1 when the last vaultbuild found too little room inside the hull.
+        Autotest.Fields["vaultnoroom"] = () => _noRoom ? 1 : 0;
         Autotest.Fields["shiplegal"] = () => _checkPassed ? 1 : 0;
         Autotest.Fields["shipvaulttech"] = () => _checkVaults;
         // Spec 1015: StartingResearch techs that the run has unlocked.
@@ -152,6 +162,7 @@ static class VaultDesigns
     }
 
     static int _built;
+    static bool _noRoom;
     static bool _matches;
     static bool _storageKept;
     static bool _checkPassed;
