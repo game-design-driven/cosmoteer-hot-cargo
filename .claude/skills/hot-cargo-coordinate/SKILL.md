@@ -42,7 +42,6 @@ The whole workflow and which parts are generic: `docs/WORKFLOW.md`. Each rule be
 - When CI jams (the free plan runs about 20 jobs at once), cancel other PRs' runs to let the key PR through. Tell their agents not to rerun, then rerun them yourself.
 - Never post a commit status by hand. Reason: the owner rejected it; checks come only from CI.
 - Note each flake you accept. `../.state/flaky.log` lists the local ones.
-- `scripts/integrate.sh` is the old batch merge. It pushes to `main` directly, which the merge queue flow does not use. Read its header before you run it.
 - Releases: `hot-cargo-release`.
 
 ## The player hold

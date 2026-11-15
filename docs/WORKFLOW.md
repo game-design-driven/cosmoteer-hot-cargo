@@ -167,7 +167,6 @@ Hot Cargo:
 
 - `scripts/agent-watch.sh`: one line for each agent worktree (commits, pushes, dirty files, test runs, slots, refused PC calls).
 - `scripts/player-hold.sh`: the player hold.
-- `scripts/integrate.sh`: the old batch merge that pushes to `main` directly. The merge queue replaced it.
 - Rules for briefs, merges, flakes and the player: skill `hot-cargo-coordinate`.
 
 ## Every script

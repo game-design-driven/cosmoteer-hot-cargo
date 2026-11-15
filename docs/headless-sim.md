@@ -28,7 +28,7 @@ Which runner a test uses:
 
 - A test with the line `# runner: pc` stays on the PC. The line before it says why.
 - Co-op sessions (`tests/autotest-mp/`) run on the Mac too, as two sim processes on 127.0.0.1 (`scripts/autotest-sim-mp.sh`). Both keep the real-time clock (`SIM_REALTIME=1`), because network requests and lockstep read the game clock. Encoding the co-op ship icon (`TextureData.SaveTo`, FreeImage) writes a blank PNG.
-- `integrate.sh` sets `AUTOTEST_SIM=0`: its tests run on the PC.
+- `AUTOTEST_SIM=0 scripts/autotest-affected.sh` runs every test on the PC.
 - Without the game files on the Mac, `autotest-affected.sh` runs every test on the PC.
 
 `tools/headless-sim/run.sh` runs the host once:
