@@ -100,7 +100,7 @@ internal sealed class FindLairObjective : Objective
         if (Mission is null || Completion != CompletionState.InProgress || sim != Mission.Game.Sim) return;
         if (sim.MapNode?.UniqueID != Lair.MapNodeID) return;
         if (!Lair.IsAlive) { Complete(); return; }
-        if (Lair.Location is not { } at) return;
+        if (Lair.DetLocation() is not { } at) return;
         float reach = Current.Tunables(sim).LairDiscoverDistance;
         if (!sim.Ships.HumanPlayerSignificantShips.Any(s => s.DetWorldCenter.DistanceTo(at) <= reach)) return;
         Log.Info($"lair found at {at}");

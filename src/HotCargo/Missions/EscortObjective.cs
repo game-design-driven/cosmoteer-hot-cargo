@@ -205,7 +205,7 @@ internal sealed class EscortObjective : Objective, IMissionMarkers
     void OnTick(object? sender, SimRoot sim)
     {
         if (Mission is null || Completion != CompletionState.InProgress || sim != Mission.Game.Sim) return;
-        if (sim.NodeId() != Escort.MapNodeID || Escort.Location is not { } at) return;
+        if (sim.NodeId() != Escort.MapNodeID || Escort.DetLocation() is not { } at) return;
         if (Escort.TargetShip?.AI is { } ai) SteerToDestination(ai);
         float left = at.DistanceTo(Destination);
         if (!AmbushSprung && Escort.TargetShip is not null

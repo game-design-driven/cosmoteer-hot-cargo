@@ -136,7 +136,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     /// <summary>A surrendered delivered ship stays in the system and flies to the contact (spec 1110). Sim tick.</summary>
     internal void SteerSurrendered(SimRoot sim)
     {
-        if (DeliveredShipId is not { } id || sim.Ships[id] is not { } ship || Contact.Location is not { } at) return;
+        if (DeliveredShipId is not { } id || sim.Ships[id] is not { } ship || Contact.DetLocation() is not { } at) return;
         if (!((Cosmoteer.Modes.Career.CareerSimModeManager)sim.Mode).SurrenderedAIs.Contains(id)) return;
         if (ship.AI is not { Parameters: { } parameters } ai || parameters.PatrolOrigin is { } origin && origin.DistanceTo(at) < 100f) return;
         var p = parameters.Clone();

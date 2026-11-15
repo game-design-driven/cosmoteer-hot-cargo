@@ -147,7 +147,7 @@ internal sealed class TowObjective : Objective
     void OnTick(object? sender, SimRoot sim)
     {
         if (Mission is null || Completion != CompletionState.InProgress || sim != Mission.Game.Sim) return;
-        if (sim.NodeId() != Towed.MapNodeID || Towed.Location is not { } at) return;
+        if (sim.NodeId() != Towed.MapNodeID || Towed.DetLocation() is not { } at) return;
         // A towed ship with an AI (an event carrier answers comms) would fly back to its spot. Its spot follows it instead.
         if (Towed.TargetShip?.AI is { Parameters: { PatrolOrigin: { } origin } } ai && origin.DistanceTo(at) > 100f)
         {

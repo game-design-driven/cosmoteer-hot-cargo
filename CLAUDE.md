@@ -58,6 +58,7 @@ Procedures are skills in `.claude/skills/`:
 
 - Change sim state only from sim ticks (`EventHub.Tick`), `Run.Hooks`, rules spawners and MP inputs. Never from UI frames, except single-player debug keys.
 - Randomness: `sim.Rand` or a `FastRand` seeded from sim data. Never `System.Random`, `DateTime` or `App.Clock` in sim logic. Iterate in a stable order.
+- Positions: `Ship.DetWorldCenter` or `SimQueries.DetLocation`. Never `Ship.Location` or `ObjectiveTargetShip.Location` in sim logic: rendering moves them (spec 1512).
 - Player choices that change the sim go through an `MPInput`, allowed in `CareerGameModeManager.AllowMPInput`.
 - Test sim changes with the co-op harness (see `hot-cargo-testing`).
 
