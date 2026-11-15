@@ -20,4 +20,12 @@ public static class TechModel
         double fraction = baseFraction + fractionPerGameHour * steppedHours + fractionPer100Notoriety * steppedNotoriety / 100.0;
         return (long)Math.Round(shipValue * Math.Max(0, fraction) / 100.0) * 100;
     }
+
+    /// <summary>Spec 1541: the vaults that hold the units, with perVault units in each (from the vault part rules). Rounded up.</summary>
+    public static int VaultsNeeded(int units, int perVault)
+    {
+        if (units < 0) throw new ArgumentOutOfRangeException(nameof(units), "must not be negative");
+        if (perVault <= 0) throw new ArgumentOutOfRangeException(nameof(perVault), "must be above 0");
+        return (units + perVault - 1) / perVault;
+    }
 }

@@ -104,6 +104,16 @@ static class TechAutotest
         Autotest.Fields["flexsinks"] = () => Vaults.HumanShips(Active().Game.Sim).Sum(s => FlexTilesTakingTech(s));
         Autotest.Fields["stationsinks"] = () => FlexTilesTakingTech(NearestStation());
         Autotest.Fields["stationtech"] = () => NearestStation().Resources.GetResourceTotal(Vaults.TechId);
+        // Spec 1540, 1541: tech units per vault (from the part rules) and the vaults that the starting tech needs.
+        Autotest.Fields["pervault"] = () => NewGameCheck.PerVault(PlayerShip());
+        Autotest.Fields["vaultsneeded"] = () => TechModel.VaultsNeeded(Active().T.Tech.StartingTechUnits, NewGameCheck.PerVault(PlayerShip()));
+        // Spec 1543, 1547: tech in normal storage of human and derelict ships, stacks destroyed by decay, seconds until the first breaks down (-1: none).
+        Autotest.Fields["storagetech"] = () => Active().Game.Sim.Ships.AllShips.Where(s => Vaults.HoldsForPlayers(Active().Game.Sim, s)).Sum(Vaults.StorageTech);
+        Autotest.Fields["decayed"] = () => TechDecay.Destroyed;
+        Autotest.Fields["decayleft"] = () => TechDecay.Exposed(Active())?.SecondsLeft ?? -1;
+        Autotest.Fields["decaystacks"] = () => Active().State.Tech.Decay.Count;
+        // Spec 1550: the heat panel shows the decay line.
+        Autotest.Fields["decaypanel"] = () => TechDecay.PanelLine(Active()) is { } line && Ui.HeatPanel.TechText.Contains(line) ? 1 : 0;
     }
 
     static Run Active() => Autotest.RequireRun();
@@ -128,7 +138,7 @@ static class TechAutotest
 
     static int Int(string s) => int.Parse(s, CultureInfo.InvariantCulture);
 
-    /// <summary>tech derelict (the acting player's ship becomes a derelict) | tech add N | tech remove N | tech sell N | tech dump | tech drop N (takes N from the vaults and drops them as crates next to the player ship) | tech collect (crew fetch every tech crate) | tech drophunter N (crates near the first hunter) | tech wreckholder (the first hunter with tech becomes a wreck)</summary>
+    /// <summary>tech derelict (the acting player's ship becomes a derelict) | tech add N | tech remove N | tech store N (into normal storage) | tech sell N | tech dump | tech drop N (takes N from the vaults and drops them as crates next to the player ship) | tech collect (crew fetch every tech crate) | tech drophunter N (crates near the first hunter) | tech wreckholder (the first hunter with tech becomes a wreck)</summary>
     static void Tech(string arg)
     {
         var run = Active();
@@ -138,6 +148,8 @@ static class TechAutotest
         {
             case ["add", var n]: Log.Info($"AUTOTEST tech added {Vaults.Add(sim, Int(n))}"); break;
             case ["remove", var n]: Log.Info($"AUTOTEST tech removed {Vaults.Remove(sim, Int(n))}"); break;
+            // Tech straight into normal storage of the human ships, past the vaults (spec 1543).
+            case ["store", var n]: Log.Info($"AUTOTEST tech stored {Vaults.AddToStorage(Vaults.HumanShips(sim).OrderBy(s => s.UniqueID), Int(n))} in storage"); break;
             case ["sell", var n]: Sell(run, Int(n)); break;
             case ["dump"]: Dump(run); break;
             case ["collect"]:
@@ -195,6 +207,7 @@ static class TechAutotest
     /// vault outside: builds one more vault outside the hull of the player ship, where crew can walk to it.
     /// vault move: moves the tech of the first full vault into the vault that "vault outside" built, with the input of the vanilla move resources tool.
     /// vault steel N: adds steel to the player ship, for a vault build.
+    /// vault fill on|off: the vanilla consumption toggle of every vault on the player ship.
     /// vault grab full|empty: picks up the first vault with tech (or the first empty vault) with the input of the vanilla grab tool (GrabPartState).
     /// vault place: puts the grabbed vault down outside the hull with the input of the vanilla part brush, so crew rebuild it there.
     /// vault focus [wide]: points the camera at the player ship and zooms in until the ship fills the view (wide: with the dropped crates).
@@ -262,6 +275,17 @@ static class TechAutotest
             ship.FocusCamera(playSound: false);
             float size = parts.Length == 2 ? (ship.WorldBoundingRadius + 200f) * 2.2f : ship.WorldBoundingRadius * 2.4f;
             ship.Sim.Camera.ViewController.ZoomToFit(new Halfling.Geometry.Vector2(size));
+            return;
+        }
+        if (parts is ["fill", var onOff and ("on" or "off")])
+        {
+            // Spec 1546: the input of the vanilla consumption toggle (ConsumptionToggleButton) on every vault of the player ship.
+            var ship = PlayerShip();
+            using var rui = ResourcesUpdateInfo.Alloc(ship);
+            foreach (var consumer in Vaults.VaultParts(ship).SelectMany(p => p.Components.OfType<TypedResourceGridConsumer>()))
+                rui.SetResourceConsumptionEnabled(consumer, onOff == "on");
+            Active().Game.NetManager.EnqueueInput(new MPUpdateResourcesInput(rui));
+            Log.Info($"AUTOTEST vault fill {onOff} on {Vaults.VaultParts(ship).Count()} vaults");
             return;
         }
         if (parts is ["move"])

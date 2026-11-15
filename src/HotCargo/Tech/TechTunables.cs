@@ -5,7 +5,7 @@ namespace HotCargo.Tech;
 [ReflectiveSerialization(Explicit = true)]
 public sealed class TechTunables
 {
-    /// <summary>Spec 17: stolen tech units in the vaults of the starting ships of a new run. A starter ship needs vaults for all of them (spec 1010).</summary>
+    /// <summary>Spec 17, 1541: stolen tech units of a new run. The vaults that a starter ship needs come from it: StartingTechUnits / units per vault, rounded up.</summary>
     [Serialize(Optional = true)] public int StartingTechUnits = 8;
     /// <summary>Spec 1015: research (career tech IDs) that a new run starts with. Default: the small FTL drive.</summary>
     [Serialize(Optional = true)] public string[] StartingResearch = ["cosmoteer.hyperdrive_small"];
@@ -34,6 +34,10 @@ public sealed class TechTunables
     [Serialize(Optional = true)] public float HunterGrabReach = 40f;
     /// <summary>Spec 444: map markers for tech in the system (tech held on ship blips, crates in space).</summary>
     [Serialize(Optional = true)] public bool TechMarkers = true;
+    /// <summary>Spec 1547: game seconds that tech lasts outside a vault (normal storage, crew hands). Then it breaks down in air and heat. 0 turns decay off.</summary>
+    [Serialize(Optional = true)] public float DecaySeconds = 360f;
+    /// <summary>Spec 1548: what a vault does to the decay of tech that comes back into it. Pause: the decay stops and goes on later. Reset: the tech recovers fully.</summary>
+    [Serialize(Optional = true)] public DecayInVault DecayInVault = DecayInVault.Pause;
 }
 
 public static class TechTunablesExtensions

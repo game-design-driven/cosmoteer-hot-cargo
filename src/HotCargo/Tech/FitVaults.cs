@@ -55,19 +55,27 @@ static class FitVaults
             }
             int need = NewGameCheck.RequiredUnits(coop);
             string name = Ship.GetNameFromFilename(file) ?? throw new InvalidDataException($"no ship name in {file}");
-            int have;
+            int have, perVault;
             using (var ship = Ship.Load(file, blueprintsOnly: true))
             {
                 if (!GameApp.Rules.CareerMode.AllowedShipClasses.Contains(ship.Rules.ID)) return file;
                 have = NewGameCheck.VaultCapacity(ship);
+                perVault = NewGameCheck.PerVault(ship);
             }
             if (have >= need) return file;
             Shown = true;
-            var answer = await TwoButtonDialog.Show(Strings.FormatText("HotCargoTech/FitAskFmt", StringTools.EscapeForXml(name), need, have),
-                Strings.GetText("HotCargoTech/FitButton"), Strings.GetText("HotCargoTech/FitCancel"));
+            // Spec 1552: the player may start without vaults; the warning says what that costs.
+            var answer = await ThreeButtonDialog.Show(
+                Strings.FormatText("HotCargoTech/FitAskFmt", StringTools.EscapeForXml(name), need, have, TechModel.VaultsNeeded(need, perVault), NewGameCheck.Warning(have, coop)),
+                Strings.GetText("HotCargoTech/FitButton"), Strings.GetText("HotCargoTech/FitAsIs"), Strings.GetText("HotCargoTech/FitCancel"));
             Shown = false;
-            if (answer != TwoButtonDialog.DialogResponse.Option1) return null;
-            return Fit(file, need);
+            Log.Info($"fit vaults: {file} holds {have} of {need} tech; answer {answer}");
+            return answer switch
+            {
+                ThreeButtonDialog.DialogResponse.Option1 => Fit(file, need),
+                ThreeButtonDialog.DialogResponse.Option2 => file,
+                _ => null,
+            };
         }
         catch (Exception ex) when (ex is StartingVault.NoRoomException or InvalidOperationException or InvalidDataException or IOException)
         {

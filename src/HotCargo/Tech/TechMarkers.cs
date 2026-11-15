@@ -50,6 +50,9 @@ public static class TechMarkers
                 if (units <= 0) return;
                 string key = __instance.Ship.IsHumanPlayerShip || __instance.Ship.IsJunk ? "HotCargoTech/MarkerTag" : "HotCargoTech/MarkerHeldTag";
                 string tag = string.Format(Strings.GetText(key), units);
+                // Spec 1550: tech in normal storage decays, and the blip says so.
+                if (Vaults.HoldsForPlayers(__instance.Ship.Sim!, __instance.Ship) && Vaults.StorageTech(__instance.Ship) is > 0 and var decaying)
+                    tag += " " + string.Format(Strings.GetText("HotCargoTech/MarkerDecayFmt"), decaying);
                 __result = __result is null ? tag : tag + "\n" + __result;
             }
             catch (Exception ex) { Errors.Report("tech ship marker", ex.Message, ex); }

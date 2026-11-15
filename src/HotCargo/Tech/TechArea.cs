@@ -15,6 +15,7 @@ public static class TechArea
         Run.Hooks.NewRunStarted += StartingVault.OnNewRun;
         Run.Hooks.NewRunStarted += StartingResearch.OnNewRun;
         Run.Hooks.Tick += LossTimer.OnTick;
+        Run.Hooks.Tick += TechDecay.OnTick;
         Run.Hooks.Tick += HunterGrab.OnTick;
         TechMarkers.RegisterHolders(HunterGrab.Holders);
         DebugKeys.Extra += OnDebugKeys;

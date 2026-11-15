@@ -141,7 +141,9 @@ sealed class HeatPanel : LayoutBox
             _ => StatusLine(s, t.Heat, run.TimeHeatPerMinute(s.FleetTech) + Contracts.ContractBook.TrailPerMinute(run, Contracts.ContractBook.OpenWeight(run))),
         };
         long value = run.TechValue();
-        _tech.Text = TechText = LossTimer.PanelLine(run) ?? UxKit.Format("TechFmt", s.FleetTech, value.ToString("N0")) + TechSplit(run, s.FleetTech);
+        // Spec 1550: tech in normal storage decays; its line goes under the tech line.
+        _tech.Text = TechText = (LossTimer.PanelLine(run) ?? UxKit.Format("TechFmt", s.FleetTech, value.ToString("N0")) + TechSplit(run, s.FleetTech))
+            + (TechDecay.PanelLine(run) is { } decay ? "\n" + decay : "");
         string? contracts = Contracts.ContractsUi.HeatPanelLine(run);
         _contracts.SelfActive = contracts is not null;
         _contracts.Text = contracts ?? "";
