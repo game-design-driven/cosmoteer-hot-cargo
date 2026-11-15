@@ -59,7 +59,7 @@ wait 15
 buyer goto
 wait 2
 buyer sell 1
-wait 45
+# The crew carry the tech over. After the win, waits count real seconds (spec 1007), so wait for the win itself.
+waitfor runlog_won == 1 45
 expect runlog_delivery >= 1
-expect runlog_won == 1
 quit
