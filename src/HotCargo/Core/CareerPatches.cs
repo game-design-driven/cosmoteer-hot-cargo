@@ -84,6 +84,7 @@ static class CareerPatches
         iHash.AddHash(s.Contracts.Informants.Count);
         iHash.AddHash(s.SharedChoice.Boxes.Sum(b => b.Votes.Count) * 2 + (s.SharedChoice.VoteMode ? 1 : 0));
         iHash.AddHash((int)(s.Debt.Total % int.MaxValue) * 31 + s.Debt.Collectors.Count);
+        iHash.AddHash((int)(((s.Debt.Help?.HelperDamage ?? -1) * 31 + (s.Debt.Help?.PlayerDamage ?? -1)) % int.MaxValue));
         iHash.AddHash(s.Scavenge.Seen.Count);
         iHash.AddHash((int)(s.Scavenge.ProvokedUntil * 10));
         // string.GetHashCode is random per process, so it would differ between clients. This hash is stable.

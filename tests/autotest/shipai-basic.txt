@@ -103,5 +103,18 @@ wait 3
 tactics_log ally
 expect tactics_move_row == 1
 expect tactics_cmd == 3
+# Spec 410: with both ships selected, the ships card shows the multi-ship AI button: Auto is on in 1 of 2 (ship 0 has it off).
+tactics_ship 0
+tactics_select all
+tactics_card_update
+expect tactics_card_multi == 1
+expect tactics_card_single == -1
+tacticsauto on
+tactics_card_update
+expect tactics_card_multi == 2
+# A click opens the editor, like Ctrl+K.
+tactics_card_click
+expect tactics_editor == 1
+tactics_editor close
 quit
 # tier: smoke

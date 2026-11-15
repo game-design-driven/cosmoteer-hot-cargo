@@ -365,4 +365,14 @@ public class ShipAiModelTests
         Assert.NotNull(ShipAiModel.StageError(rows, 3));
         Assert.Null(ShipAiModel.StageError(rows, 4));
     }
+
+    [Fact]
+    public void Card_state_is_off_mixed_or_on_by_how_many_ships_have_auto()
+    {
+        Assert.Equal(CardState.Off, ShipAiModel.CardStateOf(0, 3));
+        Assert.Equal(CardState.Mixed, ShipAiModel.CardStateOf(2, 3));
+        Assert.Equal(CardState.On, ShipAiModel.CardStateOf(3, 3));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ShipAiModel.CardStateOf(0, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ShipAiModel.CardStateOf(4, 3));
+    }
 }

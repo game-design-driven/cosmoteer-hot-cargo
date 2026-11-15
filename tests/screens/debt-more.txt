@@ -1,0 +1,34 @@
+# Debt (spec 1421, 1434, 1435): a station page that buys a debt, and the paid help page. Windowed test slot.
+render on
+newgame run
+wait 10
+ev_set Enabled false
+closepanel
+godmode on
+contract_money 200000
+debt_set LoanStationChance 1
+debt_set RefinanceStationChance 1
+debt_goto loan
+wait 3
+debt_loan
+wait 2
+fa_roles other -
+debt_rehome
+wait 2
+pause on
+debt_open loan
+wait 2
+screenshot debt-refinance
+debt_close
+pause off
+debt_help_spawn
+debt_help_share 400 600
+debt_help_ask
+debt_goto helper
+waitfor debt_help_hailed == 1 60
+pause on
+debt_open helper
+wait 2
+screenshot debt-help
+debt_close
+quit

@@ -57,6 +57,7 @@ The prune of 2026-11-14 classified every game test with evidence: git history (f
 | debris-decay | KEEP | Debris smoke test; it deletes world objects. | 55 |
 | debt-core | KEEP | New complex feature: loan, collectors, wanted state. | - |
 | debt-missions | KEEP | Mission payout hooks and refinance offer. | - |
+| debt-help | KEEP | New complex feature: help spawns in a fight, real hits of both sides count, the hail and each answer. | - |
 | diplomacy-friends | KEEP | Start-world fix elsewhere. | 67 |
 | diplomacy-hunters | KEEP | Hunters; game fix acbc92b. | 64 |
 | diplomacy-surrender | KEEP | Surrender smoke test (PC only). | PC |
