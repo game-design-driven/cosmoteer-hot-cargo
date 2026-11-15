@@ -22,6 +22,7 @@ static class UxAutotest
     internal static void Register()
     {
         RegisterMissionSelect();
+        RegisterJumpWarnings();
         // uxpick N: presses dialogue key N (1-based) in the frontmost dialogue (event window first, then comms).
         // uxsubmit: presses Enter in the frontmost dialogue: the first active submit button of a page with option rows (UX V15).
         Autotest.Commands["uxsubmit"] = _ => Autotest.Check(DialogueKeys.Submit(), "Enter picked a submit button");
@@ -296,4 +297,66 @@ static class UxAutotest
     }
 
     static IEnumerable<Halfling.Gui.Widget> Walk(Halfling.Gui.Widget w) => w.GetChainedWidgets(recursive: true).Prepend(w);
+
+    static byte[]? _twinDesign;
+
+    /// <summary>Spec 1569: jump warnings. A copy of the starter ship stands in for a captured ship (the starter ships have no hyperdrive).</summary>
+    static void RegisterJumpWarnings()
+    {
+        // jw_twin save|spawn: single player. save keeps the design of the acting ship; spawn adds a crewed copy of it as an own ship nearby.
+        Autotest.Commands["jw_twin"] = arg =>
+        {
+            var run = Autotest.RequireRun();
+            if (run.IsMultiplayer) throw new InvalidOperationException("jw_twin is single player only");
+            var ship = TechAutotest.PlayerShip();
+            if (arg == "save")
+            {
+                using var stream = new MemoryStream();
+                ship.SaveDesign(stream);
+                _twinDesign = stream.ToArray();
+                return;
+            }
+            if (arg != "spawn") throw new InvalidOperationException("jw_twin needs: save | spawn");
+            var sim = run.Game.Sim;
+            var design = _twinDesign ?? throw new InvalidOperationException("run jw_twin save first");
+            Cosmoteer.Game.ObjectID id;
+            do id = Cosmoteer.Game.ObjectID.NewRandom(sim.Rand); while (!sim.IsObjectIDAvailable(id));
+            var twin = Cosmoteer.Ships.Ship.Load(design, "Twin", ship.Metadata.PlayerIndex, spawnWithCrew: true, initializeToMax: true, randSeed: sim.Rand.UInt64(), id: id);
+            twin.WorldCenter = Autotest.ClearSpotNear(sim, ship.DetWorldCenter, 400f, ship.WorldBoundingRadius);
+            sim.Ships.Add(twin);
+            Log.Info($"AUTOTEST ux: twin {twin.UniqueID} drives={twin.Ftl.HasFtlDrives}");
+        };
+        Autotest.Fields["ux_jump_standing"] = () =>
+        {
+            var game = Autotest.RequireRun().Game;
+            return game.Sim.Ships.LocalPlayerSignificantShips.Count(s => JumpWarnings.Standing(game, s).Reason != StayReason.None);
+        };
+        Autotest.Fields["ux_jump_toobig"] = () =>
+        {
+            var game = Autotest.RequireRun().Game;
+            return game.Sim.Ships.LocalPlayerSignificantShips.Count(s => JumpWarnings.Standing(game, s).Reason == StayReason.TooBig);
+        };
+        // The vanilla hover text (the game's own method) of the own ships that carry the stays-behind line.
+        Autotest.Fields["ux_jump_hover"] = () =>
+        {
+            var sim = Autotest.RequireRun().Game.Sim;
+            string mark = UxKit.Format("JumpHoverFmt", "");
+            return sim.Ships.LocalPlayerSignificantShips.Count(s => sim.Mode.GetShipMouseOverText(s).Contains(mark, StringComparison.Ordinal));
+        };
+        Autotest.Fields["ux_jump_notices"] = () => JumpWarnings.NoticesShown;
+        Autotest.Fields["ux_jump_dialogs"] = () => JumpWarnings.DialogsShown;
+        Autotest.Fields["ux_jump_dialog_lines"] = () =>
+        {
+            var dialog = App.Director.States.OfType<Halfling.Gui.Dialogs.TwoButtonDialog>().LastOrDefault();
+            return dialog is null ? -1 : dialog.MessageLabel.Text?.Split('\n').Count(l => l.StartsWith("  ", StringComparison.Ordinal)) ?? 0;
+        };
+        // jw_engage: the ENGAGE click of the jump window (FtlJumpGui.OnJumpClicked, through the jump dialog patch).
+        Autotest.Commands["jw_engage"] = _ => Autotest.RequireRun().Game.Gui.FtlJumpGui.OnJumpClicked(null, EventArgs.Empty);
+        // jw_answer yes|no: presses a button of the jump dialog, like the player.
+        Autotest.Commands["jw_answer"] = arg =>
+        {
+            var dialog = App.Director.States.OfType<Halfling.Gui.Dialogs.TwoButtonDialog>().LastOrDefault() ?? throw new InvalidOperationException("no jump dialog");
+            (arg == "yes" ? dialog.Option1Button : dialog.Option2Button).ClickController.InvokeClicked();
+        };
+    }
 }
