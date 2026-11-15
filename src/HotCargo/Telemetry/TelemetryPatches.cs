@@ -262,14 +262,8 @@ static class TelemetryPatches
             if (tech && name == "econ.trade")
                 s.AddTechHint(buyer ? "buyer" : e.TradeType switch { TradeType.Sell => "sale", TradeType.Buy => "buyback", _ => "trade" });
             // The job's price is the price of the order. Without the job (it can end with the delivery) the mode's current price stands in.
-            var mode = s.Game.Sim.Mode;
-            (int? price, string priceSrc) = (e.Crew.Job, e.TradeType) switch
-            {
-                (ResourceTransferJob job, _) => (job.PricePerResource, "order"),
-                (_, TradeType.Sell) => (mode.GetResourceSellRefund(e.ResourceType, e.SinkShip?.Metadata.PlayerIndex), "current"),
-                (_, TradeType.Buy) => (mode.GetResourceBuyCost(e.ResourceType, e.SourceShip?.Metadata.PlayerIndex), "current"),
-                _ => ((int?)null, ""),
-            };
+            int? price = SimQueries.TradeUnitPrice(s.Game.Sim.Mode, e.TradeType, e.ResourceType, e.Crew, e.SourceShip, e.SinkShip);
+            string priceSrc = e.Crew.Job is ResourceTransferJob ? "order" : "current";
             Tele.Emit(Cat.Economy, name, w =>
             {
                 w.WriteString("trade", e.TradeType.ToString());

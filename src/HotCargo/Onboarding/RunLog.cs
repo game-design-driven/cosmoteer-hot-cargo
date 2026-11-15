@@ -122,18 +122,20 @@ public static class RunLog
     static class TradePatch
     {
         [HarmonyPriority(Priority.High)]
-        static void Postfix(CareerSimModeManager __instance, TradeType tradeType, ID<ResourceRules> resourceType, int amount, Ship? sinkShip, Ship? sourceShip)
+        static void Postfix(CareerSimModeManager __instance, TradeType tradeType, ID<ResourceRules> resourceType, int amount, Cosmoteer.Crew.CrewSoul crew, Ship? sinkShip, Ship? sourceShip)
         {
             if (amount <= 0 || resourceType != Vaults.TechId) return;
             if (Run.Current is not { } run || run.Game.Sim != __instance.Sim || run.State.Result == RunResult.Lost) return;
             Errors.Guard("run log trade", () =>
             {
+                long Paid(long fallback) => SimQueries.TradeUnitPrice(__instance, tradeType, resourceType, crew, sourceShip, sinkShip) ?? fallback;
                 if (tradeType == TradeType.Sell && sinkShip is not null && Buyer.IsBuyer(sinkShip))
                     Add(run, RunLogKind.Delivery, Format("DeliveryFmt", amount, Buyer.UnitPrice(run).ToString("N0")));
+                // Spec 1594: the price that the station paid, with the faction prices (rival fence premium), not the base tech value.
                 else if (tradeType == TradeType.Sell)
-                    Add(run, RunLogKind.Sale, Format("SaleFmt", amount, TechPrice.Sell(run).ToString("N0"), Escape(sinkShip?.Metadata.PlainShipName ?? "")));
+                    Add(run, RunLogKind.Sale, Format("SaleFmt", amount, Paid(TechPrice.Sell(run)).ToString("N0"), Escape(sinkShip?.Metadata.PlainShipName ?? "")));
                 else if (tradeType == TradeType.Buy)
-                    Add(run, RunLogKind.Sale, Format("BuyBackFmt", amount, TechPrice.Buy(run).ToString("N0")));
+                    Add(run, RunLogKind.Sale, Format("BuyBackFmt", amount, Paid(TechPrice.Buy(run)).ToString("N0")));
             });
         }
     }
