@@ -1,9 +1,3 @@
-deployed to C:\Users\Yarden-zamir\HotCargoSlots\t1\Mods\hot_cargo (slot t1, uploaded build dffa920de7f046da)
-autotest script installed
-started (slot t1, headless, pid 14224)
-Hot Cargo log 2026-11-15T22:08:18.2923797+02:00
-22:08:18.295 INFO startup hook loaded in C:\Program Files (x86)\Steam\steamapps\common\Cosmoteer\Bin\Cosmoteer.exe
-22:08:19.545 INFO harmony patched 213 methods; mod root C:\Users\Yarden-zamir\HotCargoSlots\t1\Mods\hot_cargo
 22:08:38.614 INFO AUTOTEST loaded 111 commands; tutorial auto-pause off on 1 pages
 22:08:38.667 INFO AUTOTEST line 1: telename balance-census
 22:08:38.675 INFO AUTOTEST line 3: newgame 
