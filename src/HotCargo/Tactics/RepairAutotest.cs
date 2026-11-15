@@ -63,24 +63,6 @@ static class RepairAutotest
                 Log.Info($"AUTOTEST stripped {what} of {ship.Metadata.PlainShipName}: crew {ship.Crew.Assigned.Count}");
             }
         };
-        // ainew_lootlacking <i> <distance>: drops twice what ship i lacks for its repairs (own storage) as loose resources on a ring at
-        // this distance from its hull (spec 1321 tests). Setup only.
-        Autotest.Commands["ainew_lootlacking"] = arg =>
-        {
-            var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length != 2) throw new InvalidOperationException("ainew_lootlacking needs: i distance");
-            var ship = At(parts[0]);
-            float d = ship.WorldBoundingRadius + float.Parse(parts[1], CultureInfo.InvariantCulture);
-            var lacking = Resupply.Lacking(ship, ownOnly: true);
-            if (lacking.Count == 0) throw new InvalidOperationException($"{ship.Metadata.PlainShipName} lacks nothing");
-            int k = 0;
-            foreach (var (id, n) in lacking.OrderBy(kv => kv.Key, StringComparer.Ordinal))
-            {
-                var at = ship.DetWorldCenter + Halfling.Geometry.Vector2.FromAngle(k++ * 0.7f) * d;
-                ship.Sim!.Nuggets.DropNuggets(new ID<ResourceRules>(id), 2 * n, new Halfling.Geometry.RotRect(at, new Halfling.Geometry.Vector2(60f, 60f), Halfling.Geometry.Direction.Zero));
-                Log.Info($"AUTOTEST {2 * n} {id} dropped near {ship.Metadata.PlainShipName}");
-            }
-        };
         // ainew_wreck <i> <distance>: a junk copy of the player ship's design at a clear spot this far from ship i (spec 1321 tests).
         Autotest.Commands["ainew_wreck"] = arg =>
         {
@@ -95,9 +77,8 @@ static class RepairAutotest
             sim.Ships.Add(wreck);
             Log.Info($"AUTOTEST ainew_wreck id={wreck.UniqueID} junk={wreck.IsJunk} parts={wreck.Parts.Count}");
         };
-        // What the scavenge pick sees for the first aispawn ship (spec 1321): targets, and its storage fill (-1 without storage bays).
+        // Targets that the scavenge pick sees for the first aispawn ship (spec 1321).
         Autotest.Fields["ai_new_first_scav_targets"] = () => New().Count == 0 ? -1 : Scavenge.Scavenger.Targets(Autotest.RequireRun(), New()[0]).Count;
-        Autotest.Fields["ai_new_first_cargo_fill"] = () => New().Count == 0 ? -1 : Autonomy.AutonomyWorld.CargoFill(New()[0]) ?? -1;
         // Units of steel in the storage of the first aispawn ship.
         Autotest.Fields["ai_new_first_steel"] = () => New().Select(s => (double)s.Resources.GetResourceTotal(new ID<ResourceRules>("steel"), includeStored: true, includeCarried: false)).DefaultIfEmpty(-1).First();
         // aigivelacking <from> <to>: puts into ship <from> twice what ship <to> (indexes of the last aispawn) lacks for its repairs.
