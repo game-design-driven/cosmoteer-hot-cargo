@@ -135,7 +135,7 @@ static class DebtHelp
     {
         int price = Price(run, g);
         DebtDeals.Owe(run, g.Faction, player, price);
-        DebtArea.Chat(run, DebtArea.Format("HelpTabFmt", Cosmoteer.Extensions.ToXmlCostString(price), Lenders.Name(g.Faction)));
+        DebtArea.Chat(run, DebtArea.Format("HelpTabFmt", DebtArea.DebtMoney(price), Lenders.Name(g.Faction)));
     }
 
     /// <summary>

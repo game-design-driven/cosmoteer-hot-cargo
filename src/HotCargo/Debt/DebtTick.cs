@@ -59,6 +59,14 @@ static class Lenders
         return FactionOf(ship) is { } f && s.Of(f.ID.ToString(), player) is { } d && IsStation(ship) ? d : null;
     }
 
+    /// <summary>Spec 1417: the credit limit of an overdraft at a tier: the tier-1 limit × the vanilla standard mission pay of the tier ÷ that of tier 1.</summary>
+    public static long CreditLimit(Run run, int tier) =>
+        (long)Math.Round(run.T.Debt.OverdraftLimitTier1 * (double)GameData.StandardMissionMoney(tier) / GameData.StandardMissionMoney(1));
+
+    /// <summary>Spec 1417: what this player can still borrow from the overdraft lender here: the limit minus the balance, never below 0.</summary>
+    public static long CreditLeft(Run run, SimRoot sim, int player) =>
+        Math.Max(0, CreditLimit(run, run.CurrentTier) - (run.State.Debt.Of(OverdraftLender(run, sim, player), player)?.Balance ?? 0));
+
     /// <summary>
     /// Spec 1417: who lends when money goes below 0. The system's controlling faction, else the faction of the operating station
     /// nearest to the player's ships, else the corporation's rival.
@@ -135,7 +143,7 @@ static class DebtTick
             if (d.HailAt is { } hailAt && now >= hailAt)
             {
                 d.HailAt = null;
-                if (d.Balance > t.OverdraftHailMin && !wanted && !collectorHere && CollectorAnchor(sim, d.Player) is { } owner)
+                if (d.Balance >= Lenders.CreditLimit(run, run.CurrentTier) && !wanted && !collectorHere && CollectorAnchor(sim, d.Player) is { } owner)
                 {
                     SpawnCollector(run, sim, d, owner.DetWorldCenter, overdraft: true);
                     Telemetry.Tele.Emit(Telemetry.Cat.Economy, "debt.hail", d, static (w, d) =>
@@ -165,13 +173,15 @@ static class DebtTick
     static void Overdraft(Run run, SimRoot sim, int player)
     {
         var state = run.Game.GetPlayerState(player, deterministic: true);
-        int shortfall = -state.Money;
+        // Spec 1417: borrow only up to the credit limit; past it the money stays below 0 and the vanilla buy checks stop spending.
+        int shortfall = (int)Math.Min(-state.Money, Lenders.CreditLeft(run, sim, player));
+        if (shortfall <= 0) return;
         string lender = Lenders.OverdraftLender(run, sim, player);
         bool isNew = run.State.Debt.Of(lender, player) is null;
         state.AddMoney(shortfall);
         var d = DebtDeals.Owe(run, lender, player, shortfall);
         if (isNew) d.HailAt = run.State.GameSeconds + run.T.Debt.OverdraftHailSeconds;
-        DebtArea.Chat(run, DebtArea.Format("OverdraftFmt", run.IsMultiplayer ? DebtArea.PlayerName(run, player) : DebtArea.Text("You"), Cosmoteer.Extensions.ToXmlCostString(shortfall), Lenders.Name(lender)));
+        DebtArea.Chat(run, DebtArea.Format("OverdraftFmt", run.IsMultiplayer ? DebtArea.PlayerName(run, player) : DebtArea.Text("You"), DebtArea.DebtMoney(shortfall), Lenders.Name(lender)));
         Telemetry.Tele.Emit(Telemetry.Cat.Economy, "debt.overdraft", (d, shortfall, isNew), static (w, x) =>
         {
             w.WriteNumber("player", x.d.Player);

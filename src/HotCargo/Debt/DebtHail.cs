@@ -66,7 +66,7 @@ public sealed class DebtHailProvider : IHailProvider
             foreach (var old in Lenders.Refinances(run, callee, player))
             {
                 string oldName = Lenders.Name(old.Faction);
-                page.AddText(DebtArea.Format("RefinanceOfferFmt", buyer.NameKey.Text, oldName, Money(old.Balance),
+                page.AddText(DebtArea.Format("RefinanceOfferFmt", buyer.NameKey.Text, oldName, DebtArea.DebtMoney(old.Balance),
                     Percent(t.InterestRate * t.RefinanceRateFactor), Minutes(t.InterestSeconds), t.RefinanceReputationLoss));
                 page.AddChoice(DebtArea.Format("RefinanceFmt", oldName), DebtModel.Option(DebtChoice.Refinance, run.State.Debt.Debts.IndexOf(old)));
             }
@@ -79,7 +79,7 @@ public sealed class DebtHailProvider : IHailProvider
             page.AddText(DebtArea.Format("HelpAskFmt", helpers, DebtModel.Percent(1f - share), DebtModel.Percent(share), Money(price)));
             long cash = run.Game.GetPlayerState(run.Game.LocalPlayerIndex, deterministic: true).Money;
             page.AddChoice(DebtArea.Format("HelpPayFmt", Money(price)), DebtModel.Option(DebtChoice.HelpPay, 0), active: cash >= price, close: true);
-            page.AddChoice(DebtArea.Format("HelpTabChoiceFmt", Money(price), helpers), DebtModel.Option(DebtChoice.HelpTab, 0), close: true);
+            page.AddChoice(DebtArea.Format("HelpTabChoiceFmt", DebtArea.DebtMoney(price), helpers), DebtModel.Option(DebtChoice.HelpTab, 0), close: true);
             bool works = DebtModel.ClaimWorks(share, t.ClaimMaxShare);
             page.AddChoice(DebtArea.Format(works ? "ClaimChoiceWorksFmt" : "ClaimChoiceFailsFmt", DebtModel.Percent(t.ClaimMaxShare), DebtModel.Percent(share), t.ClaimReputationLoss),
                 DebtModel.Option(DebtChoice.HelpClaim, 0), close: true);
@@ -95,7 +95,7 @@ public sealed class DebtHailProvider : IHailProvider
         else if (collector is not null)
             page.AddText(DebtArea.Format(stage switch { DebtStage.Hostile => "CollectorHostileFmt", DebtStage.Firm => "CollectorFirmFmt", _ => "CollectorCalmFmt" },
                 name, Ratio(t.HostileRatio)));
-        page.AddText(DebtArea.Format("BalanceFmt", Money(d.Balance), name, Ratio(Lenders.Ratio(d)), Percent(t.InterestRate * d.RateFactor),
+        page.AddText(DebtArea.Format("BalanceFmt", DebtArea.DebtMoney(d.Balance), name, Ratio(Lenders.Ratio(d)), Percent(t.InterestRate * d.RateFactor),
             Pursuit.PursuitModel.Clock(Math.Max(0, d.NextInterestAt - run.State.GameSeconds))));
         long money = run.Game.GetPlayerState(run.Game.LocalPlayerIndex, deterministic: true).Money;
         if (DebtModel.PayRange(d.Balance, money, t.PayStepShare) is { } range)
@@ -104,7 +104,7 @@ public sealed class DebtHailProvider : IHailProvider
             var spec = new SliderSpec("debtpay", DebtArea.Text("SliderPay"), range.Min, range.Max, range.Step, range.Max, v => Money(DebtModel.PayCredits(v, balance)));
             int value = CommsHail.SliderValue(callee, spec);
             long pay = DebtModel.PayCredits(value, balance);
-            page.AddRow(new HailRow("debtpay", DebtArea.Format("PayFmt", Money(pay), Money(balance - pay)), DebtModel.Option(DebtChoice.Pay, value), spec));
+            page.AddRow(new HailRow("debtpay", DebtArea.Format("PayFmt", Money(pay), DebtArea.DebtMoney(balance - pay)), DebtModel.Option(DebtChoice.Pay, value), spec));
         }
         else page.AddText(DebtArea.Text("NoMoney"));
         if (collector is not null)
@@ -213,7 +213,7 @@ static class DebtDeals
                 Owe(run, f.ID.ToString(), player, credits);
                 playerState.AddMoney(credits);
                 DebtArea.Chat(run, DebtArea.Format("LoanTakenFmt", f.NameKey.Text, Cosmoteer.Extensions.ToXmlCostString(credits)));
-                Onboarding.RunLog.Add(run, Onboarding.RunLogKind.Debt, DebtArea.Format("LogLoanFmt", f.NameKey.Text, credits.ToString("N0")));
+                Onboarding.RunLog.Add(run, Onboarding.RunLogKind.Debt, DebtArea.Format("LogLoanFmt", f.NameKey.Text, DebtArea.DebtMoney(credits)));
                 Log.Info($"debt: player {player} took a loan of {credits} from {f.ID}");
                 return true;
             }
@@ -225,7 +225,7 @@ static class DebtDeals
                 playerState.AddMoney(-(int)credits);
                 var collector = Lenders.CollectorOf(run, callee);
                 Reduce(run, d, credits);
-                DebtArea.Chat(run, DebtArea.Format("PaidFmt", Cosmoteer.Extensions.ToXmlCostString((int)credits), Lenders.Name(d.Faction), Cosmoteer.Extensions.ToXmlCostString((int)Math.Min(int.MaxValue, d.Balance))));
+                DebtArea.Chat(run, DebtArea.Format("PaidFmt", Cosmoteer.Extensions.ToXmlCostString((int)credits), Lenders.Name(d.Faction), DebtArea.DebtMoney(d.Balance)));
                 Log.Info($"debt: player {player} paid {credits} to {d.Faction}, {d.Balance} left");
                 if (collector is not null) DebtTick.Leave(run, sim, collector, callee);
                 return true;

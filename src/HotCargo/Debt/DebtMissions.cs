@@ -56,7 +56,7 @@ static class DebtMissions
                         var (off, rest) = DebtModel.PayoffSplit(each, d.Balance);
                         DebtDeals.Reduce(run, d, off);
                         money = rest;
-                        DebtArea.Chat(run, DebtArea.Format("PayoffFmt", Cosmoteer.Extensions.ToXmlCostString((int)off), Lenders.Name(d.Faction)));
+                        DebtArea.Chat(run, DebtArea.Format("PayoffFmt", DebtArea.DebtMoney(off), Lenders.Name(d.Faction)));
                         Log.Info($"debt: mission {__instance._mission.MissionID} paid {off} off player {p}'s {d.Faction} debt and {rest} as money");
                     }
                     if (money > 0) run.Game.GetPlayerState(p, deterministic: true).AddMoney((int)money);
@@ -81,8 +81,7 @@ static class DebtMissions
             try
             {
                 if (PaidDebt(run, __instance._mission, run.Game.LocalPlayerIndex) is not { } d) return;
-                __result = WidgetRules.Instance.MoneyTextColor.FormatWithXml(
-                    DebtArea.Format("PayoffLineFmt", __instance.GetScaledMoney(game).ToString("N0"), Lenders.Name(d.Faction)));
+                __result = $"<bad>{DebtArea.Format("PayoffLineFmt", __instance.GetScaledMoney(game).ToString("N0"), Lenders.Name(d.Faction))}</bad>";
             }
             catch (Exception ex) { Errors.Report("debt payoff line", ex.Message, ex); }
         }

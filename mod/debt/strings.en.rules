@@ -86,6 +86,11 @@ HotCargoDebt
 	OverdraftHail_io = "<b>THE {0}</b>\nHouse Io extends credit only to those it deems worthy. Show us that we judged you well."
 	// Money tooltip (spec 1419).
 	MoneyTipTitle = "<bad>Debt</bad>"
-	MoneyTipLineFmt = "{0}: {1}"
+	// {0} lender, {1} balance, {2} interest %, {3} minutes per step.
+	MoneyTipLineFmt = "{0}: {1}  +{2}% every {3} min"
+	// {0} credit left, {1} the lender that would cover money below 0 here.
+	MoneyTipCreditFmt = "Credit left: {0} (the {1} cover you below 0)"
+	// {0} firm ratio, {1} hostile ratio.
+	MoneyTipStagesFmt = "<gray>At {0}× what you borrowed, the lender loses patience. At {1}×, its ships hunt you.</gray>"
 	MoneyTipTotalFmt = "Total: {0}"
 }

@@ -36,14 +36,27 @@ public static class DebtArea
         run.Game.HumanPlayersByID.Where(kv => kv.Value == player).Select(kv => SharedChoice.SharedChoices.PlayerName(run, kv.Key)).FirstOrDefault()
         ?? SharedChoice.SharedChoices.Text("SomePlayer");
 
-    /// <summary>Spec 1419: the local player's debts, one line for each lender and the total, for the money tooltip. Empty without debt.</summary>
+    /// <summary>A debt amount: the money icon and the number in the vanilla "bad" red, which the mod uses for debt and danger lines.</summary>
+    internal static string DebtMoney(long credits) => $"<bad><img name='money' colored='true'/>{Math.Min(int.MaxValue, credits):N0}</bad>";
+
+    /// <summary>
+    /// Spec 1419: under the vanilla money tooltip, the local player's credit left with the overdraft lender, then each debt with its
+    /// interest, the total, and what the stages mean.
+    /// </summary>
     internal static string MoneyTipLines(Run run)
     {
-        var mine = run.State.Debt.OfPlayer(run.Game.LocalPlayerIndex).ToList();
-        if (mine.Count == 0) return "";
-        var lines = mine.Select(d => Format("MoneyTipLineFmt", Lenders.Name(d.Faction), Cosmoteer.Extensions.ToXmlCostString((int)Math.Min(int.MaxValue, d.Balance))));
-        return "\n\n" + Text("MoneyTipTitle") + "\n" + string.Join("\n", lines)
-            + "\n" + Format("MoneyTipTotalFmt", Cosmoteer.Extensions.ToXmlCostString((int)Math.Min(int.MaxValue, mine.Sum(d => d.Balance))));
+        if (run.State.Result != RunResult.Running || run.Game.Sim is not { } sim) return "";
+        int me = run.Game.LocalPlayerIndex;
+        string credit = Format("MoneyTipCreditFmt", Cosmoteer.Extensions.ToXmlCostString((int)Math.Min(int.MaxValue, Lenders.CreditLeft(run, sim, me))),
+            Lenders.Name(Lenders.OverdraftLender(run, sim, me)));
+        var mine = run.State.Debt.OfPlayer(me).ToList();
+        if (mine.Count == 0) return "\n\n" + credit;
+        var t = run.T.Debt;
+        var lines = mine.Select(d => Format("MoneyTipLineFmt", Lenders.Name(d.Faction), DebtMoney(d.Balance),
+            (t.InterestRate * d.RateFactor * 100f).ToString("0.#"), (t.InterestSeconds / 60f).ToString("0.#")));
+        return "\n\n" + credit + "\n\n" + Text("MoneyTipTitle") + "\n" + string.Join("\n", lines)
+            + "\n" + Format("MoneyTipTotalFmt", DebtMoney(mine.Sum(d => d.Balance)))
+            + "\n" + Format("MoneyTipStagesFmt", t.FirmRatio.ToString("0.#"), t.HostileRatio.ToString("0.#"));
     }
 
     /// <summary>Spec 1412: one heat panel line for each debt of the local player.</summary>
@@ -203,6 +216,21 @@ public static class DebtArea
         Autotest.Fields["debt_my_money"] = () => R().Game.GetPlayerState(Autotest.ActingPlayerIndex, deterministic: true).Money;
         // 1 when the debt's lender is the controlling faction of this system (spec 1417).
         Autotest.Fields["debt_lender_owner"] = () => Sim().MapNode?.ControllingFaction?.ToString() == Mine().Faction ? 1 : 0;
+        // Spec 1417: 1 when the acting player's first debt is at the credit limit of this tier.
+        Autotest.Fields["debt_at_limit"] = () => Mine().Balance == Lenders.CreditLimit(R(), R().CurrentTier) ? 1 : 0;
+        Autotest.Fields["debt_credit_left"] = () => Lenders.CreditLeft(R(), Sim(), Autotest.ActingPlayerIndex);
+        // debt_prepurchase <amount>: the acting ship pre-purchases this much steel at the stations nearby and pays it, as a build order
+        // does (MPUpdateShipInput, construction mode CrewResources). Single player.
+        Autotest.Commands["debt_prepurchase"] = arg =>
+        {
+            var ship = Autotest.ActingShip(Sim()) ?? throw new InvalidOperationException("no acting ship");
+            int bought = ship.Resources.PrePurchaseBuyableResources(new Cosmoteer.Data.ID<Cosmoteer.Resources.ResourceRules>("steel"),
+                int.Parse(arg, CultureInfo.InvariantCulture), out int cost);
+            if (cost > 0) R().Game.GetPlayerState(ship.Metadata.PlayerIndex, deterministic: true).AddMoney(-cost);
+            Log.Info($"AUTOTEST debt prepurchase: {bought} steel for {cost}");
+        };
+        // debt_limits: logs the credit limit of tiers 1 to 8 (the scale for the PR text).
+        Autotest.Commands["debt_limits"] = _ => Log.Info("AUTOTEST debt limits: " + string.Join(", ", Enumerable.Range(1, 8).Select(t => $"tier {t} {Lenders.CreditLimit(R(), t):N0}")));
         Autotest.Fields["debt_hail_due"] = () => Mine().HailAt is null ? 0 : 1;
         Autotest.Fields["debt_overdraft_collectors"] = () => R().State.Debt.Collectors.Count(c => c.Overdraft);
         // The acting player's lenders whose name and balance the money tooltip shows.
@@ -210,7 +238,7 @@ public static class DebtArea
         {
             string tip = MoneyTipLines(R());
             return R().State.Debt.OfPlayer(Autotest.ActingPlayerIndex).Count(d => tip.Contains(Lenders.Name(d.Faction), StringComparison.Ordinal)
-                && tip.Contains(Cosmoteer.Extensions.ToXmlCostString((int)Math.Min(int.MaxValue, d.Balance)), StringComparison.Ordinal));
+                && tip.Contains(DebtMoney(d.Balance), StringComparison.Ordinal));
         };
         // debt_my_set <credits>: the acting player's first debt gets this principal and balance (sim; in co-op run it through "mp" or "as").
         Autotest.Commands["debt_my_set"] = arg => { var d = Mine(); d.Principal = d.Balance = long.Parse(arg, CultureInfo.InvariantCulture); };
