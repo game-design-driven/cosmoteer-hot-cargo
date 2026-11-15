@@ -453,6 +453,7 @@ public static class Autotest
 
     static void AddBaseCommands()
     {
+        Reveal.Register();
         // wait <seconds>: game seconds while a run is active, else real seconds. waitreal <seconds>: real seconds (files, network).
         Commands["wait"] = arg => Wait(double.Parse(arg, CultureInfo.InvariantCulture));
         Commands["waitreal"] = arg => WaitReal(double.Parse(arg, CultureInfo.InvariantCulture));

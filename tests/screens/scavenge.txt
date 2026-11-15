@@ -8,10 +8,11 @@ closepanel
 wait 1
 pause off
 godmode on
+# Fog of war off: the scavenger and the wreck show even outside the player's sight (a ship outside sight is only a radar blip).
+reveal on
 scav_set CooldownSeconds 60
 # Only the staged wreck and steel count: older loot of the start area would draw the scavenger out of the player's sight.
 scav_set SearchRange 600
-# Next to the player's ship, inside its sight: a ship outside sight shows only as a radar blip.
 scav_spawn Scav player
 waitfor scav_live == 1 10
 auto_ship Scav

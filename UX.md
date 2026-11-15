@@ -86,6 +86,7 @@ Look at each image before you commit it. Crop anything that shows a user name, a
 4. `screenshot NAME` waits for the end of a frame, copies the back buffer (`GraphicsManager.GetEndOfFrameScreenShot`) and saves `Mods/hot_cargo/screenshots/NAME.png`. It hides the hover tooltips for that frame, because the real cursor rests somewhere over the hidden window. It never moves the real cursor.
 5. `window W H` resizes the back buffer of the minimized window (spec 1480), so a capture can have another size than the window had at start.
 6. Hover tooltips do not show in a capture, so `tipshow map|mapcur|station|fame|text <xml>` shows one at a fixed spot, and `tipclear` removes it.
+7. The game draws a ship outside the player's sight as a radar blip. `reveal on` gives the local player's team unlimited sight and radar (fog of war off, `Dev/Reveal.cs`), so a scene far from the player's ships shows; `reveal off` ends it. Screenshot scripts only: it changes what player ships may target, and it is local, so never in game tests or co-op.
 
 ## Tests
 
