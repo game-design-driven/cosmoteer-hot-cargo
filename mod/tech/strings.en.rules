@@ -8,7 +8,7 @@ HotCargoTech
 	TechVaultDesc = "Armored storage for Stolen Tech. Holds 4 units, one per tile. Crew fill vaults before normal storage. Outside a vault, air and heat destroy tech. A destroyed vault drops its tech as crates."
 	VaultContentsFmt = "Tech {0}/{1}"
 	StorageContentsFmt = "Tech {0}, first breaks down in {1}"
-	FitAskFmt = "Hot Cargo: <b>{0}</b> has Tech Vaults for {2} of {1} stolen tech. It needs {3} vaults.\n\n{4}\n\n<b>Fit Tech Vaults</b> turns storage space into vaults and saves a copy in Saved Ships, folder Hot Cargo. Your design does not change."
+	FitAskFmt = "Hot Cargo: <b>{0}</b> has Tech Vaults for {2} of {1} stolen tech. It needs {3} vaults.\n\n{4}\n\n<b>Fit Tech Vaults</b> puts vaults in place of storage bays, moves the bays outside the hull and saves a copy in Saved Ships, folder Hot Cargo. Your design does not change."
 	FitWarnNoVault = "<bad><b>NO TECH VAULT!</b></bad> All your tech starts in normal storage."
 	FitWarnShort = "<bad><b>TOO FEW VAULTS!</b></bad> The rest of your tech starts in normal storage."
 	DecayRuleFmt = "Outside a vault, air and heat destroy tech in <b>{0}</b>."

@@ -112,6 +112,28 @@ static class TechAutotest
         Autotest.Fields["decayed"] = () => TechDecay.Destroyed;
         Autotest.Fields["decayleft"] = () => TechDecay.Exposed(Active())?.SecondsLeft ?? -1;
         Autotest.Fields["decaystacks"] = () => Active().State.Tech.Decay.Count;
+        // Spec 1549: 1 when the vanilla tooltip of the first normal storage tile with tech on the player ship has the decay line.
+        Autotest.Fields["decaytip"] = () =>
+        {
+            var tile = Vaults.StorageTiles(PlayerShip()).FirstOrDefault(t => t.ResourceType == Vaults.TechId && t.Resources > 0);
+            if (tile is null) return 0;
+            string tip = ((Cosmoteer.Game.Gui.IGameObjectToolTip)tile).ToolTipText.Text;
+            return tip.EndsWith("\n" + TechDecay.TileLine(Active(), TechDecay.Key(tile), inVault: false), StringComparison.Ordinal) ? 1 : 0;
+        };
+        // vault select: selects the first vault of the player ship, so the parts card shows its contents (spec 1545).
+        Autotest.Commands["vaultselect"] = _ =>
+        {
+            var part = Vaults.VaultParts(PlayerShip()).FirstOrDefault() ?? throw new InvalidOperationException("no vault");
+            PlayerShip().Sim.PlayerInput.SelectParts([part]);
+        };
+        // storageselect: selects the first normal storage part with tech on the player ship (spec 1545).
+        Autotest.Commands["storageselect"] = _ =>
+        {
+            var tile = Vaults.StorageTiles(PlayerShip()).FirstOrDefault(t => t.ResourceType == Vaults.TechId && t.Resources > 0) ?? throw new InvalidOperationException("no tech in storage");
+            PlayerShip().Sim.PlayerInput.SelectParts([tile.Grid.Part]);
+        };
+        // resourcesview on|off: opens the vanilla Resources view, where the vault fill toggles show (spec 1546).
+        Autotest.Commands["resourcesview"] = arg => Active().Game.Gui.ShipGui.ResourcesToolbox.SelfActive = arg == "on";
         // Spec 1550: the heat panel shows the decay line.
         Autotest.Fields["decaypanel"] = () => TechDecay.PanelLine(Active()) is { } line && Ui.HeatPanel.TechText.Contains(line) ? 1 : 0;
     }
@@ -294,9 +316,12 @@ static class TechAutotest
             var ship = PlayerShip();
             var to = OutsideVault() ?? throw new InvalidOperationException("vault move needs vault outside first");
             var from = Vaults.OnShip(ship).FirstOrDefault(g => g != to && g.Resources == g.MaxResources) ?? throw new InvalidOperationException("no full vault");
-            TypedResourceGrid.ResourceTile source = from.First(), sink = to.First();
-            var id = MPMoveResourcesInput.GetJobOwner(source, sink, game.LocalPlayerIndex).Jobs.AllocLocalJobID();
-            game.NetManager.EnqueueInput(new MPMoveResourcesInput(source, sink, from.Resources, id, sticky: true));
+            // One input for each tile, like the player drags each stack (one unit per tile, spec 1540).
+            foreach (var (source, sink) in from.Where(t => t.Resources > 0).Zip(to.Where(t => t.Resources == 0)))
+            {
+                var id = MPMoveResourcesInput.GetJobOwner(source, sink, game.LocalPlayerIndex).Jobs.AllocLocalJobID();
+                game.NetManager.EnqueueInput(new MPMoveResourcesInput(source, sink, source.Resources, id, sticky: true));
+            }
             Log.Info($"AUTOTEST vault move {from.Resources} from {from.Part!.Location} to {to.Part!.Location}");
             return;
         }

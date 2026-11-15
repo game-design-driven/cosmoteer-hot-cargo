@@ -75,6 +75,7 @@ internal static class StartingVault
         var placed = new List<IntVector2>();
         var center = Center2(ship);
         IntVector2 size = vault.Size;
+        var moved = new List<PartRules>();
         foreach (var bay in StorageParts(ship))
         {
             if (placed.Count == count) break;
@@ -87,6 +88,7 @@ internal static class StartingVault
             Place(ship, vault, spots, corridors, count, placed, allowCell);
             // No vault on the bay's tiles: the bay goes back, so the design keeps its storage.
             if (placed.Count == before) PutBack(ship, grabbed.Part, grabbed.HadCrewPath);
+            else moved.Add(grabbed.Part.Rules);
         }
         if (placed.Count < count)
         {
@@ -98,6 +100,10 @@ internal static class StartingVault
             Place(ship, vault, spots.OrderBy(r => Distance2(r, center)).ThenBy(r => r.Y).ThenBy(r => r.X).ToList(), corridors, count, placed, allowCell);
         }
         if (placed.Count < count) throw new NoRoomException($"room inside the hull for {placed.Count} of {count} vaults with a crew path");
+        // Spec 1542: a bay that a vault took goes to a free spot outside the hull, so the design keeps its normal storage
+        // (a starter needs it for steel and cargo). Storage outside the hull is cheaper to lose than a vault.
+        foreach (var rules in moved)
+            if (PlaceOutside(ship, rules, requireCrewPath: true) is null) Log.Info($"vaults: no spot with a crew path outside the hull for {rules.ID}; the design has less storage");
         return placed;
     }
 

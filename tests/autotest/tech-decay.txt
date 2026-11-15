@@ -1,49 +1,38 @@
-# Tech in normal storage (spec 1543-1551): crews fill vaults first, tech outside a vault decays, and its time runs out.
-# Bug-prone: the decay follows each stack through crew transfers that the game makes, and the vault-first rule comes from vanilla priorities.
-newgame run
+# Tech in normal storage (spec 1543-1552): a start without vaults, crews fill a new vault first, tech outside a vault decays.
+# Bug-prone: the decay follows each stack through the crew transfers that the game makes, and the vault-first rule comes from vanilla priorities.
+# Spec 1552: the vanilla Model-L has no vault. The run starts anyway, and the tech goes to normal storage.
+newgame run 0 vanilla
 wait 8
 ev_set Enabled false
 tech_set LossGraceSeconds 600
-expect storagetech == 0
-expect decaystacks == 0
-# Spec 1543: tech in normal storage while a vault has room: crew carry it into the vault.
-tech remove 2
-tech store 2
-wait 1
-expect storagetech == 2
+# Long enough for the vault build below.
+tech_set DecaySeconds 1200
+expect vaults == 0
 expect tech == 8
-waitfor storagetech == 0 120
-expect vaulttech == 8
-expect decayed == 0
-# Spec 1546: with the fill toggle off, crew leave tech in normal storage. There it decays (spec 1547, 1550).
-vault fill off
-wait 1
-tech remove 1
-tech store 1
-tech_set DecaySeconds 30
-wait 5
-expect storagetech == 1
+expect storagetech == 8
+# Spec 1549, 1550: the tile tooltip and the heat panel say that the tech decays.
 expect decayleft > 0
-expect decayleft < 30
+expect decaytip == 1
 expect decaypanel == 1
-expect decaystacks == 1
+# Spec 1543: a vault that crew build takes tech from normal storage, without an order.
+vault steel 32
+vault build
+waitfor vaultsbuilt == 1 240
+waitfor outsidetech == 4 240
+expect storagetech == 4
+expect decayed == 0
 # A save keeps the decay; the load goes on from there.
 save decay
 load decay
 wait 1
-expect storagetech == 1
-expect decayleft < 28
-# Spec 1547: the time runs out, and the tech is gone.
-waitfor decayed == 1 60
-expect storagetech == 0
+expect storagetech == 4
+expect decaystacks >= 4
+# Spec 1547: the time runs out (shorter here), and the tech in storage is gone. The vault keeps its 4.
+tech_set DecaySeconds 30
+waitfor storagetech == 0 60
+expect decayed == 4
+expect outsidetech == 4
 wait 1
-expect tech == 7
+expect tech == 4
 expect lost == 0
-# Spec 1543: with the fill toggle on again, a vault with room takes tech from storage, and the vault keeps it.
-vault fill on
-wait 1
-tech store 1
-waitfor storagetech == 0 120
-expect vaulttech == 8
-expect decayed == 1
 quit

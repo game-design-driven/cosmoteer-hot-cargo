@@ -96,7 +96,7 @@ public static class TechDecay
 
     static string ShipKey(Ship ship) => ((uint)ship.UniqueID).ToString();
     static string Key(TypedResourceGrid.ResourceTile tile) => $"v{ShipKey(tile.Grid.Ship!)}:{tile.ShipCell.X},{tile.ShipCell.Y}";
-    static string Key(FlexResourceGrid.ResourceTile tile) => $"s{ShipKey(tile.Grid.Ship!)}:{tile.ShipCell.X},{tile.ShipCell.Y}";
+    internal static string Key(FlexResourceGrid.ResourceTile tile) => $"s{ShipKey(tile.Grid.Ship!)}:{tile.ShipCell.X},{tile.ShipCell.Y}";
     static string Key(CrewSoul crew) => $"c{(uint)crew.UniqueID}";
 
     static string? TileKey(object? end) => end switch
