@@ -199,7 +199,12 @@ static class FactionsAutotest
         {
             var run = R();
             foreach (var node in run.Game.CurrentMapNode.Connections.Prepend(run.Game.CurrentMapNode))
+            {
                 Log.Info($"AUTOTEST factions tooltip {node.Name}:{MapPatches.Lines(run, node).Replace('\n', '|')}");
+                // The whole tooltip (vanilla and every Hot Cargo line) parses as markup, so the game does not draw it raw.
+                string? error = Ux.UxKit.MarkupError(run.Mode.GetMapNodeToolTip(node) ?? "");
+                Autotest.Check(error is null, $"map tooltip of {node.Name} parses as markup{(error is null ? "" : ": " + error)}");
+            }
             Log.Info($"AUTOTEST factions badges: {CommsPatches.Badges(run, TechAutotest.PlayerShip(), TechAutotest.NearestStation())}");
             Log.Info($"AUTOTEST factions blind button: {Jumps.ButtonText(run)}");
         };
