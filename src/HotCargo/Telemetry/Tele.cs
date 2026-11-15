@@ -6,7 +6,7 @@ using System.Text.Json;
 namespace HotCargo.Telemetry;
 
 /// <summary>Event categories. Each has a switch of the same name in TelemetryTunables.</summary>
-public enum Cat { Run, Heat, Tech, Economy, Missions, Story, Combat, Ai, Snapshots, Perf, Coop, Log, Trace }
+public enum Cat { Run, Heat, Tech, Economy, Missions, Story, Combat, Ai, Snapshots, Perf, Coop, Log, Trace, Diplomacy }
 
 /// <summary>
 /// Builds telemetry events and hands them to the background writer. Thread safe: the sim, AI and part updates can run on worker threads.
@@ -34,7 +34,7 @@ public static class Tele
         void Set(Cat c, bool on) { if (on) m |= 1 << (int)c; }
         Set(Cat.Run, t.Run); Set(Cat.Heat, t.Heat); Set(Cat.Tech, t.Tech); Set(Cat.Economy, t.Economy); Set(Cat.Missions, t.Missions);
         Set(Cat.Story, t.Story); Set(Cat.Combat, t.Combat); Set(Cat.Ai, t.Ai); Set(Cat.Snapshots, t.Snapshots); Set(Cat.Perf, t.Perf);
-        Set(Cat.Coop, t.Coop); Set(Cat.Log, t.Log); Set(Cat.Trace, t.Trace);
+        Set(Cat.Coop, t.Coop); Set(Cat.Log, t.Log); Set(Cat.Trace, t.Trace); Set(Cat.Diplomacy, t.Diplomacy);
         _mask = m;
     }
 

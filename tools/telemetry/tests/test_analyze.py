@@ -7,7 +7,7 @@ from hc_telemetry.load import load
 CTX = {"t": 0, "ss": 0, "sec": 1, "sys": "A", "tier": 1, "arch": "basic", "heat": 0, "tech": 8}
 
 
-def ev(name: str, gs: float, **fields) -> dict:
+def ev(name: str, gs: float, /, **fields) -> dict:
     return {"e": name, **CTX, "gs": gs, **fields}
 
 
@@ -44,3 +44,26 @@ def test_hunter_fates_and_heat_sources(tmp_path: Path) -> None:
     assert rep.heat_sources == {"fame": 10.0, "time": 2.0, "trail": 1.0}
     outcomes = {row[0]: row[1] for row in next(t for t in rep.tables if t.title == "Hunter outcomes").rows}
     assert outcomes == {"destroyed": 1, "flee_jump": 1, "left behind (players jumped)": 1}
+
+
+def test_fights_jumps_captures_and_diplomacy_make_tables(tmp_path: Path) -> None:
+    ship = {"drive": False, "fuel": 0, "capacity": 0, "cost": None, "too_big": False, "parts": 50}
+    write(tmp_path / "r__s.jsonl", [
+        ev("session.start", 0, run="r", session="s", wall_utc="x"),
+        ev("combat.fight", 100, start_gs=40, end_gs=100, duration_s=60, fight_sec=1, sides=["hunter", "player"],
+           damage={"player": 10, "hunter": 90}, destroyed={"hunter": 2}, kills=2, losses=0, crew_lost=1, windows=5),
+        ev("combat.captured", 110, ship="c1", name="Taken", player=0, old_player=100017, old_side="hunter", how="claim", value=900, drive=False, tech=0),
+        ev("run.jump", 120, **{"from": "A", "to": "B", "kind": "RelayClear",
+           "jumped": [{"ship": "p1", "name": "Mother", "player": 0, "tech": 2, **ship, "drive": True}],
+           "left": [{"ship": "c1", "name": "Taken", "player": 0, "tech": 1, **ship}]}),
+        ev("combat.fleet_left", 120, ship="c1", name="Taken", player=0, reason="left_behind", value=900, tech=1),
+        ev("dip.surrender", 130, name="Arche", side="hunter", odds=0.2, stance="Surrender", by="ai", price=4000, accepted=True),
+    ])
+    rep = analyze(load(tmp_path)[0])
+    titles = {t.title: t for t in rep.tables}
+    assert titles["Fights"].rows[0][6] == 2
+    assert [r[0] for r in titles["Jumps"].rows] == ["2:00"]
+    assert titles["Jumps"].rows[0][5] == 1
+    assert {r[1] for r in titles["Fleet changes"].rows} == {"captured", "left the fleet"}
+    assert titles["Diplomacy"].rows[0][9] == "yes"
+    assert any(f.startswith("Captures: 1 ships (claim 1), 1 without a hyperdrive") for f in rep.findings)

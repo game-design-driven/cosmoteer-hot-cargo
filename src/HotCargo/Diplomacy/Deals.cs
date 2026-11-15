@@ -17,6 +17,12 @@ public static class Deals
 {
     static DiplomacyState S(Run run) => run.State.Diplomacy;
 
+    /// <summary>Spec 1583: one hail choice that ran, for telemetry. Chance, roll and Accepted are null for a choice without a roll.</summary>
+    public readonly record struct DealResult(int Player, Ship Callee, Offer Offer, int Amount, int Price, float? Chance, float? Roll, bool? Accepted);
+
+    /// <summary>Raised after each hail choice that ran, in the shared choice input. Handlers only read.</summary>
+    public static event Action<Run, SimRoot, DealResult>? Decided;
+
     public static bool Choose(Run run, SimRoot sim, int player, Ship caller, Ship callee, Offer offer, int amount)
     {
         var t = run.T.Diplomacy;
@@ -35,11 +41,12 @@ public static class Deals
         if (!DiplomacyState.Repeatable(offer)) S(run).Used.Add(DiplomacyState.Key(callee.UniqueID, offer));
         var rand = new FastRand(((ulong)(uint)callee.UniqueID << 32) | (uint)offer, (ulong)(uint)sim.Tick + (ulong)S(run).Serial);
         float roll = rand.Single();
+        DealResult? told = null;
         string name = callee.Metadata.XmlShipName;
         switch (offer)
         {
             case Offer.PayOff:
-                PayOff(run, sim, player, caller, callee, roll);
+                told = PayOff(run, sim, player, caller, callee, roll, amount);
                 break;
             case Offer.Bluff:
             {
@@ -59,6 +66,7 @@ public static class Deals
                     Result(run, callee, DipText.Format("BluffNoFmt", name, n));
                 }
                 Log.Info($"diplomacy: bluff {amount} roll {roll:0.00} chance {chance:0.00}");
+                told = new(player, callee, offer, amount, 0, chance, roll, DiplomacyModel.Succeeds(roll, chance));
                 break;
             }
             case Offer.Refuse:
@@ -71,6 +79,7 @@ public static class Deals
                 if (DiplomacyModel.Succeeds(roll, chance)) Surrendered(run, sim, callee, caller, rand.UInt64());
                 else Result(run, callee, DipText.Format("SurrenderNoFmt", name));
                 Log.Info($"diplomacy: demand surrender roll {roll:0.00} chance {chance:0.00}");
+                told = new(player, callee, offer, amount, 0, chance, roll, DiplomacyModel.Succeeds(roll, chance));
                 break;
             }
             case Offer.AcceptYield:
@@ -88,11 +97,13 @@ public static class Deals
                 }
                 else Result(run, callee, DipText.Format("OfferNoFmt", name));
                 Log.Info($"diplomacy: offer surrender for {price} roll {roll:0.00} chance {chance:0.00}");
+                told = new(player, callee, offer, amount, price, chance, roll, DiplomacyModel.Succeeds(roll, chance));
                 break;
             }
             case Offer.Hold:
             {
                 float chance = Quotes.Hold(run, sim, callee, amount);
+                told = new(player, callee, offer, amount, 0, chance, roll, DiplomacyModel.Succeeds(roll, chance));
                 if (!DiplomacyModel.Succeeds(roll, chance)) { Result(run, callee, DipText.Format(Quotes.HunterNear(run, sim, callee) ? "HoldHuntersFmt" : "HoldNoFmt", name)); break; }
                 if (rand.Single() < Quotes.Fee(run, callee))
                 {
@@ -132,6 +143,7 @@ public static class Deals
                 }
                 else Result(run, callee, DipText.Format("HireNoFmt", name));
                 Log.Info($"diplomacy: hire for {credits} roll {roll:0.00} chance {chance:0.00}");
+                told = new(player, callee, offer, amount, credits, chance, roll, DiplomacyModel.Succeeds(roll, chance));
                 break;
             }
             case Offer.Merc:
@@ -139,11 +151,13 @@ public static class Deals
                 int price = Quotes.MercPrice(run, amount);
                 Pay(run, player, price);
                 AddHire(run, callee, player, amount * 60.0, merc: true);
+                told = new(player, callee, offer, amount, price, null, null, true);
                 Result(run, callee, DipText.Format("MercYesFmt", name, amount, Events.EventText.Money(-price)));
                 break;
             }
             default: throw new ArgumentOutOfRangeException(nameof(offer), offer, null);
         }
+        Decided?.Invoke(run, sim, told ?? new DealResult(player, callee, offer, amount, 0, null, null, null));
         return true;
     }
 
@@ -182,7 +196,7 @@ public static class Deals
     /// Spec 594 to 596. The offered tech goes either way. Success: the chooser pays, the crew go to cryo jail, the wave leaves and heat
     /// drops. Failure: the hunters keep the tech and this hunter attacks; the players keep their money and crew.
     /// </summary>
-    static void PayOff(Run run, SimRoot sim, int player, Ship caller, Ship hunter, float roll)
+    static DealResult PayOff(Run run, SimRoot sim, int player, Ship caller, Ship hunter, float roll, int amount)
     {
         var picks = PayDraft(run, hunter);
         float chance = Quotes.PayOff(run, sim, hunter, picks);
@@ -191,13 +205,14 @@ public static class Deals
         int tech = Situation.RemoveTech(sim, player, Units(picks, PayOption.Tech));
         string name = hunter.Metadata.XmlShipName;
         Log.Info($"diplomacy: pay-off [{string.Join(", ", picks.Select(p => $"{(PayOption)p.Option}={p.Value}"))}] roll {roll:0.00} chance {chance:0.00} others {Situation.OtherHunters(run, sim, hunter)}");
-        if (!DiplomacyModel.Succeeds(roll, chance))
+        int credits = picks.Sum(p => Quotes.PayCredits(run, (PayOption)p.Option, p.Value));
+        var told = new DealResult(player, hunter, Offer.PayOff, amount, credits, chance, roll, DiplomacyModel.Succeeds(roll, chance));
+        if (told.Accepted != true)
         {
             Result(run, hunter, DipText.Format(tech > 0 ? "PayNoFmt" : "PayNoTechFmt", name, tech));
-            return;
+            return told;
         }
         var lines = new List<string>();
-        int credits = picks.Sum(p => Quotes.PayCredits(run, (PayOption)p.Option, p.Value));
         if (credits > 0) { Pay(run, player, credits); lines.Add(Events.EventText.Money(-credits)); }
         if (tech > 0) lines.Add(DipText.Format("PaidTechFmt", tech));
         int crew = Units(picks, PayOption.Crew);
@@ -205,6 +220,7 @@ public static class Deals
         WaveLeaves(run, sim, caller);
         DropHeat(run, sim);
         Result(run, hunter, DipText.Format("PayYesFmt", name) + (lines.Count > 0 ? "\n" + string.Join("\n", lines) : ""));
+        return told;
     }
 
     /// <summary>Sends crew to cryo jail: crew that carry nothing leave, the chooser's ships first. Returns the crew that left.</summary>
