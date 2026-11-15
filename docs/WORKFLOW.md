@@ -151,7 +151,7 @@ Generic:
 - An agent takes its own screenshots of a visible change and puts them in the PR. Never in the player's game.
 
 Hot Cargo:
-- `scripts/screens.sh` runs a script from `tests/screens/` in a windowed, minimized test slot (skill `hot-cargo-screenshots`). How it draws without focus: `UX.md`, Screenshots.
+- `scripts/screens.sh` runs a script from `tests/screens/` in a windowed, minimized test slot, or on this Mac with `RUNNER=mac` (skill `hot-cargo-screenshots`). How it draws without focus: `UX.md`, Screenshots.
 - Repo images go to `docs/screenshots/` as JPEG, with personal data cropped out.
 
 ## Public repo hygiene
