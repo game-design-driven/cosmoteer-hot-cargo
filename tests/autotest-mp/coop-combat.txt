@@ -40,6 +40,8 @@ mp dip_set PayMaxOtherHunters 1000
 as 1 spawnstage Warning
 waitfor hunters >= 1 30
 as 1 dip_near hunters
+# The fleet's guns can kill the picked hunter before the pay-off (a queue run failed so); the shield keeps it alive.
+mp dip_shield hunter
 wait 2
 as 1 dip_pick hunter tech 2
 waitfor dip_picks >= 1 30
@@ -49,6 +51,7 @@ as 1 dip_payoff hunter
 waitfor dip_vaulttech == 6 30
 waitfor dip_leaving >= 1 60
 waitfor hunters == 0 60
+mp dip_shield off
 
 step sharedchoice.listen-hunter
 # Spec 1131 to 1137 in vote mode: the host talks to a hunter and the client listens. Both vote to fight; the vote is unanimous on
