@@ -119,5 +119,6 @@
 | `Telemetry.FightGapSeconds` | 90 s | 1588 |
 | `Telemetry.AiSwitchMinSeconds`, `AiEventsPerMinute`, `CallerLookupsPerSecond` | 3 s, 600, 50 | 534, 537 |
 | `Telemetry.MaxFileMegabytes`, `MaxFolderMegabytes` | 32, 1024 | 541 |
+| `Telemetry.RelayToHost` | on | 1592 |
 
 The defaults are first guesses. Live tuning sets the real values.
