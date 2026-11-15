@@ -99,6 +99,9 @@ def analyze(run: Run) -> RunReport:
     mission_section(rep)
     story_section(rep)
     combat_section(rep)
+    fight_section(rep)
+    fleet_section(rep)
+    diplomacy_section(rep)
     ai_section(rep)
     perf_section(rep)
     errors_section(rep)
@@ -227,7 +230,7 @@ def economy_section(rep: RunReport) -> None:
             ["source", "net", "gains", "costs", "events"],
             [[k, fmt(sum(v)), fmt(sum(x for x in v if x > 0)), fmt(sum(x for x in v if x < 0)), len(v)]
              for k, v in sorted(money.items(), key=lambda kv: -abs(sum(kv[1])))],
-            "'untracked' is a money change outside PlayerState.AddMoney (for example a tech unlock); the next second finds it.",
+            "'tech_unlock' is a blueprint unlock. 'untracked' is any other money change outside PlayerState.AddMoney; the next second finds it.",
         )
     )
     fame: dict[str, int] = defaultdict(int)
@@ -451,6 +454,10 @@ def perf_section(rep: RunReport) -> None:
         note = f"Whole sessions: telemetry {', '.join(f'{p:.3f} %' for p in pct)} of real time; dropped events {sum(e['dropped'] for e in ends)}."
         rep.findings.append(f"Telemetry overhead: median {stat('tele_pct_wall')} % of real time per {fmt(perf[0]['window_ms'] / 1000, 0)} s window, "
                             f"max {stat('tele_pct_wall', max)} %. {note}")
+    split = {k: sum(e.get(f"{k}_s", 0) for e in perf) for k in ("play", "build", "paused")}
+    if sum(split.values()) > 0:
+        total = sum(split.values())
+        rep.findings.append("Real time: " + ", ".join(f"{k} {mmss(v)} ({100 * v / total:.0f} %)" for k, v in split.items()) + ".")
     if rep.run.header.get("autotest"):
         note += " Headless test games draw no frames, so frame times there are not play frame times."
     rep.tables.append(Table("Performance (per perf window)", ["measure", "median", "max"], rows, note.strip()))
@@ -489,3 +496,61 @@ def pooled_heat_sources(reports: list[RunReport]) -> Table:
     gained = sum(v for v in total.values() if v > 0)
     return Table("Heat by source, all runs", ["source", "heat", "share of gains"],
                  [[k, fmt(v), f"{100 * v / gained:.0f} %" if gained and v > 0 else "-"] for k, v in sorted(total.items(), key=lambda kv: -abs(kv[1]))])
+
+
+# ---- Fights, jumps, captures and diplomacy (spec 1580 to 1591)
+
+
+def fight_section(rep: RunReport) -> None:
+    fights = [e for e in rep.run.events if e["e"] == "combat.fight"]
+    if not fights:
+        return
+    rows = [[mmss(f["start_gs"]), f.get("fight_sec", f["sec"]), mmss(f["duration_s"]), ", ".join(f.get("sides", [])),
+             fmt(f["damage"].get("player", 0)), fmt(f["damage"].get("hunter", 0) + f["damage"].get("hostile", 0)),
+             f.get("kills", 0), f.get("losses", 0), f.get("crew_lost", 0)] for f in fights]
+    rep.tables.append(Table("Fights", ["start", "sector", "length", "sides", "player damage", "enemy damage", "kills", "losses", "crew lost"], rows,
+                            "A fight joins damage windows and wrecks with no quiet gap of Telemetry.FightGapSeconds (combat.fight)."))
+    rep.findings.append(f"Fights: {len(fights)}, {sum(f.get('kills', 0) for f in fights)} kills, {sum(f.get('losses', 0) for f in fights)} player ships lost, "
+                        f"longest {mmss(max(f['duration_s'] for f in fights))}.")
+
+
+def fleet_section(rep: RunReport) -> None:
+    ev = rep.run.events
+    jumps = [e for e in ev if e["e"] == "run.jump" and "jumped" in e]
+    if jumps:
+        def ships(lst: list[dict]) -> str:
+            return ", ".join(f"{s['name']} ({'drive' if s['drive'] else 'no drive'}{', too big' if s.get('too_big') else ''}"
+                             f"{', tech ' + str(s['tech']) if s.get('tech') else ''})" for s in lst) or "-"
+        rows = [[mmss(e["gs"]), e.get("from", ""), e.get("to", ""), e.get("kind", ""), len(e["jumped"]), len(e["left"]), ships(e["left"])] for e in jumps]
+        rep.tables.append(Table("Jumps", ["game time", "from", "to", "kind", "ships jumped", "ships left", "left behind"], rows))
+        left = sum(len(e["left"]) for e in jumps)
+        if left:
+            rep.findings.append(f"Jumps: {len(jumps)}, {left} ships left behind, "
+                                f"{sum(s.get('tech', 0) for e in jumps for s in e['left'])} tech units aboard them.")
+    caps = [e for e in ev if e["e"] == "combat.captured"]
+    gone = [e for e in ev if e["e"] == "combat.fleet_left"]
+    if caps or gone:
+        rows = [[mmss(e["gs"]), "captured", e["name"], e.get("old_side", ""), e.get("how", ""), fmt(e.get("value")), "yes" if e.get("drive") else "no"] for e in caps]
+        rows += [[mmss(e["gs"]), "left the fleet", e["name"], "player", e.get("reason", ""), fmt(e.get("value")), "-"] for e in gone]
+        rows.sort(key=lambda r: r[0])
+        rep.tables.append(Table("Fleet changes", ["game time", "change", "ship", "old side", "how", "value", "drive"], rows))
+        if caps:
+            rep.findings.append(f"Captures: {len(caps)} ships ({', '.join(f'{k} {v}' for k, v in Counter(e.get('how') for e in caps).most_common())}), "
+                                f"{sum(1 for e in caps if not e.get('drive'))} without a hyperdrive.")
+    timers = [e for e in ev if e["e"] == "tech.loss_timer"]
+    if any(e["state"] != "idle" for e in timers):
+        rep.tables.append(Table("Loss timer", ["game time", "state", "reason", "left"],
+                                [[mmss(e["gs"]), e["state"], e.get("reason", ""), mmss(e.get("left_s"))] for e in timers]))
+
+
+def diplomacy_section(rep: RunReport) -> None:
+    ev = [e for e in rep.run.events if e["e"] in ("dip.hail", "dip.surrender", "dip.deal")]
+    if not ev:
+        return
+    rows = []
+    for e in ev:
+        what = e.get("kind") or e.get("offer") or f"surrender by {e.get('by')}"
+        rows.append([mmss(e["gs"]), e["e"][4:], what, e.get("name", ""), e.get("side", ""), fmt(e.get("odds"), 2), e.get("stance", ""),
+                     fmt(e.get("price")) if e.get("price") else "-", fmt(e.get("chance"), 2), {True: "yes", False: "no"}.get(e.get("accepted"), "-")])
+    rep.tables.append(Table("Diplomacy", ["game time", "event", "what", "ship", "side", "odds", "stance", "price", "chance", "accepted"], rows,
+                            "Odds and stance come from the risk model (spec 1520 to 1524) at the moment of the event."))
