@@ -168,6 +168,7 @@ public sealed class DiplomacyHail : IHailProvider
         if (!talked)
         {
             page.AddText(stock > 0 ? DipText.Format("DemandFmt", name, stock) : DipText.Format("DemandEmptyFmt", name));
+            AlliesText(run, sim, hunter, page);
             PayRows(run, sim, hunter, page);
             float pay = Quotes.PayOff(run, sim, hunter, Deals.PayDraft(run, hunter));
             Button(run, sim, player, caller, hunter, page, Offer.PayOff, 0, DipText.Format("PayOffFmt", Percent(pay), drop));
@@ -215,9 +216,18 @@ public sealed class DiplomacyHail : IHailProvider
     void EnemyPage(Run run, SimRoot sim, int player, Ship caller, Ship ai, HailPage page)
     {
         if (page.PrimaryDialogue.Length == 0) page.AddText(DipText.Format("EnemyFmt", ai.Metadata.XmlShipName));
+        AlliesText(run, sim, ai, page);
         Button(run, sim, player, caller, ai, page, Offer.DemandSurrender, 0, DipText.Format("DemandSurrenderFmt", Pct(Quotes.DemandSurrender(run, sim, player, ai))));
         Button(run, sim, player, caller, ai, page, Offer.OfferSurrender, 0,
             DipText.Format("OfferSurrenderFmt", Cost(run, Quotes.OfferPrice(run, sim, player, ai)), Pct(Quotes.OfferSurrender(run, sim, player, ai))));
+    }
+
+    /// <summary>Spec 1528: the allies that the risk model counted for this ship, in its voice. Nothing when it counted none.</summary>
+    static void AlliesText(Run run, SimRoot sim, Ship ai, HailPage page)
+    {
+        if (!run.T.Diplomacy.RiskEnabled) return;
+        if (Risk.AlliesLine(ai, Risk.Read(run, sim, ai)) is { } line)
+            page.AddText($"<b>{ai.Metadata.XmlShipName}:</b> <i>\"{Halfling.StringTools.EscapeForXml(line)}\"</i>");
     }
 
     void FriendPage(Run run, SimRoot sim, int player, Ship caller, Ship ship, HailPage page)

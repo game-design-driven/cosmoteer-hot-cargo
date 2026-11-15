@@ -110,8 +110,14 @@ internal sealed class FleeStrategy : AIStrategyModule
         // Only corporate hunters jump out. Other ships with the hunter AI (shady trap and event ambushers) are mission targets, so they stay like vanilla ships.
         bool corporate = AiGate.IsCorporateHunter(ship);
         bool wasRolled = _rolled;
+        // Spec 1527: a ship that is not a corporate hunter decides by its risk stance (flee or surrender: it flees) instead of the
+        // FleeChance roll. The stance is read only when a roll is due, like the roll itself.
+        var risk = corporate ? null : Diplomacy.Risk.Active(ship.Sim);
+        Func<float> roll = risk is { } riskRun
+            ? () => Diplomacy.Risk.Read(riskRun, HunterOrders.Sim(ship), ship).Stance is Diplomacy.Stance.Flee or Diplomacy.Stance.Surrender ? 0f : 1f
+            : () => ship.Rand.Single();
         var next = AiModel.NextFlee(new FleeState(_fleeing, _rolled), hasWeapons, health, t.FleeHealthFraction, t.FleeRecoverFraction,
-            t.FleeChance, canStop: !corporate, () => ship.Rand.Single());
+            risk is null ? t.FleeChance : 1f, canStop: !corporate, roll);
         if (next.Rolled && !wasRolled && !next.Fleeing) TacticsLog.Event(ship, AiArea.FleeStay, $"stays at health {health:0.00}");
         if (next.Fleeing != _fleeing)
         {

@@ -92,6 +92,7 @@ public static class TunablesFile
         Require(t.Hunters.SpawnDistanceMin > 0 && t.Hunters.SpawnDistanceMax >= t.Hunters.SpawnDistanceMin, "Hunters.SpawnDistanceMin must be above 0 and at most SpawnDistanceMax");
         t.Hunters.Validate(Require);
         t.Tactics.Validate(Require);
+        t.Diplomacy.Validate(Require);
         foreach (var tactic in Enum.GetValues<Tactics.Tactic>())
         {
             string min = Tactics.TacticGate.Settings(t.Tactics, tactic).MinStage;

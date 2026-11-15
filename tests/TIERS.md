@@ -59,6 +59,7 @@ The prune of 2026-11-14 classified every game test with evidence: git history (f
 | debt-missions | KEEP | Mission payout hooks and refinance offer. | - |
 | debt-help | KEEP | New complex feature: help spawns in a fight, real hits of both sides count, the hail and each answer. | - |
 | diplomacy-friends | KEEP | Start-world fix elsewhere. | 67 |
+| diplomacy-demand-odds | 50 s | a damaged enemy does not demand from a stronger fleet; far allies do not count | vanilla dialogue rule, sim positions | RiskModel | keep |
 | diplomacy-hunters | KEEP | Hunters; game fix acbc92b. | 64 |
 | diplomacy-surrender | KEEP | Surrender smoke test (PC only). | PC |
 | events-abandoned | KEEP | Relic and hulk spawns; caught a bug (d014687). | 62 |
