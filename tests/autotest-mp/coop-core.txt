@@ -170,8 +170,9 @@ mp hc_accept escort
 mp hc_escort_goto
 pause off
 wait 3
-# Just before the ambush point. The freighter flies on and springs the ambush itself.
-mp hc_escort_advance 0.25
+# Just before the ambush point (EscortAmbushAt 0.3). The freighter flies on and springs the ambush itself. From 0.25 the
+# flight took 11 to 60+ s in CI queue runs (the hunters of the steps before fight it), too close to the 60 s limit.
+mp hc_escort_advance 0.29
 pause off
 waitfor hc_escort_raiders >= 2 60
 on 1 waitfor hc_escort_raiders >= 2 60
