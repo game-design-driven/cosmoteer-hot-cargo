@@ -110,9 +110,10 @@ def targeted_reactor():
     off.put(off.d_circle(c, c, 9), 0, (40, 52, 30), emit=True)
     out.save("doodads_off", off.color())
 
-    spots = [(m.d_circle(c, c, 14) < 0, (70, 100, 30))]
-    spots += [(m.d_circle(x, y, 6) < 0, (50, 72, 22)) for _, (x, y) in side_points(c, c, 46)]
-    out.save("lights", lights(spots, (m.h, m.w), blur=8))
+    # Vanilla power parts glow yellow-green inside; this one too, with the light pooled at the core and the couplers.
+    spots = [(m.d_circle(c, c, 26) < 0, (120, 170, 50))]
+    spots += [(m.d_circle(x, y, 8) < 0, (90, 130, 36)) for _, (x, y) in side_points(c, c, 48)]
+    out.save("lights", lights(spots, (m.h, m.w), blur=12))
 
     # Roof: a raised ring over the core with a round window, and an arrow hole toward each side.
     r = Sprite(2, 2)
@@ -138,7 +139,7 @@ def targeted_reactor():
     r.rivets([(8, 8), (120, 8), (8, 120), (120, 120)], 8)
     r.hole(np.where(holes, -1.0, 1.0))
     roof_layers(out, r, 23)
-    out.save("roof_glows", glow(holes, POWER, radius=4, strength=0.8))
+    out.save("roof_glows", glow(holes, POWER, radius=5, strength=1.3))
 
     out.save("blueprints", blueprint(m.mask() & ~(m.d_circle(c, c, 21) < 0) | (m.d_circle(c, c, 14) < 0)))
     icon(out, 2, 2, machine, frames[0])
