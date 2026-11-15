@@ -164,7 +164,9 @@ public static class HunterSpawner
         });
         // OrderBy is stable, so groups with the same due time keep their order on every client.
         run.State.Hunters.Pending = run.State.Hunters.Pending.Concat(later).OrderBy(w => w.Due).ToList();
-        Log.Info($"hunters: stage {stageName} sends {ships} ships of tier {tier} in groups [{string.Join(", ", groups)}]");
+        // Spec 1595: the count before and after the co-op scale. Each group rolls its own rounding when it spawns, so the scaled total is a mean.
+        double factor = Scaling.EnemyScale.Factor(sim);
+        Log.Info($"hunters: stage {stageName} sends {ships} ships of tier {tier} in groups [{string.Join(", ", groups)}] before the co-op scale; x{factor:0.##} gives about {ships * factor:0.#}");
         SpawnWave(run, sim, groups[0], tier, stageName, firstOfStage: true);
     }
 
@@ -190,6 +192,7 @@ public static class HunterSpawner
         int scaled = Scaling.EnemyScale.Count(wanted, sim);
         int maxLive = Scaling.EnemyScale.Cap(t.MaxLiveHunters, sim);
         int count = Math.Min(scaled, Math.Max(0, maxLive - Hunters(sim).Count()));
+        if (scaled != wanted) Log.Info($"hunters: {reason} group of {wanted} scales to {scaled} ships for the co-op scale x{Scaling.EnemyScale.Factor(sim):0.##}");
         if (count < scaled) Log.Info($"hunters: {reason} capped at {count} of {scaled} ships by MaxLiveHunters {maxLive}");
         var spawnedIds = new List<ObjectID>(count);
         for (int i = 0; i < count; i++)

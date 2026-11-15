@@ -1,5 +1,7 @@
 using Cosmoteer.Data;
 using Cosmoteer.Game;
+using Cosmoteer.Modes;
+using Cosmoteer.Ships.Crew.Jobs;
 using Cosmoteer.Generators.Simulation;
 using Cosmoteer.Ships;
 using Cosmoteer.Simulation;
@@ -17,6 +19,19 @@ public static class SimQueries
     public static ObjectID NodeId(this SimRoot sim) => (sim.MapNode ?? throw new InvalidOperationException("sim has no map node")).UniqueID;
 
     public static bool HasTag(this Ship ship, ID<SimObjectSpawner> tag) => ship.Tags?.Contains(tag) == true;
+
+    /// <summary>
+    /// The unit price of a delivered station trade: the price of the crew job, which the job paid (ResourceTransferJob delivery).
+    /// Without the job (it can end with the delivery), the current station price, with every price patch (faction markup, rival fence premium).
+    /// </summary>
+    public static int? TradeUnitPrice(SimModeManager mode, TradeType trade, ID<Cosmoteer.Resources.ResourceRules> resource, Cosmoteer.Crew.CrewSoul crew, Ship? source, Ship? sink) =>
+        (crew.Job, trade) switch
+        {
+            (Cosmoteer.Ships.Crew.Jobs.ResourceTransferJob job, _) => job.PricePerResource,
+            (_, TradeType.Sell) => mode.GetResourceSellRefund(resource, sink?.Metadata.PlayerIndex),
+            (_, TradeType.Buy) => mode.GetResourceBuyCost(resource, source?.Metadata.PlayerIndex),
+            _ => null,
+        };
 
     /// <summary>True when a stored ship reference is still a live ship in the same system as <paramref name="self"/>. A ship in jump limbo has no sim.</summary>
     public static bool IsLiveWith(this Ship other, Ship self) => !other.IsDisposed && !other.IsJunk && other.Sim is not null && other.Sim == self.Sim;
