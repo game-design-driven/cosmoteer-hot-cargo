@@ -8,6 +8,8 @@ ev_set Enabled false
 scav_set Enabled false
 fr_set PayForwardChance 0
 godmode on
+# The player ship must not shoot the damaged ship: one hit on its weak control room makes it a wreck.
+playerweapons off
 tacticlog on
 aiset FleeOnVanilla false
 aiset RegroupOnVanilla false
