@@ -2,7 +2,7 @@
 # and the blip (spec 1545, 1550). Then the ship pick warning on a new career (spec 1470, 1552).
 render on
 newgame run 0 vanilla
-wait 6
+wait 3
 closepanel
 vault focus
 wait 1

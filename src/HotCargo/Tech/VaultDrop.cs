@@ -24,7 +24,7 @@ static class VaultDropPatch
     static void Prefix(TypedResourceGrid.ResourceTile __instance) => Errors.Guard("vault drop", () =>
     {
         var grid = __instance.Grid;
-        if (grid.ResourceType != Vaults.TechId || (grid.Part.Flags & PartFlags.Salvaged) != 0) return;
+        if (grid.ResourceType != Vaults.TechId) return;
         if (grid.Ship is not { IsHumanPlayerShip: true } ship || ship.Sim is not { } sim || Run.Current is not { } run || run.Game.Sim != sim) return;
         // The game calls this for each tile; the vault decides once for all its tiles (spec 1540: one unit per tile).
         var at = grid.Part.Location;
@@ -32,6 +32,7 @@ static class VaultDropPatch
         lock (Gate) { if (_last == key) return; _last = key; }
         int units = grid.Resources;
         if (units == 0) return;
+        if ((grid.Part.Flags & PartFlags.Salvaged) != 0) { Rehome(run, ship, grid, units); return; }
         ulong seed = ((ulong)(uint)ship.UniqueID << 32) | (uint)((at.X & 0xFFFF) << 16 | (at.Y & 0xFFFF));
         float roll = new FastRand(seed, (ulong)sim.Tick).Single();
         if (roll >= run.T.Tech.VaultTechLossChance)
@@ -52,6 +53,32 @@ static class VaultDropPatch
             Ux.UxKit.ChatLine(run.Game, text);
         });
     });
+
+    /// <summary>
+    /// Spec 1554: crew take the vault apart (a rebuild, a move with the grab tool). That is no destruction, so the tech stays aboard:
+    /// first into the other vaults of the ship, then into its normal storage, where it decays. Only tech that finds no room at all
+    /// stays in the tiles, and the game drops it as crates. A toast and a chat line say where the tech went.
+    /// </summary>
+    static void Rehome(Run run, Cosmoteer.Ships.Ship ship, TypedResourceGrid grid, int units)
+    {
+        foreach (var tile in grid) tile.Resources = 0;
+        int toVaults = Vaults.Add(Vaults.OnShip(ship).Where(g => g != grid), units);
+        int toStorage = Vaults.AddToStorage([ship], units - toVaults);
+        int left = units - toVaults - toStorage;
+        foreach (var tile in grid.Take(left)) tile.Resources = 1;
+        Rehomed++;
+        Log.Info($"vault at {grid.Part.Location} taken apart: {toVaults} tech to other vaults, {toStorage} to storage, {left} dropped as crates");
+        if (Telemetry.Tele.On(Telemetry.Cat.Tech)) Telemetry.Session.Current?.AddTechHint("vault_deconstructed");
+        string text = Strings.FormatText(left > 0 ? "HotCargoTech/VaultApartCratesFmt" : "HotCargoTech/VaultApartFmt", toVaults, toStorage, left);
+        Run.OnNextFrame(() =>
+        {
+            Ux.UxKit.CenterText(run.Game, text);
+            Ux.UxKit.ChatLine(run.Game, text);
+        });
+    }
+
+    /// <summary>Vaults taken apart since start whose tech moved (spec 1554). For autotests.</summary>
+    internal static int Rehomed;
 
     static readonly object Gate = new();
     static (Cosmoteer.Game.ObjectID, Halfling.Geometry.IntVector2, long)? _last;

@@ -48,7 +48,8 @@ internal static class StartingVault
             : inStorage > 0 && run.T.Tech.DecaySeconds > 0 ? Strings.FormatText(noVault ? "HotCargoTech/StartNoVaultFmt" : "HotCargoTech/StartShortFmt", inStorage, decay)
             : unreachable ? Strings.GetText("HotCargoTech/VaultOutside") : null;
         // A co-op launch runs this on a worker thread, so the notice waits for the next frame.
-        if (notice is not null) Run.OnNextFrame(() => Ux.UxKit.CenterText(run.Game, notice));
+        // Spec 1552: a large warning that stays long enough to read during the run start.
+        if (notice is not null) Run.OnNextFrame(() => Ux.UxKit.CenterText(run.Game, notice, holdSeconds: 12f));
     }
 
     /// <summary>Tech units that one vault holds, from its rules.</summary>
