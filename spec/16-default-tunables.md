@@ -36,6 +36,7 @@
 | `Events.StationEventChance`, `StationTriggerDistance` | 0.5, 1500 | 69 |
 | `Events.SignalTriggerDistance` | 900 | 69 |
 | `Events.CourierChance` | 0.5 | 85 |
+| `Events.FirstSystemChanceFactor` | 1.5 | 69 |
 | `Events.MaxUnavoidablePerRun` | 1 | 87 |
 | `Events.WantedWarningMinStage`, `WantedEventChance` | 1, 0.7 | 470, 471 |
 | `Events.ResearchRate`, `ResearchMinRate`, `ResearchMaxUnits`, `ResearchMaxTechs` | 1.5, 1.2, 2, 3 | 760 |
