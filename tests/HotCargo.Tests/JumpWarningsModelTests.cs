@@ -61,4 +61,16 @@ public class JumpWarningsModelTests
         Assert.Empty(watch.Joined(next, ["a", "d"]));
         Assert.Equal(["e"], watch.Joined(next, ["a", "d", "e"]));
     }
+
+    [Fact]
+    public void With_no_ship_here_the_players_go_back_to_the_biggest_waiting_fleet()
+    {
+        // Playtest: one captured ship jumped and died; the mothership and three more waited in Vintecco.
+        (string, int)[] waiting = [("Arden", 1), ("Vintecco", 4), ("Kesh", 4)];
+        Assert.Equal("Vintecco", JumpWarningsModel.RejoinTarget(0, false, waiting));
+        Assert.Null(JumpWarningsModel.RejoinTarget(1, false, waiting));
+        // During a jump the ships are in limbo, so "no ship here" is not certain yet.
+        Assert.Null(JumpWarningsModel.RejoinTarget(0, true, waiting));
+        Assert.Null(JumpWarningsModel.RejoinTarget(0, false, [("Arden", 0)]));
+    }
 }

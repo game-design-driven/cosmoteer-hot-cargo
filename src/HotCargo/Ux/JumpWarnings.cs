@@ -1,0 +1,257 @@
+using System.Runtime.CompilerServices;
+using Cosmoteer.GalaxyMap;
+using Cosmoteer.Game;
+using Cosmoteer.Game.Gui;
+using Cosmoteer.Gui;
+using Cosmoteer.Modes;
+using Cosmoteer.Modes.Creative.MPInputs;
+using Cosmoteer.Ships;
+using Cosmoteer.Ships.Commands;
+using Halfling;
+using Halfling.Gui.Dialogs;
+using HarmonyLib;
+using HotCargo.Core;
+
+namespace HotCargo.Ux;
+
+/// <summary>
+/// V21, spec 1560 to 1569: which ships stay behind on a system jump, and why. Vanilla shows NEED FUEL for a ship that no fuel can
+/// carry (its jump costs more hyperium than its drives hold), NO DRIVE for a ship without control, and a jump dialog that names no ship.
+/// GUI only: it reads sim state and changes none.
+/// </summary>
+static class JumpWarnings
+{
+    static bool On => UxKit.On(s => s.JumpWarnings);
+
+    /// <summary>The hyperium that the working drives of the ship can hold.</summary>
+    static int Capacity(Ship ship) => ship.Ftl.Sum(d => d.MaxFuel);
+
+    /// <summary>The vanilla path of a jump from the current system (GameRoot.DoHumanPlayersFtlJump), or null without a route.</summary>
+    static List<MapNode>? PathTo(GameRoot game, MapNode dest)
+    {
+        if (game.Map?.Nodes is not { } nodes) return null;
+        var path = new List<MapNode>();
+        return float.IsPositiveInfinity(nodes.FindPathTo(dest, path, requireJumpable: true)) || path.Count < 2 ? null : path;
+    }
+
+    /// <summary>Spec 1560: the facts of the planned jump. The cost goes through FtlManager.GetTotalFtlMapJumpFuelCost, so the blind factor counts.</summary>
+    static JumpFacts Facts(GameRoot game, Ship ship)
+    {
+        var ftl = ship.Ftl;
+        int cost = ftl.HasFtlDrives && game.DestinationMapNode.Confirmed is { } dest && PathTo(game, dest) is { } path ? ftl.GetTotalFtlMapJumpFuelCost(path) : 0;
+        return new(ftl.HasFtlDrives, ship.Commands.CanExecuteCommands, cost, Capacity(ship), ftl.HasFtlDrives ? ftl.GetTotalFuel() : 0,
+            ship.Commands.CurDisplayedCommand is FtlGateJumpCommand, ftl.IsReadyToJump);
+    }
+
+    internal static StayReason PlannedReason(GameRoot game, Ship ship) => JumpWarningsModel.Reason(Facts(game, ship));
+
+    /// <summary>Spec 1561: the hyperium of the cheapest jump from this system to a connected system, or null when none is reachable.</summary>
+    static int? CheapestCost(GameRoot game, Ship ship)
+    {
+        if (!ship.Ftl.HasFtlDrives || game.CurrentMapNode is not { } here) return null;
+        int? best = null;
+        foreach (var next in here.Connections)
+            if (PathTo(game, next) is { } path && ship.Ftl.GetTotalFtlMapJumpFuelCost(path) is var cost && (best is null || cost < best))
+                best = cost;
+        return best;
+    }
+
+    sealed class Cached { public double Time = double.MinValue; public StayReason Reason; public int Cost; }
+    static readonly ConditionalWeakTable<Ship, Cached> Cache = new();
+
+    /// <summary>Spec 1561, 1562: the lasting reason before a jump is planned, recomputed at most once a second for each ship. GUI thread only.</summary>
+    internal static (StayReason Reason, int Cost) Standing(GameRoot game, Ship ship)
+    {
+        var c = Cache.GetOrCreateValue(ship);
+        double now = App.Clock.Time.Seconds;
+        if (now - c.Time < 1) return (c.Reason, c.Cost);
+        c.Time = now;
+        int? cost = CheapestCost(game, ship);
+        bool fleetHasDrive = game.Sim.Ships.HumanPlayerSignificantShips.Any(s => s.Ftl.HasFtlDrives);
+        c.Reason = JumpWarningsModel.Standing(ship.Ftl.HasFtlDrives, ship.Commands.CanExecuteCommands, cost, Capacity(ship), fleetHasDrive);
+        c.Cost = cost ?? 0;
+        return (c.Reason, c.Cost);
+    }
+
+    /// <summary>Short reason: the jump dialog lines and the first line of the tooltips.</summary>
+    static string Short(StayReason reason) => UxKit.Text("JumpWhy" + reason);
+
+    /// <summary>The numbers and the fix. Empty for the reasons that vanilla already explains in the jump window (spin-up, the order).</summary>
+    static string Fix(Ship ship, StayReason reason, int cost, bool planned) => reason switch
+    {
+        StayReason.NoDrive => UxKit.Text("JumpFixNoDrive"),
+        StayReason.NoControl => UxKit.Format("JumpFixNoControlFmt", ship.Commands.CommandPointsUsed, ship.Commands.CommandPointsProvided),
+        StayReason.TooBig => UxKit.Format(planned ? "JumpFixTooBigFmt" : "JumpFixTooBigHereFmt", cost, Capacity(ship)),
+        StayReason.NeedFuel => UxKit.Format("JumpFixNeedFuelFmt", cost, ship.Ftl.GetTotalFuel()),
+        _ => "",
+    };
+
+    /// <summary>Spec 1564: the tooltip of a ship in the jump window.</summary>
+    static string WindowTip(GameRoot game, Ship ship)
+    {
+        if (!On || !ship.ExistsInSim(game.Sim)) return "";
+        var f = Facts(game, ship);
+        var reason = JumpWarningsModel.Reason(f);
+        if (reason == StayReason.None) return "";
+        string fix = Fix(ship, reason, f.Cost, planned: true);
+        return $"<bad>{UxKit.Format("JumpStaysFmt", ship.Metadata.XmlShipName, Short(reason))}</bad>" + (fix == "" ? "" : "\n" + fix);
+    }
+
+    [HarmonyPatch(typeof(FtlJumpGui.ShipStatus), MethodType.Constructor, typeof(GameRoot), typeof(Ship))]
+    static class WindowTipPatch
+    {
+        static void Postfix(FtlJumpGui.ShipStatus __instance, GameRoot game, Ship ship) => UxKit.Guard("jump window tip", () =>
+        {
+            var tip = new LiveText(() => WindowTip(game, ship));
+            __instance.ToolTips.TextProvider = tip;
+            // The ship icon is a button that takes the hover from the widget under it.
+            foreach (var slot in __instance.Components.OfType<Halfling.Gui.Components.Children.WidgetSingleChild<ShipIconButton>>())
+                if (slot.Child is { } icon) icon.ToolTips.TextProvider = tip;
+        });
+    }
+
+    /// <summary>Spec 1564: TOO BIG in place of NEED FUEL, NO CONTROL in place of NO DRIVE.</summary>
+    [HarmonyPatch(typeof(FtlJumpGui.ShipStatus), "OnUpdateStatus")]
+    static class WindowStatusPatch
+    {
+        static void Postfix(FtlJumpGui.ShipStatus __instance)
+        {
+            if (!On) return;
+            UxKit.Guard("jump window status", () =>
+            {
+                var ship = __instance._ship;
+                if (!ship.ExistsInSim(__instance._game.Sim)) return;
+                var reason = PlannedReason(__instance._game, ship);
+                if (reason is StayReason.TooBig or StayReason.NoControl) __instance._statusLbl.Text = UxKit.Text("JumpStatus" + reason);
+            });
+        }
+    }
+
+    /// <summary>The ships that the dialog lists: the local ships that vanilla checks before the dialog (FtlJumpGui.AreAllShipsReadyToJump).</summary>
+    internal static List<(Ship Ship, StayReason Reason)> Staying(GameRoot game) =>
+        game.Sim.Ships.LocalPlayerSignificantShips.Select(s => (s, PlannedReason(game, s))).Where(x => x.Item2 != StayReason.None).ToList();
+
+    internal static string DialogText(GameRoot game) =>
+        UxKit.Text("JumpDialogHead") + "\n" +
+        string.Join("\n", Staying(game).Select(x => UxKit.Format("JumpDialogLineFmt", x.Ship.Metadata.XmlShipName, Short(x.Reason)))) +
+        "\n\n" + UxKit.Text("JumpDialogAsk");
+
+    /// <summary>
+    /// Spec 1565: the vanilla ENGAGE handler with the list in its dialog. The rest is the vanilla flow: no dialog when every local ship
+    /// is ready, and the jump goes ahead unless the player picks the second option.
+    /// </summary>
+    [HarmonyPatch(typeof(FtlJumpGui), "OnJumpClicked")]
+    static class DialogPatch
+    {
+        static bool Prefix(FtlJumpGui __instance)
+        {
+            if (!On) return true;
+            Engage(__instance);
+            return false;
+        }
+    }
+
+    internal static int DialogsShown;
+
+    static async void Engage(FtlJumpGui gui)
+    {
+        // async void: an exception here would end the game, so it reports instead.
+        try
+        {
+            var game = gui.Game;
+            if (!gui.AreAllShipsReadyToJump(onlyWithCommands: false))
+            {
+                DialogsShown++;
+                if (await TwoButtonDialog.Show(DialogText(game)) == TwoButtonDialog.DialogResponse.Option2) return;
+            }
+            game.NetManager.EnqueueInput(new MPReadyFtlJumpInput());
+        }
+        catch (Exception ex) { Core.Errors.Report("ux jump dialog", ex.Message, ex); }
+    }
+
+    /// <summary>Spec 1562: a red line in the hover text of an own or shared ship that stays behind on any jump from here.</summary>
+    [HarmonyPatch(typeof(SimModeManager), nameof(SimModeManager.GetShipMouseOverText))]
+    static class HoverText
+    {
+        static void Postfix(Ship ship, ref string __result)
+        {
+            if (!On || !ship.IsLocalPlayerShip || !ship.IsSignificant || ship.IsDisposed) return;
+            if (App.Director.States.OfType<GameRoot>().FirstOrDefault() is not { } game || game.Sim != ship.Sim) return;
+            string line = HoverLine(game, ship);
+            if (line != "") __result += "\n" + line;
+        }
+    }
+
+    internal static string HoverLine(GameRoot game, Ship ship)
+    {
+        var (reason, cost) = Standing(game, ship);
+        if (reason == StayReason.None) return "";
+        return $"<s16><bad>{UxKit.Format("JumpHoverFmt", Short(reason))}</bad></s16>\n<s14>{Fix(ship, reason, cost, planned: false)}</s14>";
+    }
+
+    static readonly JoinWatch<Ship> Joins = new();
+    static double _nextPoll;
+    internal static int NoticesShown;
+
+    /// <summary>Spec 1563: one chat line and one banner when an own or shared ship that stays behind joins the fleet. Polled once a second.</summary>
+    internal static void OnFrame(GameRoot game)
+    {
+        double now = App.Clock.Time.Seconds;
+        if (now < _nextPoll || game.Sim is not { } sim) return;
+        _nextPoll = now + 1;
+        var joined = Joins.Joined(sim, sim.Ships.LocalPlayerSignificantShips);
+        if (!On) return;
+        StrandedNotice(game, sim);
+        foreach (var ship in joined.OrderBy(s => s.UniqueID))
+        {
+            var (reason, cost) = Standing(game, ship);
+            if (reason == StayReason.None) continue;
+            NoticesShown++;
+            string head = UxKit.Format("JumpStaysFmt", ship.Metadata.XmlShipName, Short(reason));
+            Log.Info($"ux: jump notice {ship.Metadata.PlainShipName}: {reason}");
+            UxKit.ChatLine(game, $"<bad>{head}</bad> {Fix(ship, reason, cost, planned: false)}");
+            // The banner label shows plain text.
+            ShipAlerts.Banner(game, UxKit.Format("JumpStaysFmt", ship.Metadata.PlainShipName, Short(reason)), WidgetRules.Instance.LimitedTextColor);
+        }
+    }
+
+    /// <summary>Spec 1566: the system to go back to, or null. Reads the vanilla ship count of each system (CareerGameModeManager._nodeData).</summary>
+    internal static (MapNode Node, int Ships)? Stranded(Run run)
+    {
+        var game = run.Game;
+        if (game.Sim is not { } sim || game.CurrentMapNode is not { } here) return null;
+        bool underWay = sim.Ships.IsDoingLocalJump || game.IsDoingNodeJump || game.ShipsInJumpLimbo.Count > 0;
+        var waiting = run.Mode._nodeData.Where(kv => kv.Key != here).OrderBy(kv => kv.Key.Name, StringComparer.Ordinal)
+            .Select(kv => (kv.Key, kv.Value.NumFriendlyShips)).ToList();
+        var node = JumpWarningsModel.RejoinTarget(sim.Ships.HumanPlayerSignificantShips.Count(), underWay, waiting);
+        return node is null ? null : (node, waiting.First(w => w.Key == node).NumFriendlyShips);
+    }
+
+    /// <summary>Spec 1567: the heat panel line while no human ship is here (HeatPanel.ExtraLines).</summary>
+    internal static string? StrandedLine(Run run) =>
+        On && run.State.Result == RunResult.Running && Stranded(run) is { } s ? $"<bad>{StrandedText(s.Node, s.Ships)}</bad>" : null;
+
+    static string StrandedText(MapNode node, int ships) => UxKit.Format("StrandedFmt", Halfling.StringTools.EscapeForXml(node.Name), ships);
+
+    static object? _strandedSim;
+    static bool _wasStranded;
+    internal static int StrandedNotices;
+
+    /// <summary>Spec 1567: one center text and one chat line when the players become stranded in a sim. A new sim starts quiet.</summary>
+    static void StrandedNotice(GameRoot game, Cosmoteer.Simulation.SimRoot sim)
+    {
+        if (Run.Current is not { } run || run.Game != game || run.State.Result != RunResult.Running) return;
+        var s = Stranded(run);
+        if (!ReferenceEquals(sim, _strandedSim)) { _strandedSim = sim; _wasStranded = false; }
+        bool now = s is not null;
+        if (now && !_wasStranded)
+        {
+            StrandedNotices++;
+            string text = StrandedText(s!.Value.Node, s.Value.Ships);
+            Log.Info($"ux: stranded, fleet waits in {s.Value.Node.Name} ({s.Value.Ships} ships)");
+            UxKit.CenterText(game, $"<bad>{text}</bad>");
+            UxKit.ChatLine(game, $"<bad>{text}</bad>");
+        }
+        _wasStranded = now;
+    }
+}

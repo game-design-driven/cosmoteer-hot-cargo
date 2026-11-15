@@ -36,6 +36,14 @@ public static class JumpWarningsModel
         if (!canCommand) return StayReason.NoControl;
         return cheapestCost is { } cost && cost > capacity ? StayReason.TooBig : StayReason.None;
     }
+
+    /// <summary>
+    /// Spec 1566: the system that the players go back to when no human ship is in the current system: the one with the most waiting
+    /// ships (a tie keeps the order of the list). Null while a human ship is here, while a jump is under way, or when no ship waits.
+    /// The loss timer stays paused meanwhile (spec 12): the waiting ships can hold tech, and the vanilla map switch brings the players back.
+    /// </summary>
+    public static TNode? RejoinTarget<TNode>(int shipsHere, bool jumpUnderWay, IEnumerable<(TNode Node, int Ships)> elsewhere) where TNode : class =>
+        shipsHere > 0 || jumpUnderWay ? null : elsewhere.Where(e => e.Ships > 0).OrderByDescending(e => e.Ships).Select(e => e.Node).FirstOrDefault();
 }
 
 /// <summary>
