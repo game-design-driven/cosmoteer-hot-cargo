@@ -12,6 +12,8 @@ aiset CoverEnabled false
 aiset BaitEnabled false
 aiset TeamEnabled false
 aiset FleeChance 1
+# This test is about the station path: the risk stance (spec 1527) would decide the flee instead of FleeChance.
+dip_set RiskEnabled false
 aispawn monolith 1
 wait 3
 aistrip new resources

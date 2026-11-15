@@ -29,6 +29,20 @@ static class DiplomacyAutotest
     static string _pageText = "";
     static int _pageButtons, _pageActive, _pageSlider, _pageToggles;
 
+    static int _markedAllies;
+
+    static Ship FirstSpawned() => Ai.PersonalityAutotest.LastSpawned.Select(id => Sim().Ships[id]).OfType<Ship>().FirstOrDefault(s => !s.IsJunk)
+                                ?? throw new InvalidOperationException("no aispawn ship");
+
+    static double DemandCheck(bool surrender)
+    {
+        var ai = FirstSpawned();
+        var player = Tech.TechAutotest.PlayerShip();
+        var career = Situation.Career(Sim());
+        if (surrender) return career.GetSurrenderForPrice(ai, player).HasValue ? 1 : 0;
+        return career.GetSurrenderForPrice(player, ai, out bool aiDefaulting).HasValue && !aiDefaulting ? 1 : 0;
+    }
+
     static Run R() => Autotest.RequireRun();
     static SimRoot Sim() => R().Game.Sim;
     static int Int(string s) => int.Parse(s, CultureInfo.InvariantCulture);
@@ -177,6 +191,18 @@ static class DiplomacyAutotest
                      $"mercs={s.Mercs.Count} leaving={s.Leaving.Count} asks={s.FeeAsks.Count} tech={Situation.VaultTech(Sim())} fleet={R().State.FleetTech}");
         };
 
+        // Surrender odds (spec 1520 and later). dip_demands: 1 when the first aispawn ship would demand the surrender of the local
+        // player's ship now (the vanilla rule CareerSimModeManager.GetSurrenderForPrice, with this mod's patches). dip_offers: 1 when it
+        // would offer its own surrender.
+        Autotest.Fields["dip_demands"] = () => DemandCheck(surrender: false);
+        Autotest.Fields["dip_offers"] = () => DemandCheck(surrender: true);
+        // The risk view of the first aispawn ship (spec 1520-1524): stance (0 surrender, 1 flee, 2 fight, 3 demand), confidence, allies.
+        Autotest.Fields["dip_stance"] = () => (int)Risk.Read(R(), Sim(), FirstSpawned()).Stance;
+        Autotest.Fields["dip_confidence"] = () => Risk.Read(R(), Sim(), FirstSpawned()).Confidence;
+        // dip_mark_allies: remembers dip_risk_allies; dip_risk_allies_gain is the change since (other ships of the system can be near).
+        Autotest.Fields["dip_risk_allies"] = () => Risk.Read(R(), Sim(), FirstSpawned()).Allies;
+        Autotest.Commands["dip_mark_allies"] = _ => _markedAllies = Risk.Read(R(), Sim(), FirstSpawned()).Allies;
+        Autotest.Fields["dip_risk_allies_gain"] = () => Risk.Read(R(), Sim(), FirstSpawned()).Allies - _markedAllies;
         Autotest.Fields["dip_picks"] = () => PayTarget() is { } h ? Deals.PayDraft(R(), h).Count : 0;
         Autotest.Fields["dip_paychance"] = () => PayTarget() is { } h ? Quotes.PayOff(R(), Sim(), h, Deals.PayDraft(R(), h)) : 0;
         Autotest.Fields["dip_crew"] = () => R().Game.HumanPlayersIndexes.Sum(Sim().Crew.CountCrewForPlayer);

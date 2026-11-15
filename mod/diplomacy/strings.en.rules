@@ -10,6 +10,7 @@ HotCargoDiplomacy
 
 	// Hunter demand (spec 561 to 566, 594 to 597): pay them off, bluff or fight
 	DemandFmt = "<b>{0}:</b> <i>\"You carry {1} tech. Make it worth our while, or we take it from your wreck.\"</i>"
+
 	DemandEmptyFmt = "<b>{0}:</b> <i>\"Where is the tech? Make it worth our while, or we find it.\"</i>"
 	PayHint = "<gray>To pay them off, tick what you offer below.</gray>"
 	PayCrowdFmt = "<gray>{0} more hunters nearby make it harder.</gray>"
@@ -83,4 +84,15 @@ HotCargoDiplomacy
 	LabelHiredFmt = "<fame_color><image name='hc_marker_hired' colored='true'/> HIRED {0}</fame_color>"
 	LabelQuitting = "<limited_color><image name='hc_marker_hired' colored='true'/> QUITTING</limited_color>"
 	LabelMerc = "<gray><image name='hc_marker_hired' colored='true'/> MERCENARY</gray>"
+
+	// Spec 1528: allies that can join soon, as counted by the risk model. {0} is the counted number. One per personality group
+	// (AlliesSoonFmt_<group>), else AlliesSoonFmt.
+	AlliesSoonFmt = "{0} more of our ships are close. You are outnumbered."
+	AlliesSoonFmt_monolith = "{0} more ships of the Cooperative stand with us. Think about that."
+	AlliesSoonFmt_cabal = "{0} more of the faithful are on their way. Kneel while you can."
+	AlliesSoonFmt_imperium = "{0} more Imperial ships are moving to support us. Stand down."
+	AlliesSoonFmt_fringe = "We've got {0} friends coming. Want to wait for them?"
+	AlliesSoonFmt_io = "{0} more units link to this fight. Your odds fall."
+	AlliesSoonFmt_pirates = "{0} more of the crew are right behind us. Pay up."
+	AlliesSoonFmt_hunters = "{0} more corporate ships are on this contract. You won't win."
 }

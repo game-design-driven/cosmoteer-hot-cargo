@@ -155,7 +155,9 @@ static class DiplomacyTick
             string demand = DiplomacyState.Key(hunter.UniqueID, "demand");
             if (s.Rolled.Contains(demand) || InComms(sim, hunter) is not { } human) continue;
             s.Rolled.Add(demand);
-            if (Roll(hunter, 0x4445_4D44UL) < t.DemandHailChance && now - s.LastDemandAt >= t.DemandHailGapSeconds && Situation.VaultTech(sim) > 0)
+            // Spec 1525: with the risk model on, only a hunter in the demand stance demands.
+            bool bold = !t.RiskEnabled || Risk.Read(run, sim, hunter).Stance == Stance.Demand;
+            if (Roll(hunter, 0x4445_4D44UL) < t.DemandHailChance && bold && now - s.LastDemandAt >= t.DemandHailGapSeconds && Situation.VaultTech(sim) > 0)
             {
                 s.LastDemandAt = now;
                 Hail(sim, hunter, human);

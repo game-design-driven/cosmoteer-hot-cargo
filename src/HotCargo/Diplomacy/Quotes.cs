@@ -33,7 +33,7 @@ public static class Quotes
     {
         var t = T(run);
         var inputs = new DiplomacyModel.SurrenderInputs(Situation.Leverage(run, sim, ai), 1f - HunterOrders.HealthFraction(ai), Situation.Fame(run),
-            Situation.Reputation(run, ai), Situation.Allies(run, ai), Situation.Wanted(sim, player, ai), Situation.IsHunter(ai), run.State.Heat);
+            Situation.Reputation(run, ai), Situation.Allies(run, sim, ai), Situation.Wanted(sim, player, ai), Situation.IsHunter(ai), run.State.Heat);
         return DiplomacyModel.SurrenderChance(inputs, t.SurrenderChanceBase, t.SurrenderPerLeverage, t.SurrenderPerDamage, t.SurrenderPerFame,
             t.SurrenderPerReputation, t.SurrenderPerAlly, t.SurrenderWantedPenalty, t.HunterSurrenderPerHeat);
     }

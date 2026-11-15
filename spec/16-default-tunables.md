@@ -92,6 +92,9 @@
 | `Worlds.ArrivalLine`, `ArrivalLineDelaySeconds` | on, 4 s | 225 |
 | `Onboarding.VanillaTutorialDelaySeconds` | 300 s | 723 |
 | `Diplomacy.*` (chances, prices, radii, hire and mercenary times) | see `Diplomacy/DiplomacyTunables.cs` | 561 to 584 |
+| `Diplomacy.RiskEnabled`, `RiskJoinRadius`, `RiskCrewWeight`, `RiskRangeWeight` | on, 2000, 0.5, 0.5 | 1520 to 1522, 1529 |
+| `Diplomacy.RiskBravery` (monolith, cabal, imperium, fringe, io, pirates, hunters), `RiskBraveryDefault`, `RiskBraverySpread` | 0.6, 0.75, 0.55, 0.35, 0.45, 0.4, 0.7; 0.5; 0.25 | 1523 |
+| `Diplomacy.RiskDemandAt`, `RiskFleeAt`, `RiskSurrenderAt` | 2, 0.6, 0.3 | 1524 to 1527 |
 | `ShipAi.Enabled`, `TickSeconds` | on, 1 s | 403 |
 | `ShipAi.KiteRangeFraction`, `CloseInDistance`, `RetreatDistance`, `HoldTolerance` | 0.9, 100, 2000, 150 | 402 |
 | `RunModes.Combat`, `Economy`, `Crew` | see section 34 | 680 |

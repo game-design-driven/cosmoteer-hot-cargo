@@ -21,31 +21,25 @@ public static class Situation
 
     public static bool IsStation(Ship ship) => ship.TryGetSpecialComponent<SpaceStation>(out _);
 
-    /// <summary>Firepower times health: a damaged ship counts for less.</summary>
-    public static float Strength(Ship ship) => ship.Weapons.GetTotalFirePower() * HunterOrders.HealthFraction(ship);
+    /// <summary>Spec 1520: firepower × health × crew factor: a damaged ship, or one that lost crew, counts for less.</summary>
+    public static float Strength(Ship ship)
+    {
+        int places = ship.Crew.TotalCrewCapacity;
+        float crew = places <= 0 ? 1f : ship.Crew.Assigned.Count / (float)places;
+        return RiskModel.Strength(ship.Weapons.GetTotalFirePower(), HunterOrders.HealthFraction(ship), crew, Run.Current?.T.Diplomacy.RiskCrewWeight ?? 0f);
+    }
 
     static bool InArea(Ship center, Ship other, float radius) => center.DetWorldCenter.DistanceSquaredTo(other.DetWorldCenter) <= radius * radius;
 
-    /// <summary>
-    /// Leverage of the players over an AI ship (spec 563): human ships and ships hired by the players in the area, against the AI ship
-    /// and its team in the area.
-    /// </summary>
+    /// <summary>Leverage of the players over an AI ship (spec 563), from the two sides of the risk model (spec 1521).</summary>
     public static float Leverage(Run run, SimRoot sim, Ship ai)
     {
-        float radius = run.T.Diplomacy.AreaRadius;
-        var hired = run.State.Diplomacy.Hires.Select(h => h.Ship).ToHashSet();
-        float players = 0, other = 0;
-        foreach (var s in sim.Ships)
-        {
-            if (!s.IsSignificant || s.IsJunk || !InArea(ai, s, radius)) continue;
-            if (s.IsHumanPlayerShip || hired.Contains(s.UniqueID)) players += Strength(s);
-            else if (s == ai || s.Metadata.Team == ai.Metadata.Team) other += Strength(s);
-        }
-        return DiplomacyModel.Leverage(players, other);
+        var view = Risk.Read(run, sim, ai);
+        return DiplomacyModel.Leverage(view.Players, view.Own);
     }
 
-    /// <summary>AI ships of the same team in the area, without the ship itself.</summary>
-    public static int Allies(Run run, Ship ai) => AiGate.Allies(ai).Count(s => InArea(ai, s, run.T.Diplomacy.AreaRadius));
+    /// <summary>The allies that can join the AI ship soon (spec 1521), without the ship itself.</summary>
+    public static int Allies(Run run, SimRoot sim, Ship ai) => Risk.Read(run, sim, ai).Allies;
 
     /// <summary>Corporate hunters in the area of a hunter, without it.</summary>
     public static int OtherHunters(Run run, SimRoot sim, Ship hunter) =>

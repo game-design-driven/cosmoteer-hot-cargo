@@ -1,0 +1,42 @@
+# Surrender odds (spec 1525, 1530): a badly damaged enemy does not demand the surrender of a stronger player fleet.
+# Playtest bug: a half-destroyed ship hailed six player ships and asked them to surrender for a big fee.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+playerweapons off
+scav_set SpawnChance 0
+fr_set PayForwardChance 0
+openspace 6000
+fr_kill_enemies
+# One big Monolith ship, at a quarter of its health. The player ship is 300 from it, five more player ships are in the fight 1,500 to 2,000 away.
+# Vanilla counted only ships within 1,500 of the enemy, ignored part damage and compared one player ship's cost, so it demanded.
+aispawn monolith 1 6
+aiplayership
+aiplayership
+aiplayership
+aiplayership
+aiplayership
+ainew_watch 0 300
+aidamage new 0.25
+wait 3
+expect ai_humanships >= 6
+# The fault: the vanilla rule alone demands (it ignores part damage, the player ships beyond 1,500 and all but one player ship's cost).
+dip_set RiskEnabled false
+expect dip_demands == 1
+# The risk model: the damaged ship against the players' whole fleet does not demand.
+dip_set RiskEnabled true
+expect dip_stance < 3
+expect dip_demands == 0
+# Friends far away do not count (spec 1521): two more Monolith ships 3,500 away add no ally; one moved to 500 counts.
+# Other ships of the system can be near, so the check is the change.
+dip_mark_allies
+aispawn monolith 2 3
+ainear 1 0 3500
+ainear 2 0 3500
+wait 1
+expect dip_risk_allies_gain == 0
+ainear 1 0 500
+wait 1
+expect dip_risk_allies_gain == 1
+quit

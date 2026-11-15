@@ -176,4 +176,58 @@ public sealed class DiplomacyTunables
     [Serialize(Optional = true)] public int MercMaxMinutes = 10;
     /// <summary>A mercenary below this health stops helping and runs. Lower than HiredFleeHealth: they are braver.</summary>
     [Serialize(Optional = true)] public float MercFleeHealth = 0.25f;
+
+    // ---- Risk (spec 1520 to 1529)
+
+    /// <summary>The risk model decides when enemies demand, flee and surrender. Off: vanilla decides demands and surrenders, flee rolls FleeChance.</summary>
+    [Serialize(Optional = true)] public bool RiskEnabled = true;
+    /// <summary>Allies of the same team within this distance of a ship can join its fight soon and count on its side.</summary>
+    [Serialize(Optional = true)] public float RiskJoinRadius = 2000f;
+    /// <summary>How much an empty crew weakens a ship: strength × (1 − this × the empty share of its crew places).</summary>
+    [Serialize(Optional = true)] public float RiskCrewWeight = 0.5f;
+    /// <summary>How much outranging the enemy counts: (own range ÷ enemy range) ^ this, clamped to 0.5..2.</summary>
+    [Serialize(Optional = true)] public float RiskRangeWeight = 0.5f;
+    /// <summary>Bravery of each personality group (faction ID, pirates, hunters), 0 to 1. 0.5 judges the odds as they are.</summary>
+    [Serialize(Optional = true)] public GroupBravery[] RiskBravery =
+    [
+        new("monolith", 0.6f), new("cabal", 0.75f), new("imperium", 0.55f), new("fringe", 0.35f), new("io", 0.45f),
+        new("pirates", 0.4f), new("hunters", 0.7f),
+    ];
+    /// <summary>Bravery of a group without a RiskBravery entry.</summary>
+    [Serialize(Optional = true)] public float RiskBraveryDefault = 0.5f;
+    /// <summary>Each ship's bravery is its group's ± up to this, from a hash of its ID.</summary>
+    [Serialize(Optional = true)] public float RiskBraverySpread = 0.25f;
+    /// <summary>A ship demands the players' surrender when its confidence (odds × (0.5 + bravery)) is at least this.</summary>
+    [Serialize(Optional = true)] public float RiskDemandAt = 2f;
+    /// <summary>A ship flees (instead of the FleeChance roll) when its confidence is at most this.</summary>
+    [Serialize(Optional = true)] public float RiskFleeAt = 0.6f;
+    /// <summary>A ship offers its surrender when its confidence is at most this (corporate hunters flee instead).</summary>
+    [Serialize(Optional = true)] public float RiskSurrenderAt = 0.3f;
+
+    public StanceThresholds Stances => new(RiskDemandAt, RiskFleeAt, RiskSurrenderAt);
+
+    /// <summary>Called from TunablesFile.Validate (spec 53).</summary>
+    public void Validate(Action<bool, string> require)
+    {
+        require(RiskJoinRadius >= 0 && RiskCrewWeight is >= 0 and <= 1 && RiskRangeWeight >= 0 && RiskBraverySpread is >= 0 and <= 1
+                && RiskBraveryDefault is >= 0 and <= 1, "Diplomacy.RiskJoinRadius, RiskRangeWeight must be 0 or more; RiskCrewWeight, RiskBraverySpread, RiskBraveryDefault 0 to 1");
+        require(RiskSurrenderAt <= RiskFleeAt && RiskFleeAt < RiskDemandAt && RiskSurrenderAt >= 0,
+            "Diplomacy.RiskSurrenderAt <= RiskFleeAt < RiskDemandAt, and RiskSurrenderAt 0 or more");
+        var groups = new HashSet<string>();
+        foreach (var g in RiskBravery)
+            require(g.Group.Length > 0 && groups.Add(g.Group) && g.Bravery is >= 0 and <= 1, $"Diplomacy.RiskBravery '{g.Group}': empty, twice, or bravery outside 0 to 1");
+    }
+}
+
+/// <summary>Spec 1523: the base bravery of a personality group.</summary>
+[ReflectiveSerialization(Explicit = true)]
+public sealed class GroupBravery
+{
+    /// <summary>A personality group: a faction ID, "pirates" or "hunters".</summary>
+    [Serialize] public string Group = "";
+    [Serialize(Optional = true)] public float Bravery = 0.5f;
+
+    public GroupBravery() { }
+
+    public GroupBravery(string group, float bravery) => (Group, Bravery) = (group, bravery);
 }
