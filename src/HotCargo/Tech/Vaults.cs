@@ -5,6 +5,7 @@ using Cosmoteer.Ships;
 using Cosmoteer.Ships.Crew.Jobs;
 using Cosmoteer.Ships.Parts;
 using Cosmoteer.Ships.Parts.Resources;
+using Cosmoteer.Ships.Resources;
 using Cosmoteer.Simulation;
 
 namespace HotCargo.Tech;
@@ -24,11 +25,20 @@ public static class Vaults
     /// </summary>
     public static bool HoldsForPlayers(SimRoot sim, Ship ship) => ship.IsJunk || sim.Mode.IsHumanPlayerShip(ship);
 
-    /// <summary>Tech in the vaults of one ship: the vault storage, the same units that the vault art shows.</summary>
-    public static int ShipTech(Ship ship) => OnShip(ship).Sum(g => g.Resources);
+    /// <summary>Tech stored on one ship: its vaults and its normal storage (spec 1543), the same units that the storage art shows.</summary>
+    public static int ShipTech(Ship ship) => OnShip(ship).Sum(g => g.Resources) + StorageTech(ship);
+
+    /// <summary>Spec 1543: tech in the normal storage (flexible grids) of one ship. It decays (spec 1547).</summary>
+    public static int StorageTech(Ship ship) => FlexResourceGrid.GetAllOnShip(ship).Sum(g => g.GetTotalQuantity(TechId));
+
+    /// <summary>The tiles of every normal storage (flexible grid) on the ship, in part location order, then tile order.</summary>
+    public static IEnumerable<FlexResourceGrid.ResourceTile> StorageTiles(Ship ship) =>
+        FlexResourceGrid.GetAllOnShip(ship).Where(g => g.Part is not null)
+            .OrderBy(g => g.Part.Location.Y).ThenBy(g => g.Part.Location.X)
+            .SelectMany(g => g.OrderBy(t => t.ShipCell.Y).ThenBy(t => t.ShipCell.X));
 
     /// <summary>
-    /// The fleet tech count (spec section 4, requirement 59): tech in the vaults of human and derelict ships, plus tech that crew carry
+    /// The fleet tech count (spec section 4, requirement 59): tech in the vaults and normal storage of human and derelict ships, plus tech that crew carry
     /// for the players. Tech on ships left in another system is not in this sim, so it is not counted.
     /// </summary>
     public static int CountFleetTech(SimRoot sim)
@@ -63,7 +73,7 @@ public static class Vaults
     /// Human crew, wherever they are (any ship or space). Also station crew that carry a sale from a human ship:
     /// the station pays on delivery, so until then the tech still belongs to the players.
     /// </summary>
-    static bool CarriesForPlayers(SimRoot sim, CrewSoul crew) =>
+    internal static bool CarriesForPlayers(SimRoot sim, CrewSoul crew) =>
         sim.Mode.IsHumanPlayerAllegiance(crew.PlayerIndex)
         || crew.Job is ResourceTransferJob { TradeType: TradeType.Sell, Source.Ship: { } from } && sim.Mode.IsHumanPlayerShip(from);
 
@@ -81,8 +91,30 @@ public static class Vaults
         TypedResourceGrid.GetAllOnShip(ship).Where(g => g.ResourceType == TechId && g.Part is not null)
             .OrderBy(g => g.Part!.Location.Y).ThenBy(g => g.Part!.Location.X);
 
-    /// <summary>Adds tech to vaults in order. Returns the units added; it is less than requested when the vaults are full.</summary>
-    public static int Add(SimRoot sim, int units) => Add(All(sim), units);
+    /// <summary>
+    /// Adds tech to vaults in order, then to normal storage of the human ships in the same order (spec 1543).
+    /// Returns the units added; it is less than requested when all of it is full.
+    /// </summary>
+    public static int Add(SimRoot sim, int units)
+    {
+        int added = Add(All(sim), units);
+        return added + AddToStorage(HumanShips(sim).OrderBy(s => s.Metadata.PlayerIndex).ThenBy(s => s.UniqueID), units - added);
+    }
+
+    /// <summary>Spec 1543: adds tech to the free normal storage tiles of the ships in order, through the vanilla sink. Returns the units added.</summary>
+    public static int AddToStorage(IEnumerable<Ship> ships, int units)
+    {
+        if (units < 0) throw new ArgumentOutOfRangeException(nameof(units));
+        int left = units;
+        foreach (var tile in ships.SelectMany(StorageTiles))
+        {
+            if (left == 0) break;
+            var sink = (IResourceSink)tile;
+            int n = Math.Min(left, sink.GetRemainingCapacity(TechId, allowPreferredTypeMismatch: false));
+            if (n > 0) left -= sink.ReceiveResources(TechId, n, isCrewDelivery: false, sticky: false, playSound: false);
+        }
+        return units - left;
+    }
 
     /// <summary>Adds tech to the given vault grids in order. Returns the units added.</summary>
     public static int Add(IEnumerable<TypedResourceGrid> grids, int units)
@@ -99,11 +131,17 @@ public static class Vaults
         return units - left;
     }
 
-    /// <summary>Removes tech from vaults in order. Returns the units removed.</summary>
+    /// <summary>Removes tech from normal storage first (it decays), then from vaults, in order. Returns the units removed.</summary>
     public static int Remove(SimRoot sim, int units)
     {
         if (units < 0) throw new ArgumentOutOfRangeException(nameof(units));
         int left = units;
+        var ships = HumanShips(sim).OrderBy(s => s.Metadata.PlayerIndex).ThenBy(s => s.UniqueID).ToList();
+        foreach (var tile in ships.SelectMany(StorageTiles).Where(t => t.ResourceType == TechId))
+        {
+            if (left == 0) return units;
+            left -= ((IResourceSource)tile).SubtractResources(left);
+        }
         foreach (var grid in All(sim))
         {
             int n = Math.Min(left, grid.Resources);

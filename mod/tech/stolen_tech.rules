@@ -1,5 +1,5 @@
 // Stolen Tech (spec section 7). Sprites are the vanilla processor sprites with a tint.
-// The C# code (src/HotCargo/Tech) replaces the trade price and keeps tech out of normal storage on human ships.
+// The C# code (src/HotCargo/Tech) replaces the trade price and decays tech outside a vault (spec 1547).
 ID = yarden_zamir.stolen_tech
 NameKey = "HotCargoTech/StolenTech"
 PluralNameKey = "HotCargoTech/StolenTechPlural"
@@ -8,10 +8,10 @@ DescriptionKey = "HotCargoTech/StolenTechDesc"
 BuyPrice = 10000
 // One crate holds one unit (spec 442).
 MaxPerNugget = 1
-// A Tech Vault has 1 tile, so it holds 2 units.
-MaxStackSize = 2
-// Normal storage on human ships never holds tech. Sharing the processor key keeps a useless
-// "Supply Stolen Tech" job out of every storage part's job list.
+// A Tech Vault has 1 tile, so it holds 4 units (spec 1540). A normal storage tile holds 4 too, as one stack with one decay timer (spec 1549).
+MaxStackSize = 4
+// Normal storage holds tech only when no vault has room (spec 1543). Sharing the processor key keeps a
+// "Supply Stolen Tech" job out of every storage part's job list, so crews never prefer storage.
 FlexGridPriorityKey = "flex_grid_processor"
 FlexGridDefaultPriority = 1
 // A vault loses tech only when it is destroyed: it drops its tech as crates (spec 65, 445; VaultDropPatch burns it with a small chance). Salvage drops it too.
@@ -59,7 +59,7 @@ NuggetSprite
 	VertexColor = &~/TINT
 }
 
-// One sprite per unit (spec 442): 1 unit shows one item, 2 units show two. Vanilla picks sprite (units - 1).
+// One item per unit (spec 442): 1 unit shows one item, 4 units show four, like vanilla processors. Vanilla picks sprite (units - 1).
 StackSprites
 [
 	{
@@ -69,6 +69,16 @@ StackSprites
 	}
 	{
 		File = "./Data/resources/processor/processor_stack_2.png"
+		Size = [1, 1]
+		VertexColor = &~/TINT
+	}
+	{
+		File = "./Data/resources/processor/processor_stack_3.png"
+		Size = [1, 1]
+		VertexColor = &~/TINT
+	}
+	{
+		File = "./Data/resources/processor/processor_stack_4.png"
 		Size = [1, 1]
 		VertexColor = &~/TINT
 	}

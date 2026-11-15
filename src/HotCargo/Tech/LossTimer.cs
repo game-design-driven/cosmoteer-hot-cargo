@@ -15,6 +15,18 @@ public sealed class TechState
     [Serialize(Optional = true)] public string LossTimerReason = "";
     /// <summary>Spec 446: tech that hunters took from crates, by hunter.</summary>
     [Serialize(Optional = true)] public List<HunterTech> HunterHeld = new();
+    /// <summary>Spec 1547: decay of the tech stacks that have any, by place. Only TechDecay changes it, in the sim tick.</summary>
+    [Serialize(Optional = true)] public List<DecayEntry> Decay = new();
+}
+
+/// <summary>Saved form of <see cref="TechWear"/>.</summary>
+[ReflectiveSerialization(Explicit = true)]
+public sealed class DecayEntry
+{
+    [Serialize] public string Key = "";
+    [Serialize] public double Wear;
+    [Serialize(Optional = true)] public string? To;
+    [Serialize(Optional = true)] public string? Group;
 }
 
 /// <summary>
@@ -78,7 +90,7 @@ public static class LossTimer
             ? string.Format(Strings.GetText("HotCargoTech/LossTimerFmt"), FormatTime(left), run.State.Tech.LossTimerReason)
             : null;
 
-    static string FormatTime(double seconds)
+    internal static string FormatTime(double seconds)
     {
         int total = (int)Math.Ceiling(seconds);
         return $"{total / 60}:{total % 60:00}";

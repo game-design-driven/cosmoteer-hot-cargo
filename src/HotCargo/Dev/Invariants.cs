@@ -101,18 +101,18 @@ public static class Invariants
     }
 
     /// <summary>
-    /// Spec 14, 991: on human ships only Tech Vaults store tech, so the stored tech that the fleet count reads equals
-    /// the units in the vault grids (the units that the vault art shows).
+    /// Spec 991, 1543: on human ships tech sits in Tech Vaults and normal storage, so the stored tech that the game's resource
+    /// manager counts equals the units in the vault grids and the storage tiles (the units that the art shows).
     /// </summary>
     static void TechInVaults(SimRoot sim)
     {
         foreach (Ship ship in Vaults.HumanShips(sim).OrderBy(s => s.UniqueID))
         {
             int stored = ship.Resources.GetResourceTotal(Vaults.TechId, includeStored: true, includeCarried: false);
-            int inVaults = Vaults.OnShip(ship).Sum(g => g.Resources);
-            if (stored != inVaults)
-                Fail("tech_count", $"{ship.UniqueID}/{stored}/{inVaults}",
-                    $"{ship.Metadata.PlainShipName}: the fleet count reads {stored} stored tech, but its vaults hold {inVaults}");
+            int held = Vaults.ShipTech(ship);
+            if (stored != held)
+                Fail("tech_count", $"{ship.UniqueID}/{stored}/{held}",
+                    $"{ship.Metadata.PlainShipName}: the game counts {stored} stored tech, but its vaults and storage hold {held}");
         }
     }
 

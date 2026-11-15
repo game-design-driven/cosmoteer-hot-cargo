@@ -14,9 +14,9 @@ HotCargoCodex
 	Vault
 	{
 		Title = "Hot Cargo: The Tech Vault"
-		Store = "Tech sits only in a <fame_color>Tech Vault</fame_color>. Each vault holds 2. A <bad>destroyed</bad> vault drops its tech as crates; now and then it burns."
+		Store = "Keep tech in a <fame_color>Tech Vault</fame_color>: each vault is one tile and holds 4, and crew fill vaults first. In normal storage, air and heat <bad>destroy tech within minutes</bad>. A <bad>destroyed</bad> vault drops its tech as crates; now and then it burns."
 		Repair = "A damaged vault keeps its tech. Collect the crates of a destroyed vault before hunters do."
-		Spread = "Spread the risk: each vault is one tile. Build more, spread them through the hull or onto a second ship, and let the crew carry tech over."
+		Spread = "Spread the risk: build more vaults, spread them through the hull or onto a second ship, and let the crew carry tech over. The fill toggle in the Resources view keeps crew out of a vault."
 		Target = "Hunters go for ships with a vault. Bury it deep in the hull, behind armor."
 	}
 

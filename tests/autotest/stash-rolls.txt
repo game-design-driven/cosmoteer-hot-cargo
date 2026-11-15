@@ -42,15 +42,16 @@ wait 3
 expect st_state == 1
 expect tech == 8
 
-# Loot with tech and full vaults: the unit floats next to the ship as a loose crate.
-expect techcrates == 0
+# Loot with tech and full vaults: the unit goes to normal storage (spec 1543), where it decays.
+expect storagetech == 0
 st_generate
 st_accept
 st_force looted
 st_goto
 wait 3
 expect st_state == 1
-expect techcrates >= 1
+expect storagetech == 1
+expect techcrates == 0
 
 # Empty: done, no loot.
 st_generate

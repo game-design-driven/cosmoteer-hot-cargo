@@ -7,11 +7,13 @@
 | `RewardScale` | 1.0 | 4 |
 | `Journey.TechCostScale` | 2.5 | 301 |
 | `BuyerPriceFactor` | 4 | 7 |
-| `StartingTechUnits` | 8 | 17 |
+| `StartingTechUnits` | 8 (2 vaults of 4) | 17, 1541 |
 | `StartingResearch` | `["cosmoteer.hyperdrive_small"]` | 1015 |
 | `LossGraceSeconds` | 180 s | 12, 443 |
 | `TechMarkers` | on | 444 |
 | `VaultTechLossChance` | 0.1 | 445 |
+| `DecaySeconds` | 360 s | 1547 |
+| `DecayInVault` | `Pause` | 1548 |
 | `HunterGrabChance`, `HunterGrabRange`, `HunterGrabReach` | 0.8, 3,000, 40 | 446 |
 | `TechShipFraction` | 0.25 | 19 |
 | `TechShipFractionPerGameHour` | 0.10 | 19 |

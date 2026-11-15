@@ -1,0 +1,36 @@
+# Tech in normal storage (spec 1543-1552): a start without vaults, crews fill a new vault first, tech outside a vault decays.
+# Bug-prone: the decay follows each stack through the crew transfers that the game makes, and the vault-first rule comes from vanilla priorities.
+# Spec 1552: the vanilla Model-L has no vault. The run starts anyway, and the tech goes to normal storage.
+newgame run 0 vanilla
+wait 8
+ev_set Enabled false
+tech_set LossGraceSeconds 600
+# Long enough for the crew transfer below.
+tech_set DecaySeconds 1200
+expect vaults == 0
+expect tech == 8
+expect storagetech == 8
+# Spec 1549, 1550: the tile tooltip and the heat panel say that the tech decays.
+expect decayleft > 0
+expect decaytip == 1
+expect decaypanel == 1
+# Spec 1543: a new vault takes tech from normal storage: crew carry it over without an order.
+vault outside
+waitfor outsidetech == 4 240
+expect storagetech == 4
+expect decayed == 0
+# A save keeps the decay; the load goes on from there.
+save decay
+load decay
+wait 1
+expect storagetech == 4
+expect decaystacks >= 1
+# Spec 1547: the time runs out (shorter here), and the tech in storage is gone. The vault keeps its 4.
+tech_set DecaySeconds 30
+waitfor storagetech == 0 60
+expect decayed >= 1
+expect outsidetech == 4
+wait 1
+expect tech == 4
+expect lost == 0
+quit

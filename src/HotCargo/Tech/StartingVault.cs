@@ -26,24 +26,30 @@ internal static class StartingVault
         var ships = sim.Ships.HumanPlayerShips.GroupBy(s => s.Metadata.PlayerIndex).OrderBy(g => g.Key)
             .Select(g => g.OrderBy(s => s.UniqueID).First()).ToList();
         if (ships.Count == 0) throw new InvalidOperationException("new run has no human player ship");
-        int missing = 0;
-        bool unreachable = false;
+        int missing = 0, inStorage = 0;
+        bool unreachable = false, noVault = false;
         for (int i = 0; i < ships.Count; i++)
         {
             var ship = ships[i];
             int share = units / ships.Count + (i < units % ships.Count ? 1 : 0);
-            int added = Vaults.Add(Vaults.OnShip(ship), share);
-            missing += share - added;
+            int vaulted = Vaults.Add(Vaults.OnShip(ship), share);
+            // Spec 1552: what the vaults cannot hold starts in normal storage, where it decays (spec 1547).
+            int stored = Vaults.AddToStorage([ship], share - vaulted);
+            inStorage += stored;
+            missing += share - vaulted - stored;
+            noVault |= !Vaults.VaultParts(ship).Any();
             var finder = new BlueprintPathfinder(ship);
             int cut = ship.BlueprintParts.Count(p => p.Rules.ID == Vaults.VaultId && !HasCrewPath(finder, new PartInfo(p.Rules, p.Location, p.Rotation, p.FlipX)));
             unreachable |= cut > 0;
-            Log.Info($"starting tech: {added} of {share} units in the vaults of {ship.Name} (player {ship.Metadata.PlayerIndex}); vaults without crew path: {cut}");
+            Log.Info($"starting tech: {vaulted} of {share} units in the vaults of {ship.Name} (player {ship.Metadata.PlayerIndex}), {stored} in storage; vaults without crew path: {cut}");
         }
-        // The new-game check (spec 1010) makes room for all units. Only a career save from before the mod has ships without vaults.
+        string decay = LossTimer.FormatTime(run.T.Tech.DecaySeconds);
         string? notice = missing > 0 ? Strings.FormatText("HotCargoTech/NoVaultRoomFmt", missing)
+            : inStorage > 0 && run.T.Tech.DecaySeconds > 0 ? Strings.FormatText(noVault ? "HotCargoTech/StartNoVaultFmt" : "HotCargoTech/StartShortFmt", inStorage, decay)
             : unreachable ? Strings.GetText("HotCargoTech/VaultOutside") : null;
         // A co-op launch runs this on a worker thread, so the notice waits for the next frame.
-        if (notice is not null) Run.OnNextFrame(() => Ux.UxKit.CenterText(run.Game, notice));
+        // Spec 1552: a large warning that stays long enough to read during the run start.
+        if (notice is not null) Run.OnNextFrame(() => Ux.UxKit.CenterText(run.Game, notice, holdSeconds: 12f));
     }
 
     /// <summary>Tech units that one vault holds, from its rules.</summary>
@@ -61,8 +67,7 @@ internal static class StartingVault
     internal static List<IntVector2> BuildVaults(Ship ship, int units, Func<IntVector2, bool>? allowCell = null)
     {
         PartRules vault = ship.Rules.PartsByID[Vaults.VaultId];
-        int perVault = Capacity(vault);
-        int count = (units + perVault - 1) / perVault;
+        int count = TechModel.VaultsNeeded(units, Capacity(vault));
         // The game's grab rule names the corridor part: the part that a grabbed part leaves on each tile.
         // Rules may name it by an alias (base_part.rules: "corridor"), so the ID resolves through PartsByID like the grab does (ShipUpdateInfo.TryRemoveBlueprintParts).
         var corridors = ship.Rules.Parts.Select(p => p.CreatePartPerTileWhenGrabbed).Where(id => id != default).Distinct()

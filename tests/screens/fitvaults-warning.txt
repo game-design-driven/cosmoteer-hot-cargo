@@ -1,0 +1,10 @@
+# The ship pick warning (spec 1470, 1552) on the main menu: a design without vaults gets Fit Tech Vaults, Start without and Cancel.
+render on
+wait 6
+fitoffer 0 sp
+expect fit_shown == 1
+wait 1
+screenshot fitvaults-offer
+fitanswer cancel
+expect fit_result == 0
+quit

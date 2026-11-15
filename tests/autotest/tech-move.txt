@@ -3,36 +3,37 @@ newgame run
 wait 8
 ev_set Enabled false
 tech_set LossGraceSeconds 600
-vault steel 16
+vault steel 64
 # An empty vault: crew take it apart and build it again outside the hull.
-tech remove 2
+tech remove 4
 wait 1
-expect tech == 6
+expect tech == 4
 vault grab empty
 wait 1
 vault place
 wait 2
 waitfor vaultsbusy == 0 300
 tech dump
-expect vaults == 4
-expect vaultsbuilt == 4
+expect vaults == vaultsneeded
+expect vaultsbuilt == vaults
 expect shipvalid == 1
-tech add 2
+tech add 4
 wait 1
 expect tech == 8
-# A vault with tech: taking it apart is salvage, so it costs no tech (spec 65). The tech stays aboard or drops as crates.
+# Spec 1554: a vault with tech that crew take apart moves its tech to the other vaults, then to normal storage. No crate, no loss.
 vault grab full
 wait 1
 vault place
 wait 2
 waitfor vaultsbusy == 0 300
 tech dump
-expect vaults == 4
-expect vaultsbuilt == 4
+expect vaults == vaultsneeded
+expect vaultsbuilt == vaults
 expect shipvalid == 1
-expect techall == 8
-# The moved vault holds tech again: all 4 vaults fill to their 8 units.
-tech add 8
-wait 1
-expect vaultunits == 8
+expect vaultrehomed >= 1
+expect techcrates == 0
+expect tech == 8
+# The rebuilt vault takes the tech back from normal storage (spec 1543).
+waitfor storagetech == 0 240
+waitfor vaulttech == 8 60
 quit

@@ -182,13 +182,14 @@ static class TelemetryPatches
 
     // ---- Tech
 
-    /// <summary>Vault grid adds and removes (events, debug keys, the starting vault, tests). Gives the next tech.count event its cause.</summary>
+    /// <summary>Vault grid and normal storage adds and removes (events, debug keys, the starting vault, tests). Gives the next tech.count event its cause.</summary>
     [HarmonyPatch]
     static class VaultChangePatch
     {
         static IEnumerable<MethodBase> TargetMethods() =>
         [
             AccessTools.Method(typeof(Vaults), nameof(Vaults.Add), [typeof(IEnumerable<TypedResourceGrid>), typeof(int)]) ?? throw new MissingMethodException("Vaults", "Add"),
+            AccessTools.Method(typeof(Vaults), nameof(Vaults.AddToStorage)) ?? throw new MissingMethodException("Vaults", "AddToStorage"),
             AccessTools.Method(typeof(Vaults), nameof(Vaults.Remove), [typeof(SimRoot), typeof(int)]) ?? throw new MissingMethodException("Vaults", "Remove"),
         ];
 

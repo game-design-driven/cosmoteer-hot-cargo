@@ -40,21 +40,6 @@ public static class TechPrice
     public static int Buy(Run run) => (int)Math.Clamp(Math.Ceiling(Sell(run) * (double)run.T.Tech.BuyBackFactor), 0, int.MaxValue);
 }
 
-/// <summary>Spec 14: on human player ships only Tech Vaults store tech. Stations keep normal storage, so they can take tech that players sell.</summary>
-[HarmonyPatch]
-static class FlexGridBlocksTechPatch
-{
-    static MethodBase TargetMethod() =>
-        AccessTools.Method(typeof(FlexResourceGrid.ResourceTile), "Cosmoteer.Ships.Resources.IResourceSink.GetRemainingCapacity")
-        ?? throw new MissingMethodException("FlexResourceGrid.ResourceTile", "IResourceSink.GetRemainingCapacity");
-
-    // Every sink search, manual transfer and AddResources call checks capacity first, so 0 here is enough to keep tech out.
-    static void Postfix(FlexResourceGrid.ResourceTile __instance, ID<ResourceRules> resourceType, ref int __result)
-    {
-        if (__result > 0 && resourceType == Vaults.TechId && __instance.Grid.Ship is { IsHumanPlayerShip: true }) __result = 0;
-    }
-}
-
 /// <summary>
 /// Spec 449: a derelict ship that holds tech stays live. Vanilla puts a junk ship out of sight into stasis (CareerSimModeManager.GetShipStasisMode,
 /// SimStasisManager.UpdateStasis), where it leaves the sim: its tech would drop out of the fleet count and its blip would go.

@@ -1,5 +1,6 @@
-# Starting ship with its 4 one-tile Tech Vaults (spec 441), then the loss timer, the crate arrows and the crates in space (spec 443-445).
-# Windowed test slot (needs graphics): see the hot-cargo-screenshots skill. Starter ship index on the newgame line: 0 = Model-L, 3 = Model-M.
+# Starting ship with its 2x2 Tech Vaults (spec 441, 1540, 1542), the vault card and the fill toggles (spec 1545, 1546),
+# then the loss timer, the crate arrows and the crates in space (spec 443-445).
+# Test slot with graphics: see the hot-cargo-screenshots skill. Starter ship index on the newgame line: 0 = Model-L, 3 = Model-M.
 render on
 newgame run 0
 wait 10
@@ -10,6 +11,15 @@ pause on
 vault focus
 wait 3
 screenshot vault-start-model-l
+# Spec 1545: a selected vault shows its contents on the parts card.
+vaultselect
+wait 2
+screenshot vault-card
+# Spec 1546: the Resources view shows the fill toggle of each vault.
+resourcesview on
+wait 2
+screenshot vault-fill-toggle
+resourcesview off
 # All tech goes out as crates: the heat panel counts down, and arrows at the screen edge point at the crates.
 pause off
 tech drop 8

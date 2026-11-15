@@ -464,12 +464,14 @@ public static class Autotest
         Commands["defaultspeed"] = arg => { _defaultSpeed = float.Parse(arg, CultureInfo.InvariantCulture); _speedApplied = null; };
         Commands["newgame"] = arg =>
         {
-            // arg: [map size index, or "run" / nothing for the Hot Cargo run map] [starter ship index, default 0].
+            // arg: [map size index, or "run" / nothing for the Hot Cargo run map] [starter ship index, default 0] [vanilla: the vanilla
+            // file of that starter from Data/builtin_ships/Starter, without Tech Vaults (spec 1552)].
             var rules = GameApp.Rules.CareerMode;
             var args = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             string map = args.Length > 0 ? args[0] : "run";
             int mapSize = map == "run" ? Journey.JourneyArea.RunMapSizeIndex() : int.Parse(map, CultureInfo.InvariantCulture);
             ShipFile ship = rules.StarterShips[args.Length > 1 ? int.Parse(args[1], CultureInfo.InvariantCulture) : 0].Ship;
+            if (args is [_, _, "vanilla"]) ship = new ShipFile(Paths.DataFolder / "builtin_ships" / "Starter" / Path.GetFileName((string)ship.FilePath));
             // The game's default levels, not the player's saved choices: test slots start with an empty settings file.
             int combat = Array.FindIndex(rules.CombatDifficultyLevels, l => l.IsDefault);
             int econ = Array.FindIndex(rules.EconDifficultyLevels, l => l.IsDefault);

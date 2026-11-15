@@ -44,6 +44,7 @@ static class DiplomacyAutotest
     }
 
     static Run R() => Autotest.RequireRun();
+    static EventHandler<SimRoot>? _shield;
     static SimRoot Sim() => R().Game.Sim;
     static int Int(string s) => int.Parse(s, CultureInfo.InvariantCulture);
     static float Float(string s) => float.Parse(s, CultureInfo.InvariantCulture);
@@ -173,6 +174,23 @@ static class DiplomacyAutotest
             Log.Info($"AUTOTEST removed {Int(arg) - left} fuel");
         };
         // dip_near <target> [distance]: moves the target next to the acting ship, inside comms and sight range. "hunters" moves every hunter.
+        // dip_shield <target>|off: keeps that hunter at full part health each sim tick, like godmode for one ship, so the fleet's guns
+        // cannot kill it between a pick and its pay-off. Run it with "mp" in co-op, so both sims do it. Test only.
+        Autotest.Commands["dip_shield"] = arg =>
+        {
+            var game = R().Game;
+            if (_shield is not null) { game.EventHub.Tick -= _shield; _shield = null; }
+            if (arg.Trim() == "off") return;
+            var id = Target(arg.Trim()).UniqueID;
+            _shield = (_, sim) =>
+            {
+                if (sim.Ships[id] is not { } ship) return;
+                foreach (var part in ship.Parts)
+                    if (part.Health < part.Rules.MaxHealth) part.Health = part.Rules.MaxHealth;
+            };
+            game.EventHub.Tick += _shield;
+            Log.Info($"AUTOTEST dip_shield on {id}");
+        };
         Autotest.Commands["dip_near"] = arg =>
         {
             var p = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);

@@ -1,28 +1,26 @@
-# Tech: the Model-M preset has its 4 vaults in place of a 3x2 bay, with a corridor walkway through it (spec 441, 1017).
+# Tech: the Model-M preset has its vaults inside the hull with crew paths (spec 441, 1017).
 # A vault that the player builds outside the hull gets doors and a crew path. Tech moves between vaults. Destroyed vaults, loss rule.
 newgame run 3
 wait 8
 tech dump
-expect vaults == 4
+expect vaults == vaultsneeded
 expect tech == 8
-expect vaultpaths == 4
+expect vaultpaths == vaults
 expect noaccess == 0
 expect shipvalid == 1
-expect flexsinks == 0
-# Spec 65: a destroyed vault loses its 2 units, and the run goes on.
+# Spec 65: a destroyed vault loses its 4 units, and the run goes on.
 vault destroy
 wait 1
-expect tech == 6
-expect vaults == 3
+expect tech == 4
 vault outside
-expect vaults == 4
-expect vaultpaths == 4
+expect vaults == vaultsneeded
+expect vaultpaths == vaults
 expect outsidetech == 0
 # Spec 16: the vanilla move resources tool moves tech between vaults on one ship. Crew carry it.
 vault move
 wait 30
-expect outsidetech == 2
-expect tech == 6
+expect outsidetech == 4
+expect tech == 4
 # Spec 9, 12, 443: when every vault is destroyed, the loss timer runs (3 s here).
 tech_set LossGraceSeconds 3
 vault destroy all

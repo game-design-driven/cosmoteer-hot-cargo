@@ -88,7 +88,7 @@ public static class TunablesDefaults
         switch (value)
         {
             case null: throw new InvalidOperationException($"tunable {name} has no value");
-            case string or bool: sb.AppendLine($"{prefix}{Scalar(value)}"); break;
+            case string or bool or Enum: sb.AppendLine($"{prefix}{Scalar(value)}"); break;
             case IFormattable when value.GetType().IsPrimitive || value is decimal: sb.AppendLine($"{prefix}{Scalar(value)}"); break;
             case IList list when list.Count == 0 || IsScalar(list[0]):
                 sb.AppendLine($"{prefix}[{string.Join(", ", list.Cast<object>().Select(Scalar))}]"); break;
@@ -105,13 +105,14 @@ public static class TunablesDefaults
         }
     }
 
-    static bool IsScalar(object? v) => v is string or bool || (v?.GetType().IsPrimitive ?? false);
+    static bool IsScalar(object? v) => v is string or bool or Enum || (v?.GetType().IsPrimitive ?? false);
 
     /// <summary>One scalar in .rules syntax. Floats use the shortest text that reads back to the same value.</summary>
     public static string Scalar(object v) => v switch
     {
         string s => $"\"{s.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"",
         bool b => b ? "true" : "false",
+        Enum e => e.ToString(),
         IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
         _ => throw new InvalidOperationException($"unsupported tunable value {v.GetType()}"),
     };

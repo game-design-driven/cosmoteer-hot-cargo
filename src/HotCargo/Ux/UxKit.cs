@@ -67,17 +67,17 @@ public static class UxKit
     /// A center screen text in the style of the game's area name (GameGui.ShowAreaName: same font, size, place and fades),
     /// with XML formatting, and wrapped to the screen width. The vanilla label never wraps, so a long line runs off both sides.
     /// </summary>
-    public static async void CenterText(GameRoot game, string xml)
+    public static async void CenterText(GameRoot game, string xml, float holdSeconds = 2f)
     {
         // async void: an exception here would end the game, so it reports instead.
-        try { await ShowCenterText(game, xml); }
+        try { await ShowCenterText(game, xml, holdSeconds); }
         catch (Exception ex) { Errors.Report("ux center text", ex.Message, ex); }
     }
 
     /// <summary>Center texts on screen now. A new one goes below them, so two alerts at once do not draw over each other.</summary>
     static readonly List<Label> CenterTexts = [];
 
-    static async Task ShowCenterText(GameRoot game, string xml)
+    static async Task ShowCenterText(GameRoot game, string xml, float holdSeconds)
     {
         var root = game.Gui.RootWidget;
         float w = Math.Min(1100f, root.ScreenRect.Width - 80f);
@@ -115,7 +115,7 @@ public static class UxKit
         try
         {
             await lbl.FadeIn(1f);
-            await App.Clock.UntilElapsed(2f);
+            await App.Clock.UntilElapsed(holdSeconds);
             await lbl.FadeOut(1f);
         }
         finally

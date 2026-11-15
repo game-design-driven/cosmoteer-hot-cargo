@@ -1,4 +1,4 @@
-// Tech Vault (spec 14, 15, 440). One tile: the vanilla 2x2 storage bay art at 1x1 scale, with a tint and a single-type grid for Stolen Tech.
+// Tech Vault (spec 15, 440, 1540). One tile: the vanilla 2x2 storage bay art at 1x1 scale, with a tint and a single-type grid for Stolen Tech.
 // The copy is on purpose: inheriting storage_2x2 would merge its FlexResourceGrid, which accepts any resource.
 Part : <./Data/ships/terran/base_part_terran.rules>/Part
 {
@@ -16,7 +16,7 @@ Part : <./Data/ships/terran/base_part_terran.rules>/Part
 	]
 	Size = [1, 1]
 	IsRotateable = false
-	// Three times a vanilla storage tile (the 2x2 bay has 4,000 for 4 tiles), below 1x1 armor (4,000). Spec 65: each half of this in damage destroys one unit.
+	// Three times a vanilla storage tile (the 2x2 bay has 4,000 for 4 tiles), below 1x1 armor (4,000). Spec 65: only destruction costs tech.
 	MaxHealth = 3000
 	TypeCategories = [storage]
 	ReceivableBuffs : ^/0/ReceivableBuffs []
@@ -39,7 +39,7 @@ Part : <./Data/ships/terran/base_part_terran.rules>/Part
 			Type = CommandToggle
 		}
 
-		// 1 tile x MaxStackSize 2 = 2 units.
+		// 1 tile x MaxStackSize 4 = 4 units (spec 1540). The code reads the capacity from this grid.
 		Storage
 		{
 			Type = TypedResourceGrid
@@ -52,13 +52,15 @@ Part : <./Data/ships/terran/base_part_terran.rules>/Part
 			IsDrainable = false
 			AllowExternalPickupAndDelivery = true
 		}
-		// Registers the tiles as sinks, so crew can put carried tech back into a vault.
+		// Registers the tile as a sink, so crew put carried tech and tech from normal storage into a vault first (spec 1543).
+		// The vanilla consumption toggle (Resources view, like a chaingun magazine) turns the fill of this vault on and off (spec 1546).
 		StorageConsumer
 		{
 			Type = TypedResourceGridConsumer
 			ResourceType = yarden_zamir.stolen_tech
 			Storage = Storage
 			DefaultPriority = &/PRIORITIES/Storage_Supply
+			ConsumptionToggleButtonOffset = [0, -.4]
 		}
 
 		Graphics

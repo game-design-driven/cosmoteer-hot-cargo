@@ -22,8 +22,7 @@ static class VaultDesigns
     {
         Autotest.Commands["vaultdesigns"] = Run;
         Autotest.Commands["newgamecheck"] = arg => NewGameCheck.Off = arg == "off";
-        // shipcheck preset|vanilla N: the career new-game check on starter ship N, from the mod (preset) or the vanilla Data folder.
-        // A refused ship shows the vanilla "invalid ship" dialog, like the Load Ship menu of the new-game screen.
+        // shipcheck preset|vanilla N: the career new-game check and the vault capacity of starter ship N, from the mod (preset) or the vanilla Data folder.
         Autotest.Commands["shipcheck"] = arg =>
         {
             var file = StarterFile(arg);
@@ -31,7 +30,6 @@ static class VaultDesigns
             _checkPassed = GameApp.Rules.CareerMode.IsShipDesignLegal(ship);
             _checkVaults = NewGameCheck.VaultCapacity(ship);
             Log.Info($"AUTOTEST shipcheck {file.FilePath}: legal={_checkPassed} vault capacity={_checkVaults}");
-            if (!_checkPassed) _ = Halfling.Gui.Dialogs.OneButtonDialog.Show(Cosmoteer.Localization.Strings.GetText("GameSetupScreen/InvalidShip"));
         };
         // vaultbuild preset|vanilla N [nobay]: loads starter ship N into the sim next to the player ship and builds vaults (spec 441).
         // nobay rules out the tiles of every storage part, so no vault goes on a bay and the grabbed bay must go back.
@@ -48,8 +46,16 @@ static class VaultDesigns
                 bayCells = design.BlueprintParts.Where(p => p.Rules.Components.OfType<FlexResourceGridRules>().Any()).SelectMany(p => p.Rect).ToHashSet();
                 storageBefore = StorageParts(design);
             }
-            var (ship, line) = Build(new Batch(game, "", "", NewGameCheck.RequiredUnits(coop: false), new(), []), (string)file.FilePath,
-                noBay ? c => !bayCells.Contains(c) : null);
+            Ship? ship;
+            string line;
+            _noRoom = false;
+            try
+            {
+                (ship, line) = Build(new Batch(game, "", "", NewGameCheck.RequiredUnits(coop: false), new(), []), (string)file.FilePath,
+                    noBay ? c => !bayCells.Contains(c) : null);
+            }
+            // Spec 441: a hull without room keeps its design; the caller reports it.
+            catch (StartingVault.NoRoomException ex) { (ship, line, _noRoom) = (null, ex.Message, true); }
             Log.Info($"AUTOTEST vaultbuild {file.FilePath}: {line}");
             _built = ship is null ? 0 : ship.BlueprintParts.Count(p => p.Rules.ID == Vaults.VaultId);
             _storageKept = ship is not null && StorageParts(ship) == storageBefore;
@@ -69,18 +75,10 @@ static class VaultDesigns
         // 1 when the design kept all its storage parts (a bay with no vault on its tiles goes back).
         Autotest.Fields["storagekept"] = () => _storageKept ? 1 : 0;
         Autotest.Fields["vaultsbuiltindesign"] = () => _built;
+        // 1 when the last vaultbuild found too little room inside the hull.
+        Autotest.Fields["vaultnoroom"] = () => _noRoom ? 1 : 0;
         Autotest.Fields["shiplegal"] = () => _checkPassed ? 1 : 0;
         Autotest.Fields["shipvaulttech"] = () => _checkVaults;
-        // 1 when the top dialog explains the missing vaults (spec 1012). Closes the dialog.
-        Autotest.Fields["vaultdialog"] = () =>
-        {
-            // Test slots run without Steam, so a Steam notice dialog can sit below ours.
-            var dialog = Halfling.App.Director.States.OfType<Halfling.Gui.Dialogs.OneButtonDialog>()
-                .FirstOrDefault(d => d.MessageLabel.Text?.Contains("Tech Vaults for") == true);
-            if (dialog is null) return 0;
-            Halfling.App.Director.PopState(dialog);
-            return 1;
-        };
         // Spec 1015: StartingResearch techs that the run has unlocked.
         Autotest.Fields["startresearch"] = () =>
         {
@@ -128,22 +126,29 @@ static class VaultDesigns
             _offer = FitVaults.Picked(Task.FromResult<string?>(copy), a[1] == "coop");
             Autotest.Wait(1);
         };
-        // fitanswer fit|cancel: presses a button of the Fit Tech Vaults dialog, like the player.
+        // fitanswer fit|asis|cancel: presses a button of the Fit Tech Vaults dialog, like the player.
         Autotest.Commands["fitanswer"] = arg =>
         {
-            var dialog = Halfling.App.Director.States.OfType<Halfling.Gui.Dialogs.TwoButtonDialog>().LastOrDefault()
+            var dialog = Halfling.App.Director.States.OfType<Halfling.Gui.Dialogs.ThreeButtonDialog>().LastOrDefault()
                 ?? throw new InvalidOperationException("no Fit Tech Vaults dialog");
-            (arg == "fit" ? dialog.Option1Button : dialog.Option2Button).ClickController.InvokeClicked();
+            var button = arg switch
+            {
+                "fit" => dialog.Option1Button,
+                "asis" => dialog.Option2Button,
+                "cancel" => dialog.Option3Button,
+                _ => throw new InvalidOperationException($"fitanswer: needs fit|asis|cancel, not '{arg}'"),
+            };
+            button.ClickController.InvokeClicked();
             Autotest.WaitFor(() => _offer?.IsCompleted == true, 30, "the fit to finish");
         };
         Autotest.Fields["fit_shown"] = () => FitVaults.Shown ? 1 : 0;
-        // The result of the pick flow: -1 still open, 0 cancelled, 1 a file that passes the vault check.
+        // The result of the pick flow: -1 still open, 0 cancelled, 1 a file whose vaults hold the starting tech, 2 a file whose vaults do not (Start without).
         Autotest.Fields["fit_result"] = () =>
         {
             if (_offer is not { IsCompleted: true } t) return -1;
             if (t.Result is not { } path) return 0;
             using var ship = Cosmoteer.Ships.Ship.Load(path, blueprintsOnly: true);
-            return NewGameCheck.VaultCapacity(ship) >= NewGameCheck.RequiredUnits(coop: false) ? 1 : -2;
+            return NewGameCheck.VaultCapacity(ship) >= NewGameCheck.RequiredUnits(coop: false) ? 1 : 2;
         };
     }
 
@@ -157,6 +162,7 @@ static class VaultDesigns
     }
 
     static int _built;
+    static bool _noRoom;
     static bool _matches;
     static bool _storageKept;
     static bool _checkPassed;
