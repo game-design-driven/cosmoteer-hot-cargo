@@ -65,7 +65,7 @@ Fractions use typed capacity only, because cargo holds count as capacity for any
 
 ## Screenshots
 
-`scripts/screens.sh tests/screens/<name>.txt <out-dir>` takes the screenshots of one script in a windowed test slot (never slot main) and copies the PNGs to `<out-dir>`.
+`scripts/screens.sh tests/screens/<name>.txt <out-dir>` takes the screenshots of one script in a windowed test slot (never slot main) and copies the PNGs to `<out-dir>`. `RUNNER=mac` runs the script on this Mac instead (skill `hot-cargo-screenshots`).
 It takes a free test slot lock (or `SLOT=tN`), deploys this worktree, runs the script minimized and quits the game. It refuses (exit 3) while `.state/player-hold` exists.
 Look at each image before you commit it. Crop anything that shows a user name, a file path or a Steam name.
 `docs/screenshots/polish/` holds before and after pairs of the visual pass (`<name>-before.jpg`, `<name>-after.jpg`).
