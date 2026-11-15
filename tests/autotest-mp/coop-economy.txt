@@ -260,7 +260,8 @@ on 1 fa_blind off
 waitfor fa_blind == 0 30
 
 step debt.loan
-# Spec 1401, 1403, 1405, 1413: the client takes a loan from its machine; the host pays part of it. One shared balance, no desync.
+# Spec 1401, 1403, 1405, 1413: the client takes a loan from its machine and pays part of it. It is the client's debt; the host's
+# money does not change. The same balance on both machines, no desync.
 mp debt_set LoanStationChance 1
 as 1 debt_goto loan
 mp debt_goto loan
@@ -271,10 +272,27 @@ waitfor debt_count == 1 30
 on 1 waitfor debt_count == 1 30
 expect hc_money_gain == 0
 expect debt_ratio == 1
-debt_pay lender half
+expect debt_mine == 0
+on 1 expect debt_mine == 1
+on 1 debt_pay lender half
 waitfor debt_ratio < 0.6 30
 on 1 waitfor debt_ratio < 0.6 30
-expect hc_money_gain < 0
+expect hc_money_gain == 0
+
+step debt.overdraft
+# Spec 1401, 1417: the client's money below 0 becomes the client's own debt with the system's faction, the same on both machines.
+as 1 debt_my_clear
+waitfor debt_count == 0 30
+hc_mark
+as 1 debt_spend 700
+waitfor debt_count == 1 30
+on 1 waitfor debt_count == 1 30
+expect debt_mine == 0
+on 1 expect debt_mine == 1
+on 1 expect debt_my_money >= 0
+on 1 expect debt_lender_owner == 1
+on 1 expect debt_hail_due == 1
+expect hc_money_gain == 0
 
 step tactics.share-resources
 # Spec 1318-1320: player 1's ship sits next to player 0's. Player 1 has no steel, player 0 has 100. Turning the switch on adds

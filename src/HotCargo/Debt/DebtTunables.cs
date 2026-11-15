@@ -73,6 +73,11 @@ public sealed class DebtTunables
     /// <summary>Spec 1436: game seconds that the helper waits for an answer; then the price goes on the tab.</summary>
     [Serialize(Optional = true)] public float HelpWaitSeconds = 120f;
 
+    /// <summary>Spec 1418: game seconds after an overdraft opens a debt until its lender gets in touch.</summary>
+    [Serialize(Optional = true)] public float OverdraftHailSeconds = 60f;
+    /// <summary>Spec 1418: the lender gets in touch only when the overdraft debt is above this many credits.</summary>
+    [Serialize(Optional = true)] public long OverdraftHailMin = 20_000;
+
     public void Validate(Action<bool, string> require)
     {
         require(LoanStationChance is >= 0 and <= 1, "Debt.LoanStationChance must be 0 to 1");
@@ -84,6 +89,7 @@ public sealed class DebtTunables
         require(HelpChance is >= 0 and <= 1 && HelpMinShare is >= 0 and <= 1 && ClaimMaxShare is >= 0 and <= 1, "Debt.HelpChance, HelpMinShare and ClaimMaxShare must be 0 to 1");
         require(HelpMinEnemies >= 1 && HelpShips >= 1 && HelpFightRadius > 0 && HelpDistance > 0, "Debt.HelpMinEnemies and HelpShips must be at least 1, the help distances above 0");
         require(HelpCalmSeconds >= 0 && HelpWaitSeconds > 0 && HelpPricePerShare >= 0 && ClaimReputationLoss >= 0, "Debt help times and prices must not be negative (HelpWaitSeconds above 0)");
+        require(OverdraftHailSeconds >= 0 && OverdraftHailMin >= 0, "Debt.OverdraftHailSeconds and OverdraftHailMin must not be negative");
         require(CollectorDistance > 0 && ScoreDebtFactor >= 0, "Debt.CollectorDistance must be above 0, ScoreDebtFactor not negative");
     }
 }
