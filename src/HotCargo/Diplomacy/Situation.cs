@@ -21,12 +21,12 @@ public static class Situation
 
     public static bool IsStation(Ship ship) => ship.TryGetSpecialComponent<SpaceStation>(out _);
 
-    /// <summary>Spec 1520: firepower × health × crew factor: a damaged ship, or one that lost crew, counts for less.</summary>
+    /// <summary>Spec 1520: firepower (spec 1533) × health × crew factor: a damaged ship, or one that lost crew, counts for less.</summary>
     public static float Strength(Ship ship)
     {
         int places = ship.Crew.TotalCrewCapacity;
         float crew = places <= 0 ? 1f : ship.Crew.Assigned.Count / (float)places;
-        return RiskModel.Strength(ship.Weapons.GetTotalFirePower(), HunterOrders.HealthFraction(ship), crew, Run.Current?.T.Diplomacy.RiskCrewWeight ?? 0f);
+        return RiskModel.Strength(Firepower.Of(ship), HunterOrders.HealthFraction(ship), crew, Run.Current?.T.Diplomacy.RiskCrewWeight ?? 0f);
     }
 
     static bool InArea(Ship center, Ship other, float radius) => center.DetWorldCenter.DistanceSquaredTo(other.DetWorldCenter) <= radius * radius;
