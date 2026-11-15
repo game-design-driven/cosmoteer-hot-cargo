@@ -8,6 +8,8 @@
 # texts without quotes. All values of one call apply as one change, or none of them do: the mod validates them like a
 # settings window edit, writes tunables.rules and, in co-op on the host, sends them to every machine (spec 853).
 # The game must be in a run (a career game with the mod on). In co-op only the host's game takes changes.
+# Exit code 0 when the game answers ok; 1 for an error answer, no answer or a bad argument.
+# Called by: the coordinator or an agent, when the player asks (hot-cargo-tune skill).
 set -euo pipefail
 source "$(dirname "$0")/pc.sh"
 [[ $# -ge 1 ]] || { sed -n 2,10p "$0"; exit 1; }

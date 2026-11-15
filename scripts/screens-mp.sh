@@ -3,6 +3,7 @@
 # Usage: screens-mp.sh <host script> <client script> <local output folder> [timeout-seconds]
 # Never slot main. While <container>/.state/player-hold exists it refuses (exit 3), like scripts/screens.sh.
 # "{PORT}" in both scripts becomes the host port (35870 + host slot number, as scripts/autotest-mp.sh).
+# Exit code 0 when both logs pass. Called by: agents, for co-op PR screenshots (hot-cargo-screenshots).
 set -euo pipefail
 HOST_SCRIPT="${1:?usage: screens-mp.sh <host script> <client script> <out folder> [timeout]}"
 CLIENT_SCRIPT="${2:?usage: screens-mp.sh <host script> <client script> <out folder> [timeout]}"

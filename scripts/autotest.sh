@@ -9,6 +9,7 @@
 #   start (game start to the first script line), script (to the end of the script), teardown (log fetch, stop, release).
 # Exit code 0 only if a run has AUTOTEST DONE and no AUTOTEST FAIL or ERROR line. Exit code 3: the PC refused the calls
 # because this agent's turn is not active (see LINK_REFUSED_TEXT in autotest-lib.sh); keep the turn open while tests run.
+# Called by: autotest-all.sh, bisect-autotest.sh, or by hand.
 set -euo pipefail
 SCRIPT="${1:?usage: autotest.sh <script> [timeout]}"
 RETRY="${AUTOTEST_RETRY:-1}"

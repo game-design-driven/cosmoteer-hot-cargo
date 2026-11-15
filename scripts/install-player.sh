@@ -3,6 +3,8 @@
 # Never touches a running game: it then prints "game running" and exits 0, so callers can try again later. An offline PC
 # prints "PC unreachable" and exits 0 too.
 # Takes the main-slot lock, so it does not collide with screenshot runs.
+# Exit code 0 when installed, when the game runs or when the PC is offline; 1 without ../play or for an unexpected PC answer.
+# Called by: integrate.sh, vault-saved-ships.sh, and agents or the coordinator after a merge (hot-cargo-install skill).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 STATE_DIR="${HOT_CARGO_STATE:-$(cd "$(dirname "$0")/../.." && pwd)/.state}"; mkdir -p "$STATE_DIR"

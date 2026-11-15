@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Close Cosmoteer on the PC in the slot that SLOT selects (see pc.sh). main never stops test slots.
+# Exit code 3 for slot main while the player hold exists (pc.sh); else the exit code of the PC call.
+# Called by: autotest-lib.sh (slot teardown), with-slot.sh, or by hand.
 source "$(dirname "$0")/pc.sh"
 refuse_if_player_hold
 pc "$PS_PATHS"'$p = Get-SlotProcess; if ($p) { $p | Stop-Process -Force; $p | Wait-Process -Timeout 20 -ErrorAction SilentlyContinue }; if ($slot -ne "main" -and (Test-Path $pidFile)) { Remove-Item $pidFile -Force }; "stopped (slot $slot)"'

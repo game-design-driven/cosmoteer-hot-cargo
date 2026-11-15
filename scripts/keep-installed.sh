@@ -3,6 +3,7 @@
 # Every minute: fetch origin/main; if it differs from the installed build and the player's game is closed,
 # check it out in a separate detached worktree and deploy it. A running game is never touched.
 # Usage: keep-installed.sh [worktree, default ../play] [minutes to run, default 115]
+# Exit code 0 when the minutes end. Called by: the coordinator, by hand. It needs an active turn for its PC calls.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 WT="${1:-../play}"

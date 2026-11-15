@@ -12,7 +12,7 @@
 # --detach: run the suite detached (see autotest-all.sh).
 # Runner: tests run on this Mac (scripts/autotest-sim.sh; co-op sessions as two sim processes on 127.0.0.1), and tests with
 # the line "# runner: pc" on the PC (scripts/autotest-all.sh), both at the same time.
-#   AUTOTEST_SIM=0 runs every test on the PC. integrate.sh sets it: the PC suite stays the merge gate.
+#   AUTOTEST_SIM=0 runs every test on the PC. integrate.sh sets it.
 #   Without the game files on the Mac (scripts/pull-game.sh), every test runs on the PC.
 # Rule, derived from the folder names (no list to keep up to date):
 # - A changed file under src/HotCargo/<A>/<B>/... or mod/<a>/<b>/... touches the areas a, b (lowercase).
@@ -29,6 +29,8 @@
 #   session with a step of the area (they guard co-op determinism). "Full suite" runs every smoke test: single player,
 #   and the co-op sessions with the line.
 # - full: the rules above without the filter.
+# Exit code 0 when every test passed, nothing ran or LIST_ONLY=1; 1 when a test failed; 2 for a bad AUTOTEST_TIER or RUNNER.
+# Called by: agents before a push, check.yml (LIST_ONLY=1 RUNNER=pc), ci-test-set.sh (CHANGED_FILE) and integrate.sh.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/autotest-lib.sh

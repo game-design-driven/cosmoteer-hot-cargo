@@ -3,6 +3,7 @@
 # deploy.sh sets before it: the PS_PATHS variables and Get-SlotProcess (scripts/pc.sh), $cache (the build folder),
 # $cacheState (text for the output), $autotestFile (path of the autotest script, or $null), $startGame (PS_START) and
 # $minFreeGB (free memory that a test slot needs before its game starts).
+# A failure throws, so the PC call fails and deploy.sh exits 1.
 $ErrorActionPreference = "Stop"
 
 # Writes a text file that every slot shares (the game install folder). Parallel deploys write the same text, and a running

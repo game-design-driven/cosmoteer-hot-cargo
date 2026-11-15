@@ -5,6 +5,8 @@
 # The game starts with a window, minimized, with the slot's own save folder (--rootsavepath, scripts/pc.sh SLOT_WINDOWED).
 # While <container>/.state/player-hold exists it refuses (exit 3): a window could take focus or GPU time from the player.
 # It deploys this worktree, runs the script until it quits the game, prints the log lines and copies the screenshots.
+# Exit code 0 when the script passed; 1 when it failed; 2 for SLOT=main; 3 while the player hold exists.
+# Called by: agents, for PR screenshots and visual checks (hot-cargo-screenshots skill).
 set -euo pipefail
 SCRIPT="${1:?usage: screens.sh <script> <out-dir> [timeout]}"
 OUT="${2:?usage: screens.sh <script> <out-dir> [timeout]}"

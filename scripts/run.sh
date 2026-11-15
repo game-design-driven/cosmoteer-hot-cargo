@@ -2,6 +2,8 @@
 # Start Cosmoteer on the PC in the slot that SLOT selects (see pc.sh).
 # main: with a window, minimized, so it does not take focus. Test slots: headless, no window at all.
 # Usage: run.sh [seconds-to-wait-then-print-logs]
+# Exit code 3 when the player hold refuses it (pc.sh); else the exit code of the PC call.
+# Called by: by hand, in a test slot through with-slot.sh.
 source "$(dirname "$0")/pc.sh"
 refuse_if_player_hold start
 WAIT="${1:-0}"

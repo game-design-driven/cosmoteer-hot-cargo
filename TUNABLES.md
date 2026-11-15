@@ -77,7 +77,7 @@ The slow player also lowers the vanilla graphics settings on their own machine (
 
 ## Screenshots
 
-`tests/screens/tunables-menu.txt` takes these (main slot only, see UX.md "Screenshots"):
+`tests/screens/tunables-menu.txt` takes these (a windowed test slot, see UX.md "Screenshots"):
 
 | Image | Shows |
 |---|---|

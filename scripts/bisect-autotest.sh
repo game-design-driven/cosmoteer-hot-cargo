@@ -3,6 +3,7 @@
 # Usage: bisect-autotest.sh <test name> <good commit> [bad commit, default HEAD] [timeout]
 # Every step runs the test script from the bad commit (copied once), so the test itself stays the same.
 # Retries are off: a flaky test gives wrong answers, so check the result with a second run of that commit.
+# Exit code 1 when the scratch worktree exists; else the exit code of git bisect. Called by: agents, by hand.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 NAME="${1:?usage: bisect-autotest.sh <test> <good> [bad] [timeout]}"

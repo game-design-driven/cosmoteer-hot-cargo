@@ -5,6 +5,7 @@
 # Both processes keep the real-time clock (SIM_REALTIME=1, see tools/headless-sim/Program.cs).
 # SIM_STAGE=<dir>: use a stage that scripts/stage.sh made (and a built host); else this script builds both.
 # Full log: <container>/.state/logs/<worktree>/mp-<session>.<time>.sim.log. Exit code 0 only on "== result: PASS".
+# Called by: autotest-sim.sh (test names mp:<session>), or by hand.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 SESSION="${1:?usage: autotest-sim-mp.sh <session file> [timeout]}"

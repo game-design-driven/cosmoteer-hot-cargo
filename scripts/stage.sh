@@ -4,6 +4,7 @@
 # slot-install.ps1. deploy.sh uploads a build to the PC only when the PC has no build with that hash.
 # The loader DLL is not in the hash: the PC replaces it only when VERSION changes.
 # Usage: stage.sh <dir>   (the folder is replaced)
+# Exit code 1 when a build fails. Called by: autotest-all.sh, autotest-sim.sh, autotest-sim-mp.sh and deploy.sh.
 set -euo pipefail
 OUT="${1:?usage: stage.sh <dir>}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"

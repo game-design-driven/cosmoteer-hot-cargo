@@ -17,5 +17,5 @@ description: Bring Hot Cargo to a new Cosmoteer version. Pull the game files, re
    - An audit that names the version that it measured (`BALANCE.md`, `UX.md`): keep it until someone measures again.
 8. Loader: the PC replaces the startup hook loader only when `src/HotCargo.Loader/VERSION` changes. If the loader code must change (for example for a new .NET version), bump `VERSION`. A new loader needs every game on the PC closed once, the player's game too: ask the coordinator.
 9. The deploy takes the game's new `Cosmoteer.runtimeconfig.json` as the original and adds the hook again (`scripts/slot-install.ps1`). Nothing to do.
-10. Test: CI runs every game test in the headless sim. The real game is the ground truth after an update, so also run every test on the PC: `scripts/autotest-all.sh 400` (`hot-cargo-testing`). A Harmony patch whose target changed fails at start and shows in the overlay and the log.
+10. Test: put `all` in the PR's `### Game tests` block, so the merge queue runs every game test in the headless sim. The real game is the ground truth after an update, so also run every test on the PC: `scripts/autotest-all.sh 400` (`hot-cargo-testing`). A Harmony patch whose target changed fails at start and shows in the overlay and the log.
 11. After the merge, install (`hot-cargo-install`) and publish a release (`hot-cargo-release`).

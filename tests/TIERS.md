@@ -6,7 +6,7 @@ Three tiers of tests:
 |---|---|---|---|
 | unit | `tests/HotCargo.Tests` (every `*Model.cs`) | every build, CI | under 1 s for all |
 | smoke | game tests with the line `# tier: smoke` | `scripts/autotest-affected.sh` (default `AUTOTEST_TIER=smoke`) | about 60 to 150 s each |
-| full | every game test | `scripts/integrate.sh` merge batches (`AUTOTEST_TIER=full`), `scripts/autotest-all.sh` | about 2.5 h of slot time |
+| full | every game test | the CI `full-suite` check on `main` (`check.yml`), `AUTOTEST_TIER=full scripts/autotest-affected.sh` for the touched areas, `scripts/autotest-all.sh` | about 2.5 h of slot time |
 
 Rules:
 - Game tests only for critical systems (run start, jumps, vaults and tech, hunters and heat, co-op sync and desync, save and load, the playthrough), complex areas and areas with real bug history. Rolls, weights and formulas go to unit tests. No game test of text, layout, a single tunable value, vanilla behavior or a duplicate of another test.

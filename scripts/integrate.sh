@@ -9,6 +9,7 @@
 # Run it in the main worktree. Nothing is pushed unless every step passed. On a failure the merge commits stay local:
 # fix them with a new commit and run "integrate.sh --continue", or undo them with "git reset --hard origin/main".
 # When autotests fail, it names the branches of the batch whose areas own each failed test (autotest-affected.sh rule).
+# Exit code 0 when the batch was pushed; 1 at the first failed step. Called by: the coordinator only.
 set -euo pipefail
 # Merge batches run every autotest of the touched areas, not only the smoke tier (tests/TIERS.md).
 export AUTOTEST_TIER=full
@@ -114,7 +115,7 @@ if [[ "$AUTOTEST" == yes ]]; then
     scripts/autotest-all.sh 400 2>&1 | tee "$TEST_OUT" || rc=$?
   else
     step "affected autotests"
-    # AUTOTEST_SIM=0: the PC suite stays the merge gate until the headless sim has a track record.
+    # AUTOTEST_SIM=0: integrate.sh runs its tests on the PC, the real game.
     AUTOTEST_SIM=0 COMMITTED_ONLY=1 scripts/autotest-affected.sh origin/main 2>&1 | tee "$TEST_OUT" || rc=$?
   fi
   if [[ $rc -ne 0 ]]; then
