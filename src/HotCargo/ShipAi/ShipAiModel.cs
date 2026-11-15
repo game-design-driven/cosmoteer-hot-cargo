@@ -52,6 +52,9 @@ public enum Side { Nose, BroadsideLeft, BroadsideRight, Stern }
 /// <summary>Spec 1069. Which trading station "go to station" picks.</summary>
 public enum StationPick { Nearest, BestPrice, Cheapest }
 
+/// <summary>Spec 410: the AI button of the ships card for the selected ships: Auto on in none, some or all of them.</summary>
+public enum CardState { Off, Mixed, On }
+
 public enum Preset { Aggressive, Defensive, Sniper, Escort, VaultGuard, Looter, Miner, SupplyRunner, Salvager, EscortDrone, Formation }
 
 /// <summary>
@@ -541,6 +544,13 @@ public static class ShipAiModel
         ],
         _ => throw new ArgumentOutOfRangeException(nameof(preset), preset, null),
     };
+
+    /// <summary>Spec 410: the card button state for the selected own ships, of which autoOn have Auto on.</summary>
+    public static CardState CardStateOf(int autoOn, int ships)
+    {
+        if (ships <= 0 || autoOn < 0 || autoOn > ships) throw new ArgumentOutOfRangeException(nameof(autoOn), $"{autoOn} of {ships} ships");
+        return autoOn == 0 ? CardState.Off : autoOn == ships ? CardState.On : CardState.Mixed;
+    }
 
     /// <summary>A term with a new condition keeps Not and its connector. The parameter resets when its kind changes.</summary>
     public static Term WithCond(Term term, Cond cond) =>

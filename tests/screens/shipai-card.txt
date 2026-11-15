@@ -1,0 +1,30 @@
+# The AI button of the ships card (spec 410): one ship, then two ships with Auto on in one of them.
+# Windowed test slot (needs graphics): scripts/screens.sh tests/screens/shipai-card.txt <out-dir>
+render on
+newgame run
+wait 10
+ev_set Enabled false
+closepanel
+pause off
+godmode on
+tactics Escort
+tacticsauto on
+select
+wait 2
+screenshot card-single
+tactics_ally
+tactics_ship 1
+tacticsauto off
+tactics_ship 0
+tactics_select all
+wait 2
+screenshot card-multi-mixed
+tactics_ship 1
+tacticsauto on
+tactics_ship 0
+wait 2
+screenshot card-multi-on
+tactics_card_click
+wait 2
+screenshot card-multi-editor
+quit
