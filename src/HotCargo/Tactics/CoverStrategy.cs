@@ -28,7 +28,7 @@ internal sealed class CoverStrategyRules : AIStrategyModuleRules
 
 /// <summary>
 /// Spec 366. A ship with the Cover trait fights from behind rocks. While its target is within CoverEngageRange, it fights for
-/// CoverPeekSeconds, then hides behind the nearest rock that blocks weapon fire (asteroids) for CoverHideSeconds, and repeats.
+/// CoverPeekSeconds (spec 1532: counted while it attacks the target), then hides behind the nearest rock that blocks weapon fire (asteroids) for CoverHideSeconds, and repeats.
 /// The hiding spot is on the far side of the rock from the target, so the rock blocks the shots between them.
 /// Tell: the ship ducks behind an asteroid and comes out again to shoot. No label: the plan stays hidden (spec 368).
 /// </summary>
@@ -68,6 +68,8 @@ internal sealed class CoverStrategy(CoverStrategyRules rules) : AIStrategyModule
             || HunterOrders.EdgeDistance(ship, target) > t.CoverEngageRange)
             return Reset(now);
         _target = target;
+        // Spec 1532: a ship that does not attack the target (a Wanderer on patrol) does not hide from it. The fight time starts when it attacks.
+        if (Phase == CoverPhase.Peek && !(ship.Commands.CurConfirmedCommand is AttackCommand attack && attack.Target == target)) _phaseStart = now;
         var next = NextCoverPhase(Phase, (now - _phaseStart).Seconds, t.CoverPeekSeconds, t.CoverHideSeconds);
         if (next != Phase)
         {

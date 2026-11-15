@@ -139,6 +139,14 @@ public static class FriendlyArea
                 if (sim.Ships.Where(s => !s.IsJunk && s.IsSignificant && s.IsEnemiesWith(p)).MinBy(s => s.DetWorldCenter.DistanceSquaredTo(p.DetWorldCenter)) is { } e)
                     Hunters.HunterOrders.Attack(p, e);
         };
+        // fr_wayfarers_far: the Wayfarers spawn 20,000 from the player ships, out of the live range (spec 1536). fr_wayfarer_stasis:
+        // Wayfarer ships that wait in stasis.
+        Autotest.Commands["fr_wayfarers_far"] = _ =>
+        {
+            var me = Core.SimQueries.FirstHumanShip(Sim()) ?? throw new InvalidOperationException("no player ship");
+            PayItForward.Arrive(Autotest.RequireRun(), Sim(), me.DetWorldCenter + new Halfling.Geometry.Vector2(20000f, 0f));
+        };
+        Autotest.Fields["fr_wayfarer_stasis"] = () => PayItForward.StasisWayfarers(Sim()).Count;
         Autotest.Fields["fr_forward_done"] = () => Autotest.RequireRun().State.Friendly.PayForwardDone ? 1 : 0;
         Autotest.Commands["fr_kill_enemies"] = arg =>
         {

@@ -1,6 +1,6 @@
 # speed: 1
 # Telemetry: a short scripted run that makes data for a report (tools/telemetry) and checks that each event kind shows.
-# Three systems: an event, a contract, an escort, a sale, heat stages with hunters, won fights, a destroyed vault, an event,
+# Three systems: an event, a contract, an escort, a sale, heat stages with hunters, won fights, a capture, a destroyed vault, an event,
 # a save and a load, and a win at the Buyer. It checks telemetry coverage, not balance, so the player's ships cannot be hurt
 # (shieldplayers) and damagehostiles stands in for won fights.
 newgame run
@@ -40,6 +40,9 @@ event distress_beacon
 choose 1
 heat 75
 wait 15
+# A capture: the players take the live hunters (combat.captured, spec 1581).
+takehunters
+wait 2
 damagehostiles 0.05
 save telerun
 load telerun
@@ -82,6 +85,9 @@ telecount chain.start >= 1
 telecount combat.census >= 2
 telecount combat.spawn >= 3
 telecount combat.damage >= 1
+telecount combat.fight >= 1
+telecount combat.captured >= 1
+telecount tech.loss_timer >= 1
 telecount ai.switch >= 1
 telecount snap >= 4
 telecount perf >= 5

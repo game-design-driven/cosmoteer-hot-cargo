@@ -1,0 +1,43 @@
+// Vanilla layers that the Hot Cargo parts show by reference (spec 1057, docs/part-art.md). The game files stay in the game:
+// these lines name them, and no copy goes into the mod. Damage levels come with them.
+
+// One tile of the vanilla deck. A part puts one under each tile: DeckTile at [0.5, 0.5], and copies with their own Location.
+DeckTile
+{
+	Type = Graphics
+	Location = [0.5, 0.5]
+	Floor
+	{
+		Layer = "floors"
+		DamageLevels
+		[
+			{ File = "./Data/ships/terran/corridor/floor.png"; Size = [1, 1] }
+			{ File = "./Data/ships/terran/corridor/floor_33.png"; Size = [1, 1] }
+			{ File = "./Data/ships/terran/corridor/floor_66.png"; Size = [1, 1] }
+		]
+	}
+}
+
+// The plain 2x2 wall frame of the battery.
+Walls2x2
+{
+	Layer = "walls"
+	DamageLevels
+	[
+		{ File = "./Data/ships/terran/power_storage/walls.png"; Size = [2, 2] }
+		{ File = "./Data/ships/terran/power_storage/walls_33.png"; Size = [2, 2] }
+		{ File = "./Data/ships/terran/power_storage/walls_66.png"; Size = [2, 2] }
+	]
+}
+
+// The 1x2 wall frame of the chaingun magazine, turned a quarter to fit a 2x1 part.
+Walls2x1
+{
+	Layer = "walls"
+	DamageLevels
+	[
+		{ File = "./Data/ships/terran/chaingun_magazine/walls.png"; Size = [2, 1]; UVRotation = 1 }
+		{ File = "./Data/ships/terran/chaingun_magazine/walls_33.png"; Size = [2, 1]; UVRotation = 1 }
+		{ File = "./Data/ships/terran/chaingun_magazine/walls_66.png"; Size = [2, 1]; UVRotation = 1 }
+	]
+}

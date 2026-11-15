@@ -1,0 +1,52 @@
+# UX jump warnings (spec 1560 to 1569). The jump dialog patch replaces the vanilla ENGAGE handler, so this test guards the jump path:
+# the dialog lists the ships that stay, "no" keeps the fleet here, "yes" jumps. A copy of the starter ship stands in for a captured ship.
+newgame
+wait 8
+ev_set Enabled false
+godmode on
+pause off
+jw_twin save
+# No ship of the fleet has a hyperdrive yet (the starter ships have none), so a ship without one is no warning.
+jw_twin spawn
+wait 3
+expect ux_jump_notices == 0
+expect ux_jump_standing == 0
+expect ux_jump_hover == 0
+fa_drive
+wait 3
+# One ship has a drive now. The other one stays behind on a jump, and its hover text says so.
+expect ux_jump_standing == 1
+expect ux_jump_hover == 1
+expect ux_jump_notices == 0
+# A ship without a drive joins the fleet: one notice.
+jw_twin spawn
+wait 3
+expect ux_jump_notices == 1
+expect ux_jump_standing == 2
+# A jump that costs more than the drive holds: too big, whatever the fuel.
+fa_set BlindFuelFactor 100
+fa_blind on
+wait 3
+expect ux_jump_toobig == 1
+expect ux_jump_hover == 3
+fa_blind off
+wait 3
+expect ux_jump_toobig == 0
+# The real ENGAGE click with two ships that stay: the dialog lists both.
+fa_torelay
+wait 2
+fa_gatejump
+waitfor fa_ready == 1 120
+jw_engage
+wait 1
+expect ux_jump_dialogs == 1
+expect ux_jump_dialog_lines == 2
+jw_answer no
+wait 3
+expect fa_jumpstarts == 0
+jw_engage
+wait 1
+expect ux_jump_dialogs == 2
+jw_answer yes
+waitfor fa_jumpstarts == 1 60
+quit

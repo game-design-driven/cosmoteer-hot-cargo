@@ -7,7 +7,7 @@ HotCargoFactions
 	TipRivalFmt = "<good>Fences</good>: the corporation's rival pays ×{0:0.##} for tech here."
 	TipJumpFmt = "Arrive at heat {0:0} by a clear relay, {1:0} if hunters watch the relay, {2:0} by blind jump (fuel ×{3:0.##}, hull risk)."
 	TipRelayWatched = "<bad>Hunters are near the relay now.</bad>"
-	TipTargetFmt = "<img name='objective' colored='true'/> {0}"
+	TipTargetFmt = "<img name='objective_normal'/> {0}"
 	TipWatchFmt = "<bad>Corporate watch</bad>: the corporation watches this system since your Strike next door. Heat rises ×{0:0.##}."
 
 	// Galaxy map tags under the system name.

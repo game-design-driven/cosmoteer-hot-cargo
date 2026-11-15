@@ -22,6 +22,7 @@ public static class UxArea
     public static void Register()
     {
         Run.Hooks.NewRunStarted += run => RunEndUi.IntroPending = run;
+        HeatPanel.ExtraLines.Add(JumpWarnings.StrandedLine);
         AddAutotestCommands();
         UxAutotest.Register();
     }
@@ -44,6 +45,8 @@ public static class UxArea
                 if (App.Director.States.OfType<Cosmoteer.Game.GameRoot>().FirstOrDefault() is not { } game) return;
                 UxKit.Guard("damage pings", () => DamagePings.OnFrame(game));
                 UxKit.Guard("low supplies", () => LowSupplies.OnFrame(game));
+                UxKit.Guard("jump warnings", () => JumpWarnings.OnFrame(game));
+                UxKit.Guard("payment hint", () => PaymentHint.OnFrame(game));
                 UxKit.Guard("dialogue keys", () => DialogueKeys.OnFrame(game));
             };
         }

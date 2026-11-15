@@ -26,6 +26,18 @@ static class Perf
     internal static double SessionFrameMs, SessionTickMs;
     internal static long SessionFrames, SessionTicks;
 
+    /// <summary>Spec 1591: real seconds of frames while the game is paused, in build mode (not paused), or in play. Window and session sums.</summary>
+    static double _pausedMs, _buildMs, _playMs;
+    internal static double SessionPausedMs, SessionBuildMs, SessionPlayMs;
+
+    /// <summary>The local view of this machine: pause and the build tool of its own GUI. Read only.</summary>
+    static void Split(Cosmoteer.Game.GameRoot game, double ms)
+    {
+        if (game.Sim?.IsPaused.Displayed == true) { _pausedMs += ms; SessionPausedMs += ms; }
+        else if (game.Gui?.ShipGui?.BuildButton?.IsSelected == true) { _buildMs += ms; SessionBuildMs += ms; }
+        else { _playMs += ms; SessionPlayMs += ms; }
+    }
+
     internal static void OnFrameEnded(object? sender, EventArgs e)
     {
         if (Session.Current is not { } s || !Tele.On(Cat.Perf)) { _lastFrame = 0; return; }
@@ -40,6 +52,7 @@ static class Perf
             if (ms > 33.4) _slowFrames++;
             SessionFrameMs += ms;
             SessionFrames++;
+            Split(s.Game, ms);
         }
         _lastFrame = now;
         if (_windowStart == 0) { StartWindow(now); return; }
@@ -55,6 +68,7 @@ static class Perf
         _windowStart = now;
         _frames = _frameCount = _slowFrames = 0;
         _frameSum = _frameMax = 0;
+        _pausedMs = _buildMs = _playMs = 0;
         _ticks = 0;
         _tickMs = _tickMaxMs = 0;
         _overheadAtStart = Interlocked.Read(ref Stats.OverheadTicks);
@@ -86,6 +100,9 @@ static class Perf
             Tele.Num(w, "frame_p95_ms", P(0.95));
             Tele.Num(w, "frame_p99_ms", P(0.99));
             Tele.Num(w, "frame_max_ms", max);
+            Tele.Num(w, "paused_s", _pausedMs / 1000);
+            Tele.Num(w, "build_s", _buildMs / 1000);
+            Tele.Num(w, "play_s", _playMs / 1000);
             w.WriteNumber("frames_over_33ms", slow);
             w.WriteNumber("ticks", _ticks);
             Tele.Num(w, "tick_mean_ms", _ticks > 0 ? _tickMs / _ticks : 0);
@@ -113,6 +130,7 @@ static class Perf
         _windowStart = _lastFrame = 0;
         SessionFrameMs = SessionTickMs = 0;
         SessionFrames = SessionTicks = 0;
+        SessionPausedMs = SessionBuildMs = SessionPlayMs = 0;
     }
 
     [HarmonyPatch(typeof(SimRoot), "FixedUpdate")]

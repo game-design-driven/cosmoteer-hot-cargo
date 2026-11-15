@@ -212,33 +212,40 @@ static class TelemetryPatches
         static TypedResourceGrid? Grid(Part p) => p.Components.OfType<TypedResourceGrid>().FirstOrDefault(g => g.ResourceType == Vaults.TechId);
 
         [HarmonyPriority(Priority.First)]
-        static void Prefix(Part __instance, out int __state)
+        static void Prefix(Part __instance, int newHealth, out (int Tech, Ship? Ship, bool Deconstructed) __state)
         {
-            __state = -1;
+            __state = (-1, null, false);
             if (__instance.Rules.ID != Vaults.VaultId || Session.Current is null) return;
-            __state = Grid(__instance)?.Resources ?? -1;
+            // Spec 1587: the ship and the deconstruction flag before vanilla takes the destroyed part off the ship.
+            var ship = __instance.Ship;
+            bool deconstructed = newHealth == 0 && ship?.OptionalConstructionManager?.IsDeconstructionQueued(__instance, includeUnderlying: true) == true;
+            __state = (Grid(__instance)?.Resources ?? -1, ship, deconstructed);
         }
 
         [HarmonyPriority(Priority.Last)]
-        static void Postfix(Part __instance, int oldHealth, int newHealth, int __state)
+        static void Postfix(Part __instance, int oldHealth, int newHealth, (int Tech, Ship? Ship, bool Deconstructed) __state)
         {
-            if (__state < 0 || newHealth == oldHealth || Session.Current is not { } s || !Tele.On(Cat.Tech)) return;
+            if (__state.Tech < 0 || newHealth == oldHealth || Session.Current is not { } s || !Tele.On(Cat.Tech)) return;
             if (newHealth > oldHealth) return;
+            int before = __state.Tech;
             int after = newHealth == 0 ? 0 : Grid(__instance)?.Resources ?? 0;
-            AddDamage("vault", oldHealth - newHealth, newHealth == 0);
-            if (after == __state && newHealth > 0) return;
-            string cause = newHealth == 0 ? "vault_destroyed" : "vault_damage";
+            if (!__state.Deconstructed) AddDamage("vault", oldHealth - newHealth, newHealth == 0);
+            if (after == before && newHealth > 0) return;
+            string cause = __state.Deconstructed ? "vault_deconstructed" : newHealth == 0 ? "vault_destroyed" : "vault_damage";
+            var ship = __state.Ship;
             s.AddTechHint(cause);
             Tele.Emit(Cat.Tech, "tech.vault_hit", w =>
             {
-                w.WriteString("ship", __instance.Ship?.Metadata.PlainShipName);
-                w.WriteNumber("player", __instance.Ship?.Metadata.PlayerIndex ?? -1);
+                w.WriteString("ship", ship?.UniqueID.ToString());
+                w.WriteString("name", ship?.Metadata.PlainShipName);
+                w.WriteNumber("player", ship?.Metadata.PlayerIndex ?? -1);
+                w.WriteString("cause", cause);
                 w.WriteNumber("damage", oldHealth - newHealth);
                 w.WriteNumber("health", newHealth);
                 w.WriteNumber("max_health", __instance.Rules.MaxHealth);
-                w.WriteNumber("tech_before", __state);
+                w.WriteNumber("tech_before", before);
                 w.WriteNumber("tech_after", after);
-                w.WriteBoolean("destroyed", newHealth == 0);
+                w.WriteBoolean("destroyed", newHealth == 0 && !__state.Deconstructed);
             });
         }
     }
@@ -263,14 +270,8 @@ static class TelemetryPatches
             if (tech && name == "econ.trade")
                 s.AddTechHint(buyer ? "buyer" : e.TradeType switch { TradeType.Sell => "sale", TradeType.Buy => "buyback", _ => "trade" });
             // The job's price is the price of the order. Without the job (it can end with the delivery) the mode's current price stands in.
-            var mode = s.Game.Sim.Mode;
-            (int? price, string priceSrc) = (e.Crew.Job, e.TradeType) switch
-            {
-                (ResourceTransferJob job, _) => (job.PricePerResource, "order"),
-                (_, TradeType.Sell) => (mode.GetResourceSellRefund(e.ResourceType, e.SinkShip?.Metadata.PlayerIndex), "current"),
-                (_, TradeType.Buy) => (mode.GetResourceBuyCost(e.ResourceType, e.SourceShip?.Metadata.PlayerIndex), "current"),
-                _ => ((int?)null, ""),
-            };
+            int? price = SimQueries.TradeUnitPrice(s.Game.Sim.Mode, e.TradeType, e.ResourceType, e.Crew, e.SourceShip, e.SinkShip);
+            string priceSrc = e.Crew.Job is ResourceTransferJob ? "order" : "current";
             Tele.Emit(Cat.Economy, name, w =>
             {
                 w.WriteString("trade", e.TradeType.ToString());
@@ -302,17 +303,10 @@ static class TelemetryPatches
             {
                 bool human = s.Game.HumanPlayersIndexes.Contains(oldAllegiance);
                 if (human) s.AddTechHint("ship_lost");
-                Tele.Emit(Cat.Combat, "combat.destroyed", w =>
-                {
-                    w.WriteString("ship", ship.UniqueID.ToString());
-                    w.WriteString("name", ship.Metadata.PlainShipName);
-                    w.WriteNumber("player", oldAllegiance);
-                    w.WriteString("side", human ? "player" : ship.HasTag(HunterSpawner.HunterTag) ? "hunter" : IsHostile(s, oldAllegiance) ? "hostile" : "neutral");
-                    if (Cosmoteer.Factions.FactionRules.GetFaction(oldAllegiance) is { } f) w.WriteString("faction", f.ID.ToString());
-                    w.WriteBoolean("hunter", ship.HasTag(HunterSpawner.HunterTag));
-                    w.WriteNumber("value", ship.BaseBlueprintCost);
-                    if (ship.Tags is { } tags) { w.WriteStartArray("tags"); foreach (var t in tags) w.WriteStringValue(t.ToString()); w.WriteEndArray(); }
-                });
+                // Spec 1580: a broken ship counts once, when its last live piece is a wreck, with the side of the ship it came from.
+                if (FleetTelemetry.Junked(s, ship, oldAllegiance) is not { } info) return;
+                Tele.Emit(Cat.Combat, "combat.destroyed", w => TelemetryModel.WriteShipInfo(w, info));
+                s.FightDestroyed(info.Side);
             }
             catch (Exception ex) { Errors.Report("telemetry junked", ex.Message, ex); }
             finally { Stats.Exit(t0); }
@@ -352,6 +346,7 @@ static class TelemetryPatches
         if (!s.Game.HumanPlayersIndexes.Contains(crew.PlayerIndex)) return;
         int tech = crew.CarriedResource.QuantityOfType(Vaults.TechId);
         if (tech > 0) s.AddTechHint("crew_death");
+        s.FightCrewDied();
         Tele.Emit(Cat.Combat, "combat.crew_died", w =>
         {
             w.WriteNumber("player", crew.PlayerIndex);
@@ -365,7 +360,7 @@ static class TelemetryPatches
     static readonly Dictionary<string, (long Damage, long Repaired, int PartsLost)> Damage = [];
     static readonly Dictionary<int, bool> HostileByPlayer = [];
 
-    static bool IsHostile(Session s, int playerIndex)
+    internal static bool IsHostile(Session s, int playerIndex)
     {
         lock (HostileByPlayer)
         {
@@ -385,7 +380,9 @@ static class TelemetryPatches
             long t0 = Stats.Enter();
             try
             {
-                string side = ship.IsHumanPlayerShip ? "player" : ship.HasTag(HunterSpawner.HunterTag) ? "hunter" : IsHostile(s, ship.Metadata.PlayerIndex) ? "hostile" : "neutral";
+                // Spec 1587: crew that take a part apart lower its health too; that is no damage.
+                if (newHealth < oldHealth && ship.OptionalConstructionManager?.IsDeconstructionQueued(__instance, includeUnderlying: true) == true) return;
+                string side = FleetTelemetry.SideOf(s, ship, ship.Metadata.PlayerIndex);
                 AddDamage(side, oldHealth - newHealth, newHealth == 0);
             }
             finally { Stats.Exit(t0); }
@@ -415,6 +412,7 @@ static class TelemetryPatches
         // Allegiances change (wanted states, surrender), so the hostility cache starts over each window.
         lock (HostileByPlayer) HostileByPlayer.Clear();
         if (sums.Length == 0) return;
+        Session.Current?.FightWindow(sums.Where(kv => kv.Key != "vault").ToDictionary(kv => kv.Key, kv => kv.Value.Damage));
         Tele.Emit(Cat.Combat, "combat.damage", w =>
         {
             Tele.Num(w, "window_s", Run.Current?.T.Telemetry.AccrualSeconds ?? 0);
@@ -560,6 +558,7 @@ static class TelemetryPatches
         lock (DamageGate) Damage.Clear();
         lock (HostileByPlayer) HostileByPlayer.Clear();
         Interlocked.Exchange(ref _focusEvals, 0);
+        FleetTelemetry.ResetSession();
         Interlocked.Exchange(ref _focusBoosted, 0);
     }
 
@@ -602,7 +601,7 @@ static class TelemetryPatches
         static void WriteTo(CareerGameModeManager __instance, GenericSerialWriter writer) => Errors.Guard("telemetry save", () =>
         {
             if (Session.Current is not { } s || s.Run.Mode != __instance) return;
-            writer.WriteToPath(SavePath, new TelemetrySaveData { RunId = s.RunId, Sessions = s.SessionNumber });
+            writer.WriteToPath(SavePath, new TelemetrySaveData { RunId = s.RunId, Sessions = s.SessionNumber, Accepted = s.AcceptedCopy() });
             Tele.Emit(Cat.Run, "run.save", w => w.WriteString("caller", Caller()));
         });
 

@@ -58,6 +58,12 @@ public static class MissionArea
             RequireRun().Game.NetManager.EnqueueInput(new Cosmoteer.Modes.Career.Missions.MissionLogTab.MPAbandonMissionInput(LatestOfType(arg.Trim())));
             Autotest.Wait(2);
         };
+        // Spec 1596: a vanilla Visit mission through the real inputs. hc_visit_accept: the galaxy offer for the neighbor that "jump" takes.
+        // hc_visit_collect: the receive payment button of the nearest station. Field hc_visit: 0 none, 1 on the way, 2 arrived and the
+        // reward waits at the stations of the system, 3 paid and out of the log, 4 other.
+        Autotest.Commands["hc_visit_accept"] = _ => VisitAccept();
+        Autotest.Commands["hc_visit_collect"] = _ => VisitCollect();
+        Autotest.Fields["hc_visit"] = () => VisitState();
         Autotest.Commands["hc_generate"] = TestGenerate;
         Autotest.Commands["hc_accept"] = TestAccept;
         Autotest.Commands["hc_escort_goto"] = _ => TeleportPlayers(RequireEscort().Escort.DetLocation() ?? throw new InvalidOperationException("escort is not in this system"));
@@ -245,6 +251,55 @@ public static class MissionArea
             if (s is SimObjectSpawner { SubSpawners: { } subs })
                 foreach (SimSpawner sub in AllSpawners(subs)) yield return sub;
         }
+    }
+
+    static Mission? _visit;
+
+    static void VisitAccept()
+    {
+        var run = RequireRun();
+        var next = run.Game.CurrentMapNode.Connections.FirstOrDefault(n => !run.State.VisitedNodes.Contains(n.UniqueID))
+            ?? throw new InvalidOperationException("no unvisited neighbor system");
+        var gotos = new List<Cosmoteer.Modes.Career.Missions.Objectives.GotoNodeObjective>();
+        _visit = run.Mode.GameGlobalAvailableMissions.FirstOrDefault(m =>
+        {
+            gotos.Clear();
+            foreach (var o in m.Objectives) o.GetObjectives(gotos);
+            return m.MetatypeID.ToString() == "VisitSystem" && gotos.Any(g => g.MapNodeID == next.UniqueID);
+        }) ?? throw new InvalidOperationException($"no Visit offer for {next.Name}");
+        run.Game.NetManager.EnqueueInput(new Cosmoteer.Modes.Career.Comms.CommMissionsTab.MPAcceptMissionInput(
+            Cosmoteer.Modes.Career.Comms.CommMissionsTab.MissionSourceType.GameGlobal, null, _visit));
+        Log.Info($"AUTOTEST Visit {next.Name} offered, fame prerequisite {_visit.FamePrereq}");
+    }
+
+    /// <summary>Moves the players next to the nearest station that gives missions, then presses its receive payment button.</summary>
+    static void VisitCollect()
+    {
+        var m = _visit ?? throw new InvalidOperationException("no Visit mission; run hc_visit_accept first");
+        var sim = RequireSim();
+        var me = sim.Ships.HumanPlayerSignificantShips.First();
+        var station = SpaceStation.GetStations(sim, onlyOperating: true).Where(st => st.GetProvidedMissions() is not null)
+            .OrderBy(st => st.DetWorldCenter.DistanceTo(me.DetWorldCenter)).ThenBy(st => st.StationID).Select(st => (MetaSpaceStation?)st).FirstOrDefault();
+        if (station is not { } st0) throw new InvalidOperationException("no station that gives missions in this system");
+        var id = st0.StationID;
+        var at = Autotest.ClearSpotNear(sim, st0.DetWorldCenter, 900f, me.WorldBoundingRadius);
+        foreach (Ship s in sim.Ships.HumanPlayerSignificantShips.ToList()) Autotest.Teleport(s, at);
+        Autotest.WaitFor(() => sim.Ships[id] is not null, 20, "the station to leave stasis", then: () =>
+        {
+            RequireRun().Game.NetManager.EnqueueInput(new Cosmoteer.Modes.Career.Comms.CommMissionsTab.MPMissionPaymentInput(sim.Ships[id]!, m));
+            Log.Info($"AUTOTEST Visit payment at {sim.Ships[id]!.Metadata.PlainShipName}");
+        });
+    }
+
+    static int VisitState()
+    {
+        var run = RequireRun();
+        if (_visit is not { } m) return 0;
+        if (!run.Mode.Missions.ContainsMission(m)) return m.Completion == CompletionState.Completed ? 3 : 4;
+        var gotos = new List<Cosmoteer.Modes.Career.Missions.Objectives.GotoNodeObjective>();
+        foreach (var o in m.Objectives) o.GetObjectives(gotos);
+        if (gotos.All(g => g.Completion == CompletionState.InProgress)) return 1;
+        return ((CareerSimModeManager)RequireSim().Mode).SimGlobalPendingRewards.ContainsMission(m) ? 2 : 4;
     }
 
     static void TestAccept(string arg) =>

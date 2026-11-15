@@ -133,4 +133,30 @@ HotCargoUx
 	WantedSeenFmt = "{0}   <bad>seen, timer paused</bad>"
 	WantedByFmt = "{0}"
 	WantedLeftFmt = "{0}   search ends in <fame_color>{1}</fame_color>"
+
+	// Jump warnings (spec 1560 to 1569)
+	JumpWhyNoDrive = "no hyperdrive"
+	JumpWhyNoControl = "no control"
+	JumpWhyTooBig = "too big for its hyperdrives"
+	JumpWhyNeedFuel = "needs hyperium"
+	JumpWhyNotOrdered = "not ordered to jump"
+	JumpWhySpinningUp = "hyperdrives still spinning up"
+	JumpStaysFmt = "{0} stays behind: {1}."
+	JumpHoverFmt = "Stays behind on a jump: {0}"
+	JumpFixNoDrive = "Build a hyperdrive on it."
+	JumpFixNoControlFmt = "It needs {0} command points and has {1}. Crew a control room."
+	JumpFixTooBigFmt = "This jump costs {0} hyperium, its hyperdrives hold {1}. Add a hyperdrive, or make the ship smaller."
+	JumpFixTooBigHereFmt = "A jump from here costs at least {0} hyperium, its hyperdrives hold {1}. Add a hyperdrive, or make the ship smaller."
+	JumpFixNeedFuelFmt = "This jump costs {0} hyperium, it has {1}. Load hyperium."
+	JumpStatusTooBig = "<bad><s12>TOO BIG</s12></bad>"
+	JumpStatusNoControl = "<bad><s12>NO CONTROL</s12></bad>"
+	JumpDialogHead = "These ships stay behind:"
+	JumpDialogLineFmt = "  {0}: {1}"
+	JumpDialogAsk = "Jump anyway?"
+	// Spec 1567: {0} system, {1} ships there
+	// Payment hint (spec 1600): {0} mission name
+	PaymentHereLine = "<fame_color>Call a station here to collect payment</fame_color>"
+	PaymentHintFmt = "{0}: call a station here to collect payment."
+	StrandedCenterFmt = "NO SHIP HERE. YOUR FLEET WAITS IN {0}"
+	StrandedFmt = "No ship here. Your fleet waits in {0} ({1} ships).\nOpen the map (<btn id='Game.ToggleMap'/>) and click {0} to go there."
 }

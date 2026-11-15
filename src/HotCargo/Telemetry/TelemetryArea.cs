@@ -28,6 +28,7 @@ public static class TelemetryArea
         Run.Hooks.StrikeWave += Session.OnStrikeWave;
         Run.Hooks.SystemEntered += Session.OnSystemEntered;
         Events.EventRunner.OutcomeChosen += Session.OnOutcomeChosen;
+        DiplomacyTelemetry.Register();
         Log.Written += OnLogWritten;
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Session.End("process_exit");
         AddAutotest();
@@ -54,7 +55,8 @@ public static class TelemetryArea
         Tele.Emit(Cat.Log, "log", (level, message), static (w, a) =>
         {
             w.WriteString("level", a.level);
-            w.WriteString("msg", a.message);
+            // Spec 1585: no user folder or Steam ID in the telemetry files.
+            w.WriteString("msg", TelemetryModel.Scrub(a.message));
         });
     }
 

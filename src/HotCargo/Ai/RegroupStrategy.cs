@@ -56,7 +56,7 @@ internal sealed class RegroupStrategy(RegroupStrategyRules rules) : AIStrategyMo
         bool coolingDown = !_active && now < _cooldownUntil;
         // Firepower estimates cost the most, so they run only when the ally counts allow a regroup.
         bool want = allies.Count > near && near + 1 < Math.Min(t.RegroupMinGroup, allies.Count + 1) && !timedOut && !coolingDown
-                    && AiModel.ShouldRegroup(ship.Weapons.GetTotalFirePower(), target.Weapons.GetTotalFirePower(), t.RegroupFirepowerRatio,
+                    && AiModel.ShouldRegroup(Firepower.Of(ship), Firepower.Of(target), t.RegroupFirepowerRatio,
                         near, allies.Count, t.RegroupMinGroup, timedOut, coolingDown);
         if (!want) return End(ship, now, t);
         if (!_active)

@@ -192,6 +192,19 @@ public sealed class TacticsTunables
     /// <summary>The ship attacks anyway after this long, and does not regroup again for the same time.</summary>
     [Serialize(Optional = true)] public float RegroupMaxSeconds = 25f;
 
+    // Steady states and firepower (spec 1531-1533).
+
+    /// <summary>
+    /// A fleeing trade ship keeps fleeing while an enemy is within its radar radius × this. It starts to flee at the radar radius,
+    /// as in vanilla. 1: vanilla (it stops at the radar radius and turns back).
+    /// </summary>
+    [Serialize(Optional = true)] public float TraderFleeStopFactor = 1.75f;
+    /// <summary>
+    /// Hot Cargo firepower counts each weapon at most this much. The highest fixed vanilla rating is 7,500 (resonance beam);
+    /// a missile launcher rates at the damage of its current missile, up to 50,000.
+    /// </summary>
+    [Serialize(Optional = true)] public float FirepowerWeaponCap = 8000f;
+
     /// <summary>Called from TunablesFile.Validate (spec 53).</summary>
     public void Validate(Action<bool, string> require)
     {
@@ -201,6 +214,7 @@ public sealed class TacticsTunables
         require(CallSightMargin >= 0, "Tactics.CallSightMargin must be 0 or more");
         require(CallStormStrength is > 0 and <= 1, "Tactics.CallStormStrength must be above 0 and at most 1");
         require(RegroupMinGroup >= 1, "Tactics.RegroupMinGroup must be 1 or more");
+        require(TraderFleeStopFactor >= 1 && FirepowerWeaponCap > 0, "Tactics.TraderFleeStopFactor must be 1 or more, FirepowerWeaponCap above 0");
         require(FallBackTripSeconds > 0 && FallBackArriveDistance > 0 && FallBackPoolRange >= 0,
             "Tactics.FallBackTripSeconds and FallBackArriveDistance must be above 0, FallBackPoolRange 0 or more");
         require(FallBackCrewFraction is >= 0 and <= 1, "Tactics.FallBackCrewFraction must be 0 to 1");

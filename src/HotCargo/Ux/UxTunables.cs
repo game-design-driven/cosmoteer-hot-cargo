@@ -40,6 +40,10 @@ public sealed class UxTunables
     [Serialize(Optional = true)] public bool ShipIntegrity = true;
     /// <summary>Banner, sound and chat log line when one of your ships is destroyed, becomes derelict or loses control.</summary>
     [Serialize(Optional = true)] public bool ShipLossAlerts = true;
+    /// <summary>Ships that stay behind on a jump: TOO BIG and NO CONTROL in the jump window, the list in the jump dialog, a hover line, a notice when a ship joins.</summary>
+    [Serialize(Optional = true)] public bool JumpWarnings = true;
+    /// <summary>A mission paid by any station in a system: its line says to call a station there, and one hint shows at the arrival.</summary>
+    [Serialize(Optional = true)] public bool PaymentHint = true;
     /// <summary>Pings the blip of your ship and marks it "under fire" when it loses part health. Polled on the GUI frame.</summary>
     [Serialize(Optional = true)] public bool DamagePings = true;
     /// <summary>Seconds that a blip stays marked "under fire" after the last damage.</summary>

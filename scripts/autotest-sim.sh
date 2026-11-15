@@ -8,8 +8,9 @@
 # - Same log place as the PC runner: <container>/.state/logs/<worktree>/<name>.<time>.sim.log, summary in run-sim-<time>/.
 # - Retries a failed run once, like autotest.sh. A pass on the retry prints FLAKY and goes to ../.state/flaky.log.
 #   The fixed-step clock repeats most sim values, but background work (jumps, spawns, the telemetry writer) runs in real time.
-# - Parallel runs: HOT_CARGO_SIM_JOBS, default from the cores and the memory (see below). The limit is for the whole machine:
-#   runs of every worktree share the slot locks /tmp/hot_cargo_sim_slot_<n>.lock.
+# - Parallel runs: the Mac sim cap (sim_jobs in autotest-lib.sh: HOT_CARGO_SIM_JOBS, else from the cores and the memory).
+#   The cap is for the whole machine: runs of every worktree, and Mac screenshot games (screens.sh RUNNER=mac), share the
+#   slot locks /tmp/hot_cargo_sim_slot_<n>.lock (take_sim_slots in autotest-lib.sh).
 # Needs the game files in ../.game (scripts/pull-game.sh). Exit code 0 only if every test passed.
 # Called by: agents, autotest-affected.sh and ci-sim-tests.sh (CI).
 set -uo pipefail
@@ -25,11 +26,7 @@ for t in "${TESTS[@]}"; do
   [[ -f "$f" ]] || { echo "autotest-sim: no test $t ($f)" >&2; exit 2; }
 done
 
-# One run takes about one core and 2 GB at its peak. Two cores stay free for the agents and the build.
-if [[ "$(uname)" == Darwin ]]; then CORES="$(sysctl -n hw.ncpu)" MEM_GB=$(( $(sysctl -n hw.memsize) / 1024 / 1024 / 1024 ))
-else CORES="$(nproc)" MEM_GB=$(( $(awk '/^MemTotal:/ { print $2 }' /proc/meminfo) / 1024 / 1024 )); fi
-JOBS="${HOT_CARGO_SIM_JOBS:-$(( CORES - 2 < MEM_GB / 2 ? CORES - 2 : MEM_GB / 2 ))}"
-(( JOBS >= 1 )) || JOBS=1
+JOBS="$(sim_jobs)"
 
 RUN_DIR="$LOG_DIR/run-sim-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$RUN_DIR"
@@ -38,24 +35,6 @@ STAGE="$RUN_DIR/stage"
 { dotnet build tools/headless-sim/HeadlessSim.csproj -c Release -nologo -v quiet -clp:ErrorsOnly && scripts/stage.sh "$STAGE"; } > "$RUN_DIR/build.log" 2>&1 \
   || { cat "$RUN_DIR/build.log"; echo "== build failed"; exit 1; }
 echo "== build and stage: $((SECONDS - SUITE_START)) s"
-
-# Takes $2 free sim slots at once (all or none, so two co-op runs cannot deadlock), writes the owner pid $1 into each and
-# prints their lock folders. A co-op session runs two game processes.
-take_sim_slots() {
-  local i lock got=()
-  while :; do
-    got=()
-    for ((i = 1; i <= JOBS && ${#got[@]} < $2; i++)); do
-      lock="/tmp/hot_cargo_sim_slot_$i.lock"
-      if lock_is_stale "$lock"; then rm -rf "$lock"; fi
-      # A slot counts only when its pid landed: another taker's stale cleanup can remove a lock between mkdir and the write.
-      if mkdir "$lock" 2>/dev/null && echo "$1" > "$lock/pid.tmp" 2>/dev/null && mv -f "$lock/pid.tmp" "$lock/pid" 2>/dev/null; then got+=("$lock"); fi
-    done
-    if [[ ${#got[@]} -eq $2 ]]; then echo "${got[*]}"; return; fi
-    rm -rf "${got[@]}"
-    sleep 2
-  done
-}
 
 # One co-op session. Prints its result line; returns 0 on a pass.
 run_mp() {

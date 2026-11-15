@@ -114,6 +114,7 @@ The prune of 2026-11-14 classified every game test with evidence: git history (f
 | missions-offers | KEEP | Offers and AI sides; kept over the co-op step. | 60 |
 | missions-save | KEEP | Save and load of custom mission objectives. | 82 |
 | missions-shady | KEEP | Shady roll and trap; kept over the co-op step. | 54 |
+| missions-visit | KEEP | Visit mission through the accept patch, the jump hook and the station payment (spec 1596; playtest report of 2026-11-14). | - |
 | onboarding-hints | KEEP | Onboarding smoke test (PC only). | PC |
 | onboarding-log | KEEP | Run log hooks, saved with the run. | 215 |
 | pursuit-blockade | KEEP | Bug history (4614036, d25f1c4); heat. | 72 |

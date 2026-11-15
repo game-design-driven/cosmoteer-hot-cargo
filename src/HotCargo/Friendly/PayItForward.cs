@@ -4,6 +4,8 @@ using Cosmoteer.Generators.Simulation;
 using Cosmoteer.Modes.Career;
 using Cosmoteer.Ships;
 using Cosmoteer.Simulation;
+using Cosmoteer.Simulation.Stasis;
+using Halfling.Geometry;
 using Halfling.Random;
 using HarmonyLib;
 using HotCargo.Core;
@@ -115,16 +117,38 @@ static class PayItForward
         S(run).HelpRolled.Add(node);
         float roll = new FastRand((uint)node, 0x5041_5946UL).Single();
         Log.Info($"friendly: outclassed (players {players:0}, enemies {enemies:0}); help roll {roll:0.000} vs {t.PayForwardChance:0.000}");
-        if (roll < t.PayForwardChance) Arrive(run, sim);
+        if (roll < t.PayForwardChance) Arrive(run, sim, Anchor(run, playerShips, enemyShips).DetWorldCenter);
     }
 
-    static void Arrive(Run run, SimRoot sim)
+    /// <summary>
+    /// Spec 1370: the player ship with the most enemy strength within PayForwardRadius; ties go to the lowest ID. Not the center of all
+    /// player ships: in co-op the players can be far apart, and a spawn far from every player ship goes into stasis (spec 1536).
+    /// The caller has a qualifying fight, so there is at least one player ship.
+    /// </summary>
+    static Ship Anchor(Run run, List<Ship> players, List<Ship> enemies)
     {
-        var at = SimQueries.FleetCenter(sim) ?? throw new InvalidOperationException("no player ships for the Wayfarers to help");
+        float r = run.T.Friendly.PayForwardRadius;
+        return players.OrderByDescending(p => enemies.Where(e => e.DetWorldCenter.DistanceTo(p.DetWorldCenter) <= r).Sum(Situation.Strength))
+            .ThenBy(p => p.UniqueID).First();
+    }
+
+    /// <summary>
+    /// Spec 1370, 1536. Spawns the Wayfarers around a point and hires them. Vanilla puts ships that spawn out of the live range of every
+    /// stasis root into stasis, not into the sim; then no help comes, and the stasis ships are removed so they never load as strays.
+    /// </summary>
+    internal static void Arrive(Run run, SimRoot sim, Vector2 at)
+    {
         var before = sim.Ships.Where(x => x.HasTag(Tag)).Select(x => x.UniqueID).ToHashSet();
+        var stasisBefore = StasisWayfarers(sim).Select(x => x.ReservedObjectID).ToHashSet();
         EventLibrary.Spawn(Spawn).Generate(sim, new FastRand(sim.Rand.UInt64()), loadInstantly: true, rootLoc: at, addExistingSpawnTags: true);
         var fleet = sim.Ships.Where(x => x.HasTag(Tag) && !before.Contains(x.UniqueID)).OrderBy(x => x.UniqueID).ToList();
-        if (fleet.Count == 0) throw new InvalidOperationException($"{Spawn} made no ships tagged {Tag}");
+        if (fleet.Count == 0)
+        {
+            var stray = StasisWayfarers(sim).Where(x => !stasisBefore.Contains(x.ReservedObjectID)).ToList();
+            foreach (var x in stray) sim.Stasis.RemoveStasisSpawner(x);
+            Log.Info($"friendly: the {Spawn} spawn at {at} made no live ships ({stray.Count} went into stasis and were removed); no help");
+            return;
+        }
         // The employer of the hire: the first human player; the hired AI fights the enemies of the players near that player's ships.
         int player = run.Game.HumanPlayersIndexes.Min();
         double until = run.State.GameSeconds + run.T.Friendly.PayForwardFightMinutes * 60.0;
@@ -139,6 +163,10 @@ static class PayItForward
         FriendlyArea.Say(run.Game, FriendlyArea.Text("WayfarersArriveFmt", fleet.Count));
         Log.Info($"friendly: {fleet.Count} Wayfarers arrive to help");
     }
+
+    /// <summary>Ships of the Wayfarers spawn that wait in stasis, in ID order.</summary>
+    internal static List<StasisShipSpawner> StasisWayfarers(SimRoot sim) =>
+        sim.Stasis.OfType<StasisShipSpawner>().Where(x => x.Tags?.Contains(Tag) == true).OrderBy(x => x.ReservedObjectID).ToList();
 
     /// <summary>Spec 1371: the fight is over. The leader's comms show the "pay it forward" page and it hails; the fleet repairs itself.</summary>
     static void Hail(Run run, SimRoot sim)

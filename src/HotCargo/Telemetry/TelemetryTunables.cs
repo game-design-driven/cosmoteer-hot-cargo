@@ -39,6 +39,8 @@ public sealed class TelemetryTunables
     [Serialize(Optional = true)] public bool Log = true;
     /// <summary>trace: calls of the methods in Trace, with their arguments, result and duration.</summary>
     [Serialize(Optional = true)] public bool Trace = true;
+    /// <summary>dip.*: hails, surrender demands and offers, hail choices with their odds, price and result.</summary>
+    [Serialize(Optional = true)] public bool Diplomacy = true;
 
     // ---- Rates and limits
     /// <summary>Game seconds between two snapshots.</summary>
@@ -49,6 +51,8 @@ public sealed class TelemetryTunables
     [Serialize(Optional = true)] public float AccrualSeconds = 5f;
     /// <summary>Game seconds between two scans for new mission offers and ships that spawned into stasis.</summary>
     [Serialize(Optional = true)] public float ScanSeconds = 5f;
+    /// <summary>Game seconds without damage to the players or their enemies that end a fight (combat.fight).</summary>
+    [Serialize(Optional = true)] public float FightGapSeconds = 90f;
     /// <summary>A ship logs at most one AI module switch per this many game seconds.</summary>
     [Serialize(Optional = true)] public float AiSwitchMinSeconds = 3f;
     /// <summary>At most this many AI switch events per real minute, over all ships. The sums in snapshots count every switch.</summary>
@@ -92,6 +96,7 @@ public sealed class TelemetryTunables
         require(PerfSeconds >= 1, "Telemetry.PerfSeconds must be 1 or more");
         require(AccrualSeconds >= 0.5f, "Telemetry.AccrualSeconds must be 0.5 or more");
         require(ScanSeconds >= 1, "Telemetry.ScanSeconds must be 1 or more");
+        require(FightGapSeconds >= 5, "Telemetry.FightGapSeconds must be 5 or more");
         require(AiSwitchMinSeconds >= 0 && AiEventsPerMinute >= 0 && CallerLookupsPerSecond >= 0, "Telemetry rate limits must not be negative");
         require(MaxFileMegabytes >= 1 && MaxFolderMegabytes >= MaxFileMegabytes, "Telemetry.MaxFileMegabytes must be 1 or more and at most MaxFolderMegabytes");
         require(TraceMethods.All(m => m.Contains(':')), "Telemetry.TraceMethods entries need the form Namespace.Type:Method");

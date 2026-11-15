@@ -63,6 +63,18 @@ public class AiModelTests
     }
 
     [Fact]
+    public void Firepower_caps_each_weapon_and_ignores_the_order()
+    {
+        // Playtest: one missile launcher rated 50,000 counted ten times a mothership. Capped, it counts as one strong weapon.
+        Assert.Equal(8000f + 3000f + 500f, AiModel.Firepower([50000f, 3000f, 500f], 8000f), 3);
+        Assert.Equal(AiModel.Firepower([0.1f, 7000f, 0.2f, 1e-3f], 8000f), AiModel.Firepower([7000f, 1e-3f, 0.2f, 0.1f], 8000f));
+        Assert.Equal(8000f, AiModel.Firepower([float.PositiveInfinity, -5f], 8000f));
+        Assert.Equal(0f, AiModel.Firepower([], 8000f));
+        Assert.Throws<ArgumentOutOfRangeException>(() => AiModel.Firepower([float.NaN], 8000f));
+        Assert.Throws<ArgumentOutOfRangeException>(() => AiModel.Firepower([1f], 0f));
+    }
+
+    [Fact]
     public void Strike_scales_with_the_run_and_splits_into_waves()
     {
         Assert.Equal(0f, WaveModel.Progress(1, 8));

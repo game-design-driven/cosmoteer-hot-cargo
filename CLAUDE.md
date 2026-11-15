@@ -7,6 +7,7 @@ The whole workflow (agents, PRs, tests, the PC, releases) and which parts are ge
 Procedures are skills in `.claude/skills/`:
 - `hot-cargo-testing`: build, unit tests, headless game tests, co-op tests, infrastructure failures.
 - `hot-cargo-screenshots`: screenshots in a windowed test slot (never the player's game slot).
+- `hot-cargo-part-art`: draw or change the art of a part (vanilla layers by reference, own layers from `tools/sprites/`).
 - `hot-cargo-install`: install a build into the player's own game.
 - `hot-cargo-release`: publish a GitHub release.
 - `hot-cargo-new-area`: add a feature area (entry point, tunables, rules, strings).
@@ -39,7 +40,7 @@ Procedures are skills in `.claude/skills/`:
 - Cosmoteer 0.30.5a, .NET 10, Windows only. It runs on a Windows PC that `scripts/pc.local.sh` names (`PC_MACHINE`). You work on a Mac.
 - A spec or doc line that says how the vanilla game behaves names the decompiled method or rules file it comes from. Check it there before you build on it.
 - Ground truth for game code: the decompiled game in `../.game/decompiled/Cosmoteer/Cosmoteer/` and `../.game/decompiled/HalflingCore/Halfling/`. Read the definition of a game method before you call or patch it, and match its exact signature.
-- Vanilla rules: `../.game/Data/`. PNG files exist only on the PC.
+- Vanilla rules: `../.game/Data/`. Vanilla PNG files: on the PC, and on the Mac in the cosmoteer-macos game folder (`../../cosmoteer-macos/.game/Data/`). Never copy them into the repo.
 - The build publicizes Cosmoteer and HalflingCore, so internal and private members are accessible.
 - The C# code loads through a .NET startup hook before the game reads rules. Polymorphic rules types (`Type = X`) in our assembly are found by the game's serializer. Explicit bases (ObjectiveSpawner, Objective, RewardSpawner, SimSpawner, MPInput) need `[SerialDerivedType(TypeName = "...")]`.
 
