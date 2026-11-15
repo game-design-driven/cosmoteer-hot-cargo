@@ -67,3 +67,14 @@ def test_fights_jumps_captures_and_diplomacy_make_tables(tmp_path: Path) -> None
     assert {r[1] for r in titles["Fleet changes"].rows} == {"captured", "left the fleet"}
     assert titles["Diplomacy"].rows[0][9] == "yes"
     assert any(f.startswith("Captures: 1 ships (claim 1), 1 without a hyperdrive") for f in rep.findings)
+
+
+def test_a_client_copy_on_the_host_stays_its_own_run(tmp_path: Path) -> None:
+    head = {"run": "r", "wall_utc": "2026-01-01T00:00", "mp": True}
+    write(tmp_path / "r__host.jsonl", [ev("session.start", 0, session="host", host=True, local_player=0, **head)])
+    (tmp_path / "players" / "Tom").mkdir(parents=True)
+    write(tmp_path / "players" / "Tom" / "r__cli.jsonl", [ev("session.start", 0, session="cli", host=False, local_player=1, **head)])
+    # The same client file, pulled from the client's machine as well, counts once.
+    write(tmp_path / "r__cli.jsonl", [ev("session.start", 0, session="cli", host=False, local_player=1, **head)])
+    runs = {r.id: [s.id for s in r.sessions] for r in load(tmp_path)}
+    assert runs == {"r": ["host"], "r (client 1)": ["cli"]}

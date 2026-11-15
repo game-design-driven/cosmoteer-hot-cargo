@@ -1,0 +1,27 @@
+# The run's first system (spec 69, 70): it has no jump in, so its Arrival roll comes when the start cooldown ends, at the chance
+# × FirstSystemChanceFactor. Its Station roll waits for that cooldown, so a station next to the start does not use it up.
+newgame run
+wait 8
+ev_set CourierChance 0
+ev_set StationEventChance 0
+# 0.6 × 2 caps at 1, so the roll is sure for the check (the default factor 1.5 gives 0.9).
+ev_set FirstSystemChanceFactor 2
+expect ev_pending == 0
+waitfor ev_pending == 1 200
+expect ev_seen == 1
+eventview
+answer
+# A new run: next to a station during the start cooldown, the Station roll waits, then rolls when the cooldown ends.
+newgame run
+wait 8
+ev_set CourierChance 0
+ev_set ArrivalEventChance 0
+ev_set StationEventChance 0.5
+ev_set FirstSystemChanceFactor 2
+ev_tostation
+wait 20
+expect ev_pending == 0
+expect ev_seen == 0
+waitfor ev_pending == 1 200
+expect ev_carrier == 1
+quit

@@ -47,7 +47,7 @@ Fields not listed in the "Not now" column apply Now.
 A value stays delayed only when an earlier change would be wrong or would break co-op. The live pass for spec 850 to 854 kept these:
 
 - Next spawned ships: ships in space keep their build, tier and fuel. Changing a live ship mid-fight would be a new spawn, not a tuning change.
-- `Events.ArrivalDelaySeconds`: the arrival roll time is set at the system entry.
+- `Events.ArrivalDelaySeconds`: the arrival roll time is set at the system entry. In the run's first system it is set at the run start, from the later of `ArrivalDelaySeconds` and `CooldownSeconds`.
 - Next mission offers: an offer keeps its terms, so the price that the offer showed is the price that the players pay.
 - Next new system: the roll for a system happened (missions, events, chains, the arrival line). Rolling again would change a system that the players already see.
 - New runs only: the value sets up the run start (starting tech, starting research, relic sector).

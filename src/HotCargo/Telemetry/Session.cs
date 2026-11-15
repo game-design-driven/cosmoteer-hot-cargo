@@ -57,6 +57,8 @@ sealed class Session
     public string SessionId { get; }
     public int SessionNumber { get; }
     public string FilePath { get; }
+    /// <summary>The file that gets new lines now: the newest part of the session.</summary>
+    public string WriterPath => TelemetryWriter.CurrentPath ?? FilePath;
     readonly Stopwatch _real = Stopwatch.StartNew();
     public double RealSeconds => _real.Elapsed.TotalSeconds;
     public double SimSeconds => _simSeconds;
@@ -205,6 +207,8 @@ sealed class Session
         Current = null;
         Tele.SetMask(null);
         TelemetryWriter.Close();
+        // Spec 1593: a co-op client whose game closes sends the rest of its files once.
+        if (reason is "game_closed" or "game_closed_after_loss") Errors.Guard("telemetry relay rest", () => Relay.SendRest(s));
     }
 
     void Subscribe()

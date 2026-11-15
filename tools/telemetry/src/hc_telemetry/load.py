@@ -80,5 +80,7 @@ def load(root: Path) -> list[Run]:
     runs: dict[str, Run] = {}
     for s in sorted(by_session.values(), key=lambda s: s.wall):
         s.end = next((e for e in reversed(s.events) if e["e"] == "session.end"), None)
-        runs.setdefault(s.header["run"], Run(s.header["run"])).sessions.append(s)
+        # A co-op client's files (its own folder, or its copies on the host under players/) share the host's run ID; they stay a run of their own.
+        key = s.header["run"] if s.header.get("host", True) else f"{s.header['run']} (client {s.header.get('local_player')})"
+        runs.setdefault(key, Run(key)).sessions.append(s)
     return sorted(runs.values(), key=lambda r: r.sessions[0].wall)

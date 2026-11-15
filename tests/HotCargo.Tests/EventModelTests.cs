@@ -274,4 +274,25 @@ public class EventModelOptionTests
         Assert.Equal(50, EventModel.OfferPercent(0.5f, 1f));
         Assert.Equal(100, EventModel.OfferPercent(0f, 0f));
     }
+
+    [Fact]
+    public void First_system_raises_the_trigger_chance_up_to_1()
+    {
+        Assert.Equal(0.9f, EventModel.TriggerChance(0.6f, firstSystem: true, firstSystemFactor: 1.5f), 4);
+        Assert.Equal(0.75f, EventModel.TriggerChance(0.5f, firstSystem: true, firstSystemFactor: 1.5f), 4);
+        Assert.Equal(1f, EventModel.TriggerChance(0.8f, firstSystem: true, firstSystemFactor: 1.5f));
+        Assert.Equal(0.6f, EventModel.TriggerChance(0.6f, firstSystem: false, firstSystemFactor: 1.5f));
+        // A test that turns a trigger off keeps it off in system 1 too.
+        Assert.Equal(0f, EventModel.TriggerChance(0f, firstSystem: true, firstSystemFactor: 1.5f));
+    }
+
+    [Fact]
+    public void Default_first_system_has_an_event_in_about_97_percent_of_visits()
+    {
+        // The defaults (Arrival 0.6, Station 0.5, factor 1.5): one Arrival roll and one Station roll in system 1.
+        float arrival = EventModel.TriggerChance(0.6f, true, 1.5f), station = EventModel.TriggerChance(0.5f, true, 1.5f);
+        Assert.Equal(0.975f, EventModel.AtLeastOne([arrival, station]), 3);
+        // Before: no Arrival roll in system 1, and the Station roll alone.
+        Assert.Equal(0.5f, EventModel.AtLeastOne([0.5f]), 3);
+    }
 }
