@@ -3,6 +3,8 @@
 # The codes sell at a station.
 newgame run
 wait 8
+# The fleet must keep its hold: a random fight at the station or the arrival gate can destroy the case or the beacon.
+shieldplayers on
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0
 ev_set CourierChance 0
