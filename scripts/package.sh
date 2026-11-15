@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build the player zip: hot-cargo-<version>.zip with the mod, the loader, install.bat, uninstall.bat and INSTALL.md.
 # Usage: package.sh <version> <output folder>. Prints the zip path.
+# Exit code non-zero when the build fails. Called by: release.sh and .github/workflows/dev-release.yml.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION="${1:?usage: package.sh <version> <output folder>}"

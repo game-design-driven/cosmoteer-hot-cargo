@@ -2,6 +2,7 @@
 # Copy telemetry files from the PC into ../.telemetry/<slot>/ (outside the repo). TELEMETRY.md describes the files.
 # Usage: pull-telemetry.sh [SLOT...]   Without a slot it pulls every test slot (t1..tN) and the main slot.
 # Files that are already here with the same size are not copied again. Then run: cd tools/telemetry && uv run hc-telemetry
+# Exit code non-zero when a copy fails. Called by: autotest-all.sh --telemetry, or by hand.
 set -euo pipefail
 source "$(dirname "$0")/autotest-lib.sh"
 OUT="${HOT_CARGO_TELEMETRY_DIR:-$REPO_ROOT/../.telemetry}"

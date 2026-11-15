@@ -2,6 +2,7 @@
 # Sets or clears the player hold on the main slot (see refuse_if_player_hold in pc.sh).
 # Usage: player-hold.sh on | off | status
 # on: no script may start or stop a game in slot main. off: only when the player says the PC is free.
+# Exit code 2 for an unknown argument. Called by: the coordinator only (hot-cargo-coordinate skill).
 set -euo pipefail
 source "$(dirname "$0")/pc.sh"
 case "${1:-status}" in

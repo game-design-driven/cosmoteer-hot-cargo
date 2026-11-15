@@ -2,6 +2,8 @@
 
 Hot Cargo is a Cosmoteer career mod: C# Harmony code plus `.rules` content. Read `SPEC.md` and `spec/` (design and numbered requirements, one file per section) and `CONTRIBUTING.md` (layout, build, test) before you change anything. Feature docs: `EVENTS.md`, `MISSIONS.md`, `CHAINS.md`, `WORLDS.md`, `UX.md`, `TUNABLES.md`, `BALANCE.md`, `TELEMETRY.md`.
 
+The whole workflow (agents, PRs, tests, the PC, releases) and which parts are generic: `docs/WORKFLOW.md`.
+
 Procedures are skills in `.claude/skills/`:
 - `hot-cargo-testing`: build, unit tests, headless game tests, co-op tests, infrastructure failures.
 - `hot-cargo-screenshots`: screenshots in a windowed test slot (never the player's game slot).
@@ -15,14 +17,14 @@ Procedures are skills in `.claude/skills/`:
 - `hot-cargo-balance`: change balance defaults with the economy model, the balance tests and `BALANCE.md`.
 - `hot-cargo-game-update`: bring the mod to a new Cosmoteer version.
 - `hot-cargo-player-ships`: Tech Vaults in the player's saved ships or the starter ships (coordinator only).
-- `hot-cargo-coordinate`: the agent watch, the player hold and main-slot work (coordinator only).
+- `hot-cargo-coordinate`: briefs, the agent watch, merges and failures, the player hold and main-slot work (coordinator only).
 
 ## Git
 
 - Feature work goes through a pull request: push the feature branch and open a PR with a short summary and screenshots of visible changes (`gh-pr-images` skill). CI checks it (build, unit tests, private data; the game tests in the merge queue). Start PR descriptions and comments with 🤖; keep them short. Small fixes go through a short PR too. Conventional commits.
 - Feature work happens in a worktree of the bare repo (`../.bare`), one branch for each feature, and reaches `main` only through its pull request.
-- Owner-merged PRs: the agent that owns a PR merges it. CI runs the checks `build`, `private-data` and `game-tests` (every game test in the headless sim on Linux, except tests with the line `# runner: pc`). The game tests run in the merge queue, not on PRs: a PR run passes `game-tests` without them. Before you push, choose the tests that your change needs and run them yourself (`scripts/autotest-sim.sh <names>`, `scripts/autotest-affected.sh`). The queue runs the test set of the group's PRs (`scripts/ci-test-set.sh`). A PR's default set: the affected tests (`scripts/autotest-affected.sh`) and the baseline `core` and `tech-start`; no tests when it changes only docs or scripts that the tests do not run; every test when it changes `check.yml`, the sim host or a script that the tests run (`scripts/ci-change-kind.sh`). A `### Game tests` block in the PR text changes the set, one line each: `+ <test>`, `- <test>`, `all`, or `none: <reason>`. The PR run checks the block and shows the set in its summary; an unknown test fails it. A full suite runs on `main` at most 3 hours after a merge (`full-suite-trigger.yml`, and the `check.yml` schedule as a second path), and on request (`gh workflow run check.yml --ref <branch>`). It reports the `full-suite` check; a release needs it green. `main` requires them. `main` has a merge queue: it tests each PR on top of the newest `main` and the PRs ahead of it, then merges it. A PR does not have to be up to date with `main`. The flow:
-  1. Run the game tests that the change needs, then push the branch and open the PR. CI runs on PRs, in the merge queue and on request, so a branch without a PR gets no checks. A newer push cancels the PR's older run.
+- Owner-merged PRs: the agent that owns a PR merges it. CI runs the checks `build`, `private-data` and `game-tests` (the PR's game test set in the headless sim on Linux; tests with the line `# runner: pc` stay on the PC). Before you push, choose the tests that your change needs and run them yourself (`scripts/autotest-sim.sh <names>`, `scripts/autotest-affected.sh`). The merge queue runs the PR's test set: by default the affected tests and a baseline. Change it in the `### Game tests` block of the PR text (`+ <test>`, `- <test>`, `all`, `none: <reason>`). The game test set of a PR and the full suite on `main`: CONTRIBUTING.md, Git. `main` requires the checks. `main` has a merge queue: it tests each PR on top of the newest `main` and the PRs ahead of it, then merges it. A PR does not have to be up to date with `main`. The flow:
+  1. Run the game tests that the change needs, then push the branch and open the PR. Mark it ready (`gh pr ready`) before step 3: a draft PR does not merge. CI runs on PRs, in the merge queue and on request, so a branch without a PR gets no checks. A newer push cancels the PR's older run.
   2. Tests outside CI: `LIST_ONLY=1 RUNNER=pc scripts/autotest-affected.sh` lists the affected tests that CI does not run (the `game-tests` job summary lists them too). Run only those the merge depends on, on the PC (`scripts/autotest-all.sh 400 <names>`), and tick the box of the PR template. Lean toward the minimum.
   3. `gh pr merge --auto --merge`. When the checks pass, this puts the PR in the merge queue. Watch the PR instead of polling it.
   4. When `main` moves, read what the new commits and PRs intend (`git log`, `gh pr view`). If they conflict with the change or change what it does, merge `origin/main` into the branch, adapt the change, and push. If a check fails in the merge queue, the queue removes the PR: fix it and do step 3 again.
@@ -75,7 +77,7 @@ Procedures are skills in `.claude/skills/`:
 - Never start, stop or restart the game in slot main (the player's game): no `vault-saved-ships.sh`, `run.sh`, `stop.sh` or deploy with `SLOT=main`. While `.state/player-hold` exists, the scripts refuse it (exit 3). They also refuse a windowed test slot (`screens.sh`, `screens-mp.sh`) while that file exists: a window could take focus from the player. Headless test slots stay allowed. Do not remove that file and do not work around it. Ask the coordinator for main-slot work; the coordinator runs it when the player says the PC is free.
 
 - An agent works only in its own worktree and branch. At the end it pushes its branch, opens a PR and merges its own PR with auto-merge after CI passes (Git section). It never pushes to `main` directly.
-- Tests: run `scripts/autotest-affected.sh` (the smoke tests of your areas, their co-op tests, `core`, and any test you changed) and the unit tests. Put logic in a `*Model.cs` file with unit tests (`tests/TIERS.md`). CI runs every game test in the headless sim before a merge.
+- Tests: run `scripts/autotest-affected.sh` (the smoke tests of your areas, their co-op tests, `core`, and any test you changed) and the unit tests. Put logic in a `*Model.cs` file with unit tests (`tests/TIERS.md`). The merge queue runs the PR's game test set in the headless sim, and a full suite runs on `main` after merges.
 - Save progress so a crash or restart loses nothing:
   - In the first minutes, commit a short `PLAN.md` (design decisions, steps) to your branch, push it, and open the draft PR with a checklist of the steps. Delete `PLAN.md` before the final commit.
   - Commit and push after each step that builds. Tick the step in the PR checklist.

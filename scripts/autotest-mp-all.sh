@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Run every co-op session (tests/autotest-mp/<session>.txt) in parallel and print a summary.
 # Usage: autotest-mp-all.sh [timeout-per-test]. A wrapper around autotest-all.sh with the session names.
+# Exit code: the exit code of autotest-all.sh. Called by: agents and people, by hand.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 source scripts/autotest-lib.sh

@@ -4,6 +4,7 @@
 # work in a test slot: a test that holds the slot cannot lose its game to you.
 # Usage: with-slot.sh <command> [args...]
 # Example: scripts/with-slot.sh bash -c 'scripts/deploy.sh && scripts/run.sh 60'
+# Exit code 2 without a command; else the exit code of the command. Called by: agents and people, by hand.
 set -euo pipefail
 [[ $# -gt 0 ]] || { echo "usage: with-slot.sh <command> [args...]" >&2; exit 2; }
 source "$(dirname "$0")/autotest-lib.sh"

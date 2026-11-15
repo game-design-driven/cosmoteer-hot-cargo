@@ -9,4 +9,4 @@ The player wants the newest pushed main installed at all times. Never touch a ru
 
 Run `scripts/install-player.sh`. It takes the main-slot lock, checks that the game is closed, installs `origin/main` from the detached `../play` worktree, turns the mod on and records the commit in `../.state/installed_sha`. When the game runs, it prints "game running" and installs nothing; try again later.
 
-`scripts/keep-installed.sh ../play 115` does steps 2–5 in a loop. It only works while the calling session's turn is active, because background commands lose the link to the PC when the turn ends.
+`scripts/keep-installed.sh ../play 115` runs the same install every minute when `origin/main` moves. It only works while the calling session's turn is active, because background commands lose the link to the PC when the turn ends.

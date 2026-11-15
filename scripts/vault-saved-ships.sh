@@ -9,6 +9,8 @@
 # --no-install skips the install of origin/main at the end (for all chunks but the last).
 # Runs in the player's game slot (main, the only slot with graphics), only when that game is closed, under the main-slot lock.
 # Then it installs origin/main back into the player's game (scripts/install-player.sh).
+# Exit code 0 when done; 1 when the run failed; 2 for a bad argument or a running game; 3 while the player hold exists.
+# Called by: the coordinator only (hot-cargo-player-ships skill).
 set -euo pipefail
 MODE=saved; OUT=""; FROM=""; RANGE=""; INSTALL=1
 while [[ $# -gt 0 ]]; do

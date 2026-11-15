@@ -8,6 +8,8 @@
 # Autotest mode (AUTOTEST_SCRIPT=<file>, used by autotest-lib.sh start_slot): the same PC call also stops the test slot's
 # game first, installs the file as autotest.txt and starts the game. It never stops the main slot: it fails if that game runs.
 # Before a test slot's game starts, the PC waits up to 120 s for HOT_CARGO_MIN_FREE_GB (default 3) of free memory.
+# Exit code 1 when the build or the PC deploy fails; 3 when the player hold refuses an autotest start (pc.sh).
+# Called by: autotest-lib.sh (start_slot), install-player.sh, keep-installed.sh, or by hand through with-slot.sh.
 source "$(dirname "$0")/pc.sh"
 # Autotest mode starts a game; a plain install (install-player.sh) only copies files and checks that the game is closed.
 if [[ -n "${AUTOTEST_SCRIPT:-}" ]]; then refuse_if_player_hold start; fi

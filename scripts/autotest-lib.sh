@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Shared parts of autotest.sh and autotest-mp.sh. Source it; it does not run anything.
 # Slots t1..tN (N = HOT_CARGO_SLOTS, default 6) are headless test instances on the PC (see pc.sh).
+# Sourced by every script that takes PC or sim slots or reads test lists (grep -l autotest-lib.sh scripts/).
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$LIB_DIR/.." && pwd)"
 # Shared slot settings for every worktree: <container>/.state/slots.env (for example HOT_CARGO_SLOTS=6), read before each

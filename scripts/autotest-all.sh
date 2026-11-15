@@ -13,6 +13,7 @@
 # so all tests run the same build. Changes made in the worktree during the suite are not in it.
 # At the end it prints the seconds per phase over all runs (see autotest.sh), so the slowest phase is visible.
 # Exit code 0 only if every test passed. Full logs: <container>/.state/logs/<worktree>/ (summary per test in run/).
+# Called by: agents, autotest-affected.sh, autotest-mp-all.sh and integrate.sh.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 if [[ "${1:-}" == "--detach" ]]; then
@@ -31,7 +32,7 @@ source scripts/autotest-lib.sh
 SUITE_START=$SECONDS
 RUN_DIR="$LOG_DIR/run-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$RUN_DIR"
-# A clean tree that stays on the same commit gets a pass marker, which scripts/release.sh requires (full runs only).
+# A clean tree that stays on the same commit gets a pass marker (full runs only). It is a local record only: release.sh reads the CI full-suite check.
 START_SHA="$(git rev-parse HEAD)"
 CLEAN_AT_START="$([[ -z "$(git status --porcelain)" && $# -eq 0 ]] && echo yes || echo no)"
 

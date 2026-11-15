@@ -3,6 +3,10 @@
 # Columns: minutes since the last commit, ahead/pushed, uncommitted files, running autotest.sh processes, held PC test
 # slots, and how many of the 5 newest logs show a refused PC link (the agent's turn was not active).
 # Usage: agent-watch.sh   (from any worktree; it reads the container folder that holds .bare)
+# Exit code 0. It only reads state and changes nothing.
+# Called by: the coordinator, by hand or from a scheduled check (hot-cargo-coordinate skill).
+# Limit: the tests column counts only PC runs (scripts/autotest.sh). Headless sim runs do not show. Revisit when sim
+# runs need watching.
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 now=$(date +%s)
