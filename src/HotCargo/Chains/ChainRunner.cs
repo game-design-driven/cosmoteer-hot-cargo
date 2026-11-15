@@ -104,7 +104,7 @@ public static class ChainRunner
             case (StageKind.Mission, _):
                 if (!due) break;
                 c.DueSeconds = -1;
-                Vector2 at = (here ? FindStation(sim, c.StationId)?.DetWorldCenter : null) ?? SimQueries.FleetCenter(sim) ?? throw new InvalidOperationException("no human ships");
+                Vector2 at = (here ? FindStation(sim, c.StationId)?.DetWorldCenter : null) ?? SimQueries.AnchorShip(sim)?.DetWorldCenter ?? throw new InvalidOperationException("no human ships");
                 SpawnMission(run, sim, c, stage, at);
                 break;
             case (StageKind.Page, StageWhere.Station):

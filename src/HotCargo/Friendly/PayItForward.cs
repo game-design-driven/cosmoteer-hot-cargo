@@ -117,19 +117,14 @@ static class PayItForward
         S(run).HelpRolled.Add(node);
         float roll = new FastRand((uint)node, 0x5041_5946UL).Single();
         Log.Info($"friendly: outclassed (players {players:0}, enemies {enemies:0}); help roll {roll:0.000} vs {t.PayForwardChance:0.000}");
-        if (roll < t.PayForwardChance) Arrive(run, sim, Anchor(run, playerShips, enemyShips).DetWorldCenter);
-    }
-
-    /// <summary>
-    /// Spec 1370: the player ship with the most enemy strength within PayForwardRadius; ties go to the lowest ID. Not the center of all
-    /// player ships: in co-op the players can be far apart, and a spawn far from every player ship goes into stasis (spec 1536).
-    /// The caller has a qualifying fight, so there is at least one player ship.
-    /// </summary>
-    static Ship Anchor(Run run, List<Ship> players, List<Ship> enemies)
-    {
-        float r = run.T.Friendly.PayForwardRadius;
-        return players.OrderByDescending(p => enemies.Where(e => e.DetWorldCenter.DistanceTo(p.DetWorldCenter) <= r).Sum(Situation.Strength))
-            .ThenBy(p => p.UniqueID).First();
+        if (roll < t.PayForwardChance)
+        {
+            // Spec 1370, 1537: the player ship with the most enemy strength within PayForwardRadius. A qualifying fight has a player ship.
+            float r = t.PayForwardRadius;
+            var anchor = SimQueries.AnchorShip(sim, p => enemyShips.Where(e => e.DetWorldCenter.DistanceTo(p.DetWorldCenter) <= r).Sum(Situation.Strength))
+                ?? throw new InvalidOperationException("a qualifying fight with no player ship");
+            Arrive(run, sim, anchor.DetWorldCenter);
+        }
     }
 
     /// <summary>

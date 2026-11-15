@@ -26,6 +26,14 @@ static class DebtHelp
     internal static bool IsEnemyOfPlayers(SimRoot sim, Ship ship) =>
         !ship.IsHumanPlayerShip && !ship.IsJunk && sim.Game is { } game && game.HumanPlayersIndexes.Any(i => sim.Mode.AreEnemies(i, ship.Metadata.PlayerIndex));
 
+    /// <summary>Spec 1323: helpers come to the player ship with the most enemy ships within the fight radius: the one in the fight.</summary>
+    internal static Ship? Anchor(Run run, SimRoot sim)
+    {
+        float r2 = run.T.Debt.HelpFightRadius * run.T.Debt.HelpFightRadius;
+        var enemies = sim.Ships.Where(s => IsEnemyOfPlayers(sim, s)).Select(s => s.DetWorldCenter).ToList();
+        return SimQueries.AnchorShip(sim, p => enemies.Count(e => e.DistanceSquaredTo(p.DetWorldCenter) <= r2));
+    }
+
     /// <summary>Spec 1430: enemy ships of the players within the fight radius of a human ship.</summary>
     static int EnemiesNear(Run run, SimRoot sim)
     {
@@ -67,12 +75,12 @@ static class DebtHelp
             if (!t.HelpEnabled || (Dev.Autotest.IsActive && !OnInTests) || s.HelpSystems.Contains(node) || EnemiesNear(run, sim) < t.HelpMinEnemies) return;
             s.HelpSystems.Add(node);
             // A roll of its own, so a fight without help leaves the sim random stream as it was.
-            if (new Halfling.Random.FastRand((uint)node, HelpSalt).Single() >= t.HelpChance || Helper(run, sim) is not { } faction || SimQueries.FleetCenter(sim) is not { } center)
+            if (new Halfling.Random.FastRand((uint)node, HelpSalt).Single() >= t.HelpChance || Helper(run, sim) is not { } faction || Anchor(run, sim) is not { } anchor)
             {
                 Log.Info("debt: no help in this fight");
                 return;
             }
-            Come(run, sim, faction, center);
+            Come(run, sim, faction, anchor.DetWorldCenter);
             return;
         }
         g.Ships.RemoveAll(id => sim.Ships[id] is not { IsJunk: false } ship || !ship.ExistsInSim(sim));

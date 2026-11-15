@@ -159,6 +159,25 @@ expect pu_moneyspent == 0
 on 1 expect pu_moneyspent == 30000
 on 1 expect pu_outage >= 200
 
+step hunters.anchor
+# Spec 1537 to 1539, in a new run: the client flies 16,000 away from the host. A hunter wave spawns near one player ship, not at the
+# center between the fleets (far from both, where vanilla puts ships into stasis), so the hunters stay live.
+mprestart
+mp godmode on
+mp ev_set Enabled false
+mp aiset FleeEnabled false
+mp aiset CallEnabled false
+mp dip_set DemandHailChance 0
+as 1 apart 16000
+wait 3
+mp spawnstage Warning
+waitfor hunters >= 1 30
+# The stasis manager takes ships out of the live area within a few seconds.
+wait 8
+expect hunters >= 1
+expect hunterstasis == 0
+on 1 expect hunterstasis == 0
+
 step journey.buyer-win
 # A new run: the Buyer appears, the client flies to it and sells tech from its own machine, and the run is won on both.
 mprestart
