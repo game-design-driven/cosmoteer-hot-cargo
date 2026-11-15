@@ -75,10 +75,10 @@ Part : <./Data/ships/terran/reactor_small/reactor_small.rules>/Part
 
 		// Art (spec 1057, docs/part-art.md): the vanilla deck and walls by reference, and the own layers in sprites/targeted_reactor
 		// (tools/sprites/make_sprites.py). These names replace the vanilla visual components.
-		Deck00 : <autonomy/part_art.rules>/DeckTile {}
-		Deck10 : <autonomy/part_art.rules>/DeckTile { Location = [1.5, 0.5] }
-		Deck01 : <autonomy/part_art.rules>/DeckTile { Location = [0.5, 1.5] }
-		Deck11 : <autonomy/part_art.rules>/DeckTile { Location = [1.5, 1.5] }
+		Deck00 : <part_art.rules>/DeckTile {}
+		Deck10 : <part_art.rules>/DeckTile { Location = [1.5, 0.5] }
+		Deck01 : <part_art.rules>/DeckTile { Location = [0.5, 1.5] }
+		Deck11 : <part_art.rules>/DeckTile { Location = [1.5, 1.5] }
 		Graphics
 		{
 			Type = Graphics
@@ -112,7 +112,7 @@ Part : <./Data/ships/terran/reactor_small/reactor_small.rules>/Part
 				Layer = "lights_add"
 				DamageLevels [ { File = "sprites/targeted_reactor/lights.png"; Size = [2, 2] } ]
 			}
-			Walls = &<autonomy/part_art.rules>/Walls2x2
+			Walls = &<part_art.rules>/Walls2x2
 			Roof
 			{
 				Layer = "roofs"

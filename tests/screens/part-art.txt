@@ -9,6 +9,7 @@ closepanel
 wait 1
 pause off
 godmode on
+reveal on
 auto_build Showcase away cosmoteer.control_room_small@0,0 yarden_zamir.computer@2,0 yarden_zamir.computer@2,1,2 cosmoteer.reactor_small@0,2 yarden_zamir.targeted_reactor@2,2 cosmoteer.power_storage@4,2 cosmoteer.storage_2x2@0,4 yarden_zamir.funnel@2,4 cosmoteer.power_storage@4,4
 wait 3
 auto_focus 16
@@ -25,9 +26,15 @@ screenshot art-inside
 auto_focus 8
 wait 2
 screenshot art-inside-close
+auto_buildpart yarden_zamir.computer
+wait 2
+screenshot art-pick-computer
 auto_buildpart yarden_zamir.targeted_reactor
 wait 2
 screenshot art-pick-reactor
+auto_buildpart yarden_zamir.funnel
+wait 2
+screenshot art-pick-funnel
 auto_buildmode off
 wait 1
 godmode off

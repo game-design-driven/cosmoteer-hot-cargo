@@ -109,8 +109,8 @@ Part : <./Data/ships/terran/base_part_terran.rules>/Part
 
 		// Art (spec 1057, docs/part-art.md): the vanilla deck and walls by reference, and the own layers in sprites/computer
 		// (tools/sprites/make_sprites.py).
-		Deck00 : <autonomy/part_art.rules>/DeckTile {}
-		Deck10 : <autonomy/part_art.rules>/DeckTile { Location = [1.5, 0.5] }
+		Deck00 : <part_art.rules>/DeckTile {}
+		Deck10 : <part_art.rules>/DeckTile { Location = [1.5, 0.5] }
 		Graphics
 		{
 			Type = Graphics
@@ -144,7 +144,7 @@ Part : <./Data/ships/terran/base_part_terran.rules>/Part
 				Layer = "lights_add"
 				DamageLevels [ { File = "sprites/computer/lights.png"; Size = [2, 1] } ]
 			}
-			Walls = &<autonomy/part_art.rules>/Walls2x1
+			Walls = &<part_art.rules>/Walls2x1
 			Roof
 			{
 				Layer = "roofs"
