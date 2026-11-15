@@ -36,10 +36,13 @@ def roof_layers(out, roof, seed):
 
 
 def icon(out, w, h, machine, doodad):
+    """The editor icon: own deck and frame (no vanilla pixels), the machine, and its light added, as vanilla icons look lit."""
     img = deck(w, h)
     for layer in (machine, doodad, frame(w, h)):
         img.alpha_composite(layer)
-    out.save("icon", img)
+    lit = np.asarray(img).astype(np.int16)
+    lit[..., :3] += np.asarray(Image.open(out.dir / "lights.png"))[..., :3] * 3 // 2
+    out.save("icon", Image.fromarray(np.clip(lit, 0, 255).astype(np.uint8), "RGBA"))
 
 
 SIDES = ((0, -1), (1, 0), (0, 1), (-1, 0))

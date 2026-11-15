@@ -1,5 +1,5 @@
 # Part art (spec 1057, docs/part-art.md): each Hot Cargo part next to vanilla parts of its size, at normal and close zoom,
-# with roofs, in build mode (the interior) and at two damage levels. On the Mac: RUNNER=mac scripts/screens.sh tests/screens/part-art.txt <out-dir>
+# with roofs, in the interior view, in the part list and at two damage levels. On the Mac: RUNNER=mac scripts/screens.sh tests/screens/part-art.txt <out-dir>
 # Rows: control room and Computers, reactor and targeted reactor and battery, storage bay and Funnel and battery.
 render on
 newgame run
@@ -12,20 +12,24 @@ godmode on
 reveal on
 auto_build Showcase away cosmoteer.control_room_small@0,0 yarden_zamir.computer@2,0 yarden_zamir.computer@2,1,2 cosmoteer.reactor_small@0,2 yarden_zamir.targeted_reactor@2,2 cosmoteer.power_storage@4,2 cosmoteer.storage_2x2@0,4 yarden_zamir.funnel@2,4 cosmoteer.power_storage@4,4
 wait 3
-auto_focus 16
+auto_frame 14
 wait 2
 screenshot art-roofs
-auto_focus 8
+auto_frame 7
 wait 2
 screenshot art-roofs-close
-auto_buildmode on
+auto_interior on
 wait 2
-auto_focus 16
+auto_frame 14
 wait 2
 screenshot art-inside
-auto_focus 8
+auto_frame 7
 wait 2
 screenshot art-inside-close
+auto_interior off
+# The part list in build mode, each part picked.
+auto_buildmode on
+wait 2
 auto_buildpart yarden_zamir.computer
 wait 2
 screenshot art-pick-computer
@@ -37,6 +41,7 @@ wait 2
 screenshot art-pick-funnel
 auto_buildmode off
 wait 1
+# Damage levels: about a half and a fifth of the health, the vanilla neighbours too.
 godmode off
 auto_damage yarden_zamir.computer 0.5
 auto_damage yarden_zamir.targeted_reactor 0.5
@@ -44,16 +49,25 @@ auto_damage yarden_zamir.funnel 0.5
 auto_damage cosmoteer.reactor_small 0.5
 auto_damage cosmoteer.storage_2x2 0.5
 auto_damage cosmoteer.control_room_small 0.5
+auto_damage cosmoteer.power_storage 0.5
 wait 2
-auto_focus 10
+auto_frame 10
 wait 1
 screenshot art-damage-half
+auto_interior on
+wait 2
+screenshot art-damage-half-inside
+auto_interior off
 auto_damage yarden_zamir.computer 0.2
 auto_damage yarden_zamir.targeted_reactor 0.2
 auto_damage yarden_zamir.funnel 0.2
 auto_damage cosmoteer.reactor_small 0.2
 auto_damage cosmoteer.storage_2x2 0.2
 auto_damage cosmoteer.control_room_small 0.2
+auto_damage cosmoteer.power_storage 0.2
 wait 2
 screenshot art-damage-fifth
+auto_interior on
+wait 2
+screenshot art-damage-fifth-inside
 quit

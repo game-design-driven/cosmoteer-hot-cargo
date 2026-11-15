@@ -110,6 +110,29 @@ internal static class AutonomyAutotest
             view.FRLocation = TestShip().DetWorldCenter;
             Autotest.FitCamera(Sim(), float.Parse(arg, CultureInfo.InvariantCulture));
         };
+        // auto_frame <size>: centres the camera on the test ship's parts and fits this size (screenshots, UI only). auto_focus
+        // centres on the mass centre, which sits off the middle of a lopsided ship.
+        Autotest.Commands["auto_frame"] = arg =>
+        {
+            var ship = TestShip();
+            var view = Sim().Camera.ViewController;
+            view.ClearFocus(clearFramesOfReferenceAndRotation: true);
+            view.FRLocation = ship.TransformShapeToWorld((Rect)(ship.Parts.BoundingRect ?? throw new InvalidOperationException("the test ship has no parts"))).Center;
+            Autotest.FitCamera(Sim(), float.Parse(arg, CultureInfo.InvariantCulture));
+        };
+        // auto_interior on|off: selects the test ship and turns the game's interior view on or off, so its roofs hide like a
+        // player's selected ship (screenshots, UI only).
+        Autotest.Commands["auto_interior"] = arg =>
+        {
+            var ship = TestShip();
+            ship.Sim.PlayerInput.SelectSingleShip(ship);
+            Autotest.RequireRun().Game.Gui.ShipGui.OverrideShowShipInteriors = arg switch
+            {
+                "on" => true,
+                "off" => null,
+                _ => throw new InvalidOperationException($"auto_interior needs on or off, not '{arg}'"),
+            };
+        };
         // auto_buildmode on|off: selects the test ship and opens or closes build mode, like the build button (screenshots, UI only).
         Autotest.Commands["auto_buildmode"] = arg =>
         {
