@@ -1,0 +1,60 @@
+namespace HotCargo.Ux;
+
+/// <summary>Why a ship does not come along on a system jump (spec 1560). <see cref="None"/>: it jumps.</summary>
+public enum StayReason { None, NoDrive, NoControl, TooBig, NeedFuel, NotOrdered, SpinningUp }
+
+/// <summary>
+/// What the vanilla jump reads from one ship (GameRoot.DoHumanPlayersFtlJump takes the ships with FtlManager.IsReadyToJump).
+/// Cost: hyperium for the jump. Capacity: the hyperium that its working drives can hold. Fuel: the hyperium in them now.
+/// Ordered: the ship has the gate jump command. Ready: vanilla IsReadyToJump.
+/// </summary>
+public readonly record struct JumpFacts(bool HasDrive, bool CanCommand, int Cost, int Capacity, int Fuel, bool Ordered, bool Ready);
+
+public static class JumpWarningsModel
+{
+    /// <summary>Spec 1560: the reason a ship stays behind on the planned jump, in the order a player fixes them.</summary>
+    public static StayReason Reason(JumpFacts f) => f switch
+    {
+        { Ready: true } => StayReason.None,
+        { HasDrive: false } => StayReason.NoDrive,
+        { CanCommand: false } => StayReason.NoControl,
+        _ when f.Cost > f.Capacity => StayReason.TooBig,
+        _ when f.Cost > f.Fuel => StayReason.NeedFuel,
+        { Ordered: false } => StayReason.NotOrdered,
+        _ => StayReason.SpinningUp,
+    };
+
+    /// <summary>
+    /// Spec 1561, 1562: the lasting reason a ship stays behind on any jump from this system, before a jump is planned.
+    /// cheapestCost: the hyperium of the cheapest jump from here, null when no system can be reached.
+    /// A ship without a drive counts only when a ship of the fleet has one: before that, no ship can jump and the warning is noise.
+    /// Fuel and spin-up are left out: the player fixes them on the way, and vanilla shows them.
+    /// </summary>
+    public static StayReason Standing(bool hasDrive, bool canCommand, int? cheapestCost, int capacity, bool fleetHasDrive)
+    {
+        if (!hasDrive) return fleetHasDrive ? StayReason.NoDrive : StayReason.None;
+        if (!canCommand) return StayReason.NoControl;
+        return cheapestCost is { } cost && cost > capacity ? StayReason.TooBig : StayReason.None;
+    }
+}
+
+/// <summary>
+/// Spec 1563: the ships that joined the fleet since the last poll, each told once per sim. The first poll of a sim (a load or a jump
+/// arrival) only takes the baseline, so ships that were already there never count as joined.
+/// </summary>
+public sealed class JoinWatch<T> where T : notnull
+{
+    readonly HashSet<T> _known = [];
+    object? _sim;
+
+    public List<T> Joined(object sim, IEnumerable<T> ships)
+    {
+        ArgumentNullException.ThrowIfNull(sim);
+        bool fresh = !ReferenceEquals(sim, _sim);
+        if (fresh) { _known.Clear(); _sim = sim; }
+        var joined = new List<T>();
+        foreach (var ship in ships)
+            if (_known.Add(ship) && !fresh) joined.Add(ship);
+        return joined;
+    }
+}
