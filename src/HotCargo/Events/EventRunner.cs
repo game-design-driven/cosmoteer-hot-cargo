@@ -552,7 +552,7 @@ public static class EventRunner
             State(run).FlagSectors[f] = run.State.SectorIndex;
         }
         foreach (string f in o.ClearFlags) State(run).Flags.Remove(f);
-        if (o.Spawn.Length > 0) Spawn(run, sim, o.Spawn, p.Seed);
+        if (o.Spawn.Length > 0) Spawn(run, sim, o.Spawn, p.Seed, playerIndex);
         if (o.HandOver) HandOverObjective.Deliver(run, p.Carrier, o.HandOverPay);
         if (o.ContactTurns != ContactReaction.None) HandOverObjective.React(run, sim, p.Carrier, o.ContactTurns);
         if (o.Effect.Length > 0) Effects[o.Effect](run, sim, playerIndex, p, lines);
@@ -710,10 +710,14 @@ public static class EventRunner
         if (hits > 0) lines.Add(EventText.HullDamage(hits));
     }
 
-    /// <summary>Runs a generator from spawns.rules around the human fleet. Existing tags (player_ship and others) are visible to its spawners.</summary>
-    static void Spawn(Run run, SimRoot sim, string name, ulong seed)
+    /// <summary>
+    /// Runs a generator from spawns.rules around a ship of the player who chose (spec 1537). Existing tags (player_ship and others) are
+    /// visible to its spawners.
+    /// </summary>
+    static void Spawn(Run run, SimRoot sim, string name, ulong seed, int playerIndex)
     {
-        Vector2 at = SimQueries.FleetCenter(sim) ?? throw new InvalidOperationException("no human ships to spawn near");
+        Vector2 at = SimQueries.AnchorShip(sim, s => s.Metadata.PlayerIndex == playerIndex ? 1f : 0f)?.DetWorldCenter
+            ?? throw new InvalidOperationException("no human ships to spawn near");
         EventLibrary.Spawn(name).Generate(sim, new FastRand(seed, 0x5350_4157UL), loadInstantly: true, rootLoc: at, addExistingSpawnTags: true);
         Log.Info($"event spawn {name} at {at}");
     }

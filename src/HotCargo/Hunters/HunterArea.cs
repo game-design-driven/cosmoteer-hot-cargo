@@ -88,6 +88,20 @@ public static class HunterArea
             }
         };
 
+        // apart <distance>: moves the acting player's ships to clear spots at least this far from the first ship of every other player
+        // (spec 1539: players far apart). Sim state: use "as <n>" in co-op. Test only.
+        Autotest.Commands["apart"] = arg =>
+        {
+            var sim = Sim();
+            float distance = float.Parse(arg.Trim(), CultureInfo.InvariantCulture);
+            int me = Autotest.ActingPlayerIndex;
+            var other = sim.Ships.HumanPlayerSignificantShips.Where(s => s.Metadata.PlayerIndex != me).OrderBy(s => s.Metadata.PlayerIndex).ThenBy(s => s.UniqueID).FirstOrDefault()
+                ?? throw new InvalidOperationException("no ship of another player");
+            var mine = sim.Ships.HumanPlayerSignificantShips.Where(s => s.Metadata.PlayerIndex == me).OrderBy(s => s.UniqueID).ToList();
+            for (int i = 0; i < mine.Count; i++)
+                Autotest.Teleport(mine[i], Autotest.ClearSpotNear(sim, other.DetWorldCenter, distance + i * 300f, mine[i].WorldBoundingRadius));
+            Log.Info($"AUTOTEST apart: player {me} moved {mine.Count} ships {distance:0} from {other.Metadata.PlainShipName}");
+        };
         Autotest.Fields["hunterwaves"] = () => HunterSpawner.WavesSpawned;
         // strikeinterval <seconds>: sets Hunters.StrikeWaveIntervalSeconds for this run. Test only.
         // maxhunters <count>: sets Hunters.MaxLiveHunters for this run. Test only.

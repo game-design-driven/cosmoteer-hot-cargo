@@ -70,6 +70,15 @@ public static class SimQueries
         return count == 0 ? null : sum / count;
     }
 
+    /// <summary>
+    /// Spec 1537. The player ship that a spawn for the players goes near: the highest weight, then the lowest player index, then the
+    /// lowest ID. Not the fleet center: in co-op the players can be far apart, and vanilla puts what spawns far from every player ship
+    /// into stasis (out of the live range). Null when the players have no ship in this system.
+    /// </summary>
+    public static Ship? AnchorShip(SimRoot sim, Func<Ship, float>? weight = null) =>
+        sim.Ships.HumanPlayerSignificantShips.OrderByDescending(s => weight?.Invoke(s) ?? 0f)
+            .ThenBy(s => s.Metadata.PlayerIndex).ThenBy(s => s.UniqueID).FirstOrDefault();
+
     /// <summary>The human ship of the lowest player index with the lowest ID. Null when the players have no ship in this system.</summary>
     public static Ship? FirstHumanShip(SimRoot sim) =>
         sim.Ships.HumanPlayerShips.OrderBy(s => s.Metadata.PlayerIndex).ThenBy(s => s.UniqueID).FirstOrDefault();
