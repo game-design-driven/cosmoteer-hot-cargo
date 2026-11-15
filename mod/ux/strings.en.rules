@@ -158,5 +158,9 @@ HotCargoUx
 	PaymentHereLine = "<fame_color>Call a station here to collect payment</fame_color>"
 	PaymentHintFmt = "{0}: call a station here to collect payment."
 	StrandedCenterFmt = "NO SHIP HERE. YOUR FLEET WAITS IN {0}"
-	StrandedFmt = "No ship here. Your fleet waits in {0} ({1} ships).\nOpen the map (<btn id='Game.ToggleMap'/>) and click {0} to go there."
+	StrandedFmt = "No ship here. Your fleet waits in {0} ({1} ships).\nClick Go to {0}, or open the map (<btn id='Game.ToggleMap'/>) and click {0}."
+	RecallInFmt = "Going to {0} in {1} s."
+	RecallButtonFmt = "Go to {0}"
+	JumpCarriesFmt = "(carries {0} tech)"
+	JumpAllTechStays = "All your tech stays behind."
 }

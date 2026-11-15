@@ -378,6 +378,24 @@ static class UxAutotest
                 foreach (var part in ship.Parts.ToList()) part.Health = 0;
         };
         Autotest.Fields["ux_stranded"] = () => JumpWarnings.Stranded(Autotest.RequireRun()) is null ? 0 : 1;
+        Autotest.Fields["ux_recalls"] = () => JumpWarnings.RecallsSent;
+        Autotest.Fields["ux_ships_here"] = () => Autotest.RequireRun().Game.Sim.Ships.HumanPlayerSignificantShips.Count();
+        // jw_jump_split: single player. The playtest case (spec 1601): only the own ships without tech jump to the first unvisited
+        // neighbor, like a captured ship that jumps alone; the tech carrier stays behind.
+        Autotest.Commands["jw_jump_split"] = _ =>
+        {
+            var run = Autotest.RequireRun();
+            if (run.IsMultiplayer) throw new InvalidOperationException("jw_jump_split is single player only");
+            var ships = run.Game.Sim.Ships.HumanPlayerSignificantShips.ToList();
+            var jumpers = ships.Where(s => Tech.Vaults.ShipTech(s) == 0).ToList();
+            if (jumpers.Count == 0 || jumpers.Count == ships.Count) throw new InvalidOperationException("jw_jump_split needs ships with and without tech");
+            var next = run.Game.CurrentMapNode.Connections.FirstOrDefault(n => !run.State.VisitedNodes.Contains(n.UniqueID))
+                ?? throw new InvalidOperationException("no unvisited neighbor system");
+            Log.Info($"AUTOTEST ux: {jumpers.Count} of {ships.Count} ships jump to {next.Name}, the carrier stays");
+            Autotest.WaitFor(() => !run.Game.IsGameSavingBlocked, 30, "game saving to be allowed", () =>
+                run.Game.JumpToNode(next, doFtlAnimation: false, jumpers)
+                    .ContinueWith(t => Log.Error("AUTOTEST jw_jump_split failed", t.Exception), TaskContinuationOptions.OnlyOnFaulted));
+        };
         // jw_engage: the ENGAGE click of the jump window (FtlJumpGui.OnJumpClicked, through the jump dialog patch).
         Autotest.Commands["jw_engage"] = _ => Autotest.RequireRun().Game.Gui.FtlJumpGui.OnJumpClicked(null, EventArgs.Empty);
         // jw_answer yes|no: presses a button of the jump dialog, like the player.

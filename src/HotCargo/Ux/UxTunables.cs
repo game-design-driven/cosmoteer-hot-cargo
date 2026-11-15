@@ -42,6 +42,8 @@ public sealed class UxTunables
     [Serialize(Optional = true)] public bool ShipLossAlerts = true;
     /// <summary>Ships that stay behind on a jump: TOO BIG and NO CONTROL in the jump window, the list in the jump dialog, a hover line, a notice when a ship joins.</summary>
     [Serialize(Optional = true)] public bool JumpWarnings = true;
+    /// <summary>Seconds with no own ship in the system before the game takes the players to their waiting fleet (in co-op the host starts the vanilla vote). 0: only the button.</summary>
+    [Serialize(Optional = true)] public float RecallSeconds = 30f;
     /// <summary>A mission paid by any station in a system: its line says to call a station there, and one hint shows at the arrival.</summary>
     [Serialize(Optional = true)] public bool PaymentHint = true;
     /// <summary>Pings the blip of your ship and marks it "under fire" when it loses part health. Polled on the GUI frame.</summary>

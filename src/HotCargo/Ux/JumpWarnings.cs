@@ -94,7 +94,7 @@ static class JumpWarnings
         var reason = JumpWarningsModel.Reason(f);
         if (reason == StayReason.None) return "";
         string fix = Fix(ship, reason, f.Cost, planned: true);
-        return $"<bad>{UxKit.Format("JumpStaysFmt", ship.Metadata.XmlShipName, Short(reason))}</bad>" + (fix == "" ? "" : "\n" + fix);
+        return $"<bad>{UxKit.Format("JumpStaysFmt", ship.Metadata.XmlShipName, Short(reason))}{Carries(ship)}</bad>" + (fix == "" ? "" : "\n" + fix);
     }
 
     [HarmonyPatch(typeof(FtlJumpGui.ShipStatus), MethodType.Constructor, typeof(GameRoot), typeof(Ship))]
@@ -131,9 +131,17 @@ static class JumpWarnings
     internal static List<(Ship Ship, StayReason Reason)> Staying(GameRoot game) =>
         game.Sim.Ships.LocalPlayerSignificantShips.Select(s => (s, PlannedReason(game, s))).Where(x => x.Item2 != StayReason.None).ToList();
 
+    /// <summary>Spec 1602: " (carries 3 tech)" after a ship that stays with tech, else empty.</summary>
+    static string Carries(Ship ship) => Tech.Vaults.ShipTech(ship) is var tech and > 0 ? " " + UxKit.Format("JumpCarriesFmt", tech) : "";
+
+    /// <summary>Spec 1602: every human ship that holds tech stays behind on this jump.</summary>
+    internal static bool AllTechStays(GameRoot game) =>
+        JumpWarningsModel.AllTechStays(game.Sim.Ships.HumanPlayerSignificantShips.Select(s => (s.Ftl.IsReadyToJump, Tech.Vaults.ShipTech(s))));
+
     internal static string DialogText(GameRoot game) =>
+        (AllTechStays(game) ? $"<bad>{UxKit.Text("JumpAllTechStays")}</bad>\n" : "") +
         UxKit.Text("JumpDialogHead") + "\n" +
-        string.Join("\n", Staying(game).Select(x => UxKit.Format("JumpDialogLineFmt", x.Ship.Metadata.XmlShipName, Short(x.Reason)))) +
+        string.Join("\n", Staying(game).Select(x => UxKit.Format("JumpDialogLineFmt", x.Ship.Metadata.XmlShipName, Short(x.Reason)) + Carries(x.Ship))) +
         "\n\n" + UxKit.Text("JumpDialogAsk");
 
     /// <summary>
@@ -200,7 +208,11 @@ static class JumpWarnings
         if (now < _nextPoll || game.Sim is not { } sim) return;
         _nextPoll = now + 1;
         var joined = Joins.Joined(sim, sim.Ships.LocalPlayerSignificantShips);
-        if (!On) return;
+        if (!On)
+        {
+            if (_button is { } b) b.Button.SelfActive = false;
+            return;
+        }
         StrandedNotice(game, sim);
         foreach (var ship in joined.OrderBy(s => s.UniqueID))
         {
@@ -227,9 +239,15 @@ static class JumpWarnings
         return node is null ? null : (node, waiting.First(w => w.Key == node).NumFriendlyShips);
     }
 
-    /// <summary>Spec 1567: the heat panel line while no human ship is here (HeatPanel.ExtraLines).</summary>
-    internal static string? StrandedLine(Run run) =>
-        On && run.State.Result == RunResult.Running && Stranded(run) is { } s ? $"<bad>{StrandedText(s.Node, s.Ships)}</bad>" : null;
+    /// <summary>Spec 1567, 1601: the heat panel line while no human ship is here (HeatPanel.ExtraLines), with the recall countdown.</summary>
+    internal static string? StrandedLine(Run run)
+    {
+        if (!On || run.State.Result != RunResult.Running || Stranded(run) is not { } s) return null;
+        string line = $"<bad>{StrandedText(s.Node, s.Ships)}</bad>";
+        if (RecallLeft(run) is { } left)
+            line += "\n" + UxKit.Format("RecallInFmt", Halfling.StringTools.EscapeForXml(s.Node.Name), Math.Max(0, (int)Math.Ceiling(left)));
+        return line;
+    }
 
     static string StrandedText(MapNode node, int ships) => UxKit.Format("StrandedFmt", Halfling.StringTools.EscapeForXml(node.Name), ships);
 
@@ -238,23 +256,67 @@ static class JumpWarnings
 
     static object? _strandedSim;
     static double? _strandedSince;
+    static double? _lastRecall;
     static bool _strandedTold;
     internal static int StrandedNotices;
+    internal static int RecallsSent;
 
-    /// <summary>Spec 1567: one center text and one chat line once the players are stranded for a few seconds. A new sim starts quiet.</summary>
+    /// <summary>Spec 1601: seconds until the automatic recall on this machine, or null when it is off or the players are not stranded.</summary>
+    static double? RecallLeft(Run run) =>
+        _strandedSince is { } since && run.T.Ux.RecallSeconds > 0
+            ? JumpWarningsModel.RecallLeft(App.Clock.Time.Seconds, since, _lastRecall, run.T.Ux.RecallSeconds)
+            : null;
+
+    /// <summary>
+    /// Spec 1567, 1601: one center text and one chat line once the players are stranded for a few seconds, the recall button, and the
+    /// automatic recall. A new sim starts quiet. Only single player and the co-op host send the automatic recall, so one vote starts.
+    /// </summary>
     static void StrandedNotice(GameRoot game, Cosmoteer.Simulation.SimRoot sim)
     {
-        if (Run.Current is not { } run || run.Game != game || run.State.Result != RunResult.Running) return;
-        if (!ReferenceEquals(sim, _strandedSim)) { _strandedSim = sim; _strandedSince = null; _strandedTold = false; }
-        if (Stranded(run) is not { } s) { _strandedSince = null; _strandedTold = false; return; }
+        if (Run.Current is not { } run || run.Game != game) return;
+        if (!ReferenceEquals(sim, _strandedSim)) { _strandedSim = sim; _strandedSince = null; _lastRecall = null; _strandedTold = false; }
+        var s = run.State.Result == RunResult.Running ? Stranded(run) : null;
+        RecallButton(game, s?.Node);
+        if (s is null) { _strandedSince = null; _lastRecall = null; _strandedTold = false; return; }
         double now = App.Clock.Time.Seconds;
         _strandedSince ??= now;
-        if (_strandedTold || now - _strandedSince < StrandedNoticeDelay) return;
-        _strandedTold = true;
-        StrandedNotices++;
-        string name = Halfling.StringTools.EscapeForXml(s.Node.Name);
-        Log.Info($"ux: stranded, fleet waits in {s.Node.Name} ({s.Ships} ships)");
-        UxKit.CenterText(game, $"<bad>{UxKit.Format("StrandedCenterFmt", name)}</bad>");
-        UxKit.ChatLine(game, $"<bad>{StrandedText(s.Node, s.Ships)}</bad>");
+        if (!_strandedTold && now - _strandedSince >= StrandedNoticeDelay)
+        {
+            _strandedTold = true;
+            StrandedNotices++;
+            string name = Halfling.StringTools.EscapeForXml(s.Value.Node.Name);
+            Log.Info($"ux: stranded, fleet waits in {s.Value.Node.Name} ({s.Value.Ships} ships)");
+            UxKit.CenterText(game, $"<bad>{UxKit.Format("StrandedCenterFmt", name)}</bad>");
+            UxKit.ChatLine(game, $"<bad>{StrandedText(s.Value.Node, s.Value.Ships)}</bad>");
+        }
+        if (RecallLeft(run) is not <= 0 || (run.IsMultiplayer && !game.NetManager.IsHost)) return;
+        _lastRecall = now;
+        Recall(game, s.Value.Node, "automatic");
+    }
+
+    /// <summary>The vanilla system switch (CareerGameModeManager.InputMap): no fuel, no heat cut; in co-op a unanimous vote.</summary>
+    static void Recall(GameRoot game, MapNode node, string why)
+    {
+        RecallsSent++;
+        Log.Info($"ux: recall to {node.Name} ({why})");
+        game.NetManager.EnqueueInput(new Cosmoteer.Game.Multiplayer.MPJumpToNodeInput(node));
+    }
+
+    static (GameGui Gui, Halfling.Gui.Button Button)? _button;
+    static MapNode? _buttonNode;
+
+    /// <summary>Spec 1601: a "Go to <system>" button under the area name text while the players are stranded.</summary>
+    static void RecallButton(GameRoot game, MapNode? node)
+    {
+        if (_button is not { } b || b.Gui != game.Gui)
+        {
+            var button = new Halfling.Gui.Button { AnchorRect = Halfling.Gui.AnchorPresets.TopCenter, Y = 300f, Width = 260f, Height = 44f };
+            button.Clicked += (_, _) => { if (_buttonNode is { } n) Recall(game, n, "button"); };
+            game.Gui.RootWidget.AddChild(button);
+            _button = b = (game.Gui, button);
+        }
+        _buttonNode = node;
+        b.Button.SelfActive = node is not null && !game.IsDoingNodeJump;
+        if (node is not null) b.Button.Text = UxKit.Format("RecallButtonFmt", node.Name);
     }
 }
