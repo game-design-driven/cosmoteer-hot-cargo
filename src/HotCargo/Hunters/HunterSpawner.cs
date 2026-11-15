@@ -170,7 +170,13 @@ public static class HunterSpawner
         SpawnWave(run, sim, groups[0], tier, stageName, firstOfStage: true);
     }
 
-    /// <summary>Spawns one group near the human fleet. Each ship spawns physically at once, so the AI owns it from the first tick.
+    /// <summary>
+    /// Spec 1538: the player ship that the pursuit hunts, the one that carries the most stolen tech. Carried tech sets the heat
+    /// multiplier, so the corporation goes after that ship. Hunter waves and the hacker (spec 1323) spawn near it.
+    /// </summary>
+    internal static Ship? PursuitTarget(SimRoot sim) => SimQueries.AnchorShip(sim, s => Tech.Vaults.ShipTech(s));
+
+    /// <summary>Spawns one group near one player ship (spec 1538). Each ship spawns physically at once, so the AI owns it from the first tick.
     /// Also used by the contract informant sell-out (Contracts/ContractBook.SellOut).</summary>
     internal static void SpawnWave(Run run, SimRoot sim, int wanted, int tier, string stageName, bool firstOfStage)
     {
@@ -179,12 +185,13 @@ public static class HunterSpawner
         if (sim != run.Game.Sim) return;
         if (sim.Mode is not CareerSimModeManager career) throw new InvalidOperationException("hunters need a career simulation");
         var t = run.T.Hunters;
-        if (SimQueries.FleetCenter(sim) is not { } fleetCenter)
+        if (PursuitTarget(sim) is not { } anchor)
         {
             Log.Info($"hunters: {reason} skipped, no human ships in this system");
             return;
         }
 
+        Vector2 at = anchor.DetWorldCenter;
         int allegiance = HunterAllegiance(sim, career);
         float waveDirection = sim.Rand.Direction();
         float halfArc = MathF.PI / 180f * t.WaveArcDegrees / 2f;
@@ -198,11 +205,11 @@ public static class HunterSpawner
         for (int i = 0; i < count; i++)
         {
             var ship = PickShip(sim, t, tier);
-            Vector2 loc = SpawnLocation(sim, fleetCenter, waveDirection, halfArc, new Range<float>(t.SpawnDistanceMin, Math.Max(t.SpawnDistanceMin, t.SpawnDistanceMax)));
+            Vector2 loc = SpawnLocation(sim, at, waveDirection, halfArc, new Range<float>(t.SpawnDistanceMin, Math.Max(t.SpawnDistanceMin, t.SpawnDistanceMax)));
             var spawner = new StasisShipSpawner(sim, ship.ID, loc, SpawnedShipFeatures.None, sim.Rand.UInt64(), [HunterTag])
             {
                 AI = new ID<ShipAIRules>(AiId),
-                Direction = loc.DirectionTo(in fleetCenter),
+                Direction = loc.DirectionTo(in at),
                 ObjectAllegiance = allegiance,
                 OverrideName = t.ShipNamePrefix.Length > 0 ? $"{t.ShipNamePrefix} {ship.File.ShipName}" : null,
             };
@@ -214,7 +221,7 @@ public static class HunterSpawner
             int fuel = EnsureFuel(run, spawned, t.MinFuel);
             spawnedIds.Add(spawned.UniqueID);
             Log.Info($"hunters: {reason} spawned {spawned.Metadata.PlainShipName} tier {ship.SpawnTier ?? ship.Tier} " +
-                     $"(wanted {tier}) at {loc.DistanceTo(in fleetCenter):0} from the fleet, player index {allegiance}, fuel {fuel}");
+                     $"(wanted {tier}) at {loc.DistanceTo(in at):0} from {anchor.Metadata.PlainShipName}, player index {allegiance}, fuel {fuel}");
         }
         LastSpawned = spawnedIds;
         WavesSpawned++;

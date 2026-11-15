@@ -83,11 +83,11 @@ public sealed class Hacker : IHailProvider, ISharedChoiceDomain
         if (now >= s.HackerLeaveAt) Leave(run, ship);
     }
 
-    /// <summary>Spec 930: spawns the proxy ship near the fleet. Test commands call it too.</summary>
+    /// <summary>Spec 930, 1323: spawns the proxy ship near the ship that the pursuit hunts. Test commands call it too.</summary>
     internal static bool Spawn(Run run, SimRoot sim)
     {
         var s = run.State.Pursuit;
-        if (SimQueries.FleetCenter(sim) is not { } at) { Log.Info("pursuit: hacker skipped, no human ships here"); return false; }
+        if (Hunters.HunterSpawner.PursuitTarget(sim)?.DetWorldCenter is not { } at) { Log.Info("pursuit: hacker skipped, no human ships here"); return false; }
         var before = SimQueries.TaggedShips(sim, Tag).Select(x => x.Id).ToHashSet();
         Proxy.Generate(sim, new FastRand(sim.Rand.UInt64(), 0x5052_4F58UL), loadInstantly: true, rootLoc: at, addExistingSpawnTags: true);
         var spawned = SimQueries.TaggedShips(sim, Tag).Select(x => x.Id).Where(x => !before.Contains(x)).ToList();

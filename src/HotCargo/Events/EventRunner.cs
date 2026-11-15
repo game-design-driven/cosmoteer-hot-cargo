@@ -530,14 +530,14 @@ public static class EventRunner
         if (credits != 0) ChangeMoney(run, playerIndex, credits, lines);
         if (o.Fame != 0) ChangeFame(run, FameAmount(run, o.Fame, p.Tier), lines);
         if (o.Heat != 0) ChangeHeat(run, sim, o.Heat * run.T.Events.HeatScale, lines);
-        if (o.Tech > 0 && o.DropNear.Length > 0) DropNear(sim, o.DropNear, Vaults.TechId, o.Tech, lines);
+        if (o.Tech > 0 && o.DropNear.Length > 0) DropNear(sim, playerIndex, o.DropNear, Vaults.TechId, o.Tech, lines);
         else if (o.Tech != 0) ChangeTech(sim, o.Tech, lines);
         if (o.Crew != 0) ChangeCrew(sim, o.Crew, p.Seed, lines);
         if (o.CrewLeaves > 0) ChangeCrew(sim, -o.CrewLeaves, p.Seed, lines, killed: false);
         foreach (var r in o.Resources)
         {
             int amount = r.At(p.Tier);
-            if (amount > 0 && o.DropNear.Length > 0) DropNear(sim, o.DropNear, new ID<ResourceRules>(r.ID), amount, lines);
+            if (amount > 0 && o.DropNear.Length > 0) DropNear(sim, playerIndex, o.DropNear, new ID<ResourceRules>(r.ID), amount, lines);
             else ChangeResource(sim, r.ID, amount, lines);
         }
         if (o.HullDamage > 0) DamageHull(sim, o.HullDamage, p.Seed, lines);
@@ -552,7 +552,7 @@ public static class EventRunner
             State(run).FlagSectors[f] = run.State.SectorIndex;
         }
         foreach (string f in o.ClearFlags) State(run).Flags.Remove(f);
-        if (o.Spawn.Length > 0) Spawn(run, sim, o.Spawn, p.Seed);
+        if (o.Spawn.Length > 0) Spawn(run, sim, o.Spawn, p.Seed, playerIndex);
         if (o.HandOver) HandOverObjective.Deliver(run, p.Carrier, o.HandOverPay);
         if (o.ContactTurns != ContactReaction.None) HandOverObjective.React(run, sim, p.Carrier, o.ContactTurns);
         if (o.Effect.Length > 0) Effects[o.Effect](run, sim, playerIndex, p, lines);
@@ -674,21 +674,23 @@ public static class EventRunner
     }
 
     /// <summary>
-    /// Spec 1141: a gain drifts loose beside the ship with the tag that is nearest to the fleet: live, a wreck (it keeps its tags), or in
-    /// stasis. With no such ship in the system (all of it gone), the crates drift beside the fleet, and the log says so.
+    /// Spec 1141, 1323: a gain drifts loose beside the ship with the tag that is nearest to a ship of the player who chose: live, a wreck
+    /// (it keeps its tags), or in stasis. With no such ship in the system (all of it gone), the crates drift beside that player ship, and
+    /// the log says so.
     /// </summary>
-    static void DropNear(SimRoot sim, string tagName, ID<ResourceRules> resource, int amount, List<string> lines)
+    static void DropNear(SimRoot sim, int playerIndex, string tagName, ID<ResourceRules> resource, int amount, List<string> lines)
     {
         var tag = new ID<SimObjectSpawner>(tagName);
-        var fleet = SimQueries.FleetCenter(sim) ?? throw new InvalidOperationException("a DropNear gain with no player ship in the system");
+        var near = SimQueries.AnchorShip(sim, s => s.Metadata.PlayerIndex == playerIndex ? 1f : 0f)?.DetWorldCenter
+            ?? throw new InvalidOperationException("a DropNear gain with no player ship in the system");
         var ship = Enumerable.Range(0, sim.Ships.Count).Select(i => sim.Ships[i]).Where(s => s.HasTag(tag))
-            .OrderBy(s => s.DetWorldCenter.DistanceSquaredTo(fleet)).ThenBy(s => s.UniqueID).FirstOrDefault();
-        var stasis = ship is null ? SimQueries.TaggedShips(sim, tag).OrderBy(t => t.Location.DistanceSquaredTo(fleet)).ThenBy(t => t.Id).Select(t => (Vector2?)t.Location).FirstOrDefault() : null;
+            .OrderBy(s => s.DetWorldCenter.DistanceSquaredTo(near)).ThenBy(s => s.UniqueID).FirstOrDefault();
+        var stasis = ship is null ? SimQueries.TaggedShips(sim, tag).OrderBy(t => t.Location.DistanceSquaredTo(near)).ThenBy(t => t.Id).Select(t => (Vector2?)t.Location).FirstOrDefault() : null;
         // A ship in stasis has no known size; 300 clears most hulls.
         (Vector2 at, float radius) = ship is not null ? (ship.DetWorldCenter, ship.WorldBoundingRadius)
             : stasis is { } loc ? (loc, 300f)
-            : (fleet, 300f);
-        if (ship is null && stasis is null) Log.Info($"event: no ship tagged {tagName}; {amount} {resource} drift beside the fleet");
+            : (near, 300f);
+        if (ship is null && stasis is null) Log.Info($"event: no ship tagged {tagName}; {amount} {resource} drift beside player {playerIndex}'s ship");
         SimQueries.DropLoose(sim, at, radius, resource, amount);
         lines.Add(EventText.Loose(resource, amount));
     }
@@ -710,10 +712,14 @@ public static class EventRunner
         if (hits > 0) lines.Add(EventText.HullDamage(hits));
     }
 
-    /// <summary>Runs a generator from spawns.rules around the human fleet. Existing tags (player_ship and others) are visible to its spawners.</summary>
-    static void Spawn(Run run, SimRoot sim, string name, ulong seed)
+    /// <summary>
+    /// Runs a generator from spawns.rules around a ship of the player who chose (spec 1537). Existing tags (player_ship and others) are
+    /// visible to its spawners.
+    /// </summary>
+    static void Spawn(Run run, SimRoot sim, string name, ulong seed, int playerIndex)
     {
-        Vector2 at = SimQueries.FleetCenter(sim) ?? throw new InvalidOperationException("no human ships to spawn near");
+        Vector2 at = SimQueries.AnchorShip(sim, s => s.Metadata.PlayerIndex == playerIndex ? 1f : 0f)?.DetWorldCenter
+            ?? throw new InvalidOperationException("no human ships to spawn near");
         EventLibrary.Spawn(name).Generate(sim, new FastRand(seed, 0x5350_4157UL), loadInstantly: true, rootLoc: at, addExistingSpawnTags: true);
         Log.Info($"event spawn {name} at {at}");
     }
