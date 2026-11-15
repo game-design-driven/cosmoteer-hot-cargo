@@ -17,4 +17,5 @@ Co-op screenshots: `scripts/screens-mp.sh tests/screens/<name>.host.txt tests/sc
 
 Rules:
 - Keep sessions short.
+- A scene outside the player's sight shows only radar blips. Add `reveal on` (fog of war off) to the screenshot script, never to a game test.
 - Images for the repo go to `docs/screenshots/` as JPEG. Crop out anything personal: user names, paths, Steam names.
