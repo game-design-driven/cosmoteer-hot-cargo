@@ -47,6 +47,8 @@ public sealed class EventsState
     [Serialize(Optional = true)] public Dictionary<ObjectID, int> NodeEvents = new();
     /// <summary>Systems where the Station roll already ran in the current visit. Cleared on each system switch.</summary>
     [Serialize(Optional = true)] public HashSet<ObjectID> StationRolled = new();
+    /// <summary>The run's first system (spec 69): its Arrival and Station chances are higher. Null until a run starts.</summary>
+    [Serialize(Optional = true)] public ObjectID? StartNode;
     /// <summary>Last serial handed out. Each opened page gets a new one, so a stale choice input does nothing.</summary>
     [Serialize(Optional = true)] public int LastSerial;
     /// <summary>The event page that waits for a choice, or null.</summary>
