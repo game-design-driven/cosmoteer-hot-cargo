@@ -1,0 +1,68 @@
+# Money below 0 (spec 1417 to 1419). A real build that takes money below 0 opens a debt with the system's faction, up to the
+# credit limit; at the limit a build buys nothing. The lender gets in touch 60 s later when the debt is at the limit, once; not
+# below the limit; not after the debt is paid. The money tooltip lists each lender.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+debt_set LoanStationChance 0
+debt_limits
+tostation
+wait 3
+# A build order pre-purchases its resources at the station and pays at once, with no money check (vanilla MPUpdateShipInput,
+# construction mode CrewResources). debt_prepurchase does the same for 100,000 steel with 100 credits: the money goes below 0.
+pu_setmoney 100
+debt_prepurchase 100000
+waitfor debt_mine == 1 10
+expect debt_my_money >= 0
+expect debt_lender_owner == 1
+expect debt_hail_due == 1
+# Spec 1417: the purchase stopped at what the credit limit allows, so the debt is at most the limit (a steel price below it).
+expect debt_credit_left < 500
+# At the limit a build buys nothing: no money is spent and the debt stays.
+pu_money
+debt_prepurchase 100000
+wait 2
+expect pu_moneyspent == 0
+# A spend that does not check money (a delivery, a surrender payment) borrows only up to the limit; the money stays below 0.
+debt_spend 50000
+wait 1
+expect debt_at_limit == 1
+expect debt_credit_left == 0
+expect debt_my_money < 0
+# Spec 1418: at the limit, the lender's collector comes 60 s after the debt started, once, and its page is the debt page.
+waitfor debt_overdraft_collectors == 1 70
+expect debt_hail_due == 0
+waitfor debt_hailed == 1 60
+debt_look collector
+expect debt_page_debt_parts >= 1
+expect debt_page_other_lines == 0
+debt_notnow
+wait 2
+# Below the limit: no hail.
+debt_my_clear
+pu_setmoney 0
+wait 1
+debt_spend 500
+waitfor debt_mine == 1 10
+wait 70
+expect debt_hail_due == 0
+expect debt_overdraft_collectors == 0
+# Paid before the hail: no hail.
+debt_my_clear
+wait 1
+debt_spend 30000
+waitfor debt_mine == 1 10
+expect debt_at_limit == 1
+wait 20
+debt_my_clear
+pu_setmoney 0
+wait 60
+expect debt_overdraft_collectors == 0
+# Spec 1419: the money tooltip lists each lender with its balance in red.
+debt_spend 500
+waitfor debt_mine == 1 10
+debt_owe other 5000
+wait 1
+expect debt_money_tip_lenders == 2
+quit
