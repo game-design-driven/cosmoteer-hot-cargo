@@ -6,6 +6,7 @@
 #   two processes on 127.0.0.1 with the real-time clock. A session takes 2 slots and has no retry (its steps report on their own).
 # - Same pass rule as autotest.sh: the log has "telename <name>", AUTOTEST DONE, and no AUTOTEST FAIL or ERROR line.
 # - Same log place as the PC runner: <container>/.state/logs/<worktree>/<name>.<time>.sim.log, summary in run-sim-<time>/.
+#   Each run first prunes old test output (prune_all_test_output in autotest-lib.sh) and deletes its stage copy at the end.
 # - Retries a failed run once, like autotest.sh. A pass on the retry prints FLAKY and goes to ../.state/flaky.log.
 #   The fixed-step clock repeats most sim values, but background work (jumps, spawns, the telemetry writer) runs in real time.
 # - Parallel runs: the Mac sim cap (sim_jobs in autotest-lib.sh: HOT_CARGO_SIM_JOBS, else from the cores and the memory).
@@ -28,10 +29,13 @@ done
 
 JOBS="$(sim_jobs)"
 
+prune_all_test_output
 RUN_DIR="$LOG_DIR/run-sim-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$RUN_DIR"
 SUITE_START=$SECONDS
 STAGE="$RUN_DIR/stage"
+# The stage is a copy of the mod (about 7 MB); the logs stay.
+trap 'rm -rf "$STAGE"' EXIT
 { dotnet build tools/headless-sim/HeadlessSim.csproj -c Release -nologo -v quiet -clp:ErrorsOnly && scripts/stage.sh "$STAGE"; } > "$RUN_DIR/build.log" 2>&1 \
   || { cat "$RUN_DIR/build.log"; echo "== build failed"; exit 1; }
 echo "== build and stage: $((SECONDS - SUITE_START)) s"

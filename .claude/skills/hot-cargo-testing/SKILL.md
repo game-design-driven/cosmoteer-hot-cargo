@@ -15,7 +15,7 @@ description: Build Hot Cargo, run unit tests, game tests and co-op tests (in the
   - The PC caches each build by a hash of its content. A build that the PC already has is not uploaded again.
   - It prints a `== timing` line: seconds for wait (slot), deploy, start (to the first script line), script and teardown.
   - Exit code 3 ("AUTOTEST LINK REFUSED"): the PC refused the calls, because your turn was not active. Rerun it with the turn open.
-  - It prints only the lines that explain a failure. The full log stays in `../.state/logs/<worktree>/` (it survives restarts), and its path is in the output.
+  - It prints only the lines that explain a failure. The full log stays in `../.state/logs/<worktree>/` (it survives restarts) for `HOT_CARGO_TEST_OUTPUT_HOURS` (default 24; the newest run of each worktree stays longer), and its path is in the output.
   - A failed run is retried once. "AUTOTEST FLAKY" means the retry passed. Fix a flaky test with `waitfor <condition>` in place of a fixed `wait`. `../.state/flaky.log` lists flaky runs.
 - Several tests: `scripts/autotest-all.sh 400 <name> <name> mp:<coop name>`. They run in parallel on the free slots, also from one worktree. The suite builds once, and every test runs that build. At the end it prints the seconds per phase (sum, median, max).
 - Long suites that use the PC: start the script itself as a Bash `run_in_background` command (for example `scripts/autotest-all.sh 400 <names> > <log> 2>&1`) and call `t3_background_wait` with its task ID. PC calls work only while your turn is active. Never end your turn while a PC run is going. A suite whose PC calls are refused stops starting tests and fails.

@@ -44,6 +44,8 @@ fi
 
 # Build and stage once before the parallel runs. The PC caches the build by hash, so only the first deploy uploads it.
 export HOT_CARGO_STAGE="$RUN_DIR/stage"
+# The stage is a copy of the mod (about 7 MB); the logs stay.
+trap 'rm -rf "$HOT_CARGO_STAGE"' EXIT
 scripts/stage.sh "$HOT_CARGO_STAGE" > "$RUN_DIR/build.log" 2>&1 || { cat "$RUN_DIR/build.log"; echo "== build failed"; exit 1; }
 
 run_test() {
