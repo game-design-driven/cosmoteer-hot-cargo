@@ -13,6 +13,9 @@ jump
 waitfor sector == 2 25
 wait 2
 expect hc_visit == 2
+# The payment hint (spec 1600): one hint at the arrival, and the mission line says to call a station.
+expect ux_payment_hints == 1
+expect ux_payment_lines == 1
 pause off
 hc_visit_collect
 wait 3
