@@ -17,11 +17,19 @@ static class PaymentHint
 {
     static bool On => UxKit.On(s => s.PaymentHint);
 
+    /// <summary>The payment objectives that are the active step of the mission. Vanilla nests the steps (SequentialObjective).</summary>
+    static List<ReceiveRewardsObjective> ActivePayments(Mission mission)
+    {
+        var active = new List<ReceiveRewardsObjective>();
+        foreach (var o in mission.Objectives) o.GetObjectives(active, activeOnly: true);
+        return active;
+    }
+
     static bool DueHere(GameRoot game, ReceiveRewardsObjective payment) =>
         payment.Mission is { } mission && payment.ContactNodeID is { } node && game.CurrentMapNode is { } here &&
         PaymentHintModel.DueHere(
             payment.Completion == CompletionState.InProgress && mission.Completion == CompletionState.InProgress,
-            mission.Objectives.TakeWhile(o => o != payment).Select(o => o.Completion == CompletionState.Completed),
+            ActivePayments(mission).Contains(payment),
             node.Equals(here.UniqueID));
 
     /// <summary>
@@ -58,7 +66,7 @@ static class PaymentHint
         if (now < _nextPoll || !On || Run.Current is not { } run || run.Game != game) return;
         _nextPoll = now + 1;
         foreach (var mission in run.Mode.Missions.OrderBy(m => m.MissionID))
-            foreach (var payment in mission.Objectives.OfType<ReceiveRewardsObjective>())
+            foreach (var payment in ActivePayments(mission))
             {
                 if (!PaymentHintModel.Tell(DueHere(game, payment), Told, mission.MissionID)) continue;
                 HintsShown++;
