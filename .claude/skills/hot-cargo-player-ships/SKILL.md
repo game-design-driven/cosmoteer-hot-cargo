@@ -17,7 +17,7 @@ description: Build Tech Vaults into the player's saved ships (after a backup) or
 
 1. Saved ships: `scripts/vault-saved-ships.sh`. It first copies `Saved Ships` to `Saved Ships.backup-<time>` in the save folder and checks the file count. Then it changes the designs in place.
 2. From clean designs: `scripts/vault-saved-ships.sh --from "Saved Ships.backup-<time>"`. It reads the designs from that backup and writes them to `Saved Ships`.
-3. Starter ships: `scripts/vault-saved-ships.sh --starters mod/tech/starters`. It reads the vanilla starters and copies the new designs to that folder. Commit them in a PR (`hot-cargo-pr-flow`).
+3. Starter ships: `scripts/vault-saved-ships.sh --starters mod/tech/starters`. An agent can build the starter presets on the Mac instead, with no PC slot: `scripts/vault-starters-mac.sh` (read its header). It reads the vanilla starters and copies the new designs to that folder. Commit them in a PR (`hot-cargo-pr-flow`).
 4. Many designs: split the run with `--range FIRST,COUNT` (name order), so each call fits in one foreground Bash call. Add `--no-install` to every call but the last.
 5. Read the output: the backup path, the `=== report` lines, and failures. The full log is `../.state/logs/<worktree>/vault-<mode>.log`.
 6. At the end, the script installs `origin/main` into the player's game again (`scripts/install-player.sh`).
