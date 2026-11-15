@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Install origin/main into the player's own game (slot main) from the detached ../play worktree.
-# Never touches a running game: it then prints "game running" and exits 0, so callers can try again later.
+# Never touches a running game: it then prints "game running" and exits 0, so callers can try again later. An offline PC
+# prints "PC unreachable" and exits 0 too.
 # Takes the main-slot lock, so it does not collide with screenshot runs.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -17,7 +18,13 @@ trap 'rm -rf "$LOCK"' EXIT
 cd "$PLAY"
 source scripts/pc.sh
 SLOT=main
-if [[ -n "$(pc "$PS_PATHS"'Get-SlotProcess' 2>&1)" ]]; then echo "install: game running, not installed"; exit 0; fi
+# An unreachable PC is not a running game: say which one, so callers know why nothing was installed.
+state="$(pc "$PS_PATHS"'if (Get-SlotProcess) { "running" } else { "closed" }' 2>&1)" || { echo "install: PC unreachable, not installed ($state)"; exit 0; }
+case "$state" in
+  *closed*) ;;
+  *running*) echo "install: game running, not installed"; exit 0 ;;
+  *) echo "install: unexpected answer from the PC, not installed: $state"; exit 1 ;;
+esac
 git fetch -q origin
 git checkout -q --detach origin/main
 SLOT=main scripts/deploy.sh | tail -1
