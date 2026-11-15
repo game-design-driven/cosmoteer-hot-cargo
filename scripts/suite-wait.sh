@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Wait for a detached run (scripts/detach.sh, autotest-all.sh --detach, integrate.sh --detach) and print its end.
+# Wait for a detached run (scripts/detach.sh, autotest-all.sh --detach, autotest-affected.sh --detach) and print its end.
 # Usage: suite-wait.sh <log> [timeout-seconds, default 14400]
 # Exit code: the run's exit code; 3 when the run died without an exit line; 124 on timeout (the run keeps running).
 # Killing this script never stops the run. Run it again to keep waiting.

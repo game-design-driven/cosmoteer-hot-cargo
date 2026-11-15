@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fail when two spec files share a section number (the file name prefix, for example "42-") or two requirement lines in
 # spec/*.md share a number ("1004. "). Parallel branches often pick the same next numbers; in the merge queue this check
-# catches a clash between two pull requests. Runs in CI (.github/workflows/check.yml, job private-data) and in integrate.sh.
+# catches a clash between two pull requests. Runs in CI (.github/workflows/check.yml, job private-data).
 # Exit code 1 when a number is used twice.
 set -euo pipefail
 cd "$(dirname "$0")/.."

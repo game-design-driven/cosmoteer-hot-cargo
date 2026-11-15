@@ -7,12 +7,10 @@
 #        LIST_ONLY=1 RUNNER=pc autotest-affected.sh   the tests outside CI that a PR's owner checks before auto-merge.
 #        CHANGED_FILE=<file> reads the changed paths from that file (one per line) in place of git; CI uses it with the
 #        file list of a pull request (scripts/ci-test-set.sh).
-#        HEAD_REF=<ref> uses the changes of that ref in place of HEAD (no uncommitted changes); integrate.sh uses it
-#        with LIST_ONLY=1 to tell which branch of a batch touches a failed test.
 # --detach: run the suite detached (see autotest-all.sh).
 # Runner: tests run on this Mac (scripts/autotest-sim.sh; co-op sessions as two sim processes on 127.0.0.1), and tests with
 # the line "# runner: pc" on the PC (scripts/autotest-all.sh), both at the same time.
-#   AUTOTEST_SIM=0 runs every test on the PC. integrate.sh sets it.
+#   AUTOTEST_SIM=0 runs every test on the PC.
 #   Without the game files on the Mac (scripts/pull-game.sh), every test runs on the PC.
 # Rule, derived from the folder names (no list to keep up to date):
 # - A changed file under src/HotCargo/<A>/<B>/... or mod/<a>/<b>/... touches the areas a, b (lowercase).
@@ -24,13 +22,13 @@
 # - Anything else (Core, shared UI, root files, a folder with no tests of its own) runs the full suite.
 #   Core is shared: every area builds on it, so its own "core" test alone is not enough.
 # The "core" smoke test always runs.
-# Tiers (tests/TIERS.md): AUTOTEST_TIER=smoke (default) or full. integrate.sh uses full for merge batches.
+# Tiers (tests/TIERS.md): AUTOTEST_TIER=smoke (default) or full.
 # - smoke: an area runs only its tests with the line "# tier: smoke" (all of them when it has none), and every co-op
 #   session with a step of the area (they guard co-op determinism). "Full suite" runs every smoke test: single player,
 #   and the co-op sessions with the line.
 # - full: the rules above without the filter.
 # Exit code 0 when every test passed, nothing ran or LIST_ONLY=1; 1 when a test failed; 2 for a bad AUTOTEST_TIER or RUNNER.
-# Called by: agents before a push, check.yml (LIST_ONLY=1 RUNNER=pc), ci-test-set.sh (CHANGED_FILE) and integrate.sh.
+# Called by: agents before a push, check.yml (LIST_ONLY=1 RUNNER=pc), and ci-test-set.sh (CHANGED_FILE).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/autotest-lib.sh
@@ -45,11 +43,10 @@ BASE="${1:-origin/main}"
 TIMEOUT="${2:-400}"
 
 # Committed changes since BASE, plus uncommitted ones unless COMMITTED_ONLY=1.
-HEAD_REF="${HEAD_REF:-}"
 if [[ -n "${CHANGED_FILE:-}" ]]; then CHANGED="$(sort -u "$CHANGED_FILE")"
 else
-  CHANGED="$( { git diff --name-only "$BASE"..."${HEAD_REF:-HEAD}"
-    if [[ "${COMMITTED_ONLY:-}" != 1 && -z "$HEAD_REF" ]]; then git diff --name-only HEAD; git ls-files --others --exclude-standard; fi; } | sort -u)"
+  CHANGED="$( { git diff --name-only "$BASE"...HEAD
+    if [[ "${COMMITTED_ONLY:-}" != 1 ]]; then git diff --name-only HEAD; git ls-files --others --exclude-standard; fi; } | sort -u)"
 fi
 TESTS=("core")
 FULL=no

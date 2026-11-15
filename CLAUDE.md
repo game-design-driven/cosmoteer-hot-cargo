@@ -31,7 +31,7 @@ Procedures are skills in `.claude/skills/`:
   4. When `main` moves, read what the new commits and PRs intend (`git log`, `gh pr view`). If they conflict with the change or change what it does, merge `origin/main` into the branch, adapt the change, and push. If a check fails in the merge queue, the queue removes the PR: fix it and do step 3 again.
 - Tests a PR needs: what CI runs, the affected tests outside CI that the merge depends on, plus anything the change calls for (a new test, a co-op step for sim changes, screenshots for visible changes).
 - Unrelated failures: before you call a failure unrelated, check the same test on `main`. A flaky or infrastructure failure in a test that the PR does not touch counts as passing; rerun the failed jobs and say so in the PR in one line. A failure that shows only with the change, a failure in a touched test, or one that also fails on `main` blocks the merge (`hot-cargo-pr-flow`).
-- Never push to `main` directly; `scripts/integrate.sh` stays for the release and maintenance runs that the coordinator starts.
+- Never push to `main` directly. Every change goes through a PR and the merge queue; a release only pushes a tag (`scripts/release.sh`).
 - Never credit an AI, model or tool in commits or files.
 - Never commit personal machine data. `scripts/check-private.sh` checks this, and CI runs it.
 

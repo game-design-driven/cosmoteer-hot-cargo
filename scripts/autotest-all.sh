@@ -13,7 +13,7 @@
 # so all tests run the same build. Changes made in the worktree during the suite are not in it.
 # At the end it prints the seconds per phase over all runs (see autotest.sh), so the slowest phase is visible.
 # Exit code 0 only if every test passed. Full logs: <container>/.state/logs/<worktree>/ (summary per test in run/).
-# Called by: agents, autotest-affected.sh, autotest-mp-all.sh and integrate.sh.
+# Called by: agents, autotest-affected.sh and autotest-mp-all.sh.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 if [[ "${1:-}" == "--detach" ]]; then
