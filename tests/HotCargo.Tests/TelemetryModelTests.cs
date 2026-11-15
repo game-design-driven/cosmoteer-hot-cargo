@@ -166,3 +166,64 @@ public class TelemetryModelTests
         Assert.Equal(["hostile", "hunter", "player"], f.GetProperty("sides").EnumerateArray().Select(s => s.GetString()!).ToArray());
     }
 }
+
+public class RelayModelTests
+{
+    [Fact]
+    public void The_host_appends_only_new_bytes()
+    {
+        Assert.Equal((0, 10), RelayModel.Accept(0, 0, 10));
+        Assert.Equal((0, 10), RelayModel.Accept(100, 100, 10));
+        Assert.Equal((10, 0), RelayModel.Accept(100, 50, 10));
+        Assert.Equal((4, 6), RelayModel.Accept(104, 100, 10));
+        Assert.Equal((0, 0), RelayModel.Accept(100, 120, 10));
+        Assert.Equal((0, 0), RelayModel.Accept(100, 100, 0));
+    }
+
+    [Fact]
+    public void The_client_probes_then_sends_from_the_host_length()
+    {
+        Assert.Equal((0L, 0), RelayModel.Next(null, 500, 64));
+        Assert.Equal((100L, 64), RelayModel.Next(100, 500, 64));
+        Assert.Equal((480L, 20), RelayModel.Next(480, 500, 64));
+        Assert.Null(RelayModel.Next(500, 500, 64));
+    }
+
+    [Fact]
+    public void A_stream_with_lost_repeated_and_late_chunks_ends_as_the_same_bytes()
+    {
+        byte[] source = [.. Enumerable.Range(0, 1000).Select(i => (byte)(i % 251))];
+        var copy = new List<byte>();
+        void Deliver(long offset, int length)
+        {
+            var (skip, write) = RelayModel.Accept(copy.Count, offset, length);
+            copy.AddRange(source.Skip((int)offset + skip).Take(write));
+        }
+        long? confirmed = null;
+        int round = 0;
+        while (RelayModel.Next(confirmed, source.Length, 64) is { } next)
+        {
+            round++;
+            if (round % 5 == 0) continue; // lost: no answer, the client sends again
+            Deliver(next.Offset, next.Length);
+            if (round % 7 == 0) Deliver(next.Offset, next.Length); // repeated
+            if (round % 11 == 0) Deliver(Math.Max(0, next.Offset - 64), 64); // late copy of an older chunk
+            confirmed = copy.Count;
+        }
+        Assert.Equal(source, copy.ToArray());
+    }
+
+    [Fact]
+    public void File_and_folder_names_cannot_leave_the_player_folder()
+    {
+        Assert.True(RelayModel.IsFileName("r1__20261115-101010-123.part2.jsonl"));
+        Assert.False(RelayModel.IsFileName("../x.jsonl"));
+        Assert.False(RelayModel.IsFileName("a/b.jsonl"));
+        Assert.False(RelayModel.IsFileName("a\\b.jsonl"));
+        Assert.False(RelayModel.IsFileName("x.txt"));
+        Assert.False(RelayModel.IsFileName(null));
+        Assert.Equal("Tom_B", RelayModel.FolderName("Tom B"));
+        Assert.Equal("player", RelayModel.FolderName("../.."));
+        Assert.Equal(40, RelayModel.FolderName(new string('a', 99)).Length);
+    }
+}

@@ -81,6 +81,14 @@ public static class TelemetryArea
         Autotest.Fields["tele_overhead_pct"] = OverheadPct;
         Autotest.Fields["tele_trace_missing"] = () => Stats.TraceMissing;
         Autotest.Fields["tele_trace_patched"] = () => Stats.TracePatched;
+        // Spec 1593: the co-op relay. Client: bytes that the host has not confirmed. Host: bytes received, good and bad client copies.
+        Autotest.Fields["tele_relay_pending"] = () => Session.Current is { } rs ? Relay.Pending(rs, closedOnly: false) : -1;
+        Autotest.Fields["tele_relay_pending_closed"] = () => Session.Current is { } rs ? Relay.Pending(rs, closedOnly: true) : -1;
+        Autotest.Fields["tele_relay_received"] = () => Relay.ReceivedBytes;
+        Autotest.Fields["tele_relay_copies"] = () => Relay.CheckCopies().Good;
+        Autotest.Fields["tele_relay_bad"] = () => Relay.CheckCopies().Bad;
+        // telerelaychunk <bytes>: a smaller relay chunk on this machine, so a short test sends many chunks.
+        Autotest.Commands["telerelaychunk"] = arg => Relay.TestChunkBytes = int.Parse(arg, CultureInfo.InvariantCulture);
         // teleflush: waits until the writer wrote every queued event, so a check can read the file.
         Autotest.Commands["teleflush"] = _ => Autotest.WaitFor(() => TelemetryWriter.PendingCount == 0, 10, "telemetry flush", () => Autotest.Wait(1.5));
         // telesnap [why]: one snapshot now. Single player only (it reads the sim from the GUI frame).

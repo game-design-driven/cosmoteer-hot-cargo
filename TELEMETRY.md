@@ -12,7 +12,8 @@ Spec: `spec/36-telemetry.md` (requirements 530 to 545 and 1580 to 1593). Code: `
   A co-op client that joins a running game or resyncs gets the run ID with the host's game state. A new co-op game gets its own run ID on each machine;
   the `seed` and `players` in `session.start` match on all machines of that game.
 - A file that reaches `MaxFileMegabytes` continues in `<run id>__<session id>.part<N>.jsonl`. Each part starts with a `file.part` line.
-- At session start the oldest files go until the folder is below `MaxFolderMegabytes`.
+- At session start the oldest files go until the folder is below `MaxFolderMegabytes`. The client copies in `players/` count too.
+- Co-op: each client also sends its files to the host (spec 1592, 1593). The host keeps a copy of each in `telemetry/players/<player name>/`, under the client's file name. The client keeps its own files. Chunks of 32 KB go over a reliable RPC on the game's MP connection, one at a time from the length that the host confirmed, so a late join, a resync or a reconnect sends nothing twice and skips nothing. A closing client sends its rest once. Lines that a client writes after its last chunk reached the host arrive at its next join of the same run.
 
 ## Event format
 
@@ -126,9 +127,10 @@ Section `Telemetry` in `tunables.rules`. Defaults:
 | `AiSwitchMinSeconds`, `AiEventsPerMinute` | 3, 600 | Limits of `ai.switch` events. |
 | `CallerLookupsPerSecond` | 50 | Limit of stack walks for `src`. |
 | `MaxFileMegabytes`, `MaxFolderMegabytes` | 32, 1024 | File rotation and folder size. |
+| `RelayToHost` | true | Co-op: a client sends its files to the host (`players/<name>/`). Each machine follows its own switch. |
 | `TraceMethods` | see `TelemetryTunables.cs` | Methods for `trace` events, as `Namespace.Type:Method`. Read at the first game start; a change needs a restart. A missing method is skipped with a log line. |
 
-Telemetry is not sim state. Each co-op machine writes its own file with its own switches, and the switches can differ without a desync.
+Telemetry is not sim state. Each co-op machine writes its own file with its own switches, and the switches can differ without a desync. The relay to the host is no MP input either.
 
 ## Cost
 
@@ -139,7 +141,7 @@ Telemetry is not sim state. Each co-op machine writes its own file with its own 
 
 ## Pull and analyze
 
-1. Pull: `scripts/pull-telemetry.sh [SLOT...]`. Without a slot it pulls the main slot and every test slot into `../.telemetry/<slot>/` (outside the repo). Files that are already here with the same size are skipped.
+1. Pull: `scripts/pull-telemetry.sh [SLOT...]`. Without a slot it pulls the main slot and every test slot into `../.telemetry/<slot>/` (outside the repo). Files that are already here with the same size are skipped. The client copies of a co-op host come along in `players/<name>/`, and the report shows each client as its own run (`<run> (client <n>)`).
 2. Analyze: `cd tools/telemetry && uv run hc-telemetry`. It reads `../.telemetry` and writes `../.telemetry/report/report.md` and `report.html` (self-contained, charts inline).
    Options: `--dir`, `--out`, `--run <id>`, `--latest N`, `--since <UTC ISO time>`, `--no-autotest`, `--min-game-seconds`.
 3. Tests: `scripts/autotest-all.sh --telemetry [timeout] [test ...]` pulls the telemetry after the tests and writes a report of the runs that they made.
@@ -152,8 +154,8 @@ For your own analysis, each line is one JSON object: for example `jq -c 'select(
 
 `scripts/autotest.sh` and `scripts/autotest-mp.sh` send `telename <script name>` first (`<session>.host` and `<session>.client` for co-op), so `session.start` has the test name in `label`.
 
-- Commands: `telename <name>`, `damagehostiles <fraction>` (test only: weakens nearby hostile ships so the player wins the fight), `shieldplayers on|off` (test only: human ship parts lose no health and human crew do not die), `teleflush` (wait until the writer wrote every queued event), `telesnap [why]`, `telecount <event> <op> <n>` (counts events of the current run in its files), `telestats` (logs the overhead numbers).
-- Fields: `tele_active`, `tele_events`, `tele_dropped`, `tele_nested_dropped`, `tele_overhead_ms`, `tele_overhead_pct` (telemetry time in percent of the session's real time), `tele_trace_missing`, `tele_trace_patched`.
+- Commands: `telename <name>`, `telerelaychunk <bytes>` (a smaller relay chunk on this machine), `damagehostiles <fraction>` (test only: weakens nearby hostile ships so the player wins the fight), `shieldplayers on|off` (test only: human ship parts lose no health and human crew do not die), `teleflush` (wait until the writer wrote every queued event), `telesnap [why]`, `telecount <event> <op> <n>` (counts events of the current run in its files), `telestats` (logs the overhead numbers).
+- Fields: `tele_active`, `tele_events`, `tele_dropped`, `tele_nested_dropped`, `tele_overhead_ms`, `tele_overhead_pct` (telemetry time in percent of the session's real time), `tele_trace_missing`, `tele_trace_patched`, `tele_relay_pending` and `tele_relay_pending_closed` (client: bytes the host has not confirmed, all files or the closed ones), `tele_relay_received`, `tele_relay_copies`, `tele_relay_bad` (host: bytes received, valid and broken client copies).
 - Tests: `tests/autotest/telemetry-basic.txt` (every category and a save and load), `tests/autotest/telemetry-run.txt` (a scripted run over three systems that ends with a win; it checks that each event kind shows and makes data for a report).
 
 ## Add an event

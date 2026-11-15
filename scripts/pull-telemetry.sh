@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Copy telemetry files from the PC into ../.telemetry/<slot>/ (outside the repo). TELEMETRY.md describes the files.
+# Copy telemetry files from the PC into ../.telemetry/<slot>/ (outside the repo), with the copies of co-op clients in players/<name>/.
+# TELEMETRY.md describes the files.
 # Usage: pull-telemetry.sh [SLOT...]   Without a slot it pulls every test slot (t1..tN) and the main slot.
 # Files that are already here with the same size are not copied again. Then run: cd tools/telemetry && uv run hc-telemetry
 # Exit code non-zero when a copy fails. Called by: autotest-all.sh --telemetry, or by hand.
@@ -13,7 +14,7 @@ for slot in "${SLOT_LIST[@]}"; do
   listing="$(
     export SLOT="$slot"
     source "$LIB_DIR/pc.sh"
-    pc "$PS_PATHS"'$d = Join-Path $modDir "telemetry"; if (Test-Path $d) { Get-ChildItem $d -Filter *.jsonl | ForEach-Object { $_.Name + "|" + $_.Length } }'
+    pc "$PS_PATHS"'$d = Join-Path $modDir "telemetry"; if (Test-Path $d) { Get-ChildItem $d -Filter *.jsonl -Recurse | ForEach-Object { $_.FullName.Substring((Resolve-Path $d).Path.TrimEnd("\").Length + 1).Replace("\", "/") + "|" + $_.Length } }'
   )"
   want=()
   while IFS='|' read -r name size; do
