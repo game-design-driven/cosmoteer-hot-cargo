@@ -19,7 +19,7 @@ static class RepairAutotest
     {
         foreach (var plan in Enum.GetValues<RepairPlan>().Where(p => p != RepairPlan.None))
             Autotest.Fields[$"ai_fb_{plan.ToString().ToLowerInvariant()}"] = () => Modules().Count(m => m.Plan == plan);
-        foreach (string name in new[] { FallBackStrategy.TakeEvent, Resupply.SupplyEvent, Resupply.RepairHoldEvent })
+        foreach (string name in new[] { Resupply.SupplyEvent, Resupply.RepairHoldEvent })
             Autotest.Fields[$"tactic_{name}"] = () => TacticsLog.Count(name);
         Autotest.Fields["ai_fb_active"] = () => Modules().Count(m => m.Plan != RepairPlan.None);
         Autotest.Fields["ai_fb_in_cover"] = () => Hostile().Count(s => s.AI?.GetStrategyModule<FallBackStrategy>()?.InCover(s) == true);
@@ -34,6 +34,9 @@ static class RepairAutotest
         Autotest.Commands["aimark_jobs"] = _ => _markedJobs = Resupply.QueuedRepairs(At("0"));
         Autotest.Fields["ai_new_first_jobs_done"] = () => _markedJobs - Resupply.QueuedRepairs(At("0"));
         Autotest.Fields["ai_new_first_in_combat"] = () => New().Select(s => Resupply.InCombat(s) ? 1.0 : 0.0).DefaultIfEmpty(-1).First();
+        // 2: the first aispawn ship is alive, 1: it is a wreck (junk), 0: it left the sim.
+        Autotest.Fields["ai_new_first_state"] = () =>
+            PersonalityAutotest.LastSpawned.Count == 0 || Autotest.RequireRun().Game.Sim.Ships[PersonalityAutotest.LastSpawned[0]] is not { } s ? 0 : s.IsJunk ? 1 : 2;
         Autotest.Fields["ai_new_min_crew"] = () => New().Select(s => (double)s.Crew.Assigned.Count).DefaultIfEmpty(-1).Min();
 
         // aidamage <index>|new <fraction>: sets every part of ship <index> of the last aispawn to this fraction of its health.
@@ -111,7 +114,7 @@ static class RepairAutotest
             if (toggles.Count == 0) throw new InvalidOperationException("the player ship has no weapon with an on/off setting");
             player.Sim!.RequireGame().NetManager.EnqueueInput(new MPSetUITogglesInput(toggles));
         };
-        // aiplan_near <distance>: moves each hostile ship that falls back to a station or donor, or flees to a station, to this distance from its target's hull.
+        // aiplan_near <distance>: moves each hostile ship that falls back to a station or faction mate, or flees to a station, to this distance from its target's hull.
         Autotest.Commands["aiplan_near"] = arg =>
         {
             float d = float.Parse(arg, CultureInfo.InvariantCulture);

@@ -66,7 +66,7 @@
 | `CallSightMargin` | 200 | 196 |
 | `CallInterceptSeconds`, `CallInterceptParts` | 30 s, `cosmoteer.sensor_array` | 1300 |
 | `FallBackResupplyEnabled`, `FallBackTripSeconds`, `FallBackCrewFraction`, `FallBackArriveDistance` | on, 180 s, 0.5, 100 | 1305, 1306, 1309 |
-| `FallBackDonorRange`, `FallBackDonorShare`, `FallBackDockGap`, `FallBackStationRepairsPerTick` | 3000, 0.5, 150, 2 | 1307, 1308 |
+| `FallBackPoolRange`, `FactionPoolEnabled`, `FallBackDockGap`, `FallBackStationRepairsPerTick` | 3000, on, 150, 2 | 1307, 1308 |
 | `RepairCombatHoldEnabled` | on | 1317 |
 | `CallAssistSeconds` | 60 s | 198 |
 | `CallBlockedInNebulas`, `CallStormStrength` | [ion_storm, electron], 0.5 | 199 |

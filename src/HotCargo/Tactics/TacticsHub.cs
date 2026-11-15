@@ -9,3 +9,9 @@ public sealed partial class Tunables
 {
     [Serialize(Optional = true)] public TacticsTunables Tactics = new();
 }
+
+public sealed partial class RunState
+{
+    /// <summary>Co-op: the ships of all human players pool construction resources like one player's ships (spec 1318).</summary>
+    [Serialize(Optional = true)] public bool SharedResources;
+}
