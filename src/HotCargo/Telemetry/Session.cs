@@ -57,6 +57,8 @@ sealed class Session
     public string SessionId { get; }
     public int SessionNumber { get; }
     public string FilePath { get; }
+    /// <summary>The file that gets new lines now: the newest part of the session.</summary>
+    public string WriterPath => TelemetryWriter.CurrentPath ?? FilePath;
     readonly Stopwatch _real = Stopwatch.StartNew();
     public double RealSeconds => _real.Elapsed.TotalSeconds;
     public double SimSeconds => _simSeconds;

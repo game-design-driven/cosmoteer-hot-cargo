@@ -29,6 +29,9 @@ sealed class TelemetryWriter
 
     public string FilePath { get; private set; }
 
+    /// <summary>The file that the open writer appends to now (the newest part), or null without a writer.</summary>
+    public static string? CurrentPath => _current?.FilePath;
+
     TelemetryWriter(string folder, string name, long maxFileBytes, string partHeader)
     {
         _folder = folder;

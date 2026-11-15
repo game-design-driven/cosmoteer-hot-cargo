@@ -82,7 +82,8 @@ public static class TelemetryArea
         Autotest.Fields["tele_trace_missing"] = () => Stats.TraceMissing;
         Autotest.Fields["tele_trace_patched"] = () => Stats.TracePatched;
         // Spec 1593: the co-op relay. Client: bytes that the host has not confirmed. Host: bytes received, good and bad client copies.
-        Autotest.Fields["tele_relay_pending"] = () => Session.Current is { } rs ? Relay.Pending(rs) : -1;
+        Autotest.Fields["tele_relay_pending"] = () => Session.Current is { } rs ? Relay.Pending(rs, closedOnly: false) : -1;
+        Autotest.Fields["tele_relay_pending_closed"] = () => Session.Current is { } rs ? Relay.Pending(rs, closedOnly: true) : -1;
         Autotest.Fields["tele_relay_received"] = () => Relay.ReceivedBytes;
         Autotest.Fields["tele_relay_copies"] = () => Relay.CheckCopies().Good;
         Autotest.Fields["tele_relay_bad"] = () => Relay.CheckCopies().Bad;

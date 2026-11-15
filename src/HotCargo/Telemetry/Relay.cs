@@ -143,8 +143,9 @@ static class Relay
     }
 
     /// <summary>Bytes of the client's run files that the host has not confirmed. A file whose host length is not known yet counts whole.</summary>
-    internal static long Pending(Session s) =>
-        RunFiles(s).Sum(name => Math.Max(0, SafeLength(Path.Combine(Folder, name)) - Confirmed.GetValueOrDefault(name)));
+    internal static long Pending(Session s, bool closedOnly) =>
+        RunFiles(s).Where(name => !closedOnly || Path.Combine(Folder, name) != s.WriterPath)
+            .Sum(name => Math.Max(0, SafeLength(Path.Combine(Folder, name)) - Confirmed.GetValueOrDefault(name)));
 
     /// <summary>
     /// For autotests on the host: the copies of client files (good) and the copies that break the format (bad): a copy must start with
