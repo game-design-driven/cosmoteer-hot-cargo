@@ -8,7 +8,7 @@ godmode on
 contract_set RivalsEnabled off
 expect active == 1
 # Spec 131: MechanicsArea sets the group chance from Mechanics.DroneSiegeChance before a system generates.
-expect mech_chance_siege == 0.2
+expect mech_chance_siege == 0.5
 mech_set DroneSiegeChance 1
 mech_set PrototypeChance 1
 mech_set SunMiningChance 1

@@ -43,7 +43,8 @@ Stash
 									Type = HotCargoStash
 									SiteTag = { Mode=Latest; Tag=hc_stash_site; }
 									TriggerDistance = 1200
-									// Spec 973: money × Stash.LootMoneyFactor (C#), and the fame of one standard mission.
+									// Spec 973: money × Stash.LootMoneyFactor (C#), and twice a standard mission's fame. Half the stashes are
+									// empty (Stash.EmptyShare), so the expected fame is one standard mission (BALANCE.md, finding 10).
 									LootRewards
 									[
 										{
@@ -55,6 +56,7 @@ Stash
 											Type = Fame
 											FamePerHighTier = &<./Data/modes/career/tier_tables.rules>/StandardFamePerTier
 											MaxFamePerHighTier = &<./Data/modes/career/tier_tables.rules>/StandardMaxFamePerTier
+											FamePerTierMultiplier = 2
 										}
 									]
 								}

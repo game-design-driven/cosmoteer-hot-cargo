@@ -7,14 +7,14 @@ namespace HotCargo.Missions.Mechanics;
 public sealed class MechanicsTunables
 {
     /// <summary>Spec 131: chance that a system offers each mission. MechanicsArea applies them to the spawner groups before a system generates.</summary>
-    [Serialize(Optional = true)] public float DroneSiegeChance = 0.2f;
-    [Serialize(Optional = true)] public float PrototypeChance = 0.2f;
-    [Serialize(Optional = true)] public float SunMiningChance = 0.25f;
-    [Serialize(Optional = true)] public float TowChance = 0.15f;
-    [Serialize(Optional = true)] public float CaptureChance = 0.15f;
-    [Serialize(Optional = true)] public float SurveyChance = 0.25f;
-    [Serialize(Optional = true)] public float MiningGuardChance = 0.15f;
-    [Serialize(Optional = true)] public float ListeningPostChance = 0.15f;
+    [Serialize(Optional = true)] public float DroneSiegeChance = 0.5f;
+    [Serialize(Optional = true)] public float PrototypeChance = 0.5f;
+    [Serialize(Optional = true)] public float SunMiningChance = 0.5f;
+    [Serialize(Optional = true)] public float TowChance = 0.5f;
+    [Serialize(Optional = true)] public float CaptureChance = 0.5f;
+    [Serialize(Optional = true)] public float SurveyChance = 0.5f;
+    [Serialize(Optional = true)] public float MiningGuardChance = 0.5f;
+    [Serialize(Optional = true)] public float ListeningPostChance = 0.5f;
 
     /// <summary>Spec 132: Drone Siege. Tier-1 to tier-3 drones, many of them, for five minutes.</summary>
     [Serialize(Optional = true)] public HoldOutTunables Siege = new()

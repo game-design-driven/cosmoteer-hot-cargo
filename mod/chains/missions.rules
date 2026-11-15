@@ -18,18 +18,21 @@ Tables
 	FleetRemap = &<./Data/modes/career/fleet_tier_remap_table.rules>/FleetTierRemapTable
 }
 
-// A standard mission's pay, fame and reputation with the station's faction.
+// Twice a standard mission's pay and fame, like vanilla station rescues and asteroid field clears (BALANCE.md, finding 10),
+// and a standard mission's reputation with the station's faction.
 StandardRewards
 [
 	{
 		Type = Money
 		MoneyPerHighTier = &~/Tables/Money
+		MoneyPerTierMultiplier = 2
 		RoundToMultiple = 500
 	}
 	{
 		Type = Fame
 		FamePerHighTier = &~/Tables/Fame
 		MaxFamePerHighTier = &~/Tables/MaxFame
+		FamePerTierMultiplier = 2
 	}
 	{
 		Type = Reputation

@@ -21,7 +21,7 @@ DroneSiege
 {
 	Type = None
 	Tags = [hc_mech_siege]
-	SpawnChance = 20%
+	SpawnChance = 50%
 	RootLocation = Tag
 	RootLocationTag = trade_station
 
@@ -85,20 +85,20 @@ DroneSiege
 							]
 						}
 					]
-					// Drones pay no kill fame, so the contract carries it all. 1.5x money for five minutes of guard duty.
+					// Drones pay no kill fame, so the contract carries it all: 2x money like a vanilla station rescue, and 3x fame (its 2x plus the kill fame) (BALANCE.md, finding 10).
 					Rewards
 					[
 						{
 							Type = Money
 							MoneyPerHighTier = &/TIER_TABLES/StandardMoneyPerTier
-							MoneyPerTierMultiplier = 1.5
+							MoneyPerTierMultiplier = 2
 							RoundToMultiple = 500
 						}
 						{
 							Type = Fame
 							FamePerHighTier = &/TIER_TABLES/StandardFamePerTier
 							MaxFamePerHighTier = &/TIER_TABLES/StandardMaxFamePerTier
-							FamePerTierMultiplier = 1.25
+							FamePerTierMultiplier = 3
 						}
 						{
 							Type = Reputation
@@ -125,7 +125,7 @@ Prototype
 {
 	Type = None
 	Tags = [hc_mech_prototype]
-	SpawnChance = 20%
+	SpawnChance = 50%
 	// Inside the gate ring (spec 105, contracts/system_scale.rules), like the vanilla bounties.
 	Distance = [0, "(&<../../contracts/system_scale.rules>/Scale) * 19000"]
 	MinDistanceFromTags = [[sun, "max((&<../../contracts/system_scale.rules>/Scale) * 6000, (&<../../contracts/system_scale.rules>/SunClearance))"], [station, "(&<../../contracts/system_scale.rules>/Scale) * 4000"], [bounty, "(&<../../contracts/system_scale.rules>/Scale) * 3000"], [hc_shady, "(&<../../contracts/system_scale.rules>/Scale) * 4000"]]
@@ -204,7 +204,7 @@ Prototype
 							]
 						}
 					]
-					// A careful fight against a ship of the sector tier: 2x money, 1.5x fame. The carrier also pays kill fame when it is wrecked.
+					// A careful fight against a ship of the sector tier: 2x money and fame, like a vanilla pirate hunt. The carrier also pays kill fame when it is wrecked.
 					Rewards
 					[
 						{
@@ -217,7 +217,7 @@ Prototype
 							Type = Fame
 							FamePerHighTier = &/TIER_TABLES/StandardFamePerTier
 							MaxFamePerHighTier = &/TIER_TABLES/StandardMaxFamePerTier
-							FamePerTierMultiplier = 1.5
+							FamePerTierMultiplier = 2
 						}
 						// The broker sells the carrier's position: a fee up front. Pirates talk, so the corporation may hear of it.
 						{
@@ -242,7 +242,7 @@ SunMining
 {
 	Type = None
 	Tags = [hc_mech_sunmining]
-	SpawnChance = 25%
+	SpawnChance = 50%
 	Conditions { ProhibitSpawnFlags = [binary_sun, no_sun, hc_no_sun_mining] }
 	RootLocation = Tag
 	RootLocationTag = sun
@@ -353,7 +353,7 @@ Tow
 {
 	Type = None
 	Tags = [hc_mech_tow]
-	SpawnChance = 15%
+	SpawnChance = 50%
 	RootLocation = Tag
 	RootLocationTag = trade_station
 
@@ -456,7 +456,7 @@ Capture
 {
 	Type = None
 	Tags = [hc_mech_capture]
-	SpawnChance = 15%
+	SpawnChance = 50%
 	// Inside the gate ring (spec 105, contracts/system_scale.rules).
 	Distance = [0, "(&<../../contracts/system_scale.rules>/Scale) * 19000"]
 	MinDistanceFromTags = [[sun, "max((&<../../contracts/system_scale.rules>/Scale) * 6000, (&<../../contracts/system_scale.rules>/SunClearance))"], [station, "(&<../../contracts/system_scale.rules>/Scale) * 4000"], [bounty, "(&<../../contracts/system_scale.rules>/Scale) * 3000"], [hc_shady, "(&<../../contracts/system_scale.rules>/Scale) * 4000"]]
@@ -558,20 +558,20 @@ Capture
 					]
 				}
 			]
-			// A fight with restraint: 1.75x money, 1.25x fame. The escorts pay kill fame on top.
+			// A fight with restraint: 2x money and fame, like a vanilla pirate hunt. The escorts pay kill fame on top.
 			Rewards
 			[
 				{
 					Type = Money
 					MoneyPerHighTier = &/TIER_TABLES/StandardMoneyPerTier
-					MoneyPerTierMultiplier = 1.75
+					MoneyPerTierMultiplier = 2
 					RoundToMultiple = 500
 				}
 				{
 					Type = Fame
 					FamePerHighTier = &/TIER_TABLES/StandardFamePerTier
 					MaxFamePerHighTier = &/TIER_TABLES/StandardMaxFamePerTier
-					FamePerTierMultiplier = 1.25
+					FamePerTierMultiplier = 2
 				}
 				// The bank wants a bond up front. Rival of Salvage Rights.
 				{
@@ -592,7 +592,7 @@ Survey
 {
 	Type = None
 	Tags = [hc_mech_survey]
-	SpawnChance = 25%
+	SpawnChance = 50%
 	RootLocation = Tag
 	RootLocationTag = trade_station
 
@@ -642,19 +642,20 @@ Survey
 					]
 				}
 			]
-			// No enemies, but lightning and travel: normal money, less fame (and so less heat).
+			// No enemies, but lightning and travel: 1.25x money and normal fame, more than a vanilla exploration (BALANCE.md, finding 10).
 			Rewards
 			[
 				{
 					Type = Money
 					MoneyPerHighTier = &/TIER_TABLES/StandardMoneyPerTier
+					MoneyPerTierMultiplier = 1.25
 					RoundToMultiple = 500
 				}
 				{
 					Type = Fame
 					FamePerHighTier = &/TIER_TABLES/StandardFamePerTier
 					MaxFamePerHighTier = &/TIER_TABLES/StandardMaxFamePerTier
-					FamePerTierMultiplier = 0.75
+					FamePerTierMultiplier = 1
 				}
 				{
 					Type = Reputation
@@ -677,7 +678,7 @@ ClaimJumpers
 {
 	Type = None
 	Tags = [hc_mech_guard]
-	SpawnChance = 15%
+	SpawnChance = 50%
 	RootLocation = Tag
 	// The field POI sits at the field center. The vanilla asteroid_field tag belongs to a None spawner, which leaves no object,
 	// so only the POI is found by a spawn after system generation (mech_generate).
@@ -742,18 +743,19 @@ ClaimJumpers
 							]
 						}
 					]
-					// Raiders from C# waves pay no kill fame. 1.25x money, normal fame.
+					// Raiders from C# waves pay no kill fame: 2x money like a vanilla asteroid field clear, and 3x fame (its 2x plus the kill fame).
 					Rewards
 					[
 						{
 							Type = Money
 							MoneyPerHighTier = &/TIER_TABLES/StandardMoneyPerTier
-							MoneyPerTierMultiplier = 1.25
+							MoneyPerTierMultiplier = 2
 							RoundToMultiple = 500
 						}
 						{
 							Type = Fame
 							FamePerHighTier = &/TIER_TABLES/StandardFamePerTier
+							FamePerTierMultiplier = 3
 							MaxFamePerHighTier = &/TIER_TABLES/StandardMaxFamePerTier
 						}
 						{
@@ -784,7 +786,7 @@ ListeningPost
 {
 	Type = None
 	Tags = [hc_mech_listening]
-	SpawnChance = 15%
+	SpawnChance = 50%
 	// The vanilla military station placement at the system scale (spec 105, contracts/system_scale.rules).
 	Distance = [0, "(&<../../contracts/system_scale.rules>/Scale) * 20000"]
 	MinDistanceFromTags = [[sun, "max((&<../../contracts/system_scale.rules>/Scale) * 7500, (&<../../contracts/system_scale.rules>/SunClearance))"], [station, "(&<../../contracts/system_scale.rules>/Scale) * 6000"], [ftl_gate, "(&<../../contracts/system_scale.rules>/Scale) * 3000"], [bounty, "(&<../../contracts/system_scale.rules>/Scale) * 3000"]]
@@ -889,20 +891,20 @@ ListeningPost
 							]
 						}
 					]
-					// Four waves next to a hostile base: 1.75x money (more with intensive scans), 1.25x fame. Each survived wave keeps its share.
+					// Four waves next to a hostile base: 2x money (more with intensive scans), 3x fame (C# waves pay no kill fame). Each survived wave keeps its share.
 					Rewards
 					[
 						{
 							Type = Money
 							MoneyPerHighTier = &/TIER_TABLES/StandardMoneyPerTier
-							MoneyPerTierMultiplier = 1.75
+							MoneyPerTierMultiplier = 2
 							RoundToMultiple = 500
 						}
 						{
 							Type = Fame
 							FamePerHighTier = &/TIER_TABLES/StandardFamePerTier
 							MaxFamePerHighTier = &/TIER_TABLES/StandardMaxFamePerTier
-							FamePerTierMultiplier = 1.25
+							FamePerTierMultiplier = 3
 						}
 						{
 							Type = Reputation
