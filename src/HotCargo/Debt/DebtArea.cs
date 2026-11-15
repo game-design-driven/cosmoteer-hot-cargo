@@ -190,7 +190,7 @@ public static class DebtArea
         Autotest.Commands["debt_help_spawn"] = _ =>
         {
             var id = Sim().MapNode?.ControllingFaction ?? throw new InvalidOperationException("this system has no controlling faction");
-            DebtHelp.Come(R(), Sim(), Cosmoteer.GameApp.Rules.GetFactionRules(id), SimQueries.FleetCenter(Sim()) ?? throw new InvalidOperationException("no human ships"));
+            DebtHelp.Come(R(), Sim(), Cosmoteer.GameApp.Rules.GetFactionRules(id), DebtHelp.Anchor(R(), Sim())?.DetWorldCenter ?? throw new InvalidOperationException("no human ships"));
         };
         // debt_help_share <helper damage> <player damage>: sets the damage counts (sim; in co-op run it through "mp").
         Autotest.Commands["debt_help_share"] = arg =>

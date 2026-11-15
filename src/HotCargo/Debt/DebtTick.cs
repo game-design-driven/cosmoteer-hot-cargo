@@ -106,9 +106,9 @@ static class DebtTick
             bool wanted = Lenders.Wants(sim, d.Faction);
             if (d.WasWanted && !wanted) d.NextCollectorAt = Math.Min(d.NextCollectorAt, now + t.ReturnSeconds);
             d.WasWanted = wanted;
-            if (!wanted && now >= d.NextCollectorAt && !s.Collectors.Any(c => c.Faction == d.Faction) && SimQueries.FleetCenter(sim) is { } center)
+            if (!wanted && now >= d.NextCollectorAt && !s.Collectors.Any(c => c.Faction == d.Faction) && CollectorAnchor(run, sim) is { } anchor)
             {
-                SpawnCollector(run, sim, d, center);
+                SpawnCollector(run, sim, d, anchor.DetWorldCenter);
                 d.NextCollectorAt = now + t.CollectorSeconds;
             }
         }
@@ -116,6 +116,13 @@ static class DebtTick
         DebtMissions.Tick(run, sim);
         DebtHelp.Tick(run, sim, now);
     }
+
+    /// <summary>
+    /// Spec 1323: a debt belongs to the whole crew (the run saves no borrower), so the collector comes to the ship of the player with the
+    /// most credits: the one who can pay. Money is per player in co-op.
+    /// </summary>
+    static Ship? CollectorAnchor(Run run, SimRoot sim) =>
+        SimQueries.AnchorShip(sim, s => run.Game.GetPlayerState(s.Metadata.PlayerIndex, deterministic: true).Money);
 
     /// <summary>Collectors belong to the system they came to.</summary>
     public static void OnSystemEntered(Run run, bool firstVisit)

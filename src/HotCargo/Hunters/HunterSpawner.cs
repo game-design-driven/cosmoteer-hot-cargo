@@ -168,6 +168,12 @@ public static class HunterSpawner
         SpawnWave(run, sim, groups[0], tier, stageName, firstOfStage: true);
     }
 
+    /// <summary>
+    /// Spec 1538: the player ship that the pursuit hunts, the one that carries the most stolen tech. Carried tech sets the heat
+    /// multiplier, so the corporation goes after that ship. Hunter waves and the hacker (spec 1323) spawn near it.
+    /// </summary>
+    internal static Ship? PursuitTarget(SimRoot sim) => SimQueries.AnchorShip(sim, s => Tech.Vaults.ShipTech(s));
+
     /// <summary>Spawns one group near one player ship (spec 1538). Each ship spawns physically at once, so the AI owns it from the first tick.
     /// Also used by the contract informant sell-out (Contracts/ContractBook.SellOut).</summary>
     internal static void SpawnWave(Run run, SimRoot sim, int wanted, int tier, string stageName, bool firstOfStage)
@@ -177,9 +183,7 @@ public static class HunterSpawner
         if (sim != run.Game.Sim) return;
         if (sim.Mode is not CareerSimModeManager career) throw new InvalidOperationException("hunters need a career simulation");
         var t = run.T.Hunters;
-        // Spec 1538: the ship that carries the most stolen tech. Carried tech drives the time heat, so the corporation sends its
-        // hunters after that ship.
-        if (SimQueries.AnchorShip(sim, s => Tech.Vaults.ShipTech(s)) is not { } anchor)
+        if (PursuitTarget(sim) is not { } anchor)
         {
             Log.Info($"hunters: {reason} skipped, no human ships in this system");
             return;
