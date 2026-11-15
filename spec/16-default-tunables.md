@@ -72,6 +72,7 @@
 | `CallBlockedInNebulas`, `CallStormStrength` | [ion_storm, electron], 0.5 | 199 |
 | `FocusWeakFactor` | 1.5 | 200 |
 | `RegroupFirepowerRatio`, `RegroupRadius`, `RegroupMinGroup`, `RegroupMaxSeconds` | 0.75, 1200, 2, 25 s | 201 |
+| `TraderFleeStopFactor`, `FirepowerWeaponCap` | 1.75, 8000 | 1531, 1533 |
 | `PersonalitiesEnabled`, `PersonalityThreshold`, `ProfileRefreshSeconds` | on, 0.45, 10 s | 360, 362, 363 |
 | `Personalities` | see section 31 | 361 |
 | `Profile` (build score ends) | see `ProfileScaleTunables` | 362 |

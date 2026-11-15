@@ -40,6 +40,7 @@ public static class AiArea
         // Spec 1300: the longest running call, in seconds (0 with no call).
         Autotest.Fields["ai_call_seconds"] = () => Sim().Ships.Select(s => s.AI?.GetStrategyModule<CallStrategy>()).OfType<CallStrategy>().Where(m => m.Calling).Select(m => (double)m.CallSeconds).DefaultIfEmpty(0).Max();
         PersonalityAutotest.Register();
+        TraderFleeHoldPatch.RegisterAutotest();
         Autotest.Fields["ai_fleeing"] = () => Sim().Ships.Count(s => s.AI?.GetStrategyModule<FleeStrategy>() is { Fleeing: true });
 
         // aiset <TacticsTunables field> <value>: sets one tactics tunable for this run. Test only.

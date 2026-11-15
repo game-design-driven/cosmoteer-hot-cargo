@@ -1,0 +1,41 @@
+# Trader flee hysteresis (spec 1531): a fleeing trade ship keeps fleeing while an enemy is within radar × TraderFleeStopFactor.
+# Each step waits 2 s (the trade ship AI checks every 0.75 to 1.25 s) and the whole flee stays short: vanilla jumps a fleeing
+# trade ship away after 10 to 20 s.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+playerweapons off
+openspace 5000
+# Only the player is an enemy of the trade ship: other hostile ships near it also hold its flee.
+fr_kill_enemies all
+dip_spawn trader 600
+# A new ship sets its radar radius at its first update.
+wait 1
+ai_trader_want
+ai_trader_place 0.5
+wait 2
+expect ai_trader_fleeing == 1
+# Just outside the radar radius: vanilla stopped here and turned back; now the ship keeps fleeing.
+ai_trader_place 1.25
+wait 2
+expect ai_trader_fleeing == 1
+ai_trader_place 1.25
+wait 2
+expect ai_trader_fleeing == 1
+# Outside the stop radius: the ship stops fleeing.
+ai_trader_place 2
+wait 2
+expect ai_trader_fleeing == 0
+# Factor 1 is vanilla: a new trade ship stops at the radar radius.
+aiset TraderFleeStopFactor 1
+dip_spawn trader 600
+wait 1
+ai_trader_want
+ai_trader_place 0.5
+wait 2
+expect ai_trader_fleeing == 1
+ai_trader_place 1.25
+wait 2
+expect ai_trader_fleeing == 0
+quit

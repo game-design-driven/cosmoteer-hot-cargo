@@ -5,6 +5,7 @@ using Cosmoteer.Ships.Commands;
 using Halfling.Geometry;
 using Halfling.PortableHashing;
 using Halfling.Serialization;
+using HotCargo.Ai;
 using HotCargo.Core;
 using HotCargo.Hunters;
 
@@ -58,14 +59,14 @@ internal sealed class ShyStrategy : AIStrategyModule
             if (other == ship || !other.IsSignificant || other.IsJunk || !ship.IsEnemiesWith(other)) continue;
             float d = HunterOrders.EdgeDistance(ship, other);
             if (d > t.FleeRange) continue;
-            firepower += other.Weapons.GetTotalFirePower();
+            firepower += Firepower.Of(other);
             if (d < nearestDistance) (nearest, nearestDistance) = (other, d);
             var v = other.Physics.Body?.LinearVelocity ?? Vector2.Zero;
             var to = ship.DetWorldCenter - other.DetWorldCenter;
             if (ScavengeModel.Approaching(v.X, v.Y, to.X, to.Y, t.ApproachSpeed) || (other.Commands.CurConfirmedCommand as IAttackCommand)?.Target == ship)
                 approaching = true;
         }
-        if (!ScavengeModel.Flees(fleeing, ship.Weapons.GetTotalFirePower(), firepower, t.StrongerRatio, approaching, nearestDistance, t.SafeDistance)) return false;
+        if (!ScavengeModel.Flees(fleeing, Firepower.Of(ship), firepower, t.StrongerRatio, approaching, nearestDistance, t.SafeDistance)) return false;
         threat = nearest!;
         Vector2 away = Vector2.FromAngle(threat.DetWorldCenter.DirectionTo(ship.DetWorldCenter));
         HunterOrders.MoveTo(ship, threat.DetWorldCenter + away * (t.SafeDistance * 1.25f + threat.WorldBoundingRadius + ship.WorldBoundingRadius), t.SafeDistance * 0.25f);

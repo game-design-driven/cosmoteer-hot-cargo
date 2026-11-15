@@ -58,6 +58,17 @@ public static class AiModel
         && alliesNear + 1 < Math.Min(minGroup, alliesTotal + 1)
         && ownFirepower < targetFirepower * firepowerRatio;
 
+    /// <summary>
+    /// Spec 1533. Sum of the weapon firepower ratings, each clamped to 0..cap. Sorted first, like the vanilla total, so the sum does
+    /// not depend on the weapon order.
+    /// </summary>
+    public static float Firepower(IEnumerable<float> ratings, float cap)
+    {
+        if (!(cap > 0)) throw new ArgumentOutOfRangeException(nameof(cap), cap, "the firepower cap must be above 0");
+        return ratings.Select(r => float.IsNaN(r) ? throw new ArgumentOutOfRangeException(nameof(ratings), "a firepower rating is NaN") : Math.Clamp(r, 0f, cap))
+            .Order().Sum();
+    }
+
     /// <summary>Spec 200. Attack value factor for a target: weakened targets count more. Health is clamped to 0..1.</summary>
     public static float FocusFactor(float targetHealth, float weakFactor) => 1f + weakFactor * (1f - Math.Clamp(targetHealth, 0f, 1f));
 }

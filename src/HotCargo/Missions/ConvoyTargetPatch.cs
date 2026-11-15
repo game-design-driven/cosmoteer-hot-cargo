@@ -3,6 +3,7 @@ using Cosmoteer.Modes.Career;
 using Cosmoteer.Ships;
 using Cosmoteer.Data;
 using HarmonyLib;
+using HotCargo.Ai;
 using HotCargo.Core;
 
 namespace HotCargo.Missions;
@@ -25,7 +26,7 @@ static class ConvoyTargetPatch
         {
             if (sourceShip.Tags?.Contains(RaiderTag) != true || targetShip.Tags?.Contains(FreighterTag) != true) return;
             float focus = MissionArea.TunablesFor(sourceShip.Sim.RequireGame()).EscortRaiderFocus;
-            value = Math.Max(value, sourceShip.Weapons.GetTotalFirePower() * focus);
+            value = Math.Max(value, Firepower.Of(sourceShip) * focus);
         }
         catch (Exception ex) { Errors.Report("convoy raider target", ex.Message, ex); }
     }
