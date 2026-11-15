@@ -21,6 +21,15 @@ static class UxAutotest
 
     internal static void Register()
     {
+        // Payment hint: hints shown, and the objective lines of open missions that read the hint (the game's own display lines).
+        Autotest.Fields["ux_payment_hints"] = () => PaymentHint.HintsShown;
+        Autotest.Fields["ux_payment_lines"] = () =>
+        {
+            var run = Autotest.RequireRun();
+            var lines = new List<Cosmoteer.Modes.Career.Missions.Objectives.Objective.DisplayLine>();
+            foreach (var m in run.Mode.Missions) m.GetObjectiveDisplayLines(lines);
+            return lines.Count(l => l.Text.Text == UxKit.Text("PaymentHereLine"));
+        };
         RegisterMissionSelect();
         RegisterJumpWarnings();
         // uxpick N: presses dialogue key N (1-based) in the frontmost dialogue (event window first, then comms).

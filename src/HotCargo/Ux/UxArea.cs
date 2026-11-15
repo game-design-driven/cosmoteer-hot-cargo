@@ -46,6 +46,7 @@ public static class UxArea
                 UxKit.Guard("damage pings", () => DamagePings.OnFrame(game));
                 UxKit.Guard("low supplies", () => LowSupplies.OnFrame(game));
                 UxKit.Guard("jump warnings", () => JumpWarnings.OnFrame(game));
+                UxKit.Guard("payment hint", () => PaymentHint.OnFrame(game));
                 UxKit.Guard("dialogue keys", () => DialogueKeys.OnFrame(game));
             };
         }
