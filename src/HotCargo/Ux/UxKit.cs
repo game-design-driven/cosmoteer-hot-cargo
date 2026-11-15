@@ -154,6 +154,20 @@ public static class UxKit
     public static string StageText(string stageName) =>
         Strings.TryGetText("HotCargoUx/Stage" + stageName, out string? text) ? text : Text("StageGeneric");
 
+    /// <summary>
+    /// The error that the game's text renderer hits when it reads this text as markup, or null when the markup parses. On an error the
+    /// renderer draws the whole text raw, tags included (TextBuilder.BuildTextGeometry), so one bad line spoils a whole tooltip. Tests only.
+    /// </summary>
+    internal static string? MarkupError(string xml)
+    {
+        try
+        {
+            new TextBuilder(xml, Halfling.Geometry.IntVector2.Zero) { XmlFormatting = true }.BuildLines(xmlFormatting: true);
+            return null;
+        }
+        catch (Exception ex) { return ex.Message; }
+    }
+
     /// <summary>Percent text in the game's good, limited or bad text color.</summary>
     public static string PercentXml(float fraction)
     {
