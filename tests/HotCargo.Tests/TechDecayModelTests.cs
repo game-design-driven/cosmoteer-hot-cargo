@@ -56,6 +56,24 @@ public class TechDecayModelTests
     }
 
     [Fact]
+    public void PickupFromAStackCopiesItsWear()
+    {
+        // A stack of 3 in storage: crew take 1, the tile keeps 2 and its wear.
+        var state = new List<TechWear> { new("s1", 100, Group: "a") };
+        var (next, _) = Step(state, 1, DecayInVault.Pause, new TechSpot("s1", true, Group: "a"), new TechSpot("c7", true, From: "s1", To: "s2"));
+        Assert.Equal(101, Wear(next, "s1"), 6);
+        Assert.Equal(101, Wear(next, "c7"), 6);
+    }
+
+    [Fact]
+    public void DeliveryOntoAStackKeepsTheHigherWear()
+    {
+        var state = new List<TechWear> { new("v3", 50, Group: "a"), new("c7", 200, To: "v3") };
+        var (next, _) = Step(state, 1, DecayInVault.Pause, new TechSpot("v3", false, Group: "a"));
+        Assert.Equal(200, Wear(next, "v3"), 6);
+    }
+
+    [Fact]
     public void ResetRecoversInTheVault()
     {
         var state = new List<TechWear> { new("c7", 300, To: "v3") };

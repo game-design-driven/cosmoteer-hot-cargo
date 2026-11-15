@@ -8,8 +8,8 @@ DescriptionKey = "HotCargoTech/StolenTechDesc"
 BuyPrice = 10000
 // One crate holds one unit (spec 442).
 MaxPerNugget = 1
-// One unit per storage tile (spec 1540): a 2x2 Tech Vault holds 4, and each unit in normal storage has its own tile and decay timer.
-MaxStackSize = 1
+// A Tech Vault has 1 tile, so it holds 4 units (spec 1540). A normal storage tile holds 4 too, as one stack with one decay timer (spec 1549).
+MaxStackSize = 4
 // Normal storage holds tech only when no vault has room (spec 1543). Sharing the processor key keeps a
 // "Supply Stolen Tech" job out of every storage part's job list, so crews never prefer storage.
 FlexGridPriorityKey = "flex_grid_processor"
@@ -59,11 +59,26 @@ NuggetSprite
 	VertexColor = &~/TINT
 }
 
-// One unit per tile (spec 442), so one sprite.
+// One item per unit (spec 442): 1 unit shows one item, 4 units show four, like vanilla processors. Vanilla picks sprite (units - 1).
 StackSprites
 [
 	{
 		File = "./Data/resources/processor/processor_stack_1.png"
+		Size = [1, 1]
+		VertexColor = &~/TINT
+	}
+	{
+		File = "./Data/resources/processor/processor_stack_2.png"
+		Size = [1, 1]
+		VertexColor = &~/TINT
+	}
+	{
+		File = "./Data/resources/processor/processor_stack_3.png"
+		Size = [1, 1]
+		VertexColor = &~/TINT
+	}
+	{
+		File = "./Data/resources/processor/processor_stack_4.png"
 		Size = [1, 1]
 		VertexColor = &~/TINT
 	}

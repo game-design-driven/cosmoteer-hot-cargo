@@ -4,7 +4,7 @@ wait 8
 ev_set Enabled false
 tech_set LossGraceSeconds 600
 tech_set VaultTechLossChance 0
-expect vaultminhealth == 12000
+expect vaultminhealth == 3000
 expect tech == 8
 expect vaultunits == 8
 # Damage that leaves the vault standing costs no tech, also a tiny hit near half health.

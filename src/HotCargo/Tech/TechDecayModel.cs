@@ -21,10 +21,12 @@ public readonly record struct TechWear(string Key, double Wear, string? To = nul
 
 /// <summary>
 /// Spec 1547-1549: tech decays outside a vault. The game stores tech as counts, not as items, so the model follows each stack
-/// from place to place: a stack keeps its key while it stays; a crew member that picks up a stack takes the wear of the tile in
-/// its job's source; a tile that receives a stack takes the wear of the vanished crew member whose job named that tile;
-/// a stack that moves on one ship without crew (an instant transfer) takes the highest wear that vanished on that ship.
-/// Anything else is new tech with no wear (a crate, an event, a purchase). Pure math, no game types.
+/// from place to place. A tile holds up to 4 units as one stack with one wear. A stack keeps its key while it stays.
+/// A crew member that picks up tech takes the wear of the tile in its job's source (the tile keeps its wear when units stay).
+/// A tile that receives tech takes the wear of the vanished crew member whose job named that tile; on a stack that was there,
+/// the higher wear wins, so merging never makes tech recover. A stack that moves on one ship without crew (an instant transfer)
+/// takes the highest wear that vanished on that ship. Anything else is new tech with no wear (a crate, an event, a purchase).
+/// Pure math, no game types.
 /// </summary>
 public static class TechDecayModel
 {
@@ -56,8 +58,12 @@ public static class TechDecayModel
         for (int i = 0; i < seen.Count; i++)
         {
             var s = seen[i];
-            wear[i] = byKey.TryGetValue(s.Key, out var kept) ? kept.Wear
-                : (s.From is { } from ? Take(w => w.Key == from) : null) ?? Take(w => w.To == s.Key);
+            // A pickup copies the wear of its source tile, which may still hold units.
+            double? picked = s.From is { } from && !byKey.ContainsKey(s.Key) && byKey.TryGetValue(from, out var source)
+                ? (seenKeys.Contains(from) ? source.Wear : Take(w => w.Key == from)) : null;
+            double? delivered = Take(w => w.To == s.Key);
+            double? kept = byKey.TryGetValue(s.Key, out var k) ? k.Wear : null;
+            wear[i] = Max(Max(kept, delivered), picked);
         }
         // Instant moves on one ship, after every crew match. Highest wear first, so a move never makes tech recover.
         for (int i = 0; i < seen.Count; i++)
@@ -82,6 +88,8 @@ public static class TechDecayModel
         }
         return (next, destroy);
     }
+
+    static double? Max(double? a, double? b) => a is null ? b : b is null ? a : Math.Max(a.Value, b.Value);
 
     /// <summary>Game seconds until the stack decays, at least 0.</summary>
     public static double SecondsLeft(double wear, double decaySeconds) => Math.Max(0, decaySeconds - wear);

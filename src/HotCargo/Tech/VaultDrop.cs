@@ -57,7 +57,7 @@ static class VaultDropPatch
     /// <summary>
     /// Spec 1554: crew take the vault apart (a rebuild, a move with the grab tool). That is no destruction, so the tech stays aboard:
     /// first into the other vaults of the ship, then into its normal storage, where it decays. Only tech that finds no room at all
-    /// stays in the tiles, and the game drops it as crates. A toast and a chat line say where the tech went.
+    /// stays in the tiles, and the game drops it as crates. A toast and a chat line say where the tech went. Telemetry names the cause `vault_deconstructed` (TelemetryPatches.VaultHitPatch).
     /// </summary>
     static void Rehome(Run run, Cosmoteer.Ships.Ship ship, TypedResourceGrid grid, int units)
     {
@@ -65,10 +65,15 @@ static class VaultDropPatch
         int toVaults = Vaults.Add(Vaults.OnShip(ship).Where(g => g != grid), units);
         int toStorage = Vaults.AddToStorage([ship], units - toVaults);
         int left = units - toVaults - toStorage;
-        foreach (var tile in grid.Take(left)) tile.Resources = 1;
+        int back = left;
+        foreach (var tile in grid)
+        {
+            int n = Math.Min(back, tile.MaxResources);
+            tile.Resources = n;
+            back -= n;
+        }
         Rehomed++;
         Log.Info($"vault at {grid.Part.Location} taken apart: {toVaults} tech to other vaults, {toStorage} to storage, {left} dropped as crates");
-        if (Telemetry.Tele.On(Telemetry.Cat.Tech)) Telemetry.Session.Current?.AddTechHint("vault_deconstructed");
         string text = Strings.FormatText(left > 0 ? "HotCargoTech/VaultApartCratesFmt" : "HotCargoTech/VaultApartFmt", toVaults, toStorage, left);
         Run.OnNextFrame(() =>
         {
