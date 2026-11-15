@@ -1,6 +1,6 @@
 // Funnel (spec 1054, 1055). 2x2, no crew, no power. C# (Autonomy.Funnel) takes in loot under it and moves it into the parts
 // that touch its sides. Its filter is the vanilla popout part setting "hc_funnel_filter" (modes: FunnelChoice in AutonomyModel).
-// Art: sprites/funnel (tools/sprites/make_sprites.py): a ringed intake cone with turning vanes. No roof: the intake is open.
+// Art (spec 1057): a stepped intake with turning vanes and a chute on each side; the roof has a round opening over the intake.
 Part : <./Data/ships/terran/base_part_terran.rules>/Part
 {
 	NameKey = "HotCargoAutonomy/Funnel"
@@ -47,38 +47,57 @@ Part : <./Data/ships/terran/base_part_terran.rules>/Part
 			Invert = true
 		}
 
+		// Art (spec 1057, docs/part-art.md): the vanilla deck and walls by reference, and the own layers in sprites/funnel
+		// (tools/sprites/make_sprites.py).
+		Deck00 : <autonomy/part_art.rules>/DeckTile {}
+		Deck10 : <autonomy/part_art.rules>/DeckTile { Location = [1.5, 0.5] }
+		Deck01 : <autonomy/part_art.rules>/DeckTile { Location = [0.5, 1.5] }
+		Deck11 : <autonomy/part_art.rules>/DeckTile { Location = [1.5, 1.5] }
 		Graphics
 		{
 			Type = Graphics
 			Location = [1, 1]
 			OperationalToggle = IsOperational
+			// The machine on the deck. The turrets layer draws between the floors and the doodads.
 			Floor
 			{
-				Layer = "floors"
+				Layer = "turrets"
 				DamageLevels [
-					{ File = "sprites/funnel/floor.png"; Size = [2, 2] }
-					{ File = "sprites/funnel/floor_33.png"; Size = [2, 2] }
-					{ File = "sprites/funnel/floor_66.png"; Size = [2, 2] }
+					{ File = "sprites/funnel/machine.png"; Size = [2, 2] }
+					{ File = "sprites/funnel/machine_33.png"; Size = [2, 2] }
+					{ File = "sprites/funnel/machine_66.png"; Size = [2, 2] }
 				]
 			}
+			// The vanes turn while the Funnel works.
 			OperationalDoodad
 			{
 				Layer = "doodads_low"
-				DamageLevels [ { File = "sprites/funnel/vanes.png"; Size = [1.3125, 1.3125]; RotSpeed = 90d } ]
+				DamageLevels [ { File = "sprites/funnel/vanes.png"; Size = [0.9375, 0.9375]; RotSpeed = 90d } ]
 			}
 			NonOperationalDoodad
 			{
 				Layer = "doodads_low"
-				DamageLevels [ { File = "sprites/funnel/vanes.png"; Size = [1.3125, 1.3125] } ]
+				DamageLevels [ { File = "sprites/funnel/vanes.png"; Size = [0.9375, 0.9375] } ]
 			}
-			Walls
+			OperationalLighting
 			{
-				Layer = "walls"
+				Layer = "lights_add"
+				DamageLevels [ { File = "sprites/funnel/lights.png"; Size = [2, 2] } ]
+			}
+			Walls = &<autonomy/part_art.rules>/Walls2x2
+			Roof
+			{
+				Layer = "roofs"
 				DamageLevels [
-					{ File = "sprites/funnel/walls.png"; Size = [2, 2] }
-					{ File = "sprites/funnel/walls_33.png"; Size = [2, 2] }
-					{ File = "sprites/funnel/walls_66.png"; Size = [2, 2] }
+					{ File = "sprites/funnel/roof.png"; NormalsFile = "sprites/funnel/roof_normals.png"; Size = [2, 2] }
+					{ File = "sprites/funnel/roof_33.png"; NormalsFile = "sprites/funnel/roof_normals_33.png"; Size = [2, 2] }
+					{ File = "sprites/funnel/roof_66.png"; NormalsFile = "sprites/funnel/roof_normals_66.png"; Size = [2, 2] }
 				]
+			}
+			OperationalRoofDoodad
+			{
+				Layer = "roof_doodads"
+				DamageLevels [ { File = "sprites/funnel/roof_glows.png"; Size = [2, 2] } ]
 			}
 		}
 
