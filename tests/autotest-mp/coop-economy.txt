@@ -283,6 +283,8 @@ step debt.overdraft
 # Spec 1401, 1417: the client's money below 0 becomes the client's own debt with the system's faction, the same on both machines.
 as 1 debt_my_clear
 waitfor debt_count == 0 30
+mp pu_setmoney 100
+wait 1
 hc_mark
 as 1 debt_spend 700
 waitfor debt_count == 1 30
