@@ -2,10 +2,12 @@
 newgame run
 wait 8
 log start
-# Spec 1014, 1017: the Model-L preset has 4 one-tile vaults of 2 units by design. The run fills them. Valid design, crew can walk to every vault and part.
-expect vaults == 4
+# Spec 1014, 1017, 1541: the Model-L preset has the vaults for the starting tech by design (2x2, one unit per tile). The run fills them.
+# Valid design, crew can walk to every vault and part.
+expect vaults == vaultsneeded
 expect vaulttech == 8
-expect vaultpaths == 4
+expect storagetech == 0
+expect vaultpaths == vaults
 expect noaccess == 0
 expect shipvalid == 1
 expect tech == 8
@@ -13,23 +15,23 @@ expect livetech == 8
 expect heatmult == 1.2
 # Spec 1015: the run starts with the FTL drive research.
 expect startresearch == 1
-# Spec 14: normal storage on the player ship refuses tech. The station takes it.
-expect flexsinks == 0
+# Spec 14, 1543: normal storage on the player ship takes tech too (crews fill vaults first). The station takes it.
+expect flexsinks > 0
 expect stationsinks > 0
 # Spec 19: tier 1, start: 0.25 x the tier 1 ship value (60,000). Buy-back = sell x 1.5.
 expect sellprice == 15000
 expect buyprice == 22500
 save tech
-# Spec 65, 442: damage that leaves the vault standing costs no tech. A destroyed vault drops its 2 units as crates.
+# Spec 65, 442: damage that leaves the vault standing costs no tech. A destroyed vault drops its 4 units as crates.
 vault damage 0.9
 expect vaulttech == 8
 tech_set VaultTechLossChance 0
 vault destroy
 wait 1
-expect vaulttech == 6
-expect techcrates == 2
+expect vaulttech == 4
+expect techcrates == 4
 # livetech counts now; tech is the count from the last sim tick.
-expect livetech == 6
+expect livetech == 4
 # Save and load keep tech.
 load tech
 log loaded

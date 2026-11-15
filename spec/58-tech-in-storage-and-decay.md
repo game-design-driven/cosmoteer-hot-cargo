@@ -1,0 +1,31 @@
+## 58. 2x2 Tech Vault, tech in normal storage, decay
+
+Code: `src/HotCargo/Tech` (`TechDecay`, `TechDecayModel`, `TechModel.VaultsNeeded`, `Vaults`, `VaultCard`, `FitVaults`, `StartingVault`). Part rules: `mod/tech/tech_vault.rules`. Numbers: the `Tech` tunables section and the part rules.
+
+The 1x1 vault of 2 units read as a corner of a storage bay, and 4 of them filled one bay anyway. Players also had no way to keep tech for a while without a vault.
+
+### Vault
+
+1540. **Size.** The Tech Vault is 2×2 and holds 4 units, one per tile (`GridRect` 2×2, Stolen Tech `MaxStackSize` = 1). The code reads the capacity from the vault grid, never from a constant. It has 12,000 health and costs 32 steel: the same per tile as the 1x1 vault (3,000 health, 8 steel). Breaking change: designs and saves with the old 1x1 vault do not load as before; there is no migration.
+1541. **Vault count from data.** The vaults that a ship needs for the starting tech are `StartingTechUnits` / units per vault, rounded up (`TechModel.VaultsNeeded`; default 8 / 4 = 2). The design tool (requirement 1016), Fit Tech Vaults (requirement 1472), the ship pick warning (requirement 1552) and the tests use this one rule.
+1542. **Placement.** A 2×2 vault goes on a spot whose tiles are all corridor tiles or empty tiles inside the hull (each side of an empty tile is a part or another tile of the spot). Storage bays come first, smallest first; each one goes like a grabbed part, vaults go on its tiles (spots that cover fewer door tiles of the bay first), and a bay that gets no vault goes back. Then come spots anywhere inside the hull, nearest to the ship center first. The crew path rules of requirement 441 hold for every vault.
+
+### Tech in normal storage
+
+1543. **Storage takes tech.** Normal storage (a flexible storage grid) on any ship takes tech. Crews fill vaults first: a storage with a consumer (the vault) has a higher vanilla sort priority than a flexible storage tile (`BaseResourceStorage.GetSortPriority` 262,144; `FlexResourceGrid.ResourceTile.GetSortPriority` at most 196,608), so crew carry tech from normal storage into a vault with room, and collected crates go to a vault first. The vault is no source for automatic transfers, so tech never leaves a vault by itself. `Vaults.Add` fills vaults, then normal storage; `Vaults.Remove` takes from normal storage first. The fleet count includes normal storage (requirement 449).
+1544. Removed: the rule that kept tech out of normal storage on human ships (`FlexGridBlocksTechPatch`).
+1545. **Vault card.** A selected vault shows its contents after the health on the vanilla parts card: "Tech 3/4". A selected normal storage part with tech shows its tech and the time until the first unit breaks down. GUI only.
+1546. **Fill toggle.** The vault has the vanilla consumption toggle of a resource consumer (`ConsumptionToggleButtonOffset`, as on the chaingun magazine). It shows in the Resources view and turns the fill of that vault on and off; crew then take no tech into it. It goes through the vanilla resources input (`MPUpdateResourcesInput`), so co-op stays in sync. No supply toggle: the vault is no automatic source (requirement 1543), so it would change nothing.
+
+### Decay
+
+1547. **Decay.** Tech outside a vault breaks down in air and heat. A stack in normal storage of a human or derelict ship, or in crew hands, gains wear in game seconds. At `DecaySeconds` (default 360, 6 minutes) of wear, a stack in normal storage is destroyed. A carried stack whose time ran out breaks down when crew set it down outside a vault. A toast, a chat line and a run log line say so. Crates in space do not decay. `DecaySeconds` = 0 turns decay off.
+1548. **Back in a vault.** `DecayInVault` says what a vault does to a stack with wear. `Pause` (default): the wear stays, and the decay goes on when the stack leaves the vault again. `Reset`: the stack recovers fully.
+1549. **Which stack.** The game stores tech as counts, so `TechDecayModel` follows each stack by its place: a vault tile, a normal storage tile or a crew member. A stack keeps its wear while it stays. A crew member that picks up a stack takes the wear of the tile that its transfer job names as source. A tile that receives a stack takes the wear of the crew member whose job named that tile. A stack that moves on one ship without crew takes the highest wear that left that ship in the same tick. Anything else is new tech without wear (a crate, an event, a purchase). The tile tooltip of normal storage says "Outside a vault: air and heat destroy it in m:ss"; a vault tile says "In a vault: safe", or "decay paused, m:ss left outside" with wear.
+1550. **Visible.** While tech sits in normal storage: the heat panel shows "n TECH DECAYING in storage, first lost in m:ss" under the tech line, the ship's blip shows "n DECAYING" after "TECH n", and a toast says so when tech first leaves the vaults.
+1551. **Co-op.** The decay runs in the sim tick from sim state only, in a stable order (ships by ID, then crew by ID). The run state saves the wear (`Tech.Decay`), and the integrity hash includes the stack count and the summed wear. Vault transfers are vanilla crew jobs and inputs. The co-op step `tech.decay` checks that both machines destroy the same tech at the same time.
+
+### Start
+
+1552. **No refusal.** A career may start with a ship whose vaults hold less than the starting tech. The ship pick (requirement 1470) offers "Fit Tech Vaults", "Start without" and "Cancel", with a warning in red: "NO TECH VAULT!" (or "TOO FEW VAULTS!") and the decay rule in one line. At run start the tech that finds no vault goes into the ship's normal storage, and a large toast in the world says "NO TECH VAULT!" (or "TOO FEW VAULTS!"), the tech in storage and its time. Tech that finds no room at all is lost, and a notice says so.
+1553. **Tests.** Unit tests: `TechDecayModelTests` (vault count, decay, pause and reset, the crew hand-over, instant moves). Game test `tech-decay`: vault first from normal storage, the fill toggle, decay with save and load, destruction. `journey-newgame-check`: a vanilla starter may start. `tech-fit-vaults`: Start without. Co-op step `tech.decay` in `coop-economy`.

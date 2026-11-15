@@ -4,7 +4,7 @@ wait 8
 ev_set Enabled false
 tech_set LossGraceSeconds 600
 tech_set VaultTechLossChance 0
-expect vaultminhealth == 3000
+expect vaultminhealth == 12000
 expect tech == 8
 expect vaultunits == 8
 # Damage that leaves the vault standing costs no tech, also a tiny hit near half health.
@@ -14,21 +14,21 @@ vault damage 0.0027
 wait 1
 expect tech == 8
 expect vaultunits == 8
-# A destroyed vault drops its 2 units as crates: 1 unit per crate.
+# A destroyed vault drops its 4 units as crates: 1 unit per crate.
 vault destroy
 wait 1
-expect tech == 6
-expect vaultunits == 6
-expect techcrates == 2
+expect tech == 4
+expect vaultunits == 4
+expect techcrates == 4
 expect paneltotal == 1
 expect panelcrates == 1
 # The ship becomes a derelict: the tech still counts, the loss timer stays off, the panel and the blip say where it is.
 tech derelict
 wait 2
-expect livetech == 6
-expect tech == 6
-expect derelicttech == 6
-expect derelicttag == 6
+expect livetech == 4
+expect tech == 4
+expect derelicttech == 4
+expect derelicttag == 4
 expect panelderelict == 1
 expect losstimer == 0
 quit

@@ -1,0 +1,49 @@
+# Tech in normal storage (spec 1543-1551): crews fill vaults first, tech outside a vault decays, and its time runs out.
+# Bug-prone: the decay follows each stack through crew transfers that the game makes, and the vault-first rule comes from vanilla priorities.
+newgame run
+wait 8
+ev_set Enabled false
+tech_set LossGraceSeconds 600
+expect storagetech == 0
+expect decaystacks == 0
+# Spec 1543: tech in normal storage while a vault has room: crew carry it into the vault.
+tech remove 2
+tech store 2
+wait 1
+expect storagetech == 2
+expect tech == 8
+waitfor storagetech == 0 120
+expect vaulttech == 8
+expect decayed == 0
+# Spec 1546: with the fill toggle off, crew leave tech in normal storage. There it decays (spec 1547, 1550).
+vault fill off
+wait 1
+tech remove 1
+tech store 1
+tech_set DecaySeconds 30
+wait 5
+expect storagetech == 1
+expect decayleft > 0
+expect decayleft < 30
+expect decaypanel == 1
+expect decaystacks == 1
+# A save keeps the decay; the load goes on from there.
+save decay
+load decay
+wait 1
+expect storagetech == 1
+expect decayleft < 28
+# Spec 1547: the time runs out, and the tech is gone.
+waitfor decayed == 1 60
+expect storagetech == 0
+wait 1
+expect tech == 7
+expect lost == 0
+# Spec 1543: with the fill toggle on again, a vault with room takes tech from storage, and the vault keeps it.
+vault fill on
+wait 1
+tech store 1
+waitfor storagetech == 0 120
+expect vaulttech == 8
+expect decayed == 1
+quit

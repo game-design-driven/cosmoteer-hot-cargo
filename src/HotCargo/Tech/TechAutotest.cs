@@ -148,8 +148,8 @@ static class TechAutotest
         {
             case ["add", var n]: Log.Info($"AUTOTEST tech added {Vaults.Add(sim, Int(n))}"); break;
             case ["remove", var n]: Log.Info($"AUTOTEST tech removed {Vaults.Remove(sim, Int(n))}"); break;
-            // Tech straight into normal storage of the human ships, past the vaults (spec 1543).
-            case ["store", var n]: Log.Info($"AUTOTEST tech stored {Vaults.AddToStorage(Vaults.HumanShips(sim).OrderBy(s => s.UniqueID), Int(n))} in storage"); break;
+            // Tech straight into normal storage of the acting player's ship, past the vaults (spec 1543).
+            case ["store", var n]: Log.Info($"AUTOTEST tech stored {Vaults.AddToStorage([PlayerShip()], Int(n))} in storage of {PlayerShip().Metadata.PlainShipName}"); break;
             case ["sell", var n]: Sell(run, Int(n)); break;
             case ["dump"]: Dump(run); break;
             case ["collect"]:

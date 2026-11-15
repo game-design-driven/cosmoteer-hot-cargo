@@ -54,6 +54,7 @@ public static class TechDecay
             Log.Info($"tech decay: {n} tech at {tile.ShipCell} on {tile.Grid.Ship?.Metadata.PlainShipName} broke down after {t.DecaySeconds:0} s outside a vault");
         }
         Destroyed += destroy.Count;
+        if (Telemetry.Tele.On(Telemetry.Cat.Tech)) Telemetry.Session.Current?.AddTechHint("decay");
         string line = Strings.FormatText("HotCargoTech/DecayedFmt", units);
         Onboarding.RunLog.Add(run, Onboarding.RunLogKind.Loss, line);
         // A co-op tick can run on a worker thread, so the toast and the chat line wait for the next frame.

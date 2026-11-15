@@ -15,9 +15,13 @@ fitship 2
 expect fit_ok == 1
 fitship 3
 expect fit_ok == 1
-# Spec 1470: a design without vaults gets the offer; Cancel picks nothing.
+# Spec 1470, 1552: a design without vaults gets the offer; Cancel picks nothing, Start without picks the design as it is.
 fitoffer 0 coop
 expect fit_shown == 1
 fitanswer cancel
 expect fit_result == 0
+fitoffer 0 sp
+expect fit_shown == 1
+fitanswer asis
+expect fit_result == 2
 quit

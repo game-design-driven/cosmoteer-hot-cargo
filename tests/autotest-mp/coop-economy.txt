@@ -308,8 +308,27 @@ waitfor share_on == 0 10
 on 1 waitfor share_on == 0 10
 mp godmode on
 
+step tech.decay
+# Spec 1546, 1547, 1551: the client turns off the fill of its vaults with the vanilla toggle input (its real input), and 1 tech goes
+# into the normal storage of its ship. The decay runs in the sim tick, so both machines destroy the same tech at the same time.
+on 1 vault fill off
+wait 2
+mp tech_set DecaySeconds 20
+as 1 tech store 1
+wait 2
+expect storagetech == 1
+on 1 expect storagetech == 1
+on 1 expect decaypanel == 1
+waitfor storagetech == 0 60
+on 1 waitfor storagetech == 0 30
+expect decaystacks == 0
+on 1 expect decaystacks == 0
+mp tech_set DecaySeconds 360
+on 1 vault fill on
+wait 2
+
 step tech.trade-loss
-# Spec 17, 443, 1011: a new run. Each player's starter ship has 4 vaults and a share of the tech (4 + 4, or 3 + 3 + 2 with
+# Spec 17, 443, 1011: a new run. Each player's starter ship has 2 vaults and a share of the tech (4 + 4, or 3 + 3 + 2 with
 # 3 players); each player sells from their own ship. The last sale loses the run for all.
 mprestart
 # The loss must happen: godmode blocks it, and its switch stays on across a restart.
@@ -317,10 +336,9 @@ mp godmode off
 mp ev_set Enabled false
 mp tech_set LossGraceSeconds 3
 expect vaulttech == 8
-@2p expect vaults == 8
-@2p expect vaultpaths == 8
-@3p expect vaults == 12
-@3p expect vaultpaths == 12
+@2p expect vaults == 4
+@3p expect vaults == 6
+expect vaultpaths == vaults
 expect noaccess == 0
 # The host money before the client sells: the client's sale must not change it (the starting money depends on the starter preset).
 hc_mark
