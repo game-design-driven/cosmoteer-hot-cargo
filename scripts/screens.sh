@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Run a screenshot script (tests/screens/<name>.txt) in a test slot with graphics, and copy the PNGs to this Mac.
-# Usage: [SLOT=tN] screens.sh <script> <out-dir> [timeout-seconds, default 300]
+# Usage: [RUNNER=pc|mac] [SLOT=tN] screens.sh <script> <out-dir> [timeout-seconds, default 300]
+# RUNNER=mac: run the script on this Mac instead, with the cosmoteer-macos host (the real game with a Metal renderer, in a
+# hidden window of 2560x1440 pixels). No PC, no slot, no player hold check. It needs the cosmoteer-macos checkout next to
+# this repo: COSMOTEER_MACOS, default <this container>/../cosmoteer-macos/main, with tools/hotcargo-screens.sh.
+# RUNNER=pc (default):
 # The slot: SLOT, or a free test slot (the test slot locks). Never main: the player's game stays untouched.
 # The game starts with a window, minimized, with the slot's own save folder (--rootsavepath, scripts/pc.sh SLOT_WINDOWED).
 # While <container>/.state/player-hold exists it refuses (exit 3): a window could take focus or GPU time from the player.
@@ -11,6 +15,19 @@ set -euo pipefail
 SCRIPT="${1:?usage: screens.sh <script> <out-dir> [timeout]}"
 OUT="${2:?usage: screens.sh <script> <out-dir> [timeout]}"
 TIMEOUT="${3:-300}"
+case "${RUNNER:-pc}" in
+  pc) ;;
+  mac)
+    HERE="$(cd "$(dirname "$0")/.." && pwd)"
+    MACOS="${COSMOTEER_MACOS:-$HERE/../../cosmoteer-macos/main}"
+    [[ -x "$MACOS/tools/hotcargo-screens.sh" ]] || {
+      echo "screens: RUNNER=mac needs the cosmoteer-macos checkout with tools/hotcargo-screens.sh at $MACOS (or set COSMOTEER_MACOS)" >&2
+      exit 2
+    }
+    exec "$MACOS/tools/hotcargo-screens.sh" "$HERE" "$SCRIPT" "$OUT" "$TIMEOUT"
+    ;;
+  *) echo "screens: RUNNER must be pc or mac, not '$RUNNER'" >&2; exit 2 ;;
+esac
 source "$(dirname "$0")/autotest-lib.sh"
 [[ "${SLOT:-}" != main ]] || { echo "screens: never slot main (the player's game); use a test slot" >&2; exit 2; }
 export SLOT_WINDOWED=1
