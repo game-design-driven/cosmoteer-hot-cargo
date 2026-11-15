@@ -53,6 +53,36 @@ try_lock() {
   { echo "$REPO_ROOT" > "$1/owner" && lock_write_pid "$1" && [[ "$(cat "$1/pid" 2>/dev/null)" == "$$" ]]; } 2>/dev/null
 }
 
+# The Mac sim cap: game processes at once on this machine, for every worktree. HOT_CARGO_SIM_JOBS (.state/slots.env), else
+# from the cores and the memory: one run takes about one core and 2 GB at its peak, and two cores stay free for the agents
+# and the build. Every Mac game takes a slot under it: scripts/autotest-sim.sh and scripts/screens.sh RUNNER=mac.
+sim_jobs() {
+  local cores mem_gb jobs
+  if [[ "$(uname)" == Darwin ]]; then cores="$(sysctl -n hw.ncpu)" mem_gb=$(( $(sysctl -n hw.memsize) / 1024 / 1024 / 1024 ))
+  else cores="$(nproc)" mem_gb=$(( $(awk '/^MemTotal:/ { print $2 }' /proc/meminfo) / 1024 / 1024 )); fi
+  jobs="${HOT_CARGO_SIM_JOBS:-$(( cores - 2 < mem_gb / 2 ? cores - 2 : mem_gb / 2 ))}"
+  (( jobs >= 1 )) || jobs=1
+  echo "$jobs"
+}
+
+# Takes $2 free sim slots at once (all or none, so two co-op runs cannot deadlock), writes the owner pid $1 into each and
+# prints their lock folders. A co-op session runs two game processes.
+take_sim_slots() {
+  local i lock got=() jobs; jobs="$(sim_jobs)"
+  while :; do
+    got=()
+    for ((i = 1; i <= jobs && ${#got[@]} < $2; i++)); do
+      lock="/tmp/hot_cargo_sim_slot_$i.lock"
+      if lock_is_stale "$lock"; then rm -rf "$lock"; fi
+      # A slot counts only when its pid landed: another taker's stale cleanup can remove a lock between mkdir and the write.
+      if mkdir "$lock" 2>/dev/null && echo "$1" > "$lock/pid.tmp" 2>/dev/null && mv -f "$lock/pid.tmp" "$lock/pid" 2>/dev/null; then got+=("$lock"); fi
+    done
+    if [[ ${#got[@]} -eq $2 ]]; then echo "${got[*]}"; return; fi
+    rm -rf "${got[@]}"
+    sleep 2
+  done
+}
+
 # While the player's own game runs (slot main), tests use at most HOT_CARGO_SLOTS_WHILE_PLAYING slots (default 4), so
 # the player's game keeps its frame rate. The check is cached for 60 s in a shared file, so it costs one PC call a minute.
 PLAYING_CACHE=/tmp/hot_cargo_player_playing

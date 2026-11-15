@@ -13,7 +13,7 @@ A PR agent takes its own screenshots. Never use slot main on the PC: it is the p
 
 ## Which runner
 
-- **Mac (`RUNNER=mac scripts/screens.sh tests/screens/<name>.txt <local folder> [timeout]`):** use it first for single-player screen scripts. It needs no PC, no slot and no active turn, and it works while the player holds the PC.
+- **Mac (`RUNNER=mac scripts/screens.sh tests/screens/<name>.txt <local folder> [timeout]`):** use it first for single-player screen scripts. It needs no PC, no PC test slot and no active turn, and it works while the player holds the PC. The game takes one Mac sim slot, under the same cap as the sim tests (`HOT_CARGO_SIM_JOBS`), so it waits while the slots are busy.
   - It runs the real game with the cosmoteer-macos host: a Metal renderer, a hidden window of 2560x1440 pixels (the PC screenshot size), no sound.
   - It needs the cosmoteer-macos checkout next to this repo (`<container>/../cosmoteer-macos/main`, or `COSMOTEER_MACOS=<worktree>`) with `tools/hotcargo-screens.sh`. Without it, `screens.sh` stops with a message.
   - Differences from the PC: the text rasterizer differs a little. On 2026-11-15 the same scripts gave the same UI; `systems` differed in 1% of pixels, `map-consequences` in about 9% (animated map background).

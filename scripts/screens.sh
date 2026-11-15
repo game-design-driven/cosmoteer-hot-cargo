@@ -2,7 +2,8 @@
 # Run a screenshot script (tests/screens/<name>.txt) in a test slot with graphics, and copy the PNGs to this Mac.
 # Usage: [RUNNER=pc|mac] [SLOT=tN] screens.sh <script> <out-dir> [timeout-seconds, default 300]
 # RUNNER=mac: run the script on this Mac instead, with the cosmoteer-macos host (the real game with a Metal renderer, in a
-# hidden window of 2560x1440 pixels). No PC, no slot, no player hold check. It needs the cosmoteer-macos checkout next to
+# hidden window of 2560x1440 pixels). No PC and no player hold check. The game takes one Mac sim slot (take_sim_slots in
+# autotest-lib.sh), so the Mac sim cap HOT_CARGO_SIM_JOBS holds for it too. It needs the cosmoteer-macos checkout next to
 # this repo: COSMOTEER_MACOS, default <this container>/../cosmoteer-macos/main, with tools/hotcargo-screens.sh.
 # RUNNER=pc (default):
 # The slot: SLOT, or a free test slot (the test slot locks). Never main: the player's game stays untouched.
@@ -24,7 +25,13 @@ case "${RUNNER:-pc}" in
       echo "screens: RUNNER=mac needs the cosmoteer-macos checkout with tools/hotcargo-screens.sh at $MACOS (or set COSMOTEER_MACOS)" >&2
       exit 2
     }
-    exec "$MACOS/tools/hotcargo-screens.sh" "$HERE" "$SCRIPT" "$OUT" "$TIMEOUT"
+    source "$(dirname "$0")/autotest-lib.sh"
+    echo "== screens: takes a Mac sim slot (cap $(sim_jobs)); waits while all are busy" >&2
+    SIM_LOCK="$(take_sim_slots $$ 1)"
+    trap 'rm -rf "$SIM_LOCK"' EXIT
+    rc=0
+    "$MACOS/tools/hotcargo-screens.sh" "$HERE" "$SCRIPT" "$OUT" "$TIMEOUT" || rc=$?
+    exit $rc
     ;;
   *) echo "screens: RUNNER must be pc or mac, not '$RUNNER'" >&2; exit 2 ;;
 esac
