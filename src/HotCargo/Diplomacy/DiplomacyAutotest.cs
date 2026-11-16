@@ -93,6 +93,20 @@ static class DiplomacyAutotest
             var ship = Spawn(p[0], distance);
             if (p[0] == "enemy") _enemy = ship.UniqueID; else _friend = ship.UniqueID;
         };
+        // dip_friend_alone <radius>: the dip_spawn friend ship holds still (no AI), and every other ship that is not a player ship or a
+        // station within the radius of it leaves the system. For tests that talk to that ship: the game picks the nearest ship.
+        Autotest.Commands["dip_friend_alone"] = arg =>
+        {
+            var sim = Sim();
+            var friend = (_friend is { } id ? sim.Ships[id] : null) ?? throw new InvalidOperationException("no live dip_spawn friend");
+            float radius = Float(arg.Trim());
+            friend.AI = null;
+            friend.Commands.Clear();
+            var others = sim.Ships.Where(s => s != friend && !s.IsHumanPlayerShip && !Situation.IsStation(s)
+                && s.DetWorldCenter.DistanceTo(friend.DetWorldCenter) <= radius).OrderBy(s => s.UniqueID).ToList();
+            foreach (var s in others) sim.Ships.Remove(s, dispose: true, handleLostShip: false);
+            Log.Info($"AUTOTEST dip_friend_alone: {friend.Metadata.PlainShipName} holds still; {others.Count} other ships within {radius:0} removed");
+        };
         // dip_expect <offer> <target> <amount> <op> <value>: checks the chance that the dialogue shows.
         Autotest.Commands["dip_expect"] = arg =>
         {

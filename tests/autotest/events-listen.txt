@@ -17,12 +17,16 @@ dip_spawn friend 300
 wait 2
 # A short range, so only the faction ship next to the fleet counts.
 ev_set ListenRange 500
+# Before each move: only the test's faction ship, holding still. The game listens to the nearest faction ship, and a world
+# patrol can come nearer, fly out of range or fight next to the listener (CI full suites, #184).
+dip_friend_alone 5000
 ev_faction_goto 2500
 wait 2
 expect ev_listen_target == 0
 ev_sensor_select
 expect ev_listen_button == 0
 # In range: the button can start, and a listen runs with a progress bar.
+dip_friend_alone 5000
 ev_faction_goto 150
 wait 2
 expect ev_listen_target == 1
@@ -34,6 +38,7 @@ expect ev_listen_button == 0
 wait 3
 expect ev_listen_progress > 0.2
 ev_mark
+dip_friend_alone 5000
 ev_faction_goto 2500
 wait 2
 expect ev_listening == 0
@@ -42,6 +47,7 @@ expect ev_heat_gain > -1
 expect ev_listened == 0
 # A full listen (forced success): heat -4, and the ship is heard. A short listen, so the faction ship has no time to fly off.
 ev_set ListenSeconds 3
+dip_friend_alone 5000
 ev_faction_goto 150
 wait 2
 ev_mark
@@ -54,6 +60,7 @@ expect ev_listened == 1
 expect ev_faction_heard == 1
 # A failure (forced): heat +5. Back next to the faction ship first: it moved on since the last listen.
 ev_listen_forget
+dip_friend_alone 5000
 ev_faction_goto 150
 wait 2
 ev_mark
