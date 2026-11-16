@@ -31,8 +31,8 @@ aiset CallSightMargin 200
 # A long call, cut off by one disruptor hit.
 aiset CallSeconds 60
 spawnstage Strike
-wait 6
-expect ai_calling >= 1
+# The new group spawns 2,000 to 3,000 away, out of sight: wait for a call, as above (CI full suites, #184).
+waitfor ai_calling >= 1 150
 disrupt disruptor
 wait 1
 # The interrupt count shows the hit stopped the call. Another hunter off its 1 s cooldown can start its own call here.

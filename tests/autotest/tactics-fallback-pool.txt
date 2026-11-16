@@ -7,7 +7,8 @@ ev_set Enabled false
 # fight keeps the ship from repairing.
 scav_set Enabled false
 fr_set PayForwardChance 0
-godmode on
+# The test ship fights the player ship; one-hit part losses made it derelict and ended the fight early (#184).
+godmode full
 # The player ship must not shoot the damaged ship: one hit on its weak control room makes it a wreck.
 playerweapons off
 tacticlog on
@@ -26,6 +27,9 @@ openspace 6000
 fr_kill_enemies
 aispawn monolith 1
 aispawn monolith 1 3 trade
+# Every other ship of the test's sides and every other enemy of the players leave the system (#184): the patrols of the test
+# world turned hostile with the test's war and fought the player ship.
+aialone
 # The faction mate starts beyond the vanilla pool range (400).
 ainear 1 0 1500
 # The player ship waits further away. It stays within the live area, because ships far from every player go into stasis.

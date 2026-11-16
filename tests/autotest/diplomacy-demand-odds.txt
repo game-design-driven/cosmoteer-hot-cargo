@@ -9,16 +9,19 @@ scav_set SpawnChance 0
 fr_set PayForwardChance 0
 openspace 6000
 fr_kill_enemies
-# One big Monolith ship, at a quarter of its health. The player ship is 300 from it, five more player ships are in the fight 1,500 to 2,000 away.
-# Vanilla counted only ships within 1,500 of the enemy, ignored part damage and compared one player ship's cost, so it demanded.
-aispawn monolith 1 6
-aiplayership
-aiplayership
-aiplayership
-aiplayership
-aiplayership
+# One big Monolith ship, at a quarter of its health. The player ship is 300 from it, five more player ships are in the fight 1,800 to
+# 3,000 away (center to center; tier 1-2 hulls are under 300 in radius). Vanilla counted only ships within 1,500 of the enemy, ignored
+# part damage and compared one player ship's cost, so it demanded. The five ships are placed from the enemy, not from the player ship:
+# random hulls next to the player ship can reach into the 1,500 circle, and then vanilla does not demand (CI full suites, #184).
+# A fixed hull: the vanilla rule weighs firepower and cost, so a random tier-6 pick demanded or not by chance (#184).
+aispawn monolith 1 6 hull=Howitzer
 ainew_watch 0 300
 aidamage new 0.25
+aiplayership 1800
+aiplayership 1800
+aiplayership 1800
+aiplayership 1800
+aiplayership 1800
 wait 3
 expect ai_humanships >= 6
 # The fault: the vanilla rule alone demands (it ignores part damage, the player ships beyond 1,500 and all but one player ship's cost).

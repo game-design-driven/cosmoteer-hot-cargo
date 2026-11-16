@@ -90,6 +90,20 @@ static class TraderFleeHoldPatch
         };
         // 1 while the picked trade ship flees, else 0. A trade ship without a trade route (a test spawn) leaves the system as soon
         // as it stops fleeing, so a ship that left counts as 0.
+        // ai_trader_clear: every enemy of the picked trade ship that is not a human ship, live or in stasis, leaves the system, so only
+        // the player decides whether it flees. A pirate of the test world near the trade ship held the flee (CI full suites, #184).
+        Autotest.Commands["ai_trader_clear"] = _ =>
+        {
+            var trader = Trader();
+            var sim = trader.Sim!;
+            var live = sim.Ships.Where(s => s != trader && !s.IsHumanPlayerShip && s.IsEnemiesWith(trader)).OrderBy(s => s.UniqueID).ToList();
+            foreach (var s in live) sim.Ships.Remove(s, dispose: true, handleLostShip: false);
+            var stasis = sim.Stasis.OfType<Cosmoteer.Simulation.Stasis.StasisShipSpawner>()
+                .Where(s => sim.Mode.AreEnemies(s.ObjectAllegiance, trader.Metadata.PlayerIndex) && !Autotest.RequireRun().Game.HumanPlayersIndexes.Contains(s.ObjectAllegiance))
+                .OrderBy(s => s.ReservedObjectID).ToList();
+            foreach (var s in stasis) sim.Stasis.RemoveStasisSpawner(s);
+            Log.Info($"AUTOTEST ai_trader_clear: {live.Count} live and {stasis.Count} stasis enemies of {trader.Metadata.PlainShipName} left the system");
+        };
         Autotest.Fields["ai_trader_fleeing"] = () => _trader is { } id && Autotest.RequireRun().Game.Sim.Ships[id] is null && !InStasis(id) ? 0
             : Trader().AI!.GetStrategyModule<AIFleeFromEnemiesModule>()!._isFleeing ? 1 : 0;
     }

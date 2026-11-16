@@ -317,6 +317,7 @@ public static class Autotest
         });
 
     /// <summary>The player index of the sender while an "mp" command runs inside the sim. Null outside of it.</summary>
+    static bool _godmodeFull;
     static int? _simPlayer;
 
     /// <summary>The acting player while a command runs inside the sim ("mp", "as"). Inputs that it sends then run at once as this player.</summary>
@@ -565,13 +566,27 @@ public static class Autotest
         {
             // Test only: keeps human ships at full part health each sim tick, so long AI tests are not cut short by a lost ship.
             // Parts that a single hit destroys still break. Vault damage still costs tech (it counts health drops).
+            // "godmode full" also makes human ships invulnerable (vanilla Ship.SelfInvulnerable): no part breaks, so a test about the AI
+            // is not cut short by a player ship that lost its control rooms (#184). "godmode off" ends both.
             var game = Game ?? throw new InvalidOperationException("no game");
-            if (arg == "off") { if (_godmode is not null) game.EventHub.Tick -= _godmode; _godmode = null; return; }
-            _godmode ??= (_, sim) =>
+            if (arg is not ("" or "on" or "full" or "off")) throw new InvalidOperationException("godmode needs: [on] | full | off");
+            _godmodeFull = arg == "full";
+            if (arg == "off")
+            {
+                if (_godmode is not null) game.EventHub.Tick -= _godmode;
+                _godmode = null;
+                foreach (var ship in game.Sim.Ships.HumanPlayerShips) ship.SelfInvulnerable = false;
+                return;
+            }
+            if (_godmode is not null) return;
+            _godmode = (_, sim) =>
             {
                 foreach (var ship in sim.Ships.HumanPlayerShips)
+                {
+                    if (_godmodeFull) ship.SelfInvulnerable = true;
                     foreach (var part in ship.Parts)
                         if (part.Health < part.Rules.MaxHealth) part.Health = part.Rules.MaxHealth;
+                }
             };
             game.EventHub.Tick += _godmode;
         };

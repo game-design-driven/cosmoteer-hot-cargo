@@ -34,6 +34,28 @@ static class RepairAutotest
         Autotest.Commands["aimark_jobs"] = _ => _markedJobs = Resupply.QueuedRepairs(At("0"));
         Autotest.Fields["ai_new_first_jobs_done"] = () => _markedJobs - Resupply.QueuedRepairs(At("0"));
         Autotest.Fields["ai_new_first_in_combat"] = () => New().Select(s => Resupply.InCombat(s) ? 1.0 : 0.0).DefaultIfEmpty(-1).First();
+        // aialone: the ships of the last aispawns are alone in the system. Every other ship, live or in stasis, that is an enemy of the
+        // players or shares a player index with a test ship leaves the system; stations stay. aispawn of a faction starts a war, so
+        // every patrol of that faction turns hostile, and where the patrols sit depends on the test world (CI full suites, #184).
+        // Sim state, so in co-op run it with "mp". Test only.
+        Autotest.Commands["aialone"] = _ =>
+        {
+            var sim = Autotest.RequireRun().Game.Sim;
+            var mode = sim.Mode;
+            var test = PersonalityAutotest.LastSpawned.ToHashSet();
+            var sides = test.Select(id => sim.Ships[id]).OfType<Ship>().Select(s => s.Metadata.PlayerIndex).ToHashSet();
+            var humans = Autotest.RequireRun().Game.HumanPlayersIndexes;
+            bool Other(int index) => sides.Contains(index) || humans.Any(h => mode.AreEnemies(h, index));
+            var live = sim.Ships.Where(s => !test.Contains(s.UniqueID) && !s.IsHumanPlayerShip && !s.IsJunk && !Diplomacy.Situation.IsStation(s)
+                && Other(s.Metadata.PlayerIndex)).OrderBy(s => s.UniqueID).ToList();
+            foreach (var s in live) sim.Ships.Remove(s, dispose: true, handleLostShip: false);
+            var stasis = sim.Stasis.OfType<Cosmoteer.Simulation.Stasis.StasisShipSpawner>()
+                .Where(s => !test.Contains(s.ReservedObjectID) && (s.Features & (Cosmoteer.Generators.Simulation.SpawnedShipFeatures.Station | Cosmoteer.Generators.Simulation.SpawnedShipFeatures.OperationalStation
+                        | Cosmoteer.Generators.Simulation.SpawnedShipFeatures.Landmark)) == 0 && Other(s.ObjectAllegiance))
+                .OrderBy(s => s.ReservedObjectID).ToList();
+            foreach (var s in stasis) sim.Stasis.RemoveStasisSpawner(s);
+            Log.Info($"AUTOTEST aialone: {live.Count} live and {stasis.Count} stasis ships left the system");
+        };
         // 2: the first aispawn ship is alive, 1: it is a wreck (junk), 0: it left the sim.
         Autotest.Fields["ai_new_first_state"] = () =>
             PersonalityAutotest.LastSpawned.Count == 0 || Autotest.RequireRun().Game.Sim.Ships[PersonalityAutotest.LastSpawned[0]] is not { } s ? 0 : s.IsJunk ? 1 : 2;
