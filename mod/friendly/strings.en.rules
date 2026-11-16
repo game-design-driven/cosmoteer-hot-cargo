@@ -5,6 +5,7 @@ HotCargoFriendly
 	JoinGone = "The ship is gone before it can join you."
 	FollowerGone = "The ship is gone before it can follow you."
 	LeavesFmt = "{0} spins up its drive and leaves the system."
+	TroublemakerFledFmt = "{0} was trouble after all: they took {1} credits from your account and slipped off at {2}."
 	// Riddle ship (spec 1366). {0} = heat before, {1} = heat after.
 	// Debtor (spec 1367, 1368). {1} = minutes, {2} = credits.
 	DebtorFollowsFmt = "You own the debt of {0} now. It follows you and fights for you for {1} minutes, then pays you {2} credits."

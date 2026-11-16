@@ -26,6 +26,17 @@ FTL-style choice events. EVENTS.md holds the design and the catalog.
 88. Dead in Space: a broken-down freighter needs repair supplies or a tow. It opens as an Arrival event or as a follow-up of the Distress Beacon. The tow choice needs a Tractor Beam Emitter and starts a Tow Job mission: the freighter has no AI, and the mission completes when it is within 1,200 of the nearest trade station at least 3,000 from it (`HotCargoTow` objective). It fails when the freighter is destroyed. The Rescue Beacon reuses this objective with the players' own ship as the towed ship (requirement 1147).
 89. Event texts show no counts that live elsewhere (starting tech, spawn counts). The token `{crates}` shows the live fleet tech count. The choice buttons have no number prefix; the UX area draws the key numbers.
 
+### The troublemaker
+
+Code: `src/HotCargo/Friendly/Troublemaker.cs`. Page: `troublemaker` in `mod/events/events.rules`. Numbers: the `Friendly.Troublemaker*` tunables.
+
+480. **Offer.** An Arrival event (weight 5, once per run) for a fleet with a free bunk. A small ship hails: it has a troublemaker aboard and pays the players to take them.
+481. **Accept.** The chooser gets `TroublemakerPay` (0.25) event money units: a quarter of a standard mission's pay at the tier, split like a mission reward. The troublemaker joins as 1 crew member on a ship of the chooser with a free bunk. The ship leaves.
+482. **Roll.** When the troublemaker joins, a roll from the page seed decides: with `TroublemakerThiefChance` (0.3) they are a thief. Else they stay as normal crew, and nothing more happens.
+483. **Theft.** At the first station visit (the troublemaker's ship within `TroublemakerStationDistance` (300) of a trade station's hull), a thief takes `TroublemakerTheftFactor` (2) times the pay from the player who took them in, at most all of that player's money. The thief leaves the crew. A center text and a chat line name the thief, the amount and the station.
+484. **Refusal and death.** A refusal costs nothing: the ship leaves. A troublemaker who dies or leaves before the station visit steals nothing, and the players keep the pay.
+485. **Co-op, save and tests.** The accept runs in the choice input and the station check in the sim tick, with the state in the run state (`FriendlyState.Troublemakers`). Test: `friendly-troublemaker` (refusal, thief, honest, death before the station). The rolls in the test are fixed by the chance (1 or 0).
+
 ### Wanted and hunted
 
 470. When the players are wanted (vanilla: a faction in the system hunts them with police) and heat reached `WantedWarningMinStage` (default 1, the first stage), a warning shows once: a short message at the top of the screen and a chat line that names the factions and the ways out. Ways out: pay the bounty (hail one of their police ships; the vanilla surrender dialogue offers to pay it), leave the system (wanted belongs to the system), outlast the search timer, or a Wanted event (requirement 473). The warning shows again only after the players stop being both. Wanted alone stays vanilla.

@@ -40,4 +40,12 @@ public sealed class FriendlyTunables
     [Serialize(Optional = true)] public int ApprenticeJoinFights = 3;
     /// <summary>Apprentice: an enemy ship that dies within this distance of the apprentice counts as a fight that it saw.</summary>
     [Serialize(Optional = true)] public float ApprenticeWatchRadius = 2500f;
+    /// <summary>Troublemaker (spec 481): the pay for taking them aboard, in event money units (a quarter of a standard mission's pay).</summary>
+    [Serialize(Optional = true)] public float TroublemakerPay = 0.25f;
+    /// <summary>Troublemaker (spec 482): chance that they are a thief.</summary>
+    [Serialize(Optional = true)] public float TroublemakerThiefChance = 0.3f;
+    /// <summary>Troublemaker (spec 483): a thief steals this many times the pay.</summary>
+    [Serialize(Optional = true)] public float TroublemakerTheftFactor = 2f;
+    /// <summary>Troublemaker (spec 483): a station visit is their ship within this distance of a trade station's hull.</summary>
+    [Serialize(Optional = true)] public float TroublemakerStationDistance = 300f;
 }
