@@ -23,6 +23,8 @@ expect balance_station_fuel_gap >= 0
 # still holds the floor (the held fuel stays the same, balance_station_fuel_move checks it).
 balance_station_fuel_move
 expect balance_station_fuel_gap >= 0
+# The players leave while the crew carry fuel: the station goes into stasis and must keep that fuel too.
+waitfor balance_station_fuel_carried > 0 30
 balance_visit 1
 wait 3
 balance_visit 2
