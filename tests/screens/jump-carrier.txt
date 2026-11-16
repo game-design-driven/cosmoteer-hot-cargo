@@ -1,0 +1,28 @@
+# The tech carrier stays behind (spec 1602): only a copy without tech gets a hyperdrive, so the ship with the tech stays.
+# The jump window tooltip shows "(carries N tech)", and the ENGAGE dialog starts with "All your tech stays behind."
+# RUNNER=mac scripts/screens.sh tests/screens/jump-carrier.txt <out-dir>
+render on
+newgame
+wait 8
+closepanel
+wait 1
+ev_set Enabled false
+godmode on
+pause off
+jw_twin save
+jw_twin spawn
+wait 2
+jw_drive notech
+wait 2
+jw_gatejump
+waitfor jw_ready >= 1 120
+wait 1
+tipshow jumptip
+wait 1
+screenshot carrier-01-window
+tipclear
+jw_engage
+wait 1
+screenshot carrier-02-dialog
+jw_answer no
+quit

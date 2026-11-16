@@ -18,4 +18,8 @@ pause on
 debris_focus
 wait 3
 screenshot debris-glow
+# A close-up: at the wide view a piece is a few pixels, too small to show its outline.
+debris_focus piece
+wait 3
+screenshot debris-glow-close
 quit

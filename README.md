@@ -68,9 +68,10 @@ Spec: [Tech value and selling](spec/08-tech-value-and-selling.md), [Win and loss
 <details>
 <summary><b>Jumps cool you down</b>: reach a quiet relay first, or jump blind</summary>
 
-Every jump to another system leaves most of the heat behind. A relay with no hunter near it cuts more heat than a watched one. A blind jump cuts the most, but it costs more fuel, takes longer to spin up and can damage your ships on arrival. Ships that cannot make the jump get a warning before you leave, so nobody is stranded by surprise.
+Every jump to another system leaves most of the heat behind. A relay with no hunter near it cuts more heat than a watched one. A blind jump cuts the most, but it costs more fuel, takes longer to spin up and can damage your ships on arrival. Ships that cannot make the jump get a warning before you leave, so nobody is stranded by surprise. The jump dialog also says when a ship that stays carries your tech.
 
-<img src="docs/screenshots/jump-warnings.jpg" width="70%" alt="The jump window names the ships that stay behind">
+<img src="docs/screenshots/jump-warnings.jpg" width="60%" alt="The jump window names the ships that stay behind">
+<img src="docs/screenshots/jump-carrier.jpg" width="38%" alt="The jump dialog warns that all your tech stays behind">
 
 Spec: [Factions, jumps and station prices](spec/38-factions-jumps-and-station-prices.md), [Jump warnings](spec/58-jump-warnings.md)
 </details>
@@ -344,6 +345,8 @@ Spec: [Relay lockdowns and the timed stash](spec/43-relays-and-stash.md)
 <summary><b>Debris burns up</b>: old junk glows, then goes, so long fights stay smooth</summary>
 
 Small loose junk with no value glows orange after a few minutes and then burns up. Wrecks worth salvage, anything with cargo or crew, and stations stay.
+
+<img src="docs/screenshots/debris-glow.jpg" width="45%" alt="A loose junk piece glows orange before it burns up">
 
 Spec: [Debris decay](spec/50-debris-decay.md)
 </details>
