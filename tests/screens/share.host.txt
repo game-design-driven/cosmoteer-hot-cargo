@@ -1,0 +1,19 @@
+# Co-op "Share resources" switch screenshots (spec 1318 to 1320): the switch off, then on with its chat line.
+# Host in a windowed test slot (graphics), client in a headless test slot (scripts/screens-mp.sh). {PORT} is the host port.
+render on
+mphost {PORT}
+mpstart 2
+mp ev_set Enabled false
+mp pu_set Enabled false
+closepanel
+waitfor mpmark >= 1 120
+wait 2
+screenshot share-off
+share on
+waitfor share_on == 1 10
+waitfor share_hud == 1 5
+wait 1
+screenshot share-on
+mp mpmark 2
+waitfor mpconnected == 0 120
+quit
