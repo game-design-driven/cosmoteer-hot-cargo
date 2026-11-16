@@ -47,6 +47,10 @@ public static class EventsArea
         Run.Hooks.Tick += PatrolListen.OnTick;
         Run.Hooks.Frame += PatrolListen.OnFrame;
         Run.Hooks.Tick += RescueBeacon.OnTick;
+        Run.Hooks.SystemEntered += StationAttack.OnSystemEntered;
+        Run.Hooks.Tick += StationAttack.OnTick;
+        Hunters.HunterOrders.Overrides.Add(StationAttack.Override);
+        StationAttackAutotest.Register();
         ItemActions.Handlers.Add("rescue", new RescueBeacon.Handler());
         Run.Hooks.NewRunStarted += Abandoned.OnNewRun;
         Ui.CommsHail.Providers.Add(new EventHailProvider());
@@ -782,6 +786,14 @@ public static class EventsArea
             var game = RequireRun().Game;
             var caller = SimQueries.FirstHumanShip(RequireSim()) ?? throw new InvalidOperationException("no player ship");
             game.Gui.FloatingWindows.AddChild(new Cosmoteer.Modes.Career.Comms.CommWindow(game, caller, CommsTarget(arg.Trim())));
+            Autotest.Wait(1);
+        };
+        // ev_dialogue <target>: the open comms window with the target shows its dialogue tab (a station opens on its missions tab).
+        Autotest.Commands["ev_dialogue"] = arg =>
+        {
+            var callee = CommsTarget(arg.Trim());
+            if (!Cosmoteer.Modes.Career.Comms.CommWindow.s_openWindows.TryGetValue(callee, out var window)) throw new InvalidOperationException($"no comms window with the {arg.Trim()} ship (ev_open first)");
+            window._tabs.TabsListBox.SelectedWidget = window._dialogueTab ?? throw new InvalidOperationException($"the {arg.Trim()} ship offers no dialogue");
             Autotest.Wait(1);
         };
         Autotest.Commands["ev_click"] = arg =>

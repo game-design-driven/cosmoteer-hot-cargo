@@ -93,3 +93,20 @@ HotCargoListen
 	BrokeRangeFmt = "The listen stops: {0} is out of range."
 	BrokeCombat = "The listen stops: weapons fire drowns out the channel."
 }
+
+// Station attack (spec 90 to 97). {0} = the station.
+HotCargoStationAttack
+{
+	StartFmt = "MAYDAY: raiders attack {0}. Help drive off the {1} raiders for pay, or keep clear of their guns."
+	RepelledHelpedFmt = "{0}: \"The raiders are gone. Thank you, captain. Your pay is on the way.\""
+	RepelledFmt = "{0} drove off the raiders on its own."
+	FellFmt = "{0} falls. The raiders strip what they want and jump out."
+	HeldFmt = "{0} holds. The raiders give up and jump out."
+	RebuildStartFmt = "{0} pulls in the wreckage near it to rebuild."
+	RebuildDoneFmt = "{0} is whole again."
+	RebuildStockFmt = "No more wreckage near {0}. It rebuilds the rest from its own stock."
+	TheStation = "The station"
+	TagUnderAttack = "UNDER ATTACK"
+	TagRebuilding = "REBUILDING"
+	TagRaider = "RAIDER"
+}

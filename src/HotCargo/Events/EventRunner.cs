@@ -561,7 +561,7 @@ public static class EventRunner
     }
 
     /// <summary>Gains split between the human players like a mission reward. A loss comes from the chooser and stops at 0.</summary>
-    static void ChangeMoney(Run run, int playerIndex, int amount, List<string> lines)
+    internal static void ChangeMoney(Run run, int playerIndex, int amount, List<string> lines)
     {
         var game = run.Game;
         if (amount > 0)

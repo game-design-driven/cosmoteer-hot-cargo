@@ -20,7 +20,7 @@ public static class PursuitArea
         Run.Hooks.StrikeWaveIntervalFactor = Director.IntervalFactor;
         Run.Hooks.HeatGainsBlocked = Outage.Active;
         Run.Hooks.HeatGainBlocked += Outage.OnGainBlocked;
-        HunterOrders.Override = ship => Run.Current is { } run && run.PressureActive && (Scout.Override(run, ship) || Blockade.Override(run, ship));
+        HunterOrders.Overrides.Add(ship => Run.Current is { } run && run.PressureActive && (Scout.Override(run, ship) || Blockade.Override(run, ship)));
         HunterOrders.StasisGoal = (sim, id) => Run.Current is { } run && run.PressureActive ? Scout.StasisGoal(run, id) ?? Blockade.StasisGoal(run, sim, id) : null;
         Run.Hooks.StageStarted += (run, sim, stage) => Errors.Guard("pursuit stage", () =>
         {
