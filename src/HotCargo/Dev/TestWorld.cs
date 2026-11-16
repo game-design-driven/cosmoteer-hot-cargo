@@ -21,6 +21,12 @@ static class TestWorld
     /// <summary>Set by Autotest.Init from the script, before the first world generates.</summary>
     internal static bool RandomMissions;
 
+    /// <summary>
+    /// The groups that this patch turned off, with their rules chance from the first time. The rules objects are shared by every
+    /// system, so a later system sees 0; GenerateGroups puts the first value back while a test forces a group.
+    /// </summary>
+    internal static readonly Dictionary<SimObjectSpawner, float> Blocked = new(ReferenceEqualityComparer.Instance);
+
     internal static bool MissionsOff(GameRoot? game) => Autotest.IsActive && !RandomMissions && game?.NetManager.IsMultiplayer != true;
 
     /// <summary>
@@ -36,7 +42,11 @@ static class TestWorld
             if (!Activation.IsModEnabled() || !MissionsOff(__instance.Sim.Game)) return;
             var groups = new HashSet<SimObjectSpawner>();
             Collect(__instance.SectorType.SystemGenerator.Spawners, null, groups);
-            foreach (var group in groups) group.SpawnChance = 0f;
+            foreach (var group in groups)
+            {
+                Blocked.TryAdd(group, group.SpawnChance);
+                group.SpawnChance = 0f;
+            }
             Log.Info($"test world: {groups.Count} Hot Cargo mission groups off in {__instance.SectorType.ID} (no '{RandomMissionsLine}' line)");
         });
 

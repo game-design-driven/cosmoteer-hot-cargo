@@ -201,9 +201,13 @@ public static class MissionArea
         var objects = ExistingSpawnTags(sim);
         var parentTree = new List<SimSpawner.SpawnedObject> { new(root ?? sim.Ships.HumanPlayerSignificantShips.First().DetWorldCenter) };
         uint batch = 0, fleet = 0;
-        var saved = groups.Select(g => g.SpawnChance).ToList();
+        // Spec 1700: groups inside these that a test world turned off get their rules chance back for this run.
+        var unblocked = AllSpawners(groups.SelectMany(g => g.SubSpawners ?? [])).OfType<SimObjectSpawner>()
+            .Where(Dev.TestWorld.Blocked.ContainsKey).Distinct().ToList();
+        var saved = groups.Concat(unblocked).Select(g => (Group: g, Chance: g.SpawnChance)).ToList();
         try
         {
+            foreach (var g in unblocked) g.SpawnChance = Dev.TestWorld.Blocked[g];
             foreach (var g in groups)
             {
                 g.SpawnChance = 1f;
@@ -212,7 +216,7 @@ public static class MissionArea
         }
         finally
         {
-            for (int i = 0; i < groups.Count; i++) groups[i].SpawnChance = saved[i];
+            foreach (var (g, chance) in saved) g.SpawnChance = chance;
         }
         Log.Info($"AUTOTEST generated groups: {string.Join(", ", groupTags)}");
         Autotest.Wait(2);
