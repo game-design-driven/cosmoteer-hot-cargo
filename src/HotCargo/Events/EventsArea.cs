@@ -835,10 +835,18 @@ public static class EventsArea
             var mode = (CareerSimModeManager)RequireSim().Mode;
             return mode.ShipsHailingPlayer.TryGetValue(run.Game.LocalPlayerIndex, out var list) && list.Any(h => h.Item1.UniqueID == id) ? 1 : 0;
         };
+        // ev_carrier_goto: the player ships go to clear spots next to the carrier (Autotest.ClearSpotNear: no ship and no sun heat zone).
         Autotest.Commands["ev_carrier_goto"] = _ =>
         {
-            var ship = CommsTarget("carrier");
-            MoveNextTo(RequireSim(), ship.WorldCenter, ship.WorldBoundingRadius + 100f);
+            var sim = RequireSim();
+            var carrier = CommsTarget("carrier");
+            float offset = carrier.WorldBoundingRadius + 100f;
+            foreach (var s in sim.Ships.HumanPlayerSignificantShips.ToList())
+            {
+                Autotest.Teleport(s, Autotest.ClearSpotNear(sim, carrier.DetWorldCenter, offset + s.WorldBoundingRadius, s.WorldBoundingRadius));
+                offset += 2 * s.WorldBoundingRadius + 100f;
+            }
+            Autotest.Wait(2);
         };
         Autotest.Commands["ev_kill_carrier"] = _ =>
         {

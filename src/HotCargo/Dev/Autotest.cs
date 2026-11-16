@@ -415,6 +415,8 @@ public static class Autotest
     /// Test only. A point at least <paramref name="minDistance"/> from <paramref name="target"/> where a ship of radius
     /// <paramref name="shipRadius"/> overlaps no solid object: live AI ships and asteroids, and ships, asteroids and gates in stasis.
     /// A teleport into an unloaded area must not land on objects that load out of stasis around the ship, or they crush it.
+    /// It also stays out of the heat zone of a sun (Worlds.HeatZone): the heat sets the ship on fire, and the fire kills crew. Under
+    /// godmode the parts never burn out, so the fire never ends (friendly-troublemaker, #184).
     /// It tries 16 directions on rings that grow by 150 from minDistance, and throws when 20 rings have no free point.
     /// It reads only sim state, so the result is the same on every machine (co-op inputs can use it).
     /// </summary>
@@ -435,6 +437,7 @@ public static class Autotest
                     break;
             }
         }
+        foreach (var sun in Worlds.HeatZone.Suns(sim)) solids.Add((new(sun.Center, sun.EdgeRadius), "sun heat zone"));
         for (int ring = 0; ring < 20; ring++)
         {
             float r = minDistance + ring * 150f;
