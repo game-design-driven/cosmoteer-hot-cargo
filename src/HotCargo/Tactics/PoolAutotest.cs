@@ -17,8 +17,10 @@ static class PoolAutotest
     public static void Register()
     {
         Autotest.Fields["share_on"] = () => Autotest.RequireRun().State.SharedResources ? 1 : 0;
-        // 1 while the local switch shows ON, 0 while it shows OFF, -1 while it is hidden.
+        // 1 while the local switch shows ON, 0 while it shows OFF, -1 while the players cannot see it (hidden, off the screen, or under a
+        // vanilla panel or an open window). share_hud_report logs where it is and what covers it.
         Autotest.Fields["share_hud"] = () => ShareResourcesHud.Label is not { } label ? -1 : label == Ai.AiText.Text("ShareButtonOn") ? 1 : 0;
+        Autotest.Commands["share_hud_report"] = _ => Log.Info($"AUTOTEST share switch: {ShareResourcesHud.Report()}");
         foreach (int p in new[] { 0, 1 })
         {
             int player = p;

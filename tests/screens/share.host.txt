@@ -1,4 +1,6 @@
-# Co-op "Share resources" switch screenshots (spec 1318 to 1320): the switch off, then on with its chat line.
+# Co-op "Share resources" switch screenshots (spec 1318 to 1320): the switch with no ship selected, with a ship selected, on, with the
+# comms box open, with a station comms window open, and at the smallest and the largest UI scale. Each state checks that the players
+# can see the switch (share_hud is -1 while it is hidden, off the screen or under a panel).
 # Host in a windowed test slot (graphics), client in a headless test slot (scripts/screens-mp.sh). {PORT} is the host port.
 render on
 mphost {PORT}
@@ -7,13 +9,43 @@ mp ev_set Enabled false
 mp pu_set Enabled false
 closepanel
 waitfor mpmark >= 1 120
+deselect
 wait 2
-screenshot share-off
+waitfor share_hud == 0 5
+share_hud_report
+screenshot share-off-no-ship
+select
+wait 2
+waitfor share_hud == 0 5
+share_hud_report
+screenshot share-off-ship
 share on
 waitfor share_on == 1 10
 waitfor share_hud == 1 5
 wait 1
-screenshot share-on
+screenshot share-on-ship
+commsbox open
+wait 2
+waitfor share_hud == 1 5
+share_hud_report
+screenshot share-on-commsbox
+commsbox close
+comms open
+wait 2
+waitfor share_hud == 1 5
+share_hud_report
+screenshot share-on-comms-window
+comms close
+uiscale min
+wait 2
+waitfor share_hud == 1 5
+share_hud_report
+screenshot share-on-scale-min
+uiscale max
+wait 2
+waitfor share_hud == 1 5
+share_hud_report
+screenshot share-on-scale-max
 mp mpmark 2
 waitfor mpconnected == 0 120
 quit

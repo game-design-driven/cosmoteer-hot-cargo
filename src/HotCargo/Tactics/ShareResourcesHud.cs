@@ -10,20 +10,26 @@ using HotCargo.Core;
 namespace HotCargo.Tactics;
 
 /// <summary>
-/// Spec 1318. Co-op only: the "Share resources" switch above the comms button, under the listen-in list (requirement 1132).
-/// GUI only: a click sends the MP input; the label reads the run state.
+/// Spec 1318. Co-op only: the "Share resources" switch right of the ship tool buttons, above every vanilla panel in its column
+/// (Ux.HudStack), under the listen-in list (requirement 1132). GUI only: a click sends the MP input; the label reads the run state.
 /// </summary>
 static class ShareResourcesHud
 {
-    const float Width = 260f, Height = 36f, Gap = 8f;
+    const float Width = 260f, Height = 36f;
     static ImageButton? _button;
-    static object? _game;
+    static Cosmoteer.Game.GameRoot? _game;
 
-    /// <summary>Space that the switch takes above the comms button, so the listen-in list sits above it.</summary>
-    internal static float ReservedHeight => _button is { SelfActive: true } ? Height + Gap : 0f;
+    /// <summary>The switch, for the listen-in list that stacks above it. Null before the first frame of a co-op game.</summary>
+    internal static Widget? Button => _button;
 
-    /// <summary>For autotests and screenshots: the label that the switch shows now, or null while it is hidden.</summary>
-    internal static string? Label => _button is { SelfActive: true } b ? b.Text.ToString() : null;
+    /// <summary>
+    /// For autotests: the label that the switch shows now, or null while the players cannot see it: hidden, off the screen, or under a
+    /// vanilla panel or an open window (Ux.HudStack.Visible).
+    /// </summary>
+    internal static string? Label => _button is { } b && _game is { } g && Ux.HudStack.Visible(g.Gui, b) ? b.Text.ToString() : null;
+
+    /// <summary>For test logs: where the switch is and what covers it.</summary>
+    internal static string Report() => _button is { } b && _game is { } g ? Ux.HudStack.Report(g.Gui, b) : "no switch yet";
 
     [HarmonyPatch(typeof(CareerGameModeManager), nameof(CareerGameModeManager.Update))]
     static class FramePatch
@@ -42,8 +48,11 @@ static class ShareResourcesHud
         var game = run.Game;
         if (_button is null || _game != game)
         {
-            var b = new ImageButton { AnchorRect = AnchorPresets.BottomLeft, Width = Width, Height = Height, InputBlockMode = InputBlockMode.Auto };
+            var b = new ImageButton();
+            // CopySettingsFrom copies the anchor, the size and the input block mode too, so they are set after it.
             b.CopySettingsFrom(WidgetRules.Instance.FlatButton);
+            b.AnchorRect = AnchorPresets.BottomLeft;
+            b.InputBlockMode = InputBlockMode.Auto;
             b.Width = Width;
             b.Height = Height;
             foreach (var r in new[] { b.StateNormalTextRenderer, b.StateHighlightedTextRenderer, b.StatePressedTextRenderer, b.StateDisabledTextRenderer })
@@ -54,15 +63,12 @@ static class ShareResourcesHud
             var top = game.Gui.RootWidget.Children;
             int windows = top.IndexOf(game.Gui.FloatingWindows);
             if (windows >= 0) top.Insert(windows, b); else top.Add(b);
+            Ux.HudStack.Register(game.Gui, b);
             (_button, _game) = (b, game);
         }
         _button.SelfActive = game.HumanPlayersIndexes.Count > 1 && game.MapDisplayFactor < 1f;
         if (!_button.SelfActive) return;
         _button.Text = Ai.AiText.Text(run.State.SharedResources ? "ShareButtonOn" : "ShareButtonOff");
-        // Above the comms button, or above the comms box while it is open. Without the button (no ship selected): above the tool row.
-        var root = game.Gui.RootWidget.ScreenRect;
-        var below = mode.CommsToolbox is { SelfActive: true } box ? box.ScreenRect : mode._commsBtn is { SelfActive: true } btn ? btn.ScreenRect : (Rect?)null;
-        _button.X = below is { } r1 ? r1.X - root.X : 10f;
-        _button.Y = below is { } r2 ? r2.Y - root.Bottom - Gap - Height : -80f - Height;
+        Ux.HudStack.Place(game.Gui, _button, []);
     }
 }

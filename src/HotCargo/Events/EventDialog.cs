@@ -96,6 +96,9 @@ internal sealed class EventDialog : WindowBox
         }
     }
 
+    /// <summary>Autotests: the local player closes the result page of the last choice, like its OK button. A waiting page stays open.</summary>
+    internal static void DismissResult(Run run) => _resultShown = Math.Max(_resultShown, run.State.Events.LastResult?.Serial ?? 0);
+
     /// <summary>Autotests: false (the default) keeps windowed test games unpaused too. A test sets it with the ev_pause command.</summary>
     internal static bool PauseInAutotest;
 
