@@ -19,6 +19,22 @@ public static class DebrisModel
         return (float)Math.Clamp((ageSeconds - (decaySeconds - glowSeconds)) / glowSeconds, 0, 1);
     }
 
+    /// <summary>
+    /// Spec 1248: quantity × factor as a whole number. The fraction becomes one more unit when roll (0 to 1) is below it, so the
+    /// mean is quantity × factor also for the single-unit ore of a deposit part.
+    /// </summary>
+    public static int ScaleQuantity(int quantity, float factor, float roll)
+    {
+        if (quantity < 0 || factor < 0) throw new ArgumentOutOfRangeException(nameof(factor), $"quantity {quantity} and factor {factor} must not be negative");
+        double exact = quantity * (double)factor;
+        int whole = (int)Math.Floor(exact);
+        return whole + (roll < exact - whole ? 1 : 0);
+    }
+
+    /// <summary>Spec 1248: the ore factor of a part by its salvage share: weapon breaks get the mining factor, laser breaks the laser factor.</summary>
+    public static float OreFactor(float salvageFraction, float miningFactor, float laserFactor) =>
+        miningFactor + (laserFactor - miningFactor) * Math.Clamp(salvageFraction, 0f, 1f);
+
     /// <summary>Sim ticks between two checks: at least 1, so a very short check time checks every tick.</summary>
     public static int CheckTicks(double checkSeconds, double tickSeconds) =>
         tickSeconds <= 0 ? 1 : Math.Max(1, (int)Math.Round(checkSeconds / tickSeconds));

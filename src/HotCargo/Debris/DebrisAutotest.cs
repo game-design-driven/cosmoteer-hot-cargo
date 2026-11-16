@@ -1,3 +1,4 @@
+using Cosmoteer;
 using System.Globalization;
 using Cosmoteer.Data;
 using Cosmoteer.Ships;
@@ -12,6 +13,13 @@ namespace HotCargo.Debris;
 static class DebrisAutotest
 {
     static Run R() => Autotest.RequireRun();
+
+    const string TestRockName = "Test rock";
+    static readonly ID<PartRules> IronDeposit = new("cosmoteer.deposit_iron_1x");
+    static long _looseMark;
+    static int _broken;
+
+    static long LooseUnits() => R().Game.Sim.Nuggets.Where(n => n.ResourceType != Tech.Vaults.TechId).Sum(n => (long)n.Quantity);
 
     internal static void Register()
     {
@@ -63,6 +71,51 @@ static class DebrisAutotest
             home.FocusCamera(playSound: false);
             Autotest.FitCamera(sim, (near.Max() + 120f) * 2f);
         };
+        // debris_rock <count>: a test asteroid of <count> iron deposits in a row (1 iron each) near the acting player's first ship.
+        Autotest.Commands["debris_rock"] = arg =>
+        {
+            int count = int.Parse(arg.Trim(), CultureInfo.InvariantCulture);
+            var sim = R().Game.Sim;
+            var home = Autotest.ActingShip(sim) ?? throw new InvalidOperationException("no ship of the acting player");
+            var rules = GameApp.Rules.Ships.First(r => r.IsAsteroid && r.PartsByID.ContainsKey(IronDeposit));
+            var rock = new Ship(rules, TestRockName, -3, randSeed: 7800UL);
+            using (var sui = ShipUpdateInfo.Alloc(rock))
+            {
+                for (int x = 0; x < count; x++)
+                    if (!sui.TryAddBlueprintPart(rules.PartsByID[IronDeposit], new IntVector2(x, 0), 0, flipX: false, mirrorPhysical: false,
+                            allowOverwrite: false, addDoors: false, hireCrew: false, out var reasons, force: true))
+                        throw new InvalidOperationException($"cannot add an iron deposit: {reasons}");
+                sui.Apply();
+            }
+            rock.MatchPhysicalToBlueprints();
+            rock.WorldCenter = Autotest.ClearSpotNear(sim, home.DetWorldCenter, home.DetWorldBoundingCircle.Radius + 400f, 40f * count);
+            sim.Ships.Add(rock);
+            Log.Info($"AUTOTEST debris_rock: {count} iron deposits");
+        };
+        // debris_break <debris|rock> <salvage|weapon>: breaks every part of the test junk (debris_spawn) or test asteroid (debris_rock)
+        // with salvage damage (a mining laser) or plain weapon damage. Marks the loose resources first, for debris_loose_gain.
+        Autotest.Commands["debris_break"] = arg =>
+        {
+            var p = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string name = p[0] switch { "debris" => "Test debris", "rock" => TestRockName, _ => throw new ArgumentException($"debris_break: debris or rock, not {p[0]}") };
+            bool salvage = p[1] switch { "salvage" => true, "weapon" => false, _ => throw new ArgumentException($"debris_break: salvage or weapon, not {p[1]}") };
+            var sim = R().Game.Sim;
+            var parts = sim.Ships.Where(s => s.Metadata.PlainShipName == name).SelectMany(s => s.Parts).ToList();
+            if (parts.Count == 0) throw new InvalidOperationException($"no part of '{name}' to break");
+            _looseMark = LooseUnits();
+            _broken = parts.Count;
+            // Salvage damage marks the part salvaged (a laser kill). A weapon break sets the health to 0, like "kill": a plain hit
+            // on fresh junk did not break it in the test.
+            foreach (var part in parts)
+                if (salvage) part.OnHit(part.Rules.MaxHealth * 10, DamageType.Salvage);
+                else part.Health = 0;
+            Log.Info($"AUTOTEST debris_break: {parts.Count} parts of {name} by {p[1]}");
+        };
+        // Loose resource units in the system (tech crates left out) since the last debris_break, and the parts that it broke.
+        Autotest.Fields["debris_loose_gain"] = () => LooseUnits() - _looseMark;
+        Autotest.Fields["debris_broken"] = () => _broken;
+        // Parts of the test junk and test asteroids that are still there: 0 after a break that destroyed them all.
+        Autotest.Fields["debris_parts_left"] = () => R().Game.Sim.Ships.Where(s => s.Metadata.PlainShipName is "Test debris" or TestRockName).Sum(s => s.Parts.Count);
         Autotest.Fields["junk"] = () => R().Game.Sim.Ships.Count(s => s.IsJunk && !s.Rules.IsAsteroid);
         Autotest.Fields["debris_tracked"] = () => R().State.Debris.Since.Count;
         Autotest.Fields["debris_removed"] = () => R().State.Debris.Removed;

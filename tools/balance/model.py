@@ -23,6 +23,18 @@ TUNABLES_CS = (Path(__file__).parents[2] / "src/HotCargo/Core/Tunables.cs").read
 STAGES = [(float(h), n) for n, h in re.findall(r'new\(\) \{ Name = "(\w+)", Heat = ([\d.]+)f \}', TUNABLES_CS)]
 if not STAGES: raise SystemExit("no heat stages found in Tunables.cs")
 
+
+def cs_default(path: str, field: str) -> float:
+    """The default of a float tunable in src/HotCargo/<path>."""
+    m = re.search(rf"public float {field} = ([\d.]+)f;", (Path(__file__).parents[2] / "src/HotCargo" / path).read_text())
+    if not m: raise SystemExit(f"no default for {field} in {path}")
+    return float(m.group(1))
+
+
+# BALANCE.md finding 11: mission money × MissionMoneyScale, and loose salvage of broken parts × SalvageDropFactor.
+MISSION_MONEY_SCALE = cs_default("Journey/JourneyTunables.cs", "MissionMoneyScale")
+SALVAGE_DROP_FACTOR = cs_default("Debris/DebrisTunables.cs", "SalvageDropFactor")
+
 # ---- Vanilla data -------------------------------------------------------------------------------------------------------
 tier_tables = (DATA / "modes/career/tier_tables.rules").read_text()
 tvm_block = tier_tables.split("TierValueMaximums")[1].split("]")[0]
@@ -122,10 +134,11 @@ JUMP_LY = statistics.mean(distances) if distances else 7.5
 
 OLD = dict(name="before", RewardScale=2.0, HeatPerGameMinute=2.0, HeatPerStandardMission=15.0, FameCapLeak=True,
            EscortHeatChange=-15, TechCostScale=1.0, FuelPrice=50, FuelStack=20, StationFuelTyped=0.85, StationFuelUntyped=0.05,
-           JumpCostScale=1.0, HunterFuel=40, ChainsPerSystem=None, StationFuelPerMillion=0)
+           JumpCostScale=1.0, HunterFuel=40, ChainsPerSystem=None, StationFuelPerMillion=0, MissionMoneyScale=1.0, SalvageDropFactor=1.0)
 NEW = dict(name="after", RewardScale=1.0, HeatPerGameMinute=1.14, HeatPerStandardMission=1.425, FameCapLeak=False,
            EscortHeatChange=-8, TechCostScale=2.5, FuelPrice=150, FuelStack=10, StationFuelTyped=0.325, StationFuelUntyped=0.01,
-           JumpCostScale=2.0, HunterFuel=60, ChainsPerSystem=2, StationFuelPerMillion=100)
+           JumpCostScale=2.0, HunterFuel=60, ChainsPerSystem=2, StationFuelPerMillion=100,
+           MissionMoneyScale=MISSION_MONEY_SCALE, SalvageDropFactor=SALVAGE_DROP_FACTOR)
 MULT = 1.2  # heat multiplier with 8 tech units
 CARRY = 0.25
 CONTRACT_HEAT = MISSION_FLAT + MISSION_INFORMANT * 0.75 * 15  # flat heat and expected informant heat per accepted contract
@@ -140,10 +153,11 @@ def run(p):
     fleet = tvm(1)
     for i, tier in enumerate(ROUTE):
         sector = i + 1
-        std = std_money(tier) * FAST_MONEY * p["RewardScale"]
+        std = std_money(tier) * FAST_MONEY * p["RewardScale"] * p["MissionMoneyScale"]
         sfame = std_fame(tier) * FAST_FAME * p["RewardScale"]
         income = MISSIONS_PER_SECTOR * PICK_MONEY * std
-        salvage_income = KILLS_PER_SECTOR * HUNTER.get(tier, HUNTER[max(HUNTER)])["salvageFraction"] * tvm(tier)
+        # The hunters log measured salvage before the salvage cut, so the factor applies here.
+        salvage_income = KILLS_PER_SECTOR * HUNTER.get(tier, HUNTER[max(HUNTER)])["salvageFraction"] * tvm(tier) * p["SalvageDropFactor"]
         # Fame: the cap of the highest mission tier in the system (missions use the high tier, about tier + 2).
         cap = max_fame(tier + 2)
         gained = min(MISSIONS_PER_SECTOR * MISSION_FAME * sfame, max(0, cap - fame))

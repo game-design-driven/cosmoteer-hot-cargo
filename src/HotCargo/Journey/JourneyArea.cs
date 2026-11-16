@@ -144,8 +144,9 @@ public static class JourneyArea
             var mission = new Mission(game, Buyer.MissionType);
             new MoneyReward(mission, 1000).GiveReward(game);
             int moneyGained = players.Sum(p => p.Money) - moneyBefore;
-            int expectedMoney = (int)(1000f * (econ.MoneyRewardFactor * scale)) / players.Count * players.Count;
-            Autotest.Check(moneyGained == expectedMoney, $"money reward 1000 x econ {econ.MoneyRewardFactor} x scale {scale} = {expectedMoney} (actual {moneyGained})");
+            float missionScale = run.T.Journey.MissionMoneyScale;
+            int expectedMoney = (int)(1000f * (econ.MoneyRewardFactor * scale * missionScale)) / players.Count * players.Count;
+            Autotest.Check(moneyGained == expectedMoney, $"money reward 1000 x econ {econ.MoneyRewardFactor} x scale {scale} x mission money {missionScale} = {expectedMoney} (actual {moneyGained})");
             int fameBefore = run.Mode.PlayerFame;
             new FameReward(10).GiveReward(game);
             int fameGained = run.Mode.PlayerFame - fameBefore;
