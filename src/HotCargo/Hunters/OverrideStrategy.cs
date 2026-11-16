@@ -15,12 +15,16 @@ internal sealed class OverrideStrategyRules : AIStrategyModuleRules
 }
 
 /// <summary>
-/// Runs HunterOrders.Override above every hunter tactic (team, regroup, cover, bait, grab tech), so a ship with orders from
+/// Runs HunterOrders.Overrides above every hunter tactic (team, regroup, cover, bait, grab tech), so a ship with orders from
 /// another area keeps them. Only fall back, call and flee come first (mod/tactics/ai_hunter.rules).
 /// </summary>
 internal sealed class OverrideStrategy : AIStrategyModule
 {
-    public override bool OnAITick(Ship ship, ShipAI ai) => HunterOrders.Override(ship);
+    public override bool OnAITick(Ship ship, ShipAI ai)
+    {
+        foreach (var o in HunterOrders.Overrides) if (o(ship)) return true;
+        return false;
+    }
 
     public override AIStrategyModule Clone(AIParameters? parameters) => new OverrideStrategy();
 }

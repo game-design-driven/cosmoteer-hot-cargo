@@ -68,9 +68,10 @@ Spec: [Tech value and selling](spec/08-tech-value-and-selling.md), [Win and loss
 <details>
 <summary><b>Jumps cool you down</b>: reach a quiet relay first, or jump blind</summary>
 
-Every jump to another system leaves most of the heat behind. A relay with no hunter near it cuts more heat than a watched one. A blind jump cuts the most, but it costs more fuel, takes longer to spin up and can damage your ships on arrival. Ships that cannot make the jump get a warning before you leave, so nobody is stranded by surprise.
+Every jump to another system leaves most of the heat behind. A relay with no hunter near it cuts more heat than a watched one. A blind jump cuts the most, but it costs more fuel, takes longer to spin up and can damage your ships on arrival. Ships that cannot make the jump get a warning before you leave, so nobody is stranded by surprise. The jump dialog also says when a ship that stays carries your tech.
 
-<img src="docs/screenshots/jump-warnings.jpg" width="70%" alt="The jump window names the ships that stay behind">
+<img src="docs/screenshots/jump-warnings.jpg" width="60%" alt="The jump window names the ships that stay behind">
+<img src="docs/screenshots/jump-carrier.jpg" width="38%" alt="The jump dialog warns that all your tech stays behind">
 
 Spec: [Factions, jumps and station prices](spec/38-factions-jumps-and-station-prices.md), [Jump warnings](spec/58-jump-warnings.md)
 </details>
@@ -345,6 +346,8 @@ Spec: [Relay lockdowns and the timed stash](spec/43-relays-and-stash.md)
 
 Small loose junk with no value glows orange after a few minutes and then burns up. Wrecks worth salvage, anything with cargo or crew, and stations stay.
 
+<img src="docs/screenshots/debris-glow.jpg" width="45%" alt="A loose junk piece glows orange before it burns up">
+
 Spec: [Debris decay](spec/50-debris-decay.md)
 </details>
 
@@ -371,9 +374,10 @@ Spec: [Contract economy](spec/26-contract-economy.md)
 <details>
 <summary><b>Debt</b>: borrow now, and the collectors come later</summary>
 
-A faction station can lend you money. Interest grows, and collectors jump in to ask for payment, with a harder tone each time. Let it run away and the lender turns hostile. The lender's debt page lets you refinance, and in a hard fight a faction can send help that you pay for afterwards.
+A faction station can lend you money, and spending below zero borrows from the local faction, up to a credit limit. In co-op, each player has their own debts. The money tooltip shows what you owe and how much credit is left. Interest grows, and collectors jump in to ask for payment, with a harder tone each time. Let it run away and the lender turns hostile. The lender's debt page lets you refinance, and in a hard fight a faction can send help that you pay for afterwards.
 
-<img src="docs/screenshots/debt.jpg" width="70%" alt="A debt collector hails the players">
+<img src="docs/screenshots/debt.jpg" width="49%" alt="A debt collector hails the players">
+<img src="docs/screenshots/debt-money-tip.jpg" width="49%" alt="The money tooltip shows debts and credit left">
 
 Spec: [Debt](spec/55-debt.md)
 </details>

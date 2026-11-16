@@ -58,13 +58,22 @@ static class DebrisAutotest
             }
             Log.Info($"AUTOTEST debris_spawn: {count} pieces of {parts} parts, speed {speed}");
         };
-        // debris_focus: test only. The camera follows the acting player's ship and zooms out to the 3 nearest tracked junk pieces,
-        // like "tech focus" (for screenshots).
-        Autotest.Commands["debris_focus"] = _ =>
+        // debris_focus [piece]: test only. The camera follows the acting player's ship and zooms out to the 3 nearest tracked junk pieces,
+        // like "tech focus" (for screenshots). "piece": a close-up of the nearest tracked piece, where its part outline (the glow) shows.
+        Autotest.Commands["debris_focus"] = arg =>
         {
             var run = R();
             var sim = run.Game.Sim;
             var home = Autotest.ActingShip(sim) ?? throw new InvalidOperationException("no ship of the acting player");
+            if (arg.Trim() == "piece")
+            {
+                var piece = run.State.Debris.Since.Keys.Select(id => sim.Ships[id]).OfType<Ship>()
+                    .MinBy(s => s.DetWorldCenter.DistanceTo(home.DetWorldCenter)) ?? throw new InvalidOperationException("no tracked junk piece");
+                // The same moves as the "camera" command, with an instant zoom: the screenshot scene is paused.
+                var at = piece.DetWorldCenter;
+                Autotest.Commands["camera"](string.Create(CultureInfo.InvariantCulture, $"{at.X} {at.Y} {piece.DetWorldBoundingCircle.Radius * 2f + 60f}"));
+                return;
+            }
             var near = run.State.Debris.Since.Keys.Select(id => sim.Ships[id]).OfType<Ship>()
                 .Select(s => s.DetWorldCenter.DistanceTo(home.DetWorldCenter)).Order().Take(3).ToList();
             if (near.Count == 0) throw new InvalidOperationException("no tracked junk piece");

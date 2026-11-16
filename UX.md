@@ -79,6 +79,8 @@ Look at each image before you commit it. Crop anything that shows a user name, a
 | `world.txt` | a calling hunter, a fleeing hunter, sector arrival texts, the current HUD, the heat zone line, a deep space map tooltip, the Buyer tag far and near |
 | `title.txt` | the main menu title |
 | `readability.txt` | each Hot Cargo window and panel at each window size and UI scale of the readability pass, with a fit report in the log (spec 1480, 1481) |
+| `jump-warnings.txt` | the join notice, the hover line, TOO BIG with its tooltip, the spin-up window, the ENGAGE dialog, the stranded line (spec 1560 to 1569) |
+| `jump-carrier.txt` | the tech carrier stays behind: "(carries N tech)" in the jump window tooltip, "All your tech stays behind." in the ENGAGE dialog (spec 1602) |
 
 ### How the capture works (no focus, no visible window)
 

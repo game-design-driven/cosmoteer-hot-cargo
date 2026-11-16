@@ -1,0 +1,31 @@
+# Crew breach (spec 1610 to 1617): crew of a ship with a working airlock walk in as in vanilla, and no breach is made. A player ship that
+# lost every airlock gets its crew back in through a breach.
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+ev_set HulkLootChance 0
+godmode on
+ev_abandoned
+ev_abandoned_goto 150
+pause off
+wait 3
+br_mark
+# Spec 1615: the hulk has its airlocks. The crew get in, and no breach is made, also after the wait and the cut time.
+expect br_airlocks_hulk == 1
+br_send 2 me hulk
+waitfor br_aboard_hulk >= 2 60
+wait 20
+expect br_made == 0
+expect br_parts_hulk == 0
+# The player ship loses every airlock. Its crew come back from the hulk and cut their way in.
+br_noairlocks me
+wait 1
+expect br_airlocks_me == 0
+br_send 2 hulk me
+waitfor br_made == 1 90
+expect br_parts_me == 1
+waitfor br_out_me == 0 60
+expect br_made == 1
+quit

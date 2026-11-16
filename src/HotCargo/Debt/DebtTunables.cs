@@ -81,6 +81,9 @@ public sealed class DebtTunables
     /// </summary>
     [Serialize(Optional = true)] public long OverdraftLimitTier1 = 20_000;
 
+    /// <summary>Spec 1425: time heat × this while anyone in the crew owes money. One factor for the crew, however many debts.</summary>
+    [Serialize(Optional = true)] public float DebtHeatFactor = 1.1f;
+
     public void Validate(Action<bool, string> require)
     {
         require(LoanStationChance is >= 0 and <= 1, "Debt.LoanStationChance must be 0 to 1");
@@ -92,6 +95,7 @@ public sealed class DebtTunables
         require(HelpChance is >= 0 and <= 1 && HelpMinShare is >= 0 and <= 1 && ClaimMaxShare is >= 0 and <= 1, "Debt.HelpChance, HelpMinShare and ClaimMaxShare must be 0 to 1");
         require(HelpMinEnemies >= 1 && HelpShips >= 1 && HelpFightRadius > 0 && HelpDistance > 0, "Debt.HelpMinEnemies and HelpShips must be at least 1, the help distances above 0");
         require(HelpCalmSeconds >= 0 && HelpWaitSeconds > 0 && HelpPricePerShare >= 0 && ClaimReputationLoss >= 0, "Debt help times and prices must not be negative (HelpWaitSeconds above 0)");
+        require(DebtHeatFactor >= 1f, "Debt.DebtHeatFactor must be at least 1");
         require(OverdraftHailSeconds >= 0 && OverdraftLimitTier1 >= 0, "Debt.OverdraftHailSeconds and OverdraftLimitTier1 must not be negative");
         require(CollectorDistance > 0 && ScoreDebtFactor >= 0, "Debt.CollectorDistance must be above 0, ScoreDebtFactor not negative");
     }

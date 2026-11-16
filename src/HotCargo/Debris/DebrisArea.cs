@@ -74,9 +74,16 @@ public static class DebrisArea
     /// landmark, the relic, a vanilla abandoned ship, a piece that a mission names, a piece that crew salvage, a piece in reach of a
     /// player's tractor beam, or a piece that the game locks against removal. Tech crates are not ships, so they never decay.
     /// </summary>
-    internal static bool CanDecay(Run run, Ship ship, DebrisTunables t, List<Circle> tractorReach)
+    internal static bool CanDecay(Run run, Ship ship, DebrisTunables t, List<Circle> tractorReach) =>
+        ship.Parts.Count <= t.MaxParts && Unclaimed(run, ship, tractorReach);
+
+    /// <summary>
+    /// Spec 1241 without the size limit: junk with parts that nobody holds or needs. The station rebuild (spec 96) takes in these
+    /// pieces, big wrecks too.
+    /// </summary>
+    internal static bool Unclaimed(Run run, Ship ship, List<Circle> tractorReach)
     {
-        if (!ship.IsJunk || ship.Rules.IsAsteroid || ship.Parts.Count == 0 || ship.Parts.Count > t.MaxParts) return false;
+        if (!ship.IsJunk || ship.Rules.IsAsteroid || ship.Parts.Count == 0) return false;
         if (ship.Crew.OnShip.Count > 0 || HasResources(ship) || ship.SpecialComponents.Count > 0) return false;
         if (ship.HasTag(Abandoned.RelicTag) || ship.HasLabel(Abandoned.Label)) return false;
         if (!ship.Sim.Mode.AllowCullShip(ship) || BeingSalvaged(ship)) return false;

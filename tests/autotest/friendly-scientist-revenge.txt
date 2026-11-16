@@ -1,0 +1,42 @@
+# The scientist's partner (spec 493, 495): an ally joins the duel, so the partner flees and comes back with a fleet. A declined challenge
+# brings the fleet too.
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+ev_set CooldownSeconds 0
+godmode on
+pause off
+fr_set PartnerMinutes 0.1
+fr_set PartnerRevengeMinutes 0.1
+fr_free_bunk
+# Spec 493: a hired ally attacks the partner in the duel.
+event scientist
+choose 1
+sc_kill
+waitfor sc_partner == 2 30
+ev_carrier_goto
+ev_comms carrier We accept
+expect sc_partner == 3
+sc_ally
+waitfor sc_partner == 5 20
+# Spec 495: the revenge fleet comes, hails and is hostile.
+waitfor sc_partner == 6 30
+expect sc_fleet >= 1
+expect sc_hostile == 1
+expectevent scientist_revenge
+fr_kill_enemies all
+waitfor sc_partner == 0 10
+expect sc_hostile == 0
+# Spec 495: a declined challenge brings the fleet as well.
+event scientist
+choose 1
+sc_kill
+waitfor sc_partner == 2 30
+ev_carrier_goto
+ev_comms carrier We decline
+expect sc_partner == 5
+waitfor sc_partner == 6 30
+expect sc_fleet >= 1
+quit
