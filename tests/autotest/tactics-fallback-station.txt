@@ -18,8 +18,6 @@ aiset TeamEnabled false
 aijitter 0
 aitrait Monolith Phalanx FallBack 1
 aitrait Monolith Lancers FallBack 1
-# Open space, away from ships in stasis too: a patrol that wakes next to the fleet would start another fight.
-openspace 6000 3000
 fr_kill_enemies
 aispawn monolith 1
 wait 3
