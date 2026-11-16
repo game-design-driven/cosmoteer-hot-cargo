@@ -9,8 +9,6 @@ contract_money 500000
 debt_help_on
 debt_set HelpChance 1
 debt_set HelpCalmSeconds 5
-# Open space, away from stations and other ships, so that the start world (chain ships, hunt targets) does not join the fight.
-openspace 3000 1500
 # Spec 1430 to 1432: a fight with two enemies brings two helpers; hits of both sides count.
 dip_spawn enemy 900
 dip_spawn enemy 900
