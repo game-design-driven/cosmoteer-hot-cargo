@@ -341,8 +341,8 @@ static class UxAutotest
             if (ships.Count == 0) throw new InvalidOperationException("no own ship with a working hyperdrive");
             var gate = Factions.FactionsAutotest.Gate();
             foreach (var ship in ships) Autotest.Teleport(ship, Autotest.ClearSpotNear(sim, gate.DetWorldCenter, 700f, ship.WorldBoundingRadius));
-            // The relay leaves stasis when a ship comes near it.
-            Autotest.WaitFor(() => gate.PhysicalShip is not null, 20, "the relay to leave stasis", () =>
+            // The relay leaves stasis when a ship comes near it. Ask again each time: the lookup returns a new object then.
+            Autotest.WaitFor(() => Factions.FactionsAutotest.Gate().PhysicalShip is not null, 20, "the relay to leave stasis", () =>
             {
                 foreach (var ship in ships) Factions.FactionsAutotest.OrderGateJump(ship);
                 Log.Info($"AUTOTEST ux: {ships.Count} ships with a hyperdrive ordered to jump");
