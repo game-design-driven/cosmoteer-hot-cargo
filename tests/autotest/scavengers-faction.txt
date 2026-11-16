@@ -37,9 +37,6 @@ waitfor scav_step == 1 20
 waitfor scav_cargo > 0 200
 # Spec 1341: a player's shots provoke the scavengers; without more hits the grudge ends after ProvokedSeconds.
 scav_set ProvokedSeconds 20
-# A short flight: by default the scavenger flees to 1.25 × SafeDistance (2,500) from the player, out of the live range, and
-# goes into stasis before the pirate step (Linux CI, #188).
-scav_set SafeDistance 1000
 scav_attack
 waitfor scav_provoked == 1 60
 expect scav_enemy_player == 1
@@ -47,9 +44,11 @@ scav_ceasefire
 waitfor scav_provoked == 0 90
 expect scav_enemy_player == 0
 # Spec 1340, 1344: pirates are enemies; a pirate that comes its way makes the weak scavenger flee.
+# A fresh scavenger next to the player: on Linux CI the provoked one was gone (a wreck or out of the live range) by now (#188).
+scav_new player
 aispawn pirates 1
 waitfor scav_enemy_pirate == 1 30
-# The pirate spawns near the player, and the scavenger fled from the player before: the pirate comes to the scavenger.
+# The pirate comes to the scavenger and attacks it.
 scav_threat 800
 waitfor scav_fleeing == 1 120
 quit
