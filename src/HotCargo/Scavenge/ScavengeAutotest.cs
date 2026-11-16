@@ -164,6 +164,20 @@ internal static class ScavengeAutotest
             me.Commands.EnqueueCommand(new AttackCommand(me, me.Commands.AllocGlobalCommandID(), TestShip(), CollisionAvoidanceFlags.All, isTentative: false, isConfirmed: true),
                 append: false, confirmed: true);
         };
+        // scav_threat <distance>: the first live ship of the last aispawn moves to this distance from the test scavenger's hull and gets an
+        // attack order on it, so the scavenger sees a threat that comes its way wherever it is (spec 1344). Test only.
+        Autotest.Commands["scav_threat"] = arg =>
+        {
+            var target = TestShip();
+            var sim = Sim();
+            var threat = Ai.PersonalityAutotest.LastSpawned.Select(id => sim.Ships[id]).OfType<Ship>().FirstOrDefault(s => !s.IsJunk)
+                ?? throw new InvalidOperationException("no live ship of the last aispawn");
+            float d = float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture);
+            Autotest.Teleport(threat, Autotest.ClearSpotNear(sim, target.DetWorldCenter, target.WorldBoundingRadius + threat.WorldBoundingRadius + d, threat.WorldBoundingRadius));
+            threat.Commands.EnqueueCommand(new AttackCommand(threat, threat.Commands.AllocGlobalCommandID(), target, CollisionAvoidanceFlags.All, isTentative: false, isConfirmed: true),
+                append: false, confirmed: true);
+            Log.Info($"AUTOTEST scav_threat: {threat.Metadata.PlainShipName} at {d:0} from {target.Metadata.PlainShipName}, attacking");
+        };
         Autotest.Commands["scav_ceasefire"] = _ =>
         {
             var me = Me();
