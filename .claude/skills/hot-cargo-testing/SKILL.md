@@ -31,6 +31,7 @@ description: Build Hot Cargo, run unit tests, game tests and co-op tests (in the
 - Script commands live in `src/HotCargo/Dev/Autotest.cs` (base) and each area's `Register()`. Useful: `newgame run`, `wait s` (game seconds while a run ticks), `waitreal s`, `waitfor field op value seconds`, `heat n`, `expect field op value`, `save name`, `load name`, `godmode on`, `ev_set Enabled false` (turns random events off), `ev_pause on` (an event window pauses the game; autotests do not pause by default).
 - Invariants (spec 44) run in every test: a broken rule logs `ERROR invariant <name>: <details>` and fails the test. Read the rule in `src/HotCargo/Dev/Invariants.cs` before you change it. A rule that a correct game breaks is a wrong rule; otherwise the bug needs a fix. The `Invariants.Enabled` tunable turns them off.
 - `core-playthrough` plays to sector 2 without cheats (only `pt_*` commands that stand in for one click). It runs in the full suite only. A script asks for a longer timeout with a `# timeout: <seconds>` line.
+- A single-player test world has no random Hot Cargo board missions, chains, stash or courier offers (spec 1700). A test that needs them at the release odds has the line `# missions: random`. Tests that force a mission (`mech_generate`, `chain_force`) need no line.
 - A test reads what the game shows, not our own value source. For UI, check the vanilla widget's text or state (for example the tooltip text the game stores), and take a screenshot when the result is visual.
 
 ## Before a merge (CI)

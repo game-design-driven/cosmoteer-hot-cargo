@@ -17,13 +17,6 @@ public static class Outage
     /// <summary>UI only: real time of the last blocked heat gain of 0.5 or more, for the "+0" on the heat panel. Not sim state.</summary>
     internal static double LastBlockedShownAt = double.MinValue;
 
-    /// <summary>
-    /// A seeded roll for this run and sector (galaxy seed, sector index, salt), the same on every machine and after a load.
-    /// The pick of a new system happens once per sector, so the roll needs no save state.
-    /// </summary>
-    internal static FastRand SectorRand(Run run, ulong salt) =>
-        new(unchecked((ulong)run.Mode.Init.RandSeed * 0x9E37_79B9_7F4A_7C15UL + (ulong)run.State.SectorIndex), salt);
-
     /// <summary>Spec 920: rolls the natural outage of a new system. Any system switch drops a roll that did not start.</summary>
     internal static void OnSystemEntered(Run run, bool firstVisit)
     {
@@ -31,7 +24,7 @@ public static class Outage
         var t = run.T.Pursuit;
         s.OutageDueAt = -1;
         if (!firstVisit || !t.Enabled || !PursuitModel.OutageSector(run.State.SectorIndex, run.T.Journey.RunSectorCount, t.OutageMinSector)) return;
-        var rand = SectorRand(run, 0x4F55_5441_4745UL);
+        var rand = run.SectorRand(0x4F55_5441_4745UL);
         if (rand.Single() >= t.OutageChance) return;
         s.OutageDueAt = run.State.GameSeconds + t.OutageDelayMin + rand.Single() * (t.OutageDelayMax - t.OutageDelayMin);
         Log.Info($"pursuit: natural outage rolled for {s.OutageDueAt:0}s");

@@ -127,13 +127,14 @@ public static class ChainRunner
         ObjectID node = sim.NodeId();
         if (s.AssignedNodes.Contains(node)) return;
         s.AssignedNodes.Add(node);
+        if (Dev.TestWorld.MissionsOff(run.Game)) return;
         int started = 0;
         var stations = Stations(sim).OrderBy(st => st.StationID).ToList();
         // Spec 160: in sector 1 the station nearest to the fleet (the first one the players meet) always offers a chain.
         // If no chain fits it, the next nearest takes its place.
         if (run.State.SectorIndex == 1 && SimQueries.FleetCenter(sim) is { } at && run.T.Chains.MaxNewChainsPerSystem > 0)
             foreach (var station in stations.OrderBy(st => st.DetWorldCenter.DistanceSquaredTo(at)).ThenBy(st => st.StationID))
-                if (PickChain(run, sim, station) is { } first)
+                if (PickChain(run, station, StationRand(run, station.StationID, 0).Single()) is { } first)
                 {
                     Start(run, sim, first, station);
                     stations.Remove(station);
@@ -143,8 +144,9 @@ public static class ChainRunner
         foreach (var station in stations)
         {
             if (started >= run.T.Chains.MaxNewChainsPerSystem) break;
-            if (sim.Rand.Single() >= run.T.Chains.StationChance) continue;
-            if (PickChain(run, sim, station) is { } chain) { Start(run, sim, chain, station); started++; }
+            var rand = StationRand(run, station.StationID, 0);
+            if (rand.Single() >= run.T.Chains.StationChance) continue;
+            if (PickChain(run, station, rand.Single()) is { } chain) { Start(run, sim, chain, station); started++; }
         }
     }
 
@@ -185,7 +187,15 @@ public static class ChainRunner
         return sim.Ships.HumanPlayerSignificantShips.Any(h => h.DetWorldBoundingCircle.DistanceTo(ship.DetWorldBoundingCircle) <= r);
     }
 
-    static ChainRules? PickChain(Run run, SimRoot sim, MetaSpaceStation station)
+    /// <summary>
+    /// Spec 160: chain rolls are seeded by the run, the sector, the station and the slot (0: the start rolls, 1 + stage index: a
+    /// stage's mission spawn). sim.Rand would make them depend on how many sim ticks ran before, so each machine got another world.
+    /// </summary>
+    static FastRand StationRand(Run run, ObjectID station, int slot) =>
+        // Mix spreads the salt: the first FastRand value of nearby salts is not well spread.
+        run.SectorRand(Ai.PersonalityModel.Mix(0x4348_4149_4E00_0000UL ^ ((ulong)(uint)slot << 32) ^ (uint)station));
+
+    static ChainRules? PickChain(Run run, MetaSpaceStation station, float roll)
     {
         var s = State(run);
         int sector = run.State.SectorIndex;
@@ -194,7 +204,7 @@ public static class ChainRunner
             .Where(c => sector >= c.MinSector && (c.MaxSector <= 0 || sector <= c.MaxSector))
             .Where(c => c.Stations.Length == 0 || (kind is { } k && c.Stations.Contains(k)))
             .ToList();
-        int pick = ChainModel.Pick(fits.Select(c => new ChainChoice(c.ID, c.Weight, s.Used.GetValueOrDefault(c.ID))).ToList(), sim.Rand.Single());
+        int pick = ChainModel.Pick(fits.Select(c => new ChainChoice(c.ID, c.Weight, s.Used.GetValueOrDefault(c.ID))).ToList(), roll);
         return pick < 0 ? null : fits[pick];
     }
 
@@ -238,7 +248,7 @@ public static class ChainRunner
         var flags = mode.GetSpawnFlags();
         var objects = MissionArea.ExistingSpawnTags(sim);
         foreach (var tag in objects.Keys.Where(k => k.ToString().StartsWith("hc_ch_", StringComparison.Ordinal)).ToList()) objects.Remove(tag);
-        var rand = new FastRand(sim.Rand.UInt64());
+        var rand = StationRand(run, c.StationId, 1 + Array.FindIndex(chain.Stages, st => st.ID == stage.ID));
         var parentTree = new List<SimSpawner.SpawnedObject> { new(at) };
         uint batch = 0, fleet = 0;
         foreach (var spawner in ChainLibrary.Generator(stage.Mission).Spawners)
