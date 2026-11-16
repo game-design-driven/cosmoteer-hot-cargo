@@ -1,4 +1,5 @@
 # Economy: spec 100 to 106. Terms on offers, fee and bonus, flat heat, a refused accept without money, rival dismissal.
+# missions: random
 newgame run
 wait 8
 hc_generate all

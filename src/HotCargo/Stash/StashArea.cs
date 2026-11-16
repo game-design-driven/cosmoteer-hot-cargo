@@ -114,7 +114,7 @@ public static class StashArea
     {
         static void Postfix(CareerSimModeManager __instance) => Errors.Guard("stash offer", () =>
         {
-            if (!Activation.IsModEnabled()) return;
+            if (!Activation.IsModEnabled() || Dev.TestWorld.MissionsOff(__instance.Sim.Game)) return;
             var sim = __instance.Sim;
             var rand = new Halfling.Random.FastRand(__instance.MapNodeData.RandomSeed ^ 0x5354_4153_4853UL);
             float chance = (sim.Game is { } game ? TunablesFor(game) : Defaults).OfferChance;

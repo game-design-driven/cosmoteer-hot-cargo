@@ -2,6 +2,7 @@ using Cosmoteer.Game;
 using Cosmoteer.Modes.Career;
 using Cosmoteer.Simulation;
 using Halfling.Events;
+using Halfling.Random;
 using HotCargo.RunModes;
 
 namespace HotCargo.Core;
@@ -151,6 +152,13 @@ public sealed class Run
     public bool PressureActive => State.Result == RunResult.Running && State.HeatEnabled;
 
     public int CurrentTier => Mode.CurrentMapNodeData.TierRange?.Min ?? 1;
+
+    /// <summary>
+    /// A seeded roll for this run and sector (galaxy seed, sector index, salt): the same on every machine, after a load and whatever
+    /// number of sim ticks ran before. Use it for world rolls that sim.Rand would make depend on frame timing.
+    /// </summary>
+    public FastRand SectorRand(ulong salt) =>
+        new(unchecked((ulong)Mode.Init.RandSeed * 0x9E37_79B9_7F4A_7C15UL + (ulong)State.SectorIndex), salt);
 
     void OnTick(object? sender, SimRoot sim)
     {

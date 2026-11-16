@@ -1,5 +1,6 @@
 # Stash (spec 970 to 975): the offer shows the found-first chance, the chance grows with time, and each outcome on arrival:
 # loot (money, and tech by chance), empty, and an ambush. st_force pins the outcome of the next stash; the last part rolls for real.
+# missions: random
 newgame run
 wait 8
 ev_set Enabled false

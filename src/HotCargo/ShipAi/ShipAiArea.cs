@@ -338,7 +338,9 @@ public static class ShipAiArea
             if (Autotest.RequireRun().IsMultiplayer) throw new InvalidOperationException("formation_block is single player only");
             var own = OwnShips();
             var lead = own[0];
-            var enemy = Sim().Ships.AllShips.Where(e => lead.IsEnemiesWith(e) && !e.IsJunk).MinBy(e => HunterOrders.EdgeDistance(lead, e))
+            // The leader's attack target first: the nearest enemy can be another ship than the one that the leader aims at.
+            var enemy = (lead.Commands.CurConfirmedCommand as AttackCommand)?.Target
+                ?? Sim().Ships.AllShips.Where(e => lead.IsEnemiesWith(e) && !e.IsJunk).MinBy(e => HunterOrders.EdgeDistance(lead, e))
                 ?? throw new InvalidOperationException("no enemy to block");
             Autotest.Teleport(own[int.Parse(arg, CultureInfo.InvariantCulture)], (lead.DetWorldCenter + enemy.DetWorldCenter) / 2f);
         };
@@ -360,7 +362,9 @@ public static class ShipAiArea
             using var stream = new MemoryStream();
             first.SaveDesign(stream);
             var ally = Ship.Load(stream.ToArray(), first.Metadata.PlainShipName + " II", first.Metadata.PlayerIndex, builtByPlayer: true, randSeed: 777UL);
-            ally.WorldCenter = Autotest.ClearSpotNear(sim, first.DetWorldCenter, first.WorldBoundingRadius * 2f + 300f, ally.WorldBoundingRadius);
+            // Each copy one ring further out: two copies on the same ring can land side by side, closer than the spacing rules.
+            int own = sim.Ships.HumanPlayerShips.Count(s => s.IsLocalPlayerShip);
+            ally.WorldCenter = Autotest.ClearSpotNear(sim, first.DetWorldCenter, own * (first.WorldBoundingRadius * 2f + 300f), ally.WorldBoundingRadius);
             sim.Ships.Add(ally);
             ally.InitializeToMax();
             Log.Info($"AUTOTEST tactics ally {ally.Metadata.PlainShipName} id={ally.UniqueID} human={ally.IsHumanPlayerShip}");

@@ -1,4 +1,5 @@
 # Courier Job hand-over (spec 1100 to 1102): no room refuses the accept; the accept loads a sealed case; the case goes over in the contact's comms.
+# missions: random
 newgame run
 wait 8
 ev_set CourierChance 1

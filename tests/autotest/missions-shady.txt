@@ -1,4 +1,5 @@
 # Shady offer (spec 38-40): the trap rolls on arrival with the heat formula; a sprung trap pays when the ambush is gone.
+# missions: random
 newgame run
 wait 8
 heat 50

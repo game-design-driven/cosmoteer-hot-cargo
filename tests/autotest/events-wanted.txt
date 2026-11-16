@@ -2,10 +2,15 @@
 newgame run
 wait 8
 ev_set WantedEventChance 1
+# Wanted alone stays vanilla: no warning, no event. ("wanted" is the UX test command: the nearest station's faction wants you.)
+# It runs next to a station: a station far from the fleet is not live (stasis), and a live trade ship is luck. The station must see
+# the fleet once (wait 2), or vanilla drops the wanted faction at once; after that, wanted lasts its search time.
+ev_tostation
+wait 2
+wanted
+wait 2
 # Fight in open space: a station's faction can take a side (the start station's owner changes with the system layout).
 openspace 5000
-# Wanted alone stays vanilla: no warning, no event. ("wanted" is the UX test command: the nearest station's faction wants you.)
-wanted
 wait 2
 expect ev_wanted == 1
 expect ev_wanted_warned == 0
@@ -30,8 +35,12 @@ expect ev_tech_gain == -1
 wait 1
 expect ev_wanted_warned == 0
 expectneed decoy_run unmet
-# Wanted again while hunted: the warning fires again. Decoy Run, paid in money: wanted clears.
+# Wanted again while hunted: the warning fires again. Decoy Run, paid in money: wanted clears. (A station again, as above.)
+ev_tostation
+wait 2
 wanted
+wait 2
+openspace 5000
 wait 2
 expect ev_wanted_warned == 1
 event decoy_run
