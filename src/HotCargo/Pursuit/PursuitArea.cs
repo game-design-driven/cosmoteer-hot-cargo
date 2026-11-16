@@ -63,6 +63,18 @@ public static class PursuitArea
 
     static Ship Me() => Autotest.ActingShip(Sim()) ?? throw new InvalidOperationException("no player ship");
 
+
+    /// <summary>
+    /// Test only: where each blockade ship is, live or waiting in stasis. A relay far from the players is out of the live range, so the
+    /// blockade can wait there in stasis.
+    /// </summary>
+    static List<Halfling.Geometry.Vector2> BlockaderLocations()
+    {
+        var ids = R().State.Pursuit.Blockaders;
+        var live = ids.Select(id => Sim().Ships[id]).OfType<Ship>().Select(sh => sh.DetWorldCenter);
+        var frozen = Sim().Stasis.Where(s => ids.Contains(s.ReservedObjectID)).Select(s => s.Location);
+        return live.Concat(frozen).ToList();
+    }
     static void AddAutotest()
     {
         // pu_set <PursuitTunables field> <value>: changes a live tunable (use "mp pu_set" in co-op). Test only.
@@ -116,9 +128,9 @@ public static class PursuitArea
         // The ships can still fly to a far relay, so the relay itself is no fixed place to meet them.
         Autotest.Commands["pu_blockadenear"] = arg =>
         {
-            var ships = R().State.Pursuit.Blockaders.Select(id => Sim().Ships[id]).OfType<Ship>().ToList();
-            if (ships.Count == 0) throw new InvalidOperationException("no blockade ship");
-            var center = ships.Aggregate(Halfling.Geometry.Vector2.Zero, (sum, sh) => sum + sh.DetWorldCenter) / ships.Count;
+            var at = BlockaderLocations();
+            if (at.Count == 0) throw new InvalidOperationException("no blockade ship");
+            var center = at.Aggregate(Halfling.Geometry.Vector2.Zero, (sum, v) => sum + v) / at.Count;
             var me = Me();
             var dir = Halfling.Geometry.Vector2.FromAngle(center.DirectionTo(me.DetWorldCenter));
             Autotest.Teleport(me, center + dir * float.Parse(arg, CultureInfo.InvariantCulture));
@@ -183,7 +195,7 @@ public static class PursuitArea
         Autotest.Fields["pu_blockaders"] = () => R().State.Pursuit.Blockaders.Count;
         // Farthest blockade ship from its relay (spec 916). -1 without a blockade.
         Autotest.Fields["pu_parkdist"] = () => Blockade.RelayAt(R(), Sim()) is { } relay
-            ? R().State.Pursuit.Blockaders.Select(id => Sim().Ships[id]).OfType<Ship>().Select(sh => (double)sh.DetWorldCenter.DistanceTo(relay)).DefaultIfEmpty(-1).Max()
+            ? BlockaderLocations().Select(v => (double)v.DistanceTo(relay)).DefaultIfEmpty(-1).Max()
             : -1;
         Autotest.Fields["pu_blockade"] = () => R().State.Pursuit.BlockadeRelay is null ? 0 : 1;
         Autotest.Fields["pu_outage"] = () => Outage.SecondsLeft(R());
