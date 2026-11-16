@@ -44,8 +44,8 @@ Category switches are in the `Telemetry` tunables section. The table names the s
 | `session.end` | Run | `reason` (`game_closed`, `game_closed_after_loss`, `replaced`, `process_exit`), `result`, `real_s`, `sim_s`, `paused_s`, `build_s`, `play_s` (real time split, spec 1591), `events`, `dropped`, `overhead_ms`, `overhead_pct_wall`, `writer_ms`, `frames`, `frame_ms`, `ticks`, `tick_ms`, `trace_missing` |
 | `run.new`, `run.loaded` | Run | `starting_tech`; `result`, `sessions` |
 | `run.save` | Run | `caller` (who saved: a save, an autosave, a co-op sync) |
-| `run.jump` | Run | `from`, `to`, `kind` (View, RelayWatched, RelayClear, Blind), `heat_kept` (share of heat the jump keeps), `stay_s`, `open_contracts`, `jumped` and `left` (jump ships, see below). The first tick with player ships in the new system takes a snapshot (`why` = entry). |
-| `system.enter` | Run | `from`, `first_visit`, `prev_stay_s`, `prev_stay_real_s`, `prev_missions_done`, `prev_missions_accepted`, `heat_before`, `jump_kind`, `heat_kept`, `stages`, `peak_tier`, `visited` |
+| `run.jump` | Run | `from`, `to`, `kind` (View, RelayWatched, RelayClear, Blind), `heat_kept` (share of heat the jump keeps), `stay_s`, `time_use` and `time_any` (time use of the stay, see below), `open_contracts`, `jumped` and `left` (jump ships, see below). The first tick with player ships in the new system takes a snapshot (`why` = entry). |
+| `system.enter` | Run | `from`, `first_visit`, `prev_stay_s`, `prev_stay_real_s`, `prev_time_use`, `prev_time_any`, `prev_missions_done`, `prev_missions_accepted`, `heat_before`, `jump_kind`, `heat_kept`, `stages`, `peak_tier`, `visited` |
 | `system.poi` | Run | `poi` |
 | `run.won`, `run.lost` | Run | `reason`, `score`, `delivered`, `notoriety`, `peak_tier`, `money` (per player). A snapshot follows. |
 | `heat.change` | Heat | `src`, `caller`, `amount` (asked), `delta` (applied), `before`, `after`, `stages` |
@@ -82,7 +82,7 @@ Category switches are in the `Telemetry` tunables section. The table names the s
 | `dip.surrender` | Diplomacy | AI fields, `player`, `by` (`players`, `ai`), `price`, `accepted`. A vanilla surrender input. |
 | `dip.deal` | Diplomacy | AI fields, `player`, `offer` (the hail choice, spec 561 to 596), `amount`, `price`, `chance`, `roll`, `accepted`. Chance, roll and accepted only for a choice with a roll. |
 | `ai.switch` | Ai | `ship`, `name`, `side`, `ai`, `from`, `to` (module types), `integrity`, `dist` |
-| `snap` | Snapshots | `why` (timer, entry, result, test), `result`, `stages`, `notoriety`, `peak_tier`, `tech_value`, `buyer_mult`, `heat_mult`, `enemy_scale_factor`, `fame`, `money`, `score`, `delivered`, `open_contracts`, `trail_per_min`, `mission_log`, `pending_informants`, `waiting_hunter_groups`, `events_seen`, `chains`, `crew`, `ships` (value, blueprint, integrity, parts, firepower, vaults, crew of each player ship), `fleet_value`, `fleet_blueprint`, `fleet_firepower`, `fleet_parts`, `vaults`, `live` (ships by side), `stasis`, `ai` (sums, see below) |
+| `snap` | Snapshots | `why` (timer, entry, result, test), `stay_s`, `time_use`, `time_any`, `result`, `stages`, `notoriety`, `peak_tier`, `tech_value`, `buyer_mult`, `heat_mult`, `enemy_scale_factor`, `fame`, `money`, `score`, `delivered`, `open_contracts`, `trail_per_min`, `mission_log`, `pending_informants`, `waiting_hunter_groups`, `events_seen`, `chains`, `crew`, `ships` (value, blueprint, integrity, parts, firepower, vaults, crew of each player ship), `fleet_value`, `fleet_blueprint`, `fleet_firepower`, `fleet_parts`, `vaults`, `live` (ships by side), `stasis`, `ai` (sums, see below) |
 | `perf` | Perf | `window_ms`, `frames`, `fps`, `paused_s`, `build_s`, `play_s` (real time of the frames while paused, in build mode, in play), `frame_mean_ms`, `frame_p50_ms`, `frame_p95_ms`, `frame_p99_ms`, `frame_max_ms`, `frames_over_33ms`, `ticks`, `tick_mean_ms`, `tick_max_ms`, `tick_total_ms`, `tele_ms`, `tele_pct_wall`, `tele_pct_tick`, `tele_writer_ms`, `tele_events`, `tele_bytes`, `tele_pending`, `tele_dropped`, `gc0`, `gc1`, `gc2`, `gc_pause_ms`, `heap_mb`, `working_set_mb` |
 | `mp.players` | Coop | `from`, `to` |
 | `mp.desync` | Coop | `input_tick`, `host`, `expected` (a test resync) |
@@ -102,6 +102,21 @@ Terms: `fee`, `bonus`, `flat_heat`, `trail`, `rival`, `informant`.
 - `untracked` is a money change outside `PlayerState.AddMoney` and the blueprint unlock. The next second finds it.
 - Above `CallerLookupsPerSecond` stack walks in one real second, `src` is `rate_limited`.
 - `cause` of a tech count change is the newest hint within 5 game seconds: `jump` (the ships are in jump limbo, so the count is 0 until they arrive), `sale`, `buyer`, `buyback`, `vault_destroyed`, `vault_deconstructed`, `decay` (tech outside a vault broke down), `ship_lost`, `crew_death`, `event`, `starting_vault`, `test`, `debug`. `initial` is the first count of a session. `other` means no hint.
+
+### Time use
+
+Spec 1760 to 1763. Each system stay splits its game seconds into what the players' fleet does: `fight`, `build`, `trade`, `travel`, `repair`, `idle`. One activity at a time, the first in that order whose signal is on, so `time_use` adds up to `stay_s`. `time_any` holds the seconds each signal was on at all, also under a higher activity (for example repairs while the fleet travels). The signals:
+
+| Activity | Signal |
+|---|---|
+| fight | an open `combat.fight` whose last damage window is at most `AccrualSeconds` old |
+| build | this machine's build tool is open, crew build a new part, or a deconstruction is queued |
+| trade | a human ship is in comms, or crew do a station trade |
+| travel | a move order to a point at least `TravelMinDistance` away, a relay jump order, or a local FTL jump |
+| repair | crew repair a part or rebuild a destroyed one |
+| idle | none of these |
+
+The sums count from the system entry or the session start, like `stay_s`. The build tool is local, so in co-op each file counts its own player's editor.
 
 ### AI sums
 
@@ -125,6 +140,7 @@ Section `Telemetry` in `tunables.rules`. Defaults:
 | `PerfSeconds` | 10 | Real seconds between perf events. |
 | `AccrualSeconds` | 5 | Game seconds over which time heat, trail heat and damage are summed. |
 | `ScanSeconds` | 5 | Game seconds between scans for new offers and ships that spawned into stasis. |
+| `TravelMinDistance` | 1500 | A move order to a point at least this far away counts as travel in the time use. |
 | `FightGapSeconds` | 90 | Game seconds without damage to the players or their enemies and without a wreck that end a fight. |
 | `AiSwitchMinSeconds`, `AiEventsPerMinute` | 3, 600 | Limits of `ai.switch` events. |
 | `CallerLookupsPerSecond` | 50 | Limit of stack walks for `src`. |
@@ -148,7 +164,7 @@ Telemetry is not sim state. Each co-op machine writes its own file with its own 
    Options: `--dir`, `--out`, `--run <id>`, `--latest N`, `--since <UTC ISO time>`, `--no-autotest`, `--min-game-seconds`.
 3. Tests: `scripts/autotest-all.sh --telemetry [timeout] [test ...]` pulls the telemetry after the tests and writes a report of the runs that they made.
 
-The report has, for each run: facts (versions, tunables hash, difficulty, seed), heat by source, stage starts, a table per sector visit (stay, heat in and out, stages, missions, hunters, sales), money and fame by source, power and money over time, tech changes by cause, tech trades, missions by type with results and time to finish, events and chains, ships by side, hunter outcomes, damage by side, fights, jumps with the ships left behind, fleet changes (captures, ships that left), the loss timer, diplomacy, the real time split, AI module frequencies, performance and errors. Across runs: a run table, pooled heat sources and findings.
+The report has, for each run: facts (versions, tunables hash, difficulty, seed), heat by source, stage starts, a table per sector visit (stay, heat in and out, stages, missions, hunters, sales, the share of each time use activity) with a bar chart of the shares, money and fame by source, power and money over time, tech changes by cause, tech trades, missions by type with results and time to finish, events and chains, ships by side, hunter outcomes, damage by side, fights, jumps with the ships left behind, fleet changes (captures, ships that left), the loss timer, diplomacy, the real time split, AI module frequencies, performance and errors. Across runs: a run table, pooled heat sources and findings.
 
 For your own analysis, each line is one JSON object: for example `jq -c 'select(.e=="heat.change")' file.jsonl`.
 
@@ -156,8 +172,8 @@ For your own analysis, each line is one JSON object: for example `jq -c 'select(
 
 `scripts/autotest.sh` and `scripts/autotest-mp.sh` send `telename <script name>` first (`<session>.host` and `<session>.client` for co-op), so `session.start` has the test name in `label`.
 
-- Commands: `telename <name>`, `telerelaychunk <bytes>` (a smaller relay chunk on this machine), `damagehostiles <fraction>` (test only: weakens nearby hostile ships so the player wins the fight), `shieldplayers on|off` (test only: human ship parts lose no health and human crew do not die), `teleflush` (wait until the writer wrote every queued event), `telesnap [why]`, `telecount <event> <op> <n>` (counts events of the current run in its files), `telestats` (logs the overhead numbers).
-- Fields: `tele_active`, `tele_events`, `tele_dropped`, `tele_nested_dropped`, `tele_overhead_ms`, `tele_overhead_pct` (telemetry time in percent of the session's real time), `tele_trace_missing`, `tele_trace_patched`, `tele_relay_pending` and `tele_relay_pending_closed` (client: bytes the host has not confirmed, all files or the closed ones), `tele_relay_received`, `tele_relay_copies`, `tele_relay_bad` (host: bytes received, valid and broken client copies).
+- Commands: `telename <name>`, `telemove <distance>` (a move order of the own ship to a point this far ahead), `telerelaychunk <bytes>` (a smaller relay chunk on this machine), `damagehostiles <fraction>` (test only: weakens nearby hostile ships so the player wins the fight), `shieldplayers on|off` (test only: human ship parts lose no health and human crew do not die), `teleflush` (wait until the writer wrote every queued event), `telesnap [why]`, `telecount <event> <op> <n>` (counts events of the current run in its files), `telestats` (logs the overhead numbers).
+- Fields: `tele_active`, `tele_events`, `tele_dropped`, `tele_nested_dropped`, `tele_overhead_ms`, `tele_overhead_pct` (telemetry time in percent of the session's real time), `tele_trace_missing`, `tele_trace_patched`, `tele_time_<activity>` (game seconds of each time use activity in the session), `tele_relay_pending` and `tele_relay_pending_closed` (client: bytes the host has not confirmed, all files or the closed ones), `tele_relay_received`, `tele_relay_copies`, `tele_relay_bad` (host: bytes received, valid and broken client copies).
 - Tests: `tests/autotest/telemetry-basic.txt` (every category and a save and load), `tests/autotest/telemetry-run.txt` (a scripted run over three systems that ends with a win; it checks that each event kind shows and makes data for a report).
 
 ## Add an event
