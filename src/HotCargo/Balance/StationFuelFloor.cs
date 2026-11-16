@@ -153,6 +153,24 @@ static class StationFuelFloor
         });
     }
 
+    /// <summary>
+    /// Spec 304: a station that goes into stasis keeps the fuel in its crew's hands. Vanilla remembers only the fuel on storage tiles
+    /// (StoredResourcesMemory), so a station whose crew moved fuel between tiles when the players left came back below the floor.
+    /// </summary>
+    [HarmonyPatch(typeof(StoredResourcesMemory), MethodType.Constructor, [typeof(Ship), typeof(bool)])]
+    static class OnStasis
+    {
+        static void Postfix(StoredResourcesMemory __instance, Ship ship) => Errors.Guard("station fuel floor", () =>
+        {
+            // The ship already left the sim (ship.Sim is null), so the floor check uses the run's sim.
+            if (ship.IsHumanPlayerShip || !ship.TryGetSpecialComponent<SpaceStation>(out _) || Run.Current?.Game.Sim is not { } sim || Floor(sim) is null) return;
+            int carried = ship.Resources.GetResourceTotal(Fuel, includeStored: false, includeCarried: true);
+            if (carried == 0) return;
+            int added = __instance.AddResources(Fuel, carried);
+            Log.Info($"station fuel floor: {ship.Metadata.PlainShipName} goes into stasis with {carried} fuel in crew hands; {added} kept");
+        });
+    }
+
     [HarmonyPatch(typeof(TradeRoutesManager), nameof(TradeRoutesManager.GetDesiredTradeDeltas))]
     static class OnTrade
     {
