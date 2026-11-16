@@ -295,6 +295,13 @@ on 1 expect debt_my_money >= 0
 on 1 expect debt_lender_owner == 1
 on 1 expect debt_hail_due == 1
 expect hc_money_gain == 0
+# Spec 1426: an interest charge on the client's debt notifies only the client.
+debt_mark_pressure
+on 1 debt_mark_pressure
+mp debt_age 600
+wait 2
+on 1 waitfor debt_notices == 1 10
+expect debt_notices == 0
 
 step tactics.share-resources
 # Spec 1318-1320: player 1's ship sits next to player 0's. Player 1 has no steel, player 0 has 100. Turning the switch on adds
