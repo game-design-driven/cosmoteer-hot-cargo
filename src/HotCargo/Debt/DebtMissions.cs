@@ -22,12 +22,12 @@ static class DebtMissions
     const ulong PayoffSalt = 0x4445_4254_5041_59UL;
 
     /// <summary>
-    /// Spec 1420: the debt that a mission's money pays, or null when it pays money. The roll is a pure function of the mission ID;
-    /// the Collect a Debt job always pays the debt.
+    /// Spec 1420: this player's debt that a mission's money pays, or null when it pays this player money. The roll is a pure function
+    /// of the mission ID; the Collect a Debt job always pays the debt.
     /// </summary>
-    public static Debt? PaidDebt(Run run, Mission? mission)
+    public static Debt? PaidDebt(Run run, Mission? mission, int player)
     {
-        if (mission?.Faction is not { } faction || run.State.Result != RunResult.Running || run.State.Debt.Of(faction.ToString()) is not { } d) return null;
+        if (mission?.Faction is not { } faction || run.State.Result != RunResult.Running || run.State.Debt.Of(faction.ToString(), player) is not { } d) return null;
         bool pays = mission.MetatypeID.Equals(CollectId)
                     || new FastRand((uint)mission.MissionID, PayoffSalt).Single() < run.T.Debt.MissionPayoffChance;
         return pays ? d : null;
@@ -43,16 +43,24 @@ static class DebtMissions
         {
             try
             {
-                if (RunOf(game) is not { } run || PaidDebt(run, __instance._mission) is not { } d) return true;
-                var players = new List<PlayerState>();
-                game.GetHumanPlayerStates(players, deterministic: true);
-                if (players.Count == 0) throw new InvalidOperationException("a mission pays with no human players");
-                long total = (long)__instance.GetAmountPerPlayer(game) * players.Count;
-                var (off, money) = DebtModel.PayoffSplit(total, d.Balance);
-                DebtDeals.Reduce(run, d, off);
-                foreach (var p in players) p.AddMoney((int)(money / players.Count));
-                DebtArea.Chat(run, DebtArea.Format("PayoffFmt", Cosmoteer.Extensions.ToXmlCostString((int)off), Lenders.Name(d.Faction)));
-                Log.Info($"debt: mission {__instance._mission.MissionID} paid {off} off the {d.Faction} debt and {money} as money");
+                if (RunOf(game) is not { } run) return true;
+                var players = run.Game.HumanPlayersIndexes.Order().ToList();
+                if (!players.Any(p => PaidDebt(run, __instance._mission, p) is not null)) return true;
+                // Each player's vanilla share goes off that player's own debt to the client (spec 1401); the rest pays as money.
+                int each = __instance.GetAmountPerPlayer(game);
+                foreach (int p in players)
+                {
+                    long money = each;
+                    if (PaidDebt(run, __instance._mission, p) is { } d)
+                    {
+                        var (off, rest) = DebtModel.PayoffSplit(each, d.Balance);
+                        DebtDeals.Reduce(run, d, off);
+                        money = rest;
+                        DebtArea.Chat(run, DebtArea.Format("PayoffFmt", DebtArea.DebtMoney(off), Lenders.Name(d.Faction)));
+                        Log.Info($"debt: mission {__instance._mission.MissionID} paid {off} off player {p}'s {d.Faction} debt and {rest} as money");
+                    }
+                    if (money > 0) run.Game.GetPlayerState(p, deterministic: true).AddMoney((int)money);
+                }
                 return false;
             }
             catch (Exception ex)
@@ -72,9 +80,8 @@ static class DebtMissions
             if (__result is null || RunOf(game) is not { } run) return;
             try
             {
-                if (PaidDebt(run, __instance._mission) is not { } d) return;
-                __result = WidgetRules.Instance.MoneyTextColor.FormatWithXml(
-                    DebtArea.Format("PayoffLineFmt", __instance.GetScaledMoney(game).ToString("N0"), Lenders.Name(d.Faction)));
+                if (PaidDebt(run, __instance._mission, run.Game.LocalPlayerIndex) is not { } d) return;
+                __result = $"<bad>{DebtArea.Format("PayoffLineFmt", __instance.GetScaledMoney(game).ToString("N0"), Lenders.Name(d.Faction))}</bad>";
             }
             catch (Exception ex) { Errors.Report("debt payoff line", ex.Message, ex); }
         }

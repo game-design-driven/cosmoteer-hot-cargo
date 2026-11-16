@@ -1,0 +1,7 @@
+# Co-op "Share resources" screenshots, client side (headless): joins, then waits for the host.
+mpjoin 127.0.0.1:{PORT}
+mpready
+wait 5
+mp mpmark 1
+waitfor mpmark >= 2 120
+quit

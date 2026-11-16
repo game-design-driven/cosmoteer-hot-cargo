@@ -20,6 +20,7 @@ FTL-style choice events for the Hot Cargo run. Spec requirements 67 to 87 (`spec
 | Station | The first trade station that a player ship comes within `StationTriggerDistance` (1,500) of, once per system visit, with chance `StationEventChance` (50 %). | Cooldown, per-system cap. The Buyer station never triggers it. |
 
 - Cooldown: Arrival and Station events wait `CooldownSeconds` (120 game s) after the last triggered event of any kind, and after the start of a run. No event opens at the start of a run.
+- First system of a run: it has no jump in, so its Arrival roll comes when the start cooldown ends (120 game s). Its Arrival and Station chances are × `FirstSystemChanceFactor` (1.5): 90 % and 75 %. Its Station roll waits for the start cooldown instead of being used up. System 1 then has an event in about 97 % of visits that reach a station (1 − 0.10 × 0.25), 90 % without a station. Before: about 50 % (the Station roll alone, and less when a station sat inside the start cooldown).
 - Per-system cap: `MaxEventsPerSystem` (2) Arrival and Station events per system, all visits together.
 - A trigger picks one eligible event by weight. Eligible means: the trigger matches, the event has not reached `MaxPerRun` (default 1), and its `Need` is met.
 - Only one event page waits at a time. A trigger does nothing while a page waits.

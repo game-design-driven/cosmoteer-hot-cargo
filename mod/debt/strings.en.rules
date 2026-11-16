@@ -6,7 +6,7 @@ HotCargoDebt
 	LoanLine = "Ask about a loan."
 	DebtLine = "Talk about your debt."
 	Back = "Back"
-	LoanOfferFmt = "<b>LOAN</b>\nThe {0} lend {1}, no questions asked.\nInterest: +{2}% every {3} min. A collector comes every {4} min. Pay at any {0} station.\nAt {5}× they lose patience. At {6}× they hunt you.\nDebt counts {7}× against your score."
+	LoanOfferFmt = "<b>LOAN</b>\nThe {0} lend {1}, no questions asked.\nInterest: +{2}% every {3} min. Pay back at any {0} station.\nAt {5}× what you borrowed, it is a warning. At {6}×, their ships hunt you until you pay it below {6}×.\nDebt counts {7}× against your score."
 	TakeLoanFmt = "Take the loan (+{0})"
 
 	// Collector pages (spec 1408). {0} faction, {1} hostile ratio.
@@ -28,7 +28,7 @@ HotCargoDebt
 	CollectorArrivesFmt = "A {1} collector arrives: {0}."
 	CollectorLeavesFmt = "{0} jumps out."
 	CollectorTurnsFmt = "{0} powers up its guns. The {1} want their money in blood."
-	FirmChatFmt = "Your debt to the {0} reached {1}×. Their collectors lose patience."
+	FirmChatFmt = "Your debt to the {0} reached {1}×. A warning: at {2}×, their ships hunt you."
 	HostileChatFmt = "Your debt to the {0} reached {1}×. They hunt you now."
 	HostileCenterFmt = "<bad>THE {0} HUNT YOU FOR YOUR DEBT</bad>"
 
@@ -38,12 +38,6 @@ HotCargoDebt
 	LogFirmFmt = "The debt to the {0} reached {1}×."
 	LogHostileFmt = "The debt to the {0} reached {1}×. They hunt you."
 
-	// Heat panel (spec 1412). {0} balance, {1} faction, {2} ratio, {3} interest part, {4} collector part.
-	PanelFmt = "DEBT {0} {1} ×{2}{3}{4}"
-	PanelInterestFmt = "  +{0}% in {1}"
-	PanelCollectorFmt = "  collector in {0}"
-	PanelCollectorHere = "  collector here"
-	PanelHunted = "  HUNTED"
 
 	// Debt missions (spec 1420 to 1422).
 	PayoffLineFmt = "<img name='money' colored='true'/> Debt -{0} to the {1}"
@@ -73,4 +67,29 @@ HotCargoDebt
 	HelpTabFmt = "{0} goes on your debt to the {1}."
 	ClaimWorksFmt = "The {0} shrug and leave. They barely fired a shot."
 	ClaimFailsFmt = "The {0} remember this. -{1} reputation."
+
+	// Money below 0 (spec 1417 to 1419). {0} who ("You" or a player name), {1} amount, {2} lender.
+	OverdraftFmt = "<limited_color>Money below 0: the {2} cover {1} for {0}. It is a debt now.</limited_color>"
+	You = "you"
+	// The lender gets in touch (spec 1418). OverdraftHail_<faction ID> is the faction's own voice; OverdraftHail is for any other faction. {0} the lender.
+	OverdraftHail = "<b>THE {0}</b>\nYou spent our money. We would like to talk about when we get it back."
+	OverdraftHail_monolith = "<b>THE {0}</b>\nThe Cooperative covered your bill, friend. Every member pays their share. When will you pay yours?"
+	OverdraftHail_cabal = "<b>THE {0}</b>\nA quiet word. Your account is open with us now. We are patient, but we never forget an open account."
+	OverdraftHail_imperium = "<b>THE {0}</b>\nBy order of the Imperial Treasury: your spending exceeded your funds. The Imperium expects repayment, with interest."
+	OverdraftHail_fringe = "<b>THE {0}</b>\nWe floated you the credits, pilot. The Resistance runs on trust. Don't make us regret it."
+	OverdraftHail_io = "<b>THE {0}</b>\nHouse Io extends credit only to those it deems worthy. Show us that we judged you well."
+	// Money tooltip (spec 1419).
+	MoneyTipTitle = "<bad>Debt</bad>"
+	// {0} lender, {1} balance, {2} interest %, {3} minutes per step.
+	MoneyTipLineFmt = "{0}: {1}  +{2}% every {3} min"
+	// {0} credit left, {1} the lender that would cover money below 0 here.
+	MoneyTipCreditFmt = "Credit left: {0} (the {1} cover you below 0)"
+	// {0} firm ratio, {1} hostile ratio.
+	MoneyTipStagesFmt = "<gray>At {0}× what you borrowed, it is a warning. At {1}×, the lender's ships hunt you until you pay it below {1}×.</gray>"
+	MoneyTipTotalFmt = "Total: {0}"
+
+	// Interest (spec 1426). {0} total added this time.
+	InterestCenterFmt = "<bad>INTEREST +{0}</bad>"
+	// {0} lender, {1} added, {2} new balance.
+	InterestChatFmt = "<bad>Interest: the {0} add {1}. You owe {2}.</bad>"
 }

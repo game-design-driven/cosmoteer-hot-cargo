@@ -8,6 +8,11 @@ public sealed class EventsTunables
 {
     /// <summary>Events that open by themselves (Start, Arrival, Station, Signal, Wanted). Off: none of them opens.</summary>
     [Serialize(Optional = true)] public bool Enabled = true;
+    /// <summary>
+    /// The run's first system (spec 69): the Arrival and Station chances × this, at most 1, so system 1 very likely has an event.
+    /// Its Arrival roll comes when the start cooldown ends. 1: like every other system.
+    /// </summary>
+    [Serialize(Optional = true)] public float FirstSystemChanceFactor = 1.5f;
     /// <summary>Chance that the first arrival in a system opens an Arrival event.</summary>
     [Serialize(Optional = true)] public float ArrivalEventChance = 0.6f;
     /// <summary>Game seconds after arrival before the Arrival event opens, so the players see the system first.</summary>

@@ -27,34 +27,45 @@ public static class DebtArea
         Run.Hooks.SystemEntered += DebtTick.OnSystemEntered;
         var score = Run.Hooks.ScoreAdjust;
         Run.Hooks.ScoreAdjust = (run, s) => DebtModel.Score(score(run, s), run.State.Debt.Total, run.T.Debt.ScoreDebtFactor);
-        HeatPanel.ExtraLines.Add(PanelLines);
+        // Spec 1425: time heat rises a little faster while anyone in the crew owes money. Not shown on the heat panel.
+        var timeHeat = Run.Hooks.TimeHeatFactor;
+        Run.Hooks.TimeHeatFactor = run => timeHeat(run) * (run.State.Debt.Debts.Count > 0 ? run.T.Debt.DebtHeatFactor : 1f);
         RegisterAutotest();
     }
 
-    /// <summary>Spec 1412: one heat panel line for each debt.</summary>
-    static string? PanelLines(Run run)
+    /// <summary>The name of a human player index, for chat lines. In co-op players can share an index; the first one names it.</summary>
+    internal static string PlayerName(Run run, int player) =>
+        run.Game.HumanPlayersByID.Where(kv => kv.Value == player).Select(kv => SharedChoice.SharedChoices.PlayerName(run, kv.Key)).FirstOrDefault()
+        ?? SharedChoice.SharedChoices.Text("SomePlayer");
+
+    /// <summary>A debt amount: the money icon and the number in the vanilla "bad" red, which the mod uses for debt and danger lines.</summary>
+    internal static string DebtMoney(long credits) => $"<bad><img name='money' colored='true'/>{Math.Min(int.MaxValue, credits):N0}</bad>";
+
+    /// <summary>
+    /// Spec 1419: under the vanilla money tooltip, the local player's credit left with the overdraft lender, then each debt with its
+    /// interest, the total, and what the stages mean.
+    /// </summary>
+    internal static string MoneyTipLines(Run run)
     {
-        var s = run.State.Debt;
-        if (s.Debts.Count == 0 || run.Game.Sim is not { } sim) return null;
-        double now = run.State.GameSeconds;
-        return string.Join("\n", s.Debts.Select(d =>
-        {
-            string name = Lenders.Name(d.Faction);
-            var stage = Lenders.StageOf(run, d);
-            string next = Lenders.Wants(sim, d.Faction) ? Format("PanelHunted")
-                : s.Collectors.Any(c => c.Faction == d.Faction) ? Text("PanelCollectorHere")
-                : run.State.Result != RunResult.Running ? ""
-                : Format("PanelCollectorFmt", Pursuit.PursuitModel.Clock(Math.Max(0, d.NextCollectorAt - now)));
-            string interest = run.State.Result != RunResult.Running ? ""
-                : Format("PanelInterestFmt", (run.T.Debt.InterestRate * d.RateFactor * 100f).ToString("0.#"), Pursuit.PursuitModel.Clock(Math.Max(0, d.NextInterestAt - now)));
-            string line = Format("PanelFmt", d.Balance.ToString("N0"), name, Lenders.Ratio(d).ToString("0.0"), interest, next);
-            return stage switch { DebtStage.Hostile => $"<bad>{line}</bad>", DebtStage.Firm => $"<limited_color>{line}</limited_color>", _ => line };
-        }));
+        if (run.State.Result != RunResult.Running || run.Game.Sim is not { } sim) return "";
+        int me = run.Game.LocalPlayerIndex;
+        string credit = Format("MoneyTipCreditFmt", Cosmoteer.Extensions.ToXmlCostString((int)Math.Min(int.MaxValue, Lenders.CreditLeft(run, sim, me))),
+            Lenders.Name(Lenders.OverdraftLender(run, sim, me)));
+        var mine = run.State.Debt.OfPlayer(me).ToList();
+        if (mine.Count == 0) return "\n\n" + credit;
+        var t = run.T.Debt;
+        var lines = mine.Select(d => Format("MoneyTipLineFmt", Lenders.Name(d.Faction), DebtMoney(d.Balance),
+            (t.InterestRate * d.RateFactor * 100f).ToString("0.#"), (t.InterestSeconds / 60f).ToString("0.#")));
+        return "\n\n" + credit + "\n\n" + Text("MoneyTipTitle") + "\n" + string.Join("\n", lines)
+            + "\n" + Format("MoneyTipTotalFmt", DebtMoney(mine.Sum(d => d.Balance)))
+            + "\n" + Format("MoneyTipStagesFmt", t.FirmRatio.ToString("0.#"), t.HostileRatio.ToString("0.#"));
     }
 
     static Run R() => Autotest.RequireRun();
 
     static SimRoot Sim() => R().Game.Sim;
+
+    static Debt Mine() => R().State.Debt.OfPlayer(Autotest.ActingPlayerIndex).FirstOrDefault() ?? throw new InvalidOperationException("the acting player has no debt");
 
     static Debt First() => R().State.Debt.Debts.FirstOrDefault() ?? throw new InvalidOperationException("no debt");
 
@@ -63,8 +74,8 @@ public static class DebtArea
     /// <summary>"loan": a station that offers a loan. "lender": a station of the first debt's lender. "collector": the first collector.</summary>
     static Ship Target(string kind) => kind switch
     {
-        "loan" => Stations().FirstOrDefault(s => Lenders.OffersLoan(R(), s)) ?? throw new InvalidOperationException("no station offers a loan"),
-        "lender" => Stations().FirstOrDefault(s => Lenders.DebtAt(R(), s) is not null) ?? throw new InvalidOperationException("no station of the lender"),
+        "loan" => Stations().FirstOrDefault(s => Lenders.OffersLoan(R(), s, Autotest.ActingPlayerIndex)) ?? throw new InvalidOperationException("no station offers a loan"),
+        "lender" => Stations().FirstOrDefault(s => Lenders.DebtAt(R(), s, Autotest.ActingPlayerIndex) is not null) ?? throw new InvalidOperationException("no station of the lender"),
         "collector" => Ship((R().State.Debt.Collectors.FirstOrDefault() ?? throw new InvalidOperationException("no collector")).Ship),
         "helper" => Ship(R().State.Debt.Help?.Hailer ?? throw new InvalidOperationException("no helper asks for pay")),
         _ => throw new ArgumentException($"debt target '{kind}': loan, lender or collector"),
@@ -79,6 +90,8 @@ public static class DebtArea
     }
 
     static long _marked;
+    static float _heatMark = 1f;
+    static int _noticeMark;
     static string _looked = "loan";
 
     /// <summary>The comms page of the ship that debt_look named, as the dialogue tab gets it for the acting ship.</summary>
@@ -132,10 +145,11 @@ public static class DebtArea
             return page?.Shared?.Domain == DebtChoiceDomain.Name && page.Rows.All(r => r.Key == "debtpay") ? 1 : 0;
         };
         Autotest.Fields["debt_hailed"] = () => R().State.Debt.Collectors.Count(c => c.Hailed);
-        Autotest.Fields["debt_loan_stations"] = () => Stations().Count(s => Lenders.OffersLoan(R(), s));
+        Autotest.Fields["debt_loan_stations"] = () => Stations().Count(s => Lenders.OffersLoan(R(), s, Autotest.ActingPlayerIndex));
         Autotest.Fields["debt_loan_credits"] = () => DebtDeals.LoanCredits(R());
         Autotest.Fields["debt_collector_in"] = () => First().NextCollectorAt - R().State.GameSeconds;
-        Autotest.Fields["debt_panel"] = () => HeatPanel.ExtraText.Contains(Lenders.Name(First().Faction), StringComparison.Ordinal) ? 1 : 0;
+        // Spec 1412: 1 when the heat panel shows no debt line (debt shows in the money tooltip, spec 1419).
+        Autotest.Fields["debt_panel_clean"] = () => HeatPanel.ExtraText.Contains(Lenders.Name(First().Faction), StringComparison.Ordinal) ? 0 : 1;
         // Spec 1411: (money + held units × the Buyer price − the score) ÷ the debt. The debt factor when the score counts the debt.
         Autotest.Fields["debt_score_factor"] = () =>
         {
@@ -179,6 +193,58 @@ public static class DebtArea
         Autotest.Commands["debt_ratio"] = arg => First().Balance = (long)Math.Ceiling(First().Principal * double.Parse(arg, CultureInfo.InvariantCulture));
         // debt_unwant: the lender of the first debt stops wanting the players, as after a lost search.
         Autotest.Commands["debt_unwant"] = _ => ((Cosmoteer.Modes.Career.CareerSimModeManager)Sim().Mode).Wanted.RemoveFactionFromWanting(First().FactionId);
+        // Money below 0 (spec 1417 to 1419). The fields read the acting player's first debt.
+        Autotest.Fields["debt_mine"] = () => R().State.Debt.OfPlayer(Autotest.ActingPlayerIndex).Count();
+        Autotest.Fields["debt_my_balance"] = () => Mine().Balance;
+        Autotest.Fields["debt_my_money"] = () => R().Game.GetPlayerState(Autotest.ActingPlayerIndex, deterministic: true).Money;
+        // 1 when the debt's lender is the controlling faction of this system (spec 1417).
+        Autotest.Fields["debt_lender_owner"] = () => Sim().MapNode?.ControllingFaction?.ToString() == Mine().Faction ? 1 : 0;
+        // Spec 1417: 1 when the acting player's first debt is at the credit limit of this tier.
+        Autotest.Fields["debt_at_limit"] = () => Mine().Balance == Lenders.CreditLimit(R(), R().CurrentTier) ? 1 : 0;
+        Autotest.Fields["debt_credit_left"] = () => Lenders.CreditLeft(R(), Sim(), Autotest.ActingPlayerIndex);
+        // debt_prepurchase <amount>: the acting ship pre-purchases this much steel at the stations nearby and pays it, as a build order
+        // does (MPUpdateShipInput, construction mode CrewResources). Single player.
+        Autotest.Commands["debt_prepurchase"] = arg =>
+        {
+            var ship = Autotest.ActingShip(Sim()) ?? throw new InvalidOperationException("no acting ship");
+            int bought = ship.Resources.PrePurchaseBuyableResources(new Cosmoteer.Data.ID<Cosmoteer.Resources.ResourceRules>("steel"),
+                int.Parse(arg, CultureInfo.InvariantCulture), out int cost);
+            if (cost > 0) R().Game.GetPlayerState(ship.Metadata.PlayerIndex, deterministic: true).AddMoney(-cost);
+            Log.Info($"AUTOTEST debt prepurchase: {bought} steel for {cost}");
+        };
+        // debt_limits: logs the credit limit of tiers 1 to 8 (the scale for the PR text).
+        Autotest.Commands["debt_limits"] = _ => Log.Info("AUTOTEST debt limits: " + string.Join(", ", Enumerable.Range(1, 8).Select(t => $"tier {t} {Lenders.CreditLimit(R(), t):N0}")));
+        // Spec 1425, 1426: debt_mark_pressure notes the time heat factor and the interest notices; the fields give the change since.
+        Autotest.Commands["debt_mark_pressure"] = _ => { _heatMark = Run.Hooks.TimeHeatFactor(R()); _noticeMark = DebtTick.InterestNotices; };
+        Autotest.Fields["debt_heat_ratio"] = () => Run.Hooks.TimeHeatFactor(R()) / _heatMark;
+        Autotest.Fields["debt_notices"] = () => DebtTick.InterestNotices - _noticeMark;
+        Autotest.Fields["debt_hail_due"] = () => Mine().HailAt is null ? 0 : 1;
+        Autotest.Fields["debt_overdraft_collectors"] = () => R().State.Debt.Collectors.Count(c => c.Overdraft);
+        // The acting player's lenders whose name and balance the money tooltip shows.
+        Autotest.Fields["debt_money_tip_lenders"] = () =>
+        {
+            string tip = MoneyTipLines(R());
+            return R().State.Debt.OfPlayer(Autotest.ActingPlayerIndex).Count(d => tip.Contains(Lenders.Name(d.Faction), StringComparison.Ordinal)
+                && tip.Contains(DebtMoney(d.Balance), StringComparison.Ordinal));
+        };
+        // debt_my_set <credits>: the acting player's first debt gets this principal and balance (sim; in co-op run it through "mp" or "as").
+        Autotest.Commands["debt_my_set"] = arg => { var d = Mine(); d.Principal = d.Balance = long.Parse(arg, CultureInfo.InvariantCulture); };
+        // debt_my_clear: the acting player's debts are paid off, as at a station.
+        Autotest.Commands["debt_my_clear"] = _ =>
+        {
+            foreach (var d in R().State.Debt.OfPlayer(Autotest.ActingPlayerIndex).ToList()) DebtDeals.Reduce(R(), d, d.Balance);
+        };
+        // debt_owe <faction ID|other> <credits>: the acting player owes that faction this much more. "other": the first faction (by ID)
+        // that the player owes nothing yet, a second lender for the tooltip.
+        Autotest.Commands["debt_owe"] = arg =>
+        {
+            var p = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string faction = p[0] != "other" ? p[0] : Cosmoteer.GameApp.Rules.Factions.Select(f => f.ID.ToString()).Order(StringComparer.Ordinal)
+                .First(id => R().State.Debt.Of(id, Autotest.ActingPlayerIndex) is null);
+            DebtDeals.Owe(R(), faction, Autotest.ActingPlayerIndex, long.Parse(p[1], CultureInfo.InvariantCulture));
+        };
+        // debt_spend <credits>: the acting player's money goes down by this much, below 0 if it has less (any spend, spec 1417).
+        Autotest.Commands["debt_spend"] = arg => R().Game.GetPlayerState(Autotest.ActingPlayerIndex, deterministic: true).AddMoney(-int.Parse(arg, CultureInfo.InvariantCulture));
         // Paid help (spec 1430 to 1436).
         Autotest.Fields["debt_help"] = () => R().State.Debt.Help is null ? 0 : 1;
         Autotest.Fields["debt_help_ships"] = () => R().State.Debt.Help?.Ships.Count ?? 0;
@@ -245,7 +311,7 @@ public static class DebtArea
         Autotest.Commands["debt_mark"] = _ => _marked = R().State.Debt.Total;
         // debt_collect_pay: gives the money reward of the collect offer, the path that the vanilla payment input calls.
         Autotest.Commands["debt_collect_pay"] = _ => CollectMoney().GiveReward(R().Game);
-        Autotest.Fields["debt_refinance_offers"] = () => Stations().Count(st => Lenders.Refinances(R(), st).Count > 0);
+        Autotest.Fields["debt_refinance_offers"] = () => Stations().Count(st => Lenders.Refinances(R(), st, Autotest.ActingPlayerIndex).Count > 0);
         Autotest.Fields["debt_rate"] = () => First().RateFactor;
         Autotest.Fields["debt_rep_drop"] = () => _oldRep - R().Mode.GetFactionReputation(new Cosmoteer.Data.ID<Cosmoteer.Factions.FactionRules>(_oldFaction));
         // debt_rehome: the first debt moves to a faction that is not the nearest station's and not the corporation's ally, so that
@@ -263,8 +329,8 @@ public static class DebtArea
         };
         Autotest.Commands["debt_refinance"] = _ =>
         {
-            var station = Stations().FirstOrDefault(st => Lenders.Refinances(R(), st).Count > 0) ?? throw new InvalidOperationException("no station buys a debt");
-            R().Game.NetManager.EnqueueInput(DebtChoiceDomain.Pick(station, DebtChoice.Refinance, R().State.Debt.Debts.IndexOf(Lenders.Refinances(R(), station)[0])));
+            var station = Stations().FirstOrDefault(st => Lenders.Refinances(R(), st, Autotest.ActingPlayerIndex).Count > 0) ?? throw new InvalidOperationException("no station buys a debt");
+            R().Game.NetManager.EnqueueInput(DebtChoiceDomain.Pick(station, DebtChoice.Refinance, R().State.Debt.Debts.IndexOf(Lenders.Refinances(R(), station, Autotest.ActingPlayerIndex)[0])));
         };
         // debt_open loan|lender|collector: opens the comms window to that ship on its dialogue tab (for screenshots). debt_close closes it.
         Autotest.Commands["debt_open"] = arg =>

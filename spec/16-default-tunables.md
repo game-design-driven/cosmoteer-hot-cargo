@@ -36,6 +36,7 @@
 | `Events.StationEventChance`, `StationTriggerDistance` | 0.5, 1500 | 69 |
 | `Events.SignalTriggerDistance` | 900 | 69 |
 | `Events.CourierChance` | 0.5 | 85 |
+| `Events.FirstSystemChanceFactor` | 1.5 | 69 |
 | `Events.MaxUnavoidablePerRun` | 1 | 87 |
 | `Events.WantedWarningMinStage`, `WantedEventChance` | 1, 0.7 | 470, 471 |
 | `Events.ResearchRate`, `ResearchMinRate`, `ResearchMaxUnits`, `ResearchMaxTechs` | 1.5, 1.2, 2, 3 | 760 |
@@ -122,5 +123,9 @@
 | `Telemetry.FightGapSeconds` | 90 s | 1588 |
 | `Telemetry.AiSwitchMinSeconds`, `AiEventsPerMinute`, `CallerLookupsPerSecond` | 3 s, 600, 50 | 534, 537 |
 | `Telemetry.MaxFileMegabytes`, `MaxFolderMegabytes` | 32, 1024 | 541 |
+| `Telemetry.RelayToHost` | on | 1592 |
+| `Debt.OverdraftLimitTier1` | 20,000 credits; other tiers × the vanilla standard mission pay of the tier ÷ tier 1 (tier 2: 27,000, tier 8: 106,000) | 1417 |
+| `Debt.OverdraftHailSeconds` | 60 game seconds | 1418 |
+| `Debt.DebtHeatFactor` | 1.1 (time heat while anyone owes money) | 1425 |
 
 The defaults are first guesses. Live tuning sets the real values.

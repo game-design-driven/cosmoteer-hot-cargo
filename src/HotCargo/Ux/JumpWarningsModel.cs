@@ -44,6 +44,20 @@ public static class JumpWarningsModel
     /// </summary>
     public static TNode? RejoinTarget<TNode>(int shipsHere, bool jumpUnderWay, IEnumerable<(TNode Node, int Ships)> elsewhere) where TNode : class =>
         shipsHere > 0 || jumpUnderWay ? null : elsewhere.Where(e => e.Ships > 0).OrderByDescending(e => e.Ships).Select(e => e.Node).FirstOrDefault();
+
+    /// <summary>
+    /// Spec 1601: seconds until the next automatic recall: recallSeconds after the players became stranded, and again recallSeconds after
+    /// each recall that did not bring them back (a vote that failed). 0 or less: send it now.
+    /// </summary>
+    public static double RecallLeft(double now, double strandedSince, double? lastRecall, float recallSeconds) =>
+        (lastRecall ?? strandedSince) + recallSeconds - now;
+
+    /// <summary>Spec 1602: no ship that jumps holds tech, and a ship that stays holds some. Playtest: the mothership kept the last unit.</summary>
+    public static bool AllTechStays(IEnumerable<(bool Jumps, int Tech)> fleet)
+    {
+        var ships = fleet.ToList();
+        return ships.Any(s => !s.Jumps && s.Tech > 0) && !ships.Any(s => s.Jumps && s.Tech > 0);
+    }
 }
 
 /// <summary>

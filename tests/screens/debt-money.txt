@@ -1,0 +1,17 @@
+# Money tooltip (spec 1419): the local player owes two factions. Windowed test slot.
+render on
+newgame run
+wait 10
+ev_set Enabled false
+closepanel
+godmode on
+pu_setmoney 100
+debt_spend 26100
+wait 2
+debt_owe other 8000
+wait 1
+pause on
+tipshow money
+wait 2
+screenshot debt-money-tip
+quit

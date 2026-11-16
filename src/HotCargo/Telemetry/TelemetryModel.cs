@@ -270,3 +270,42 @@ public sealed class ShipLineage<TId, TInfo> where TId : notnull where TInfo : cl
 
     public void Clear() { _rootOf.Clear(); _roots.Clear(); }
 }
+
+/// <summary>
+/// Spec 1592, 1593: the rules of the co-op relay. Each client sends its telemetry files to the host in chunks. The host keeps one copy of
+/// each file under the player's folder and confirms the length it holds. A file is an append-only byte stream, so the length is the
+/// whole state: a lost, repeated or late chunk changes nothing.
+/// </summary>
+public static class RelayModel
+{
+    /// <summary>
+    /// The part of a chunk at offset that the host appends to a copy of length have: (skip, write). A chunk past the end (a gap) writes
+    /// nothing; the host's answer, its length, makes the client send from there.
+    /// </summary>
+    public static (int Skip, int Write) Accept(long have, long offset, int length)
+    {
+        if (length <= 0 || offset > have) return (0, 0);
+        long skip = Math.Min(have - offset, length);
+        return ((int)skip, length - (int)skip);
+    }
+
+    /// <summary>The next chunk of a file for the client to send: a probe (length 0) while the host's length is unknown, null when the host holds it all.</summary>
+    public static (long Offset, int Length)? Next(long? confirmed, long size, int chunkBytes)
+    {
+        if (confirmed is not { } have) return (0, 0);
+        if (have >= size) return null;
+        return (have, (int)Math.Min(chunkBytes, size - have));
+    }
+
+    /// <summary>A file name that the host accepts: a plain telemetry file name, no folder part.</summary>
+    public static bool IsFileName(string? name) =>
+        name is { Length: > 6 and <= 200 } && name.EndsWith(".jsonl", StringComparison.Ordinal) && name.IndexOfAny(['/', '\\', ':']) < 0
+        && !name.Contains("..", StringComparison.Ordinal) && name.Trim() == name;
+
+    /// <summary>The folder of a player on the host: the player's name with letters, digits, '-' and '_' only, at most 40 characters.</summary>
+    public static string FolderName(string? playerName)
+    {
+        var s = new string([.. (playerName ?? "").Select(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' ? c : '_')]).Trim('_');
+        return s.Length == 0 ? "player" : s[..Math.Min(s.Length, 40)];
+    }
+}

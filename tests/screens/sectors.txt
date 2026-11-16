@@ -1,0 +1,22 @@
+# Sector types (spec 220 to 225): the arrival line of a trade hub and its current, and the solar zone heat line. README images.
+# Windowed test slot or the Mac runner (needs graphics): scripts/screens.sh tests/screens/sectors.txt <out-dir>
+render on
+newgame run
+wait 8
+closepanel
+wait 1
+ev_set Enabled false
+godmode on
+pause off
+worlds jumpto hc_trade_hub
+wait 1
+screenshot sectors-arrival-hub
+worlds goto current
+wait 2
+screenshot sectors-current
+worlds jumpto hc_solar_zone
+wait 1
+worlds goto sun 0.3
+wait 2
+screenshot sectors-heat-zone
+quit

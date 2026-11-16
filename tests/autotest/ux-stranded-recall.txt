@@ -1,0 +1,29 @@
+# The stuck run of the 2026-11-15 playtest (spec 12, 1566, 1601): a captured ship jumped alone, the tech carrier stayed, and the ship
+# that jumped died. With no own ship in the system the loss timer pauses, so the run never ended. The recall takes the players back.
+newgame
+wait 8
+ev_set Enabled false
+pause off
+jw_twin save
+jw_twin spawn
+wait 2
+expect tech > 0
+jw_jump_split
+waitfor sector == 2 30
+wait 2
+expect ux_ships_here == 1
+expect tech == 0
+ux RecallSeconds 8
+# The ship that jumped dies: no own ship here, the fleet and the tech wait in the first system.
+kill
+waitfor ux_ships_here == 0 30
+waitfor ux_stranded == 1 10
+expect lost == 0
+expect ux_recalls == 0
+waitfor ux_recalls == 1 30
+# The vanilla switch brings the players back to the carrier, and the tech counts again.
+waitfor ux_ships_here >= 1 60
+expect ux_stranded == 0
+expect tech > 0
+expect lost == 0
+quit

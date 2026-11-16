@@ -29,8 +29,23 @@ public static class EventRunner
 
     static EventsState State(Run run) => run.State.Events;
 
-    /// <summary>Spec 70: a new run starts the cooldown, so no Arrival or Station event opens right at the start.</summary>
-    internal static void OnNewRun(Run run) => State(run).LastEventSeconds = run.State.GameSeconds;
+    /// <summary>
+    /// Spec 70: a new run starts the cooldown, so no Arrival or Station event opens right at the start. Spec 69: the start system has
+    /// no jump in, so its Arrival roll is set here, for when the cooldown ends.
+    /// </summary>
+    internal static void OnNewRun(Run run)
+    {
+        var s = State(run);
+        var t = run.T.Events;
+        double now = run.State.GameSeconds;
+        s.LastEventSeconds = now;
+        s.StartNode = run.Game.CurrentMapNode?.UniqueID ?? throw new InvalidOperationException("a new run has no map node");
+        s.ArrivalDueSeconds = now + Math.Max(t.ArrivalDelaySeconds, t.CooldownSeconds);
+    }
+
+    /// <summary>Spec 69: the trigger chance here, higher in the run's first system.</summary>
+    static float Chance(Run run, SimRoot sim, float chance) =>
+        EventModel.TriggerChance(chance, State(run).StartNode is { } start && sim.MapNode?.UniqueID == start, run.T.Events.FirstSystemChanceFactor);
 
     internal static void OnSystemEntered(Run run, bool firstVisit)
     {
@@ -54,7 +69,7 @@ public static class EventRunner
         if (s.ArrivalDueSeconds >= 0 && now >= s.ArrivalDueSeconds)
         {
             s.ArrivalDueSeconds = -1;
-            TryTrigger(run, sim, EventTrigger.Arrival, t.ArrivalEventChance, limited: true);
+            TryTrigger(run, sim, EventTrigger.Arrival, Chance(run, sim, t.ArrivalEventChance), limited: true);
             return;
         }
         // Proximity checks run twice a game second. The step comes from game time, so every client checks on the same tick.
@@ -144,8 +159,12 @@ public static class EventRunner
             if (roll < run.T.Events.CourierChance) OfferCourier(sim, station);
             else Log.Info($"events: courier roll {roll:0.00} >= chance {run.T.Events.CourierChance:0.00}, no offer");
         }
+        // Spec 69: in the run's first system the Station roll waits for the start cooldown, so a station next to the start does not use it up.
+        if (node.Equals(s.StartNode) && !s.StationRolled.Contains(node)
+            && !EventModel.CooldownOver(run.State.GameSeconds, s.LastEventSeconds, run.T.Events.CooldownSeconds)) return;
         // Spec 768: a Station event is carried by that station. It hails the players, and its comms show the page.
-        if (s.StationRolled.Add(node)) TryTrigger(run, sim, EventTrigger.Station, run.T.Events.StationEventChance, limited: true, carrier: station.UniqueID);
+        if (s.StationRolled.Add(node))
+            TryTrigger(run, sim, EventTrigger.Station, Chance(run, sim, run.T.Events.StationEventChance), limited: true, carrier: station.UniqueID);
     }
 
     /// <summary>
