@@ -9,7 +9,7 @@ using HotCargo.Core;
 namespace HotCargo.Journey;
 
 /// <summary>
-/// Spec requirement 4: fame and money rewards × RewardScale.
+/// Spec requirement 4: fame and money rewards × RewardScale, and mission money × MissionMoneyScale too.
 /// Every vanilla read of EconDifficulty.FameRewardFactor or MoneyRewardFactor goes through FameFactor or MoneyFactor.
 /// So mission rewards, ship kill fame and the reward text in the UI all agree.
 /// The scale comes from the run tunables, which all multiplayer clients share, so it is deterministic.
@@ -21,7 +21,8 @@ static class RewardScalePatch
     static readonly FieldInfo MoneyField = AccessTools.Field(typeof(EconDifficultyRules), nameof(EconDifficultyRules.MoneyRewardFactor));
 
     public static float FameFactor(EconDifficultyRules econ) => econ.FameRewardFactor * Scale();
-    public static float MoneyFactor(EconDifficultyRules econ) => econ.MoneyRewardFactor * Scale();
+    /// <summary>Only vanilla MoneyReward reads the money factor, so MissionMoneyScale reaches mission money and nothing else.</summary>
+    public static float MoneyFactor(EconDifficultyRules econ) => econ.MoneyRewardFactor * Scale() * (Run.Current?.T.Journey.MissionMoneyScale ?? 1f);
 
     static float Scale() => Run.Current?.T.Journey.RewardScale ?? 1f;
 

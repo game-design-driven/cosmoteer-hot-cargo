@@ -2,7 +2,7 @@ using Halfling.Serialization;
 
 namespace HotCargo.Debris;
 
-/// <summary>Debris decay (spec 1240 to 1246): old loose junk glows, then burns up.</summary>
+/// <summary>Debris decay (spec 1240 to 1246): old loose junk glows, then burns up. Salvage and ore drops (spec 1247 to 1249).</summary>
 [ReflectiveSerialization(Explicit = true)]
 public sealed class DebrisTunables
 {
@@ -18,6 +18,12 @@ public sealed class DebrisTunables
     [Serialize(Optional = true)] public float CheckSeconds = 2f;
     /// <summary>Spec 1241: junk this far beyond the reach of a player's tractor beam also stays, so a pull that starts never loses its target.</summary>
     [Serialize(Optional = true)] public float TractorMargin = 100f;
+    /// <summary>Spec 1247: the loose-resource drop chance of a part that breaks on a ship that the players did not build × this.</summary>
+    [Serialize(Optional = true)] public float SalvageDropFactor = 0.6f;
+    /// <summary>Spec 1248: the ore that an asteroid part drops when it breaks × this, for a break by any weapon or a collision.</summary>
+    [Serialize(Optional = true)] public float MiningYieldFactor = 1.2f;
+    /// <summary>Spec 1248: the same for a break by salvage damage (a mining laser). Parts hit by both get a mix by the salvage share.</summary>
+    [Serialize(Optional = true)] public float LaserMiningYieldFactor = 1.3f;
 
     public void Validate(Action<bool, string> require)
     {
@@ -26,5 +32,7 @@ public sealed class DebrisTunables
         require(MaxParts >= 1, "Debris.MaxParts must be 1 or more");
         require(CheckSeconds > 0, "Debris.CheckSeconds must be above 0");
         require(TractorMargin >= 0, "Debris.TractorMargin must not be negative");
+        require(SalvageDropFactor >= 0, "Debris.SalvageDropFactor must not be negative");
+        require(MiningYieldFactor >= 0 && LaserMiningYieldFactor >= 0, "Debris.MiningYieldFactor and LaserMiningYieldFactor must not be negative");
     }
 }

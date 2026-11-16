@@ -30,7 +30,7 @@ Limit: the model is a single representative run. It does not model travel time, 
 - With `RewardScale` 2 on the Fast economy, six missions pay about **4 × TVM(T) per sector**. A fleet of even power needs about 0.5 to 0.75 × TVM(T) per sector to follow the tier ramp. So money was 5 to 8 times the need, and the bank grew to about 12 million by the Buyer.
 - With `RewardScale` 1 (the vanilla Fast rates), six missions pay about **2.2 × TVM(T) per sector**: about twice the need. The margin pays for repairs, a lost ship, blueprints and fuel.
 - Hunter wrecks already pay: a destroyed hunter drops about **10 % of its ship value** in salvage (measured 9 % to 10 % at every tier, Fast economy). That is about 1 std at `RewardScale` 1.
-- **Change:** `RewardScale` 2 → **1**. The Normal and Slow economies now make a tighter run, so the economy choice matters again.
+- **Change:** `RewardScale` 2 → **1**. The Normal and Slow economies now make a tighter run, so the economy choice matters again. (Finding 11 brings mission money back halfway to the `RewardScale` 2 level, to make up for a salvage cut.)
 
 ### 2. Money against ship power
 
@@ -128,7 +128,7 @@ Modelled with the numbers of section 4 (8 units, multiplier 1.2: one typical mis
 
 ### 9. Relay lockdowns and the stash (spec 950 to 976)
 
-Units as above: one event money unit is about one standard mission's pay (requirement 73); a typical mission pays 3.6 std.
+Units as above: one event money unit is about one standard mission's pay before `MissionMoneyScale` (requirement 73; since finding 11, two thirds of a mission's pay); a typical mission pays 3.6 std.
 
 - **Lockdowns are rare:** `ChancePerSystem` 0.15 per unvisited neighbour, at most 2 per run and 1,200 game seconds apart (the Pursuit pacer), from sector 2. With 2 to 3 unvisited neighbours per system, a mark comes about every 2 to 3 sectors, so a run of 8 sectors sees 1 or 2. The players see the mark and can route around it.
 - **Closed:** 7 minutes of waiting is about 8 heat (1.2 per minute × 1.2), or a blind jump (1.5 × fuel, the part damage risk). Both are small; the price is time.
@@ -149,6 +149,16 @@ The co-op playtest of 14 and 15 November logged 20 Hot Cargo station offers in 1
 - **Heat.** Fame is heat (1.425 per std fame × the tech multiplier), so a Hot Cargo mission now adds about the heat of a vanilla mission of its kind. The Survey and the Courier Job lose their low-heat character: one more std fame, about 1.7 heat. The model's typical pick (3.57 std money, 3.42 std fame) does not change, so the Strike still comes after about 6 missions per sector.
 - **Offers. Rule for enough types:** no Hot Cargo type shows in more than half of the systems (spawn chance at most 50 %), so the players meet a type at most every other system on average. No Hot Cargo mission has a tier gate (the only tier-like condition, `IsInitNode`, keeps the Deep Space nebula out of the start system, which is never a Deep Space system), so every tier offers the same types: 12 board types with a plain per-system chance, plus the Courier Job (50 % at the first trade station), the chains, the debt collection and the 3 archetype missions. So every tier has enough types. **Change:** every one of the 12 to 50 % (was 15 % to 60 %; the Discreet Bounty went down from 60 %), and the Stash offer to 50 % (was 35 %). The archetype missions keep 75 to 80 %: each defines its rare system type, so it does not repeat from system to system.
 - **Measured** (`balance-census`, the same route as before): 4 to 10 Hot Cargo offers per system, 24 to 43 % of the board (was 3 to 4, 12 to 20 %). The boards hold 17 to 28 offers (was 20 to 25). On this route Prototype showed in 6 of 7 systems and Escort and Fleet Assault in 5 of 7 (expected 3.5 at 50 %): within chance for one route (Prototype about 6 %); telemetry over more runs will show it.
+
+### 11. Salvage against missions
+
+In the co-op playtest of 14 and 15 November, salvage and captures were 72 % of the players' wealth, and missions and tech sales 28 %. The players paid 84 % of their building from storage. Over systems 1 and 2 (both players, `wealth.py` of the playtest report): salvage builds about 528k, mission money 186k (25.0k + 24.0k + 72.4k + 64.4k).
+
+- **Salvage cut** (spec 1247): a part that breaks on a ship that the players did not build drops 40 % less loose salvage (`Debris.SalvageDropFactor` 0.6), in every tier. Deconstruction refunds, storage contents and parts that float free do not change.
+- **Mining** (spec 1248): asteroid ore +20 % for a break by weapons or a collision (`MiningYieldFactor` 1.2), +30 % in total for a mining laser (`LaserMiningYieldFactor` 1.3). The game tells the two apart: a laser drops ore at 100 %, a weapon at 10 %.
+- **Mission money** (spec 4): × `Journey.MissionMoneyScale` 1.5, for every mission (vanilla and Hot Cargo), on top of finding 10. Fame (heat), fees, event money, the Buyer and tech value do not change.
+- **Math.** After the cut, the same salvage pays 0.6 × 528k = 317k (211k less). The playtest players keep their total when f × 186k = 186k + 211k, so f = 1 + 0.4 × 528 / 186 = 2.14. Vanilla uses 2 when salvage is off (`SalvagingDisabledMoneyRewardFactor`). Chosen (Yarden): **1.5**. Then the playtest mix earns 317k + 279k = 596k, 83 % of 714k. A player who only salvages earns 60 %; a player who only follows missions earns 150 %.
+- **The model** counts only hunter salvage (1.5 kills per sector, about 7 % of its income), so its mission player earns about 1.5 times as much: 2.8 to 3.0 × the tier's ship value per sector (was 1.9 to 2.1), and a tech unit is worth 0.7 to 1.6 typical missions (was 1.1 to 2.4). The Strike still comes after about 6 missions, because fame does not change. Finding 1 cut `RewardScale` 2 → 1 because six missions paid about 4 × TVM per sector; 1.5 goes halfway back. The difference: finding 1 counted mission money only, and the playtest showed that salvage, not missions, paid for most of the building. Risk: money becomes less of a limit for a player who only does missions, and tech sales matter less next to missions. Check with telemetry; the factor is a tunable.
 
 ## Changes
 
@@ -184,6 +194,9 @@ The co-op playtest of 14 and 15 November logged 20 Hot Cargo station offers in 1
 | Event missions: Freighter Under Fire money and fame, event bounty money, tow fame × std | 1.5 and 1, 0.75, 0.75 | 2 and 2, 1, 1 | — |
 | `Mechanics.<Mission>Chance`, Escort, Fleet Assault, Discreet Bounty spawn chance | 15 to 60 % | 50 % | 131 |
 | `Stash.OfferChance` | 0.35 | 0.5 | 970 |
+| `Debris.SalvageDropFactor` (new) | 1 | 0.6 | 1247 |
+| `Debris.MiningYieldFactor`, `LaserMiningYieldFactor` (new) | 1, 1 | 1.2, 1.3 | 1248 |
+| `Journey.MissionMoneyScale` (new) | 1 | 1.5 | 4 |
 | Convoy reward sort value | int.MinValue (the sum wrapped) | 0 | — |
 
 ## Dependencies on other areas
