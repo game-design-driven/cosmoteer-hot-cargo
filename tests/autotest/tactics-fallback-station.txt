@@ -7,7 +7,8 @@ ev_set Enabled false
 # fight keeps the ship from repairing.
 scav_set Enabled false
 fr_set PayForwardChance 0
-godmode on
+# The test ship fights the player ship; one-hit part losses made it derelict and ended the fight early (#184).
+godmode full
 tacticlog on
 aiset FleeOnVanilla false
 aiset RegroupOnVanilla false
@@ -20,6 +21,9 @@ aitrait Monolith Phalanx FallBack 1
 aitrait Monolith Lancers FallBack 1
 fr_kill_enemies
 aispawn monolith 1
+# Every other ship of the test's sides and every other enemy of the players leave the system (#184): the patrols of the test
+# world turned hostile with the test's war and fought the player ship.
+aialone
 wait 3
 aistrip new resources
 aistrip new crew 2

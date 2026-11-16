@@ -93,6 +93,20 @@ static class DiplomacyAutotest
             var ship = Spawn(p[0], distance);
             if (p[0] == "enemy") _enemy = ship.UniqueID; else _friend = ship.UniqueID;
         };
+        // dip_friend_alone <radius>: the dip_spawn friend ship holds still (no AI), and every other ship that is not a player ship or a
+        // station within the radius of it leaves the system. For tests that talk to that ship: the game picks the nearest ship.
+        Autotest.Commands["dip_friend_alone"] = arg =>
+        {
+            var sim = Sim();
+            var friend = (_friend is { } id ? sim.Ships[id] : null) ?? throw new InvalidOperationException("no live dip_spawn friend");
+            float radius = Float(arg.Trim());
+            friend.AI = null;
+            friend.Commands.Clear();
+            var others = sim.Ships.Where(s => s != friend && !s.IsHumanPlayerShip && !Situation.IsStation(s)
+                && s.DetWorldCenter.DistanceTo(friend.DetWorldCenter) <= radius).OrderBy(s => s.UniqueID).ToList();
+            foreach (var s in others) sim.Ships.Remove(s, dispose: true, handleLostShip: false);
+            Log.Info($"AUTOTEST dip_friend_alone: {friend.Metadata.PlainShipName} holds still; {others.Count} other ships within {radius:0} removed");
+        };
         // dip_expect <offer> <target> <amount> <op> <value>: checks the chance that the dialogue shows.
         Autotest.Commands["dip_expect"] = arg =>
         {
@@ -201,6 +215,18 @@ static class DiplomacyAutotest
         };
         // dip_mark: remembers the fuel of the human fleet and the acting player's money, for dip_fuelgain and dip_moneyspent.
         Autotest.Commands["dip_mark"] = _ => { _fuelMark = HumanFuel(); _moneyMark = Money(); };
+        // dip_hire_report: logs each hired ship's command and target, and the enemies within 3,000 of the acting ship with their side.
+        Autotest.Commands["dip_hire_report"] = _ =>
+        {
+            var sim = Sim();
+            var me = Me();
+            foreach (var h in R().State.Diplomacy.Hires)
+                Log.Info($"AUTOTEST HIRE {sim.Ships[h.Ship]?.Metadata.PlainShipName ?? "gone"} cmd={sim.Ships[h.Ship]?.Commands.CurConfirmedCommand?.GetType().Name} " +
+                         $"target={(sim.Ships[h.Ship]?.Commands.CurConfirmedCommand as Cosmoteer.Ships.Commands.IAttackCommand)?.Target?.Metadata.PlainShipName} flee={h.Fleeing} player={h.Player}");
+            foreach (var s in sim.Ships.Where(s => s.IsSignificant && !s.IsJunk && !s.IsHumanPlayerShip && s.DetWorldCenter.DistanceTo(me.DetWorldCenter) < 3000f).OrderBy(s => s.UniqueID))
+                Log.Info($"AUTOTEST NEAR {s.Metadata.PlainShipName} id={s.UniqueID} player={s.Metadata.PlayerIndex} d={s.DetWorldCenter.DistanceTo(me.DetWorldCenter):0} " +
+                         $"enemyOfMe={me.IsEnemiesWith(s)} cmd={s.Commands.CurConfirmedCommand?.GetType().Name} target={(s.Commands.CurConfirmedCommand as Cosmoteer.Ships.Commands.IAttackCommand)?.Target?.Metadata.PlainShipName}");
+        };
         Autotest.Commands["dip_log"] = arg =>
         {
             var s = R().State.Diplomacy;

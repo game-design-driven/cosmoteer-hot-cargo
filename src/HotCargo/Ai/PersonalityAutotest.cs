@@ -112,11 +112,13 @@ internal static class PersonalityAutotest
         Autotest.Commands["aispawn"] = arg =>
         {
             var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length is < 2 or > 4) throw new InvalidOperationException("aispawn needs: group count [tier] [tag]");
+            if (parts.Length is < 2 or > 4) throw new InvalidOperationException("aispawn needs: group count [tier] [tag | hull=<ship name>]");
             var run = Autotest.RequireRun();
             int tier = parts.Length >= 3 ? int.Parse(parts[2], CultureInfo.InvariantCulture) : run.CurrentTier;
-            var tag = parts.Length == 4 ? new ID<BuiltinShipTag>(parts[3]) : Combat;
-            Spawn(run, parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture), tier, tag);
+            // hull=<ship name>: that built-in combat ship of the group, so a test does not depend on the random hull pick.
+            string? hull = parts.Length == 4 && parts[3].StartsWith("hull=", StringComparison.Ordinal) ? parts[3]["hull=".Length..] : null;
+            var tag = parts.Length == 4 && hull is null ? new ID<BuiltinShipTag>(parts[3]) : Combat;
+            Spawn(run, parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture), tier, tag, hull);
         };
         // aitrait <personality name> <trait> <weight>: sets one trait weight of a personality for this run. Test only.
         Autotest.Commands["aitrait"] = arg =>
@@ -155,14 +157,18 @@ internal static class PersonalityAutotest
                 rock.SpawnAt(sim, center + Vector2.FromAngle(i * MathF.Tau / count) * distance, Direction.Zero, sim.Rand, null, null, null, loadInstantly: true);
             Log.Info($"AUTOTEST {count} rocks at {distance:0} from the player");
         };
-        // aiplayership: one more human ship next to the player ship, so a team has two targets to choose from. Test only.
-        Autotest.Commands["aiplayership"] = _ =>
+        // aiplayership [distance]: one more human ship next to the player ship, so a team has two targets to choose from. With a
+        // distance: at least that far (center to center) from the first live ship of the last aispawn instead. Test only.
+        Autotest.Commands["aiplayership"] = arg =>
         {
             var sim = Sim();
             var player = SimQueries.FirstHumanShip(sim) ?? throw new InvalidOperationException("no human ship");
             var pick = GameApp.Rules.BuiltinShips.GetRandomMatchingShip(sim.Rand, null, new Range<int>(1, 2), null, [Combat])
                        ?? throw new InvalidOperationException("no tier 1-2 combat ship");
-            var loc = Autotest.ClearSpotNear(sim, player.DetWorldCenter, 300f, 100f);
+            var loc = arg.Trim().Length == 0 ? Autotest.ClearSpotNear(sim, player.DetWorldCenter, 300f, 100f)
+                : Autotest.ClearSpotNear(sim, (LastSpawned.Select(id => sim.Ships[id]).OfType<Ship>().FirstOrDefault(s => !s.IsJunk)
+                    ?? throw new InvalidOperationException("no live ship of the last aispawn")).DetWorldCenter,
+                    float.Parse(arg.Trim(), CultureInfo.InvariantCulture), 100f);
             var spawner = new StasisShipSpawner(sim, pick.ID, loc, SpawnedShipFeatures.None, sim.Rand.UInt64())
                 { ObjectAllegiance = player.Metadata.PlayerIndex };
             spawner.Spawn(sim);
@@ -208,7 +214,7 @@ internal static class PersonalityAutotest
     internal static List<Ship> Hostile() =>
         Sim().Ships.Where(s => !s.IsJunk && s.AI?.GetStrategyModule<PersonalityStrategy>() is not null && AiGate.HostileToPlayers(s)).ToList();
 
-    static void Spawn(Run run, string group, int count, int tier, ID<BuiltinShipTag> tag)
+    static void Spawn(Run run, string group, int count, int tier, ID<BuiltinShipTag> tag, string? hull = null)
     {
         var sim = run.Game.Sim;
         var career = (CareerSimModeManager)sim.Mode;
@@ -222,7 +228,9 @@ internal static class PersonalityAutotest
         float direction = sim.Rand.Direction();
         for (int i = 0; i < count; i++)
         {
-            BuiltinShipRules? pick = null;
+            BuiltinShipRules? pick = hull is null ? null
+                : GameApp.Rules.BuiltinShips.FirstOrDefault(b => b.File.ShipName == hull && b.Tags.Contains(tag) && (faction is null || b.Faction == faction.ID))
+                  ?? throw new InvalidOperationException($"no built-in {tag} ship '{hull}' for {group}");
             for (int wanted = Math.Max(1, tier); wanted >= 1 && pick is null; wanted--)
                 pick = GameApp.Rules.BuiltinShips.GetRandomMatchingShip(sim.Rand, faction is null ? null : [faction.ID], new Range<int>(wanted, wanted), null, [tag]);
             if (pick is null) throw new InvalidOperationException($"no {tag} ship for {group} at tier {tier} or below");

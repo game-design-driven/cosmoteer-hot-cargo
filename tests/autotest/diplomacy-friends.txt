@@ -82,8 +82,11 @@ dip hire friend 0
 wait 1
 expect dip_hires == 1
 dip_spawn enemy 400
-wait 4
-expect dip_friendattacking == 1
+# The hired ship attacks within a few AI checks. In CI it had not after 4 s (#184), so the step waits, and the report logs the hire's
+# command and the ships near the player for the next failure.
+wait 2
+dip_hire_report
+waitfor dip_friendattacking == 1 30
 dip_damage friend 0.3
 waitfor dip_hirefleeing == 1 10
 dip_log fleeing

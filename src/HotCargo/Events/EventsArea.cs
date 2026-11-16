@@ -211,7 +211,7 @@ public static class EventsArea
             foreach (var s in sim.Ships.HumanPlayerSignificantShips.ToList()) Autotest.Teleport(s, signal.Location + new Halfling.Geometry.Vector2(300, 0));
             Autotest.Wait(3);
         };
-        // ev_tostation: moves the player ships next to the nearest ship tagged trade_station (not any ship that trades).
+        // ev_tostation: moves the player ships to clear spots next to the nearest ship tagged trade_station (not any ship that trades).
         Autotest.Commands["ev_tostation"] = arg =>
         {
             var sim = RequireSim();
@@ -227,7 +227,13 @@ public static class EventsArea
             // ev_tostation <distance>: this far from the station's hull (from its center while it is in stasis).
             float offset = arg.Trim().Length > 0 ? (station.Live?.WorldBoundingRadius ?? 0f) + float.Parse(arg, CultureInfo.InvariantCulture)
                 : station.Live is { } live ? live.WorldBoundingRadius + 300f : 1200f;
-            foreach (var s in ships) { Autotest.Teleport(s, station.Location + new Halfling.Geometry.Vector2(offset + s.WorldBoundingRadius, 0)); offset += 2 * s.WorldBoundingRadius + 100f; }
+            // A clear spot: the first try is the station's +X side, as before; a ship parked there (a trader, a carrier) moves the player
+            // ship to the next free spot instead of into a collision that can break a control room (CI full suites, #184).
+            foreach (var s in ships)
+            {
+                Autotest.Teleport(s, Autotest.ClearSpotNear(sim, station.Location, offset + s.WorldBoundingRadius, s.WorldBoundingRadius));
+                offset += 2 * s.WorldBoundingRadius + 100f;
+            }
             Log.Info($"AUTOTEST moved next to station {station.Id} (live: {station.Live is not null})");
             Autotest.Wait(2);
         };
@@ -829,10 +835,18 @@ public static class EventsArea
             var mode = (CareerSimModeManager)RequireSim().Mode;
             return mode.ShipsHailingPlayer.TryGetValue(run.Game.LocalPlayerIndex, out var list) && list.Any(h => h.Item1.UniqueID == id) ? 1 : 0;
         };
+        // ev_carrier_goto: the player ships go to clear spots next to the carrier (Autotest.ClearSpotNear: no ship and no sun heat zone).
         Autotest.Commands["ev_carrier_goto"] = _ =>
         {
-            var ship = CommsTarget("carrier");
-            MoveNextTo(RequireSim(), ship.WorldCenter, ship.WorldBoundingRadius + 100f);
+            var sim = RequireSim();
+            var carrier = CommsTarget("carrier");
+            float offset = carrier.WorldBoundingRadius + 100f;
+            foreach (var s in sim.Ships.HumanPlayerSignificantShips.ToList())
+            {
+                Autotest.Teleport(s, Autotest.ClearSpotNear(sim, carrier.DetWorldCenter, offset + s.WorldBoundingRadius, s.WorldBoundingRadius));
+                offset += 2 * s.WorldBoundingRadius + 100f;
+            }
+            Autotest.Wait(2);
         };
         Autotest.Commands["ev_kill_carrier"] = _ =>
         {

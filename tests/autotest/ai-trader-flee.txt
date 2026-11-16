@@ -13,6 +13,7 @@ dip_spawn trader 600
 # A new ship sets its radar radius at its first update.
 wait 1
 ai_trader_want
+ai_trader_clear
 ai_trader_place 0.5
 wait 2
 expect ai_trader_fleeing == 1
@@ -32,6 +33,7 @@ aiset TraderFleeStopFactor 1
 dip_spawn trader 600
 wait 1
 ai_trader_want
+ai_trader_clear
 ai_trader_place 0.5
 wait 2
 expect ai_trader_fleeing == 1

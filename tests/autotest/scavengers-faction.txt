@@ -12,6 +12,9 @@ waitfor scav_count == 1 30
 wait 10
 expect scav_count == 1
 scav_set FactionEnabled false
+# Open space first: ships of the start world (mercenaries, traders) that also scavenge took the test wreck's loot before the scavenger
+# in CI (#184), so the scavenger and its wreck are alone.
+openspace 6000
 # Spec 1342: the ship: two mining lasers, crew, empty storage bays. It arrives next to the player for the rest of the test.
 scav_new player
 expect scav_count == 2
@@ -41,7 +44,11 @@ scav_ceasefire
 waitfor scav_provoked == 0 90
 expect scav_enemy_player == 0
 # Spec 1340, 1344: pirates are enemies; a pirate that comes its way makes the weak scavenger flee.
+# A fresh scavenger next to the player: on Linux CI the provoked one was gone (a wreck or out of the live range) by now (#188).
+scav_new player
 aispawn pirates 1
 waitfor scav_enemy_pirate == 1 30
+# The pirate comes to the scavenger and attacks it.
+scav_threat 800
 waitfor scav_fleeing == 1 120
 quit

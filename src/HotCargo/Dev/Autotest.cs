@@ -317,6 +317,7 @@ public static class Autotest
         });
 
     /// <summary>The player index of the sender while an "mp" command runs inside the sim. Null outside of it.</summary>
+    static bool _godmodeFull;
     static int? _simPlayer;
 
     /// <summary>The acting player while a command runs inside the sim ("mp", "as"). Inputs that it sends then run at once as this player.</summary>
@@ -414,6 +415,8 @@ public static class Autotest
     /// Test only. A point at least <paramref name="minDistance"/> from <paramref name="target"/> where a ship of radius
     /// <paramref name="shipRadius"/> overlaps no solid object: live AI ships and asteroids, and ships, asteroids and gates in stasis.
     /// A teleport into an unloaded area must not land on objects that load out of stasis around the ship, or they crush it.
+    /// It also stays out of the heat zone of a sun (Worlds.HeatZone): the heat sets the ship on fire, and the fire kills crew. Under
+    /// godmode the parts never burn out, so the fire never ends (friendly-troublemaker, #184).
     /// It tries 16 directions on rings that grow by 150 from minDistance, and throws when 20 rings have no free point.
     /// It reads only sim state, so the result is the same on every machine (co-op inputs can use it).
     /// </summary>
@@ -434,6 +437,7 @@ public static class Autotest
                     break;
             }
         }
+        foreach (var sun in Worlds.HeatZone.Suns(sim)) solids.Add((new(sun.Center, sun.EdgeRadius), "sun heat zone"));
         for (int ring = 0; ring < 20; ring++)
         {
             float r = minDistance + ring * 150f;
@@ -565,13 +569,27 @@ public static class Autotest
         {
             // Test only: keeps human ships at full part health each sim tick, so long AI tests are not cut short by a lost ship.
             // Parts that a single hit destroys still break. Vault damage still costs tech (it counts health drops).
+            // "godmode full" also makes human ships invulnerable (vanilla Ship.SelfInvulnerable): no part breaks, so a test about the AI
+            // is not cut short by a player ship that lost its control rooms (#184). "godmode off" ends both.
             var game = Game ?? throw new InvalidOperationException("no game");
-            if (arg == "off") { if (_godmode is not null) game.EventHub.Tick -= _godmode; _godmode = null; return; }
-            _godmode ??= (_, sim) =>
+            if (arg is not ("" or "on" or "full" or "off")) throw new InvalidOperationException("godmode needs: [on] | full | off");
+            _godmodeFull = arg == "full";
+            if (arg == "off")
+            {
+                if (_godmode is not null) game.EventHub.Tick -= _godmode;
+                _godmode = null;
+                foreach (var ship in game.Sim.Ships.HumanPlayerShips) ship.SelfInvulnerable = false;
+                return;
+            }
+            if (_godmode is not null) return;
+            _godmode = (_, sim) =>
             {
                 foreach (var ship in sim.Ships.HumanPlayerShips)
+                {
+                    if (_godmodeFull) ship.SelfInvulnerable = true;
                     foreach (var part in ship.Parts)
                         if (part.Health < part.Rules.MaxHealth) part.Health = part.Rules.MaxHealth;
+                }
             };
             game.EventHub.Tick += _godmode;
         };

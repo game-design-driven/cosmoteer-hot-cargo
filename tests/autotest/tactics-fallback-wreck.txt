@@ -3,7 +3,8 @@
 newgame run
 wait 8
 ev_set Enabled false
-godmode on
+# The test ship fights the player ship; one-hit part losses made it derelict and ended the fight early (#184).
+godmode full
 playerweapons off
 # A quiet world. Scavenging stays on for its age check, but no scavenger arrives and faction ships do not scavenge on their own,
 # so the collecting comes from the fall back plan.
@@ -26,6 +27,9 @@ aiset FallBackMaxSeconds 600
 openspace 6000
 fr_kill_enemies
 aispawn pirates 1 3 trade
+# Every other ship of the test's sides and every other enemy of the players leave the system (#184): the patrols of the test
+# world turned hostile with the test's war and fought the player ship.
+aialone
 ainew_watch 0 1500
 wait 3
 # The damage comes with fall back off, so the loose resources can be ripe (scavenge cooldown) before the plan is picked.
