@@ -153,7 +153,7 @@ public static class EventRunner
             && ships.Any(sh => sh.DetWorldBoundingCircle.DistanceTo(st.DetWorldBoundingCircle) <= r)
             && !Factions.FactionsArea.Refuses(run, null, st));
         if (station is null) return;
-        if (s.CourierNodes.Add(node))
+        if (s.CourierNodes.Add(node) && !Dev.TestWorld.MissionsOff(run.Game))
         {
             float roll = sim.Rand.Single();
             if (roll < run.T.Events.CourierChance) OfferCourier(sim, station);

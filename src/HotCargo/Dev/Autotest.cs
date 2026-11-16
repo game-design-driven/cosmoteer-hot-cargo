@@ -123,6 +123,7 @@ public static class Autotest
         string path = Path.Combine(Mod.ModRoot, "autotest.txt");
         if (!File.Exists(path)) return;
         var lines = File.ReadAllLines(path);
+        TestWorld.RandomMissions = lines.Any(l => l.Trim() == TestWorld.RandomMissionsLine);
         File.Move(path, Path.Combine(Mod.ModRoot, "autotest.done"), overwrite: true);
         _script = new(Parse(lines, firstLine: 1));
         AddBaseCommands();

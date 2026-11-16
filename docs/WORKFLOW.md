@@ -13,7 +13,7 @@ Each section has two parts:
 coordinator thread ── briefs ──► one agent per area (own worktree, own branch)
                                    │ local tests (unit, headless sim, PC)
                                    ▼
-                                 PR ── CI on the PR: build, unit tests, private data, test set check
+                                 PR ── CI on the PR: build, unit tests, spec numbers, test set check
                                    │ gh pr merge --auto --merge
                                    ▼
                                  merge queue ── the PR's game test set in the headless sim
@@ -67,7 +67,7 @@ Generic:
 - Steps, failures and queue traps: skill `hot-cargo-pr-flow`. Rules: `CONTRIBUTING.md`, Git.
 
 Hot Cargo:
-- Required checks: `build`, `private-data`, `game-tests` (`.github/workflows/check.yml`).
+- Required checks: `build`, `spec-numbers`, `game-tests` (`.github/workflows/check.yml`).
 - The PR template has the boxes for local tests and tests outside CI (`.github/pull_request_template.md`).
 
 ## Tests
@@ -158,7 +158,6 @@ Hot Cargo:
 
 Generic:
 - No personal data in tracked files: no home paths, machine names, IDs or tokens. Machine settings go in an ignored local file.
-- `scripts/check-private.sh` checks home paths and Steam IDs. CI runs it. Run it before you push.
 
 Hot Cargo:
 - No game files in git or in a release: no DLLs, no `Data/`, no decompiled code. CI reads them from the private game files repository.

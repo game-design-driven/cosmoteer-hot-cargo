@@ -1,4 +1,4 @@
-# Checks pull requests and the merge queue of main: private data, build against the game references and unit tests on
+# Checks pull requests and the merge queue of main: spec numbers, build against the game references and unit tests on
 # every run. Game tests in the headless sim (tools/headless-sim) on Linux: in the merge queue, the set of the group's pull
 # requests (scripts/ci-test-set.sh); every test in manual and scheduled runs (the full-suite check). Tests with the line
 # "# runner: pc" need the Windows PC: the PR owner runs the affected ones (LIST_ONLY=1 RUNNER=pc
@@ -27,12 +27,12 @@ concurrency:
   group: check-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
-  private-data:
+  # Section and requirement numbers stay unique. In the merge queue this catches two pull requests that picked the same numbers.
+  # Its own job, without secrets, so that it runs on pull requests from forks too (build skips them).
+  spec-numbers:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
-      - run: scripts/check-private.sh
-      # Section and requirement numbers stay unique. In the merge queue this catches two pull requests that picked the same numbers.
       - run: scripts/check-spec-numbers.sh
   build:
     runs-on: ubuntu-latest

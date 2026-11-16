@@ -86,6 +86,8 @@ public static class BalanceArea
         Autotest.Fields["balance_station_fuel_floor"] = () => StationFuelFloor.CurrentFloor(Autotest.RequireRun().Game.Sim);
         // The least fuel of a station with a stock minus the floor. Expect 0 or more (spec 304).
         Autotest.Fields["balance_station_fuel_gap"] = () => StationFuelFloor.LeastStationFuel(Autotest.RequireRun()) - StationFuelFloor.CurrentFloor(Autotest.RequireRun().Game.Sim);
+        // balance_station_fuel_move: the crew of a loaded trade station start an internal fuel move (StationFuelFloor.MoveStationFuel).
+        Autotest.Commands["balance_station_fuel_move"] = _ => StationFuelFloor.MoveStationFuel(Autotest.RequireRun());
         // Spec 305: the tier that hunter stage responses start from, and how far it is above the system tier.
         Autotest.Fields["balance_hunter_base_tier"] = () => Hunters.HunterSpawner.BaseTier(Autotest.RequireRun());
         Autotest.Fields["balance_hunter_floor_gap"] = () => Hunters.HunterSpawner.BaseTier(Autotest.RequireRun()) - Autotest.RequireRun().CurrentTier;

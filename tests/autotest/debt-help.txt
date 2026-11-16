@@ -9,8 +9,6 @@ contract_money 500000
 debt_help_on
 debt_set HelpChance 1
 debt_set HelpCalmSeconds 5
-# Open space, away from stations and other ships, so that the start world (chain ships, hunt targets) does not join the fight.
-openspace 3000 1500
 # Spec 1430 to 1432: a fight with two enemies brings two helpers; hits of both sides count.
 dip_spawn enemy 900
 dip_spawn enemy 900
@@ -67,8 +65,9 @@ wait 1
 expect debt_help == 0
 expect debt_count == 1
 expect debt_ratio == 1
-# Spec 1436: no answer puts the price on the same tab.
+# Spec 1436: no answer puts the price on the same tab. Helpers ask only with no enemy near, so clear the ones that the moves came near.
 debt_set HelpWaitSeconds 3
+fr_kill_enemies
 debt_help_spawn
 debt_help_share 500 500
 waitfor debt_help_asking == 1 30

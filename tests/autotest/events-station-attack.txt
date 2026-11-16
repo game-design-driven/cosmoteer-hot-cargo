@@ -63,7 +63,9 @@ load station_attack
 wait 8
 expect sa_phase == 1
 waitfor sa_phase == -1 300
-expect sa_destroyed == 0
+# Spec 97: when the debris runs out first, the vanilla self-repair rebuilds the rest from the station's stock, so parts
+# can be left here. How many depends on the raiders' designs and wrecks.
+expect sa_destroyed_drop >= 1
 # Spec 94: a station that falls. The raiders that are left jump out, and the rebuild follows.
 ev_set StationAttackFallHealth 0.999
 sa_start

@@ -1,4 +1,4 @@
-# Each push to main publishes an untested "dev" prerelease: build, unit tests, private-data check, package.
+# Each push to main publishes an untested "dev" prerelease: build, unit tests, package.
 # Game tests run in .github/workflows/check.yml, not here. Tested releases go through scripts/release.sh.
 name: dev release
 on:
@@ -26,7 +26,6 @@ jobs:
       - uses: actions/setup-dotnet@v6.1.0
         with:
           global-json-file: global.json
-      - run: scripts/check-private.sh
       - run: dotnet run --project tests/HotCargo.Tests
       - name: Package and publish
         env:

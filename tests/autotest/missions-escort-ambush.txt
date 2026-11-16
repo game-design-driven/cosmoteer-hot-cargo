@@ -1,5 +1,6 @@
 # Escort ambush (spec 36): no raiders before the trip. At EscortAmbushAt (0.3) of the route they spawn ahead of the freighter,
 # attack it, and it takes fire. Completion removes the marker; leftover raiders stay.
+# missions: random
 newgame run
 wait 8
 ev_set Enabled false
