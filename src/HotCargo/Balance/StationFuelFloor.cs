@@ -5,8 +5,13 @@ using Cosmoteer.Modes.Career;
 using Cosmoteer.Ships.Special;
 using Cosmoteer.Modes.Career.TradeRoutes;
 using Cosmoteer.Resources;
+using Cosmoteer.Game.Multiplayer;
 using Cosmoteer.Ships;
+using Cosmoteer.Ships.Crew.Jobs;
+using Cosmoteer.Ships.Parts.Resources;
+using Cosmoteer.Ships.Resources;
 using Cosmoteer.Simulation;
+using Cosmoteer.Simulation.Stasis;
 using HarmonyLib;
 using HotCargo.Core;
 
@@ -36,6 +41,36 @@ static class StationFuelFloor
     }
 
     /// <summary>
+    /// The fuel that a station holds, which every path compares with the floor: the trade stock of MetaShip.GetTotalTradeResources
+    /// (stored fuel minus planned pickups, without fuel that crew carry), plus the fuel that its own crew move from one of its
+    /// storages to another. Vanilla counts such a move as a pickup until the crew drop the fuel, so the stock for sale dips for some
+    /// seconds (often after a station loads), but no fuel leaves the station.
+    /// </summary>
+    static int HeldFuel(Ship station)
+    {
+        int held = station.Resources.GetResourceTotal(Fuel, includeStored: true, includeCarried: false, includeAnticipatedPickups: true);
+        foreach (var job in ResourceTransferJob.GetTransferJobsFor(station, MPValueType.Confirmed))
+        {
+            if (job.ResourceType != Fuel || job.Ship != station || job.Source is not { IncludeInShipDeltas: true } source
+                || source.Ship != station || job.Sink is not ISimpleResourceStorage || job.Sink.Ship != station) continue;
+            // The planned pickup as ResourceManager.GetAnticipatedConstructionPickups counts it, plus the fuel in crew hands.
+            held += job.IsManual ? job.ResourcesRequested.Confirmed : job.AnticipatedPickUp + job.ResourcesInHand;
+        }
+        return held;
+    }
+
+    /// <summary>The fuel of a station in stasis, or null if it never loaded and remembers no stock.</summary>
+    static int? RememberedFuel(MetaShip station)
+    {
+        if (station.Spawner is not StasisShipSpawner { ResourcesMemory: { } memory }) return null;
+        var stock = new Dictionary<ID<ResourceRules>, int>();
+        memory.GetTotalResources(stock, new Dictionary<ID<ResourceRules>, int>());
+        return stock.GetValueOrDefault(Fuel);
+    }
+
+    static int? HeldFuel(MetaShip station) => station.Ship is { } ship ? HeldFuel(ship) : RememberedFuel(station);
+
+    /// <summary>
     /// Stations that load before the run exists (the start) or while the next system builds get the floor here: a new run and each
     /// system switch top up the stations that are live.
     /// </summary>
@@ -57,17 +92,11 @@ static class StationFuelFloor
         {
             if (station.PhysicalShip is { } ship)
             {
-                // The trade stock of MetaShip.GetTotalTradeResources: stored fuel minus planned pickups, without fuel that crew carry.
-                int have = ship.Resources.GetResourceTotal(Fuel, includeStored: true, includeCarried: false, includeAnticipatedPickups: true);
+                int have = HeldFuel(ship);
                 if (have < floor) ship.Resources.AddResources(Fuel, floor - have, excludeConstructionSinks: true);
             }
-            else if (includeRemembered && station.MetaShip.Spawner is Cosmoteer.Simulation.Stasis.StasisShipSpawner { ResourcesMemory: { } memory })
-            {
-                var stock = new Dictionary<ID<ResourceRules>, int>();
-                memory.GetTotalResources(stock, new Dictionary<ID<ResourceRules>, int>());
-                int have = stock.GetValueOrDefault(Fuel);
-                if (have < floor) memory.AddResources(Fuel, floor - have);
-            }
+            else if (includeRemembered && RememberedFuel(station.MetaShip) is { } have && have < floor)
+                station.MetaShip.AddResources(Fuel, floor - have);
         }
     });
 
@@ -79,19 +108,34 @@ static class StationFuelFloor
 
     internal static int LeastStationFuel(Run run)
     {
-        var sim = run.Game.Sim;
-        var rules = run.Mode.CurrentMapNodeData.SectorType.TradeRoutes;
         var least = int.MaxValue;
-        foreach (var station in SpaceStation.GetStations(sim, onlyOperating: true))
+        foreach (var station in SpaceStation.GetStations(run.Game.Sim, onlyOperating: true))
         {
-            if (station.PhysicalShip is null && station.MetaShip.Spawner is Cosmoteer.Simulation.Stasis.StasisShipSpawner { ResourcesMemory: null }) continue;
             var tags = station.PhysicalShip?.Tags ?? (station.Spawner is { } sp ? SimQueries.StasisTags(sp) : null);
-            if (tags?.Contains(TradeStationTag) != true) continue;
-            var stock = new Dictionary<ID<ResourceRules>, int>();
-            station.MetaShip.GetTotalTradeResources(rules, stock, new Dictionary<ID<ResourceRules>, int>());
-            least = Math.Min(least, stock.GetValueOrDefault(Fuel));
+            if (tags?.Contains(TradeStationTag) != true || HeldFuel(station.MetaShip) is not { } have) continue;
+            least = Math.Min(least, have);
         }
         return least == int.MaxValue ? throw new InvalidOperationException("no trade station with a stock in this system") : least;
+    }
+
+    /// <summary>
+    /// Test only: the crew of the first loaded trade station start to move all fuel of one storage tile to an empty tile, as vanilla
+    /// crew do on their own after a station loads. Fails unless the vanilla trade stock dips and the held fuel stays the same.
+    /// </summary>
+    internal static void MoveStationFuel(Run run)
+    {
+        var ship = SpaceStation.GetStations(run.Game.Sim, onlyOperating: true).OrderBy(s => s.StationID)
+            .Select(s => s.PhysicalShip).FirstOrDefault(s => s?.Tags.Contains(TradeStationTag) == true)
+            ?? throw new InvalidOperationException("no loaded trade station; run tostation first");
+        var tiles = FlexResourceGrid.GetAllOnShip(ship).SelectMany(g => g).ToList();
+        var from = tiles.FirstOrDefault(t => t.ResourceType == Fuel && t.Resources > 0) ?? throw new InvalidOperationException("no fuel tile on the station");
+        var to = tiles.FirstOrDefault(t => !t.HasResources && ((IResourceSink)t).GetRemainingCapacity(Fuel, allowPreferredTypeMismatch: false) > 0)
+            ?? throw new InvalidOperationException("no empty fuel tile on the station");
+        int before = HeldFuel(ship);
+        ship.Resources.ManualResourceTransfer(from, to, from.Resources, sticky: false, TradeType.None, 0, autoCancel: false, confirmed: true, ship.Jobs.AllocGlobalJobID());
+        int forSale = ship.Resources.GetResourceTotal(Fuel, includeStored: true, includeCarried: false, includeAnticipatedPickups: true);
+        if (forSale >= before || HeldFuel(ship) != before)
+            throw new InvalidOperationException($"internal fuel move: {before} held before, {HeldFuel(ship)} after, {forSale} for sale");
     }
 
     /// <summary>
@@ -104,7 +148,7 @@ static class StationFuelFloor
         static void Postfix(CareerSimModeManager __instance, Ship ship, bool isInitSpawn) => Errors.Guard("station fuel floor", () =>
         {
             if (!isInitSpawn || ship.IsHumanPlayerShip || !ship.TryGetSpecialComponent<SpaceStation>(out _) || Floor(__instance.Sim) is not { } floor) return;
-            int have = ship.Resources.GetResourceTotal(Fuel);
+            int have = HeldFuel(ship);
             if (have < floor) ship.Resources.AddResources(Fuel, floor - have, excludeConstructionSinks: true);
         });
     }
@@ -115,9 +159,9 @@ static class StationFuelFloor
         static void Postfix(TradeRoutesManager __instance, MetaShip sinkShip, Dictionary<ID<ResourceRules>, int> tradeDeltas) => Errors.Guard("station fuel floor", () =>
         {
             if (!tradeDeltas.TryGetValue(Fuel, out int delta) || delta >= 0 || Floor(__instance.Sim) is not { } floor) return;
-            var stock = new Dictionary<ID<ResourceRules>, int>();
-            sinkShip.GetTotalTradeResources(__instance.Rules, stock, new Dictionary<ID<ResourceRules>, int>());
-            int clamped = BalanceModel.ClampStationFuelDelta(delta, stock.GetValueOrDefault(Fuel), floor);
+            // Vanilla limits a purchase to the station stock, so a station with no stock gets no negative delta.
+            int have = HeldFuel(sinkShip) ?? throw new InvalidOperationException("a trade ship buys fuel from a station with no stock");
+            int clamped = BalanceModel.ClampStationFuelDelta(delta, have, floor);
             if (clamped == 0) tradeDeltas.Remove(Fuel);
             else tradeDeltas[Fuel] = clamped;
         });
