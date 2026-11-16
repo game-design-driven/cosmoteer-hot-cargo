@@ -988,6 +988,21 @@ Events
 		]
 	}
 
+	// Spec 92: the hail of a station under attack. No trigger: the station attack (Events/StationAttack.cs) opens it on the station.
+	{
+		ID = station_attack
+		MaxPerRun = 0
+		Title = "Mayday"
+		Text = "The station hails on every channel. \"Raiders! They hit our hull and they will not stop. Drive them off and we pay you well. If you stay out of it, keep clear of their guns, and mind your fire: a shot that hits the station counts against you.\""
+		Choices
+		[
+			{
+				Text = "Understood."
+				Outcomes [ { Text = "The station's guns open up on the raiders." } ]
+			}
+		]
+	}
+
 	// Spec 1371: the Wayfarers' closing hail after a fight they joined. No trigger: the Friendly area opens it on their leader.
 	{
 		ID = pay_it_forward

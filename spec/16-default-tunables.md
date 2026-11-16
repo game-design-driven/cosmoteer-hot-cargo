@@ -46,6 +46,9 @@
 | `Events.ListenSeconds`, `ListenRange`, `ListenChanceAtNoHeat`, `ListenChanceAtMaxHeat` | 8 s, 1500, 1, 0.6 | 1122, 1123 |
 | `Events.ListenSuccessHeat`, `ListenFailHeat`, `ListenCombatRadius`, `ListenCombatSeconds` | -4, 5, 800, 5 s | 1123 |
 | `Events.RescueFee`, `RescueHeat`, `RescueTowLength`, `RescueTowPull`, `RescueSunMargin`, `RescueTugLeaveSeconds` | 0.4, 10, 150, 1, 300, 20 s | 1147, 1148 |
+| `Events.StationAttackChance`, `StationAttackMinSector`, `StationAttackDelaySeconds`, `StationAttackTriggerDistance`, `StationAttackGunsDown` | 0.2, 2, 40 s, 1500, 0.9 | 90, 91 |
+| `Events.StationAttackInTheWayRange`, `StationAttackFallHealth`, `StationAttackMaxSeconds`, `StationAttackReward`, `StationAttackReputation` | 150, 0.8, 240 s, 1, 1 | 93 to 95 |
+| `Events.StationRebuildRadius`, `StationRebuildPullSpeed`, `StationRebuildReach`, `StationRebuildStepSeconds`, `StationRebuildPartsPerStep`, `StationRebuildPerDebrisPart`, `StationRebuildWaitSeconds` | 1000, 40, 20, 1 s, 3, 2, 60 s | 96, 97 |
 | `Events.CooldownSeconds`, `MaxEventsPerSystem` | 120 s, 2 | 70 |
 | `Events.MoneyScale`, `FameScale`, `HeatScale` | 1, 1, 1 | 73 |
 | `Contracts.TrailFreeContracts`, `TrailHeatPerContractMinute` | 3, 1 | 101 |

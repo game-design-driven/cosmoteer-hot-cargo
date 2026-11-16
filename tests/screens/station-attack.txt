@@ -1,0 +1,28 @@
+# Station attack (spec 92): the warning. The MAYDAY text, the UNDER ATTACK tag on the station and the RAIDER tags, then the station's hail.
+# Windowed test slot (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+# Close the run intro.
+closepanel
+wait 1
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+ev_tostation 400
+ev_set StationAttackMinSector 1
+ev_set StationAttackChance 1
+pause off
+sa_roll
+waitfor sa_phase == 0 10
+wait 4
+pause on
+sa_camera 3000
+wait 1
+screenshot station-attack-warning
+ev_open carrier
+ev_dialogue carrier
+wait 1
+screenshot station-attack-hail
+quit
