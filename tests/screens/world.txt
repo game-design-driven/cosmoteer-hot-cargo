@@ -8,6 +8,9 @@ wait 1
 ev_set Enabled false
 godmode on
 pause off
+# Away from stations and other ships: a nearby armed ship killed hunter 0 before killhunter ran ("no hunter 0; 0 live").
+openspace 3000 1500
+wait 2
 # Hunter tells on screen: a calling ship, then a fleeing ship.
 aiset CallSeconds 60
 aiset FleeJumpSeconds 30
@@ -39,6 +42,25 @@ screenshot world-05-arrival-solar
 worlds goto sun 0.3
 wait 2
 screenshot world-06-heat-zone
+# The Buyer: tag on its blip, the arrival text, the trade tab line.
+buyer spawn
+wait 3
+screenshot world-09-buyer-far
+buyer goto
+wait 15
+buyer goto
+wait 3
+screenshot world-10-buyer-near
+# Ship loss alert. A second ship stays, so deep space can come last.
+jw_twin save
+jw_twin spawn
+wait 2
+godmode off
+kill
+wait 1.5
+screenshot world-11-ship-lost
+godmode on
+# Deep space last: its ion storms take the ship's control soon after the arrival, and later scenes need a ship.
 worlds goto outside
 worlds jumpto hc_deep_space
 wait 1
@@ -50,18 +72,4 @@ wait 1
 screenshot world-08-map-tip-deep
 tipclear
 map off
-# The Buyer: tag on its blip, the arrival text, the trade tab line.
-buyer spawn
-wait 3
-screenshot world-09-buyer-far
-buyer goto
-wait 15
-buyer goto
-wait 3
-screenshot world-10-buyer-near
-# Ship loss alert (last: the run ends without a ship).
-godmode off
-kill
-wait 1.5
-screenshot world-11-ship-lost
 quit

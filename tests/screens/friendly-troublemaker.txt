@@ -1,0 +1,20 @@
+# The troublemaker (spec 480): the hail page in the ship's comms.
+# Windowed test slot (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+# Close the run intro.
+closepanel
+wait 1
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+fr_free_bunk
+event troublemaker
+ev_carrier_goto
+pause off
+wait 2
+ev_open carrier
+wait 2
+screenshot friendly-troublemaker-page
+quit

@@ -352,8 +352,24 @@ A painted ship asks a riddle. Right: they talk to their contacts, and heat halve
 #### The Debtor (Arrival; weight 5)
 Buy their debt for 1.5 money units. The debtor fights at your side for 30 minutes, then pays you the same amount back and leaves. If it dies first, the money is gone. Its label shows what it owes and the time left (spec 1367, 1368).
 
+#### The Troublemaker (Arrival; weight 5; needs a free bunk)
+A ship pays you a quarter of a mission's pay to take its troublemaker aboard as crew. 70 %: just a crew member. 30 %: at the next station they take twice the pay from your account and slip off. Refuse: the ship leaves (spec 480 to 485).
+
+#### The Scientist (Station; weight 5; needs a free bunk)
+A scientist asks to join your crew. 10 minutes later: 75 %, they research one of the 5 cheapest techs you can research; 25 %, they take up to 5 processors and defect to the next ship you pass. If they die aboard, their partner comes 10 minutes later and challenges you to a duel, one ship against one. Fight fair, and at low health the partner yields and asks to join (80 % research later). Let another ship or an ally join in, or decline, and the partner comes back 15 minutes later with a fleet (spec 486 to 499).
+
 #### Pay It Forward (in a fight; at most once per run; 15 % per qualifying fight)
 When you are clearly outclassed in an actual fight (enemies near you at least twice your strength, and shots fired in the last 5 seconds; the first time in a system counts), the Wayfarers may drop in: 2 ships with their own allegiance that fight your enemies. When the fight is over they repair, their captain hails ("Pay it forward to the next one in need."), and they leave (spec 1369 to 1371).
+
+### Station under attack (spec 90 to 98)
+
+From sector 2, the first trade station that you come near in a new system can be under attack (20 %, at most 2 per run, paced with the other big events). Three raiders, 2 tiers above the system, hit it from the far side. Their first strike takes out most of its guns.
+
+- **Warning:** a MAYDAY text, a hail from the station, and UNDER ATTACK and RAIDER tags on the blips.
+- **The raiders** go for the station. They turn on your ship only when it is in their way: close to a raider, or on its line of fire.
+- **Help** (hit a raider) and drive them off: 1 money unit and 1 reputation unit with the station's faction. Keep clear, and mind your fire: a shot that hits the station counts against you.
+- **The end:** the raiders die, or the station falls below 80 % health, or it holds for 4 minutes. In the last two cases the raiders that are left jump out.
+- **The rebuild:** the station pulls in the wreckage near it, piece by piece, and its destroyed parts come back. Wrecks that still hold cargo are your loot; it leaves those alone. With no wreckage left, it rebuilds from its own stock.
 
 ## 4. Content rules for authors
 

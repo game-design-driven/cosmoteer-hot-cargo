@@ -1,0 +1,73 @@
+# Station attack (spec 90 to 98): raiders attack a trade station. They go for the station and shoot a player ship only in their way.
+# The players get a warning (hail, tag, chat), pay when they help, and the station rebuilds its parts from the debris near it.
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+ev_set CooldownSeconds 0
+# The station's guns all go down and it cannot fall, so the raiders live until the test ends the attack.
+ev_set StationAttackGunsDown 1
+ev_set StationAttackFallHealth 0
+ev_tostation 1000
+pause off
+wait 3
+# Spec 90: no attack in the first sector, also with a sure roll.
+ev_set StationAttackChance 1
+sa_roll
+wait 2
+expect sa_phase == -1
+# From the min sector on, a player ship near a station rolls once: the attack starts, with the warning (spec 92).
+ev_set StationAttackMinSector 1
+sa_roll
+wait 2
+expect sa_phase == 0
+expect sa_raiders >= 2
+expect sa_pacer == 1
+expect sa_station_tag == 1
+expectevent station_attack
+sa_clear_guards
+# Spec 93: players out of the way. The raiders attack the station, not them, and the station loses parts.
+sa_place far
+wait 2
+sa_mark
+wait 20
+expect sa_off_station == 0
+expect sa_on_player == 0
+expect sa_player_lost == 0
+expect sa_station_hits >= 1
+# A player ship on the line of fire is in the way: a raider turns on it, and back to the station once it moves off.
+sa_clear_guards
+sa_place way
+waitfor sa_on_player >= 1 10
+# Spec 95: the players fire on the raiders, and a hit counts as help.
+fr_attack
+waitfor sa_helped == 1 20
+sa_place far
+waitfor sa_on_player == 0 10
+sa_clear_guards
+# Spec 94, 95: the raiders become wrecks; the players helped, so they get paid. The rebuild starts.
+sa_break 20
+sa_mark
+sa_wreck
+waitfor sa_phase == 1 5
+expect sa_money_gain > 0
+expect sa_debris > 0
+# Spec 96: the station pulls in the wrecks, takes in their parts and rebuilds. The debris goes down, also across a save and load.
+sa_mark
+waitfor sa_rebuilt >= 1 40
+expect sa_taken >= 1
+expect sa_debris_drop >= 1
+save station_attack
+load station_attack
+wait 8
+expect sa_phase == 1
+waitfor sa_phase == -1 300
+expect sa_destroyed == 0
+# Spec 94: a station that falls. The raiders that are left jump out, and the rebuild follows.
+ev_set StationAttackFallHealth 0.999
+sa_start
+waitfor sa_raiders == 0 10
+expect sa_leaving >= 1
+expect sa_phase == 1
+quit

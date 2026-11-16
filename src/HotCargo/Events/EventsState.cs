@@ -39,6 +39,10 @@ public sealed class EventsState
     [Serialize(Optional = true)] public HashSet<ObjectID> Listened = new();
     /// <summary>Running rescue tows (spec 1148), in start order.</summary>
     [Serialize(Optional = true)] public List<RescueTowState> Rescues = [];
+    /// <summary>The running station attack or rebuild (spec 90 to 98), or null. One at a time.</summary>
+    [Serialize(Optional = true)] public StationAttackState? Attack;
+    /// <summary>Game seconds at which the station attack roll runs, or -1 when none is due.</summary>
+    [Serialize(Optional = true)] public double AttackDueSeconds = -1;
     /// <summary>Game seconds of the last triggered event, or -1.</summary>
     [Serialize(Optional = true)] public double LastEventSeconds = -1;
     /// <summary>Game seconds at which the Arrival roll runs, or -1 when none is due.</summary>
@@ -82,6 +86,26 @@ public sealed class PendingEvent
     [Serialize(Optional = true)] public int OfferPrice;
     /// <summary>Outcome text and result lines of the choice that led to this page, or empty.</summary>
     [Serialize(Optional = true)] public string Lead = "";
+}
+
+public enum AttackPhase { Attack, Rebuild }
+
+[ReflectiveSerialization(Explicit = true)]
+public sealed class StationAttackState
+{
+    [Serialize] public ObjectID Station;
+    [Serialize] public AttackPhase Phase;
+    /// <summary>The raiders that are still in the attack: live, not junk.</summary>
+    [Serialize] public List<ObjectID> Raiders = [];
+    /// <summary>Game seconds at which the phase started.</summary>
+    [Serialize] public double Since;
+    /// <summary>True once a human player's shot damaged a raider during the attack (spec 95).</summary>
+    [Serialize(Optional = true)] public bool Helped;
+    /// <summary>Rebuild: game seconds at which debris was last in reach.</summary>
+    [Serialize(Optional = true)] public double DebrisSeen;
+    /// <summary>Rebuild: debris parts taken in and station parts rebuilt, for the log and the tests.</summary>
+    [Serialize(Optional = true)] public int DebrisTaken;
+    [Serialize(Optional = true)] public int Rebuilt;
 }
 
 [ReflectiveSerialization(Explicit = true)]

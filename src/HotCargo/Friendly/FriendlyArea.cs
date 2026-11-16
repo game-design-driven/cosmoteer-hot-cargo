@@ -22,6 +22,9 @@ public static class FriendlyArea
         EventRunner.Effects.Add("halve_heat", HalveHeat);
         EventRunner.Effects.Add("debtor", Debtor.Apply);
         EventRunner.Effects.Add("wayfarers_leave", PayItForward.LeaveEffect);
+        EventRunner.Effects.Add("troublemaker", Troublemaker.Apply);
+        Scientist.Register();
+        Run.Hooks.Tick += Troublemaker.OnTick;
         Run.Hooks.Tick += PayItForward.OnTick;
         Run.Hooks.SystemEntered += PayItForward.OnSystemEntered;
         Run.Hooks.Tick += Debtor.OnTick;
@@ -35,7 +38,7 @@ public static class FriendlyArea
     /// Spec 1364: effect "leave". The page's carrier jumps out of the system after FriendlyTunables.LeaveDelaySeconds, with the
     /// Diplomacy leaving jump (vanilla FTL jump-out effect), and a chat line names it.
     /// </summary>
-    static void Leave(Run run, SimRoot sim, int player, PendingEvent p, List<string> lines)
+    internal static void Leave(Run run, SimRoot sim, int player, PendingEvent p, List<string> lines)
     {
         var id = p.Carrier ?? throw new InvalidDataException($"event {p.EventId}: Effect leave needs a Carrier");
         if (sim.Ships[id] is not { IsJunk: false } ship) return;
@@ -68,8 +71,37 @@ public static class FriendlyArea
         Ux.UxKit.ChatLine(game, xml);
     }
 
+    static int _money, _theft, _crew;
+
     static void AddAutotest()
     {
+        // Troublemaker (spec 485): count, roll and pay of the first one aboard; fr_trouble_kill: the first one dies.
+        Autotest.Fields["fr_trouble"] = () => Autotest.RequireRun().State.Friendly.Troublemakers.Count;
+        Autotest.Fields["fr_trouble_thief"] = () => Autotest.RequireRun().State.Friendly.Troublemakers.FirstOrDefault()?.Thief == true ? 1 : 0;
+        Autotest.Fields["fr_trouble_pay"] = () => Autotest.RequireRun().State.Friendly.Troublemakers.FirstOrDefault()?.Pay ?? 0;
+        // fr_free_bunk: one crew member of the first player ship leaves, so a bunk is free.
+        Autotest.Commands["fr_free_bunk"] = _ =>
+        {
+            var ship = Sim().Ships.HumanPlayerSignificantShips.OrderBy(s => s.UniqueID).First();
+            ship.Crew.Assigned.OrderBy(c => c.UniqueID).First().Delete(killed: false);
+        };
+        Autotest.Commands["fr_trouble_kill"] = _ =>
+        {
+            var tm = Autotest.RequireRun().State.Friendly.Troublemakers.FirstOrDefault() ?? throw new InvalidOperationException("no troublemaker aboard");
+            (Sim().Crew[tm.Soul] ?? throw new InvalidOperationException("the troublemaker is gone")).Delete(killed: true);
+        };
+        // fr_money_mark / fr_money_delta: the local player's money change since the mark.
+        Autotest.Commands["fr_money_mark"] = _ =>
+        {
+            var run = Autotest.RequireRun();
+            _money = run.Game.GetPlayerState(run.Game.LocalPlayerIndex, deterministic: true).Money;
+            _theft = -(int)MathF.Round((run.State.Friendly.Troublemakers.FirstOrDefault()?.Pay ?? 0) * run.T.Friendly.TroublemakerTheftFactor);
+            _crew = Sim().Ships.HumanPlayerSignificantShips.Sum(s => s.Crew.Assigned.Count);
+        };
+        // fr_trouble_theft: minus the theft of the first troublemaker at the mark. fr_crew_delta: crew change since the mark.
+        Autotest.Fields["fr_trouble_theft"] = () => _theft;
+        Autotest.Fields["fr_crew_delta"] = () => Sim().Ships.HumanPlayerSignificantShips.Sum(s => s.Crew.Assigned.Count) - _crew;
+        Autotest.Fields["fr_money_delta"] = () => Autotest.RequireRun().Game.GetPlayerState(Autotest.RequireRun().Game.LocalPlayerIndex, deterministic: true).Money - _money;
         // fr_set <field> <value>: sets a Friendly tunable.
         Autotest.Commands["fr_set"] = arg => Autotest.SetField(Autotest.RequireRun().T.Friendly, arg);
         AddApprenticeAutotest();
