@@ -23,7 +23,7 @@ expect pt_mission == 1
 pt_fight 900
 pt_status fight
 expect pt_mission == 1
-# Back to the station: collect the bounty, sell 1 tech, repair, unlock and build a hyperdrive, buy fuel.
+# Back to the station: collect the bounty, sell 1 tech, hire crew, repair, unlock and build a hyperdrive, buy fuel.
 # A ship with shot thrusters still flies, slowly, so the way back may take long.
 pt_goto station 900
 pt_collect
@@ -31,6 +31,9 @@ waitfor pt_mission == 2 30
 tech sell 1
 wait 20
 pt_status sold
+# Hire crew for the free beds first: a fire in the fight can kill crew, and with too few left all of them man parts and none repair.
+pt_hire
+wait 5
 # Repair before the long flight to the relay: the crew rebuild shot thrusters from bought steel.
 pt_repair 300
 pt_status repaired
@@ -42,6 +45,9 @@ waitfor pt_drives == 1 240
 # The jump to sector 2 uses 3 hyperium (to Negero, playthrough log). 5 leaves room; a station can hold less than 20 (one CI run had 17).
 # Revisit if a jump of the starter ship costs more than 5.
 pt_buy 300 hyperium 5
+# The move order of the drive's parts panel: after a fire the crew did not refuel the new drive by themselves.
+pt_fuel
+waitfor pt_fuel >= 3 60
 pt_status drive
 # The relay toward an unvisited system with the fewest enemies near the route (the log line "relays" shows the choice): fly
 # there, right click it, wait for the drives, press ENGAGE. The relay to Tau Codemo has a pirate nest; a fight there under
