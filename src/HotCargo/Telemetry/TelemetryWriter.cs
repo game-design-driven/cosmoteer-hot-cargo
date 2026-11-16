@@ -29,6 +29,9 @@ sealed class TelemetryWriter
 
     public string FilePath { get; private set; }
 
+    /// <summary>The file that the open writer appends to now (the newest part), or null without a writer.</summary>
+    public static string? CurrentPath => _current?.FilePath;
+
     TelemetryWriter(string folder, string name, long maxFileBytes, string partHeader)
     {
         _folder = folder;
@@ -137,10 +140,10 @@ sealed class TelemetryWriter
         _fileBytes = header.Length + 1;
     }
 
-    /// <summary>Deletes the oldest .jsonl files until the folder holds less than maxBytes.</summary>
+    /// <summary>Deletes the oldest .jsonl files until the folder holds less than maxBytes. The copies of co-op clients (players/) count too.</summary>
     static void TrimFolder(string folder, long maxBytes)
     {
-        var files = new DirectoryInfo(folder).GetFiles("*.jsonl").OrderBy(f => f.LastWriteTimeUtc).ToList();
+        var files = new DirectoryInfo(folder).GetFiles("*.jsonl", SearchOption.AllDirectories).OrderBy(f => f.LastWriteTimeUtc).ToList();
         long total = files.Sum(f => f.Length);
         foreach (var f in files)
         {

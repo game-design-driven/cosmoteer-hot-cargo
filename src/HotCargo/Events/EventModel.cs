@@ -263,4 +263,11 @@ public static class EventModel
     /// <summary>True when the cooldown since the last event has passed. A negative last time means no event yet.</summary>
     public static bool CooldownOver(double nowSeconds, double lastEventSeconds, float cooldownSeconds) =>
         lastEventSeconds < 0 || nowSeconds - lastEventSeconds >= cooldownSeconds;
+
+    /// <summary>Spec 69: an Arrival or Station chance in the run's first system: × the factor, at most 1. Elsewhere it stays as it is.</summary>
+    public static float TriggerChance(float chance, bool firstSystem, float firstSystemFactor) =>
+        firstSystem ? Math.Clamp(chance * firstSystemFactor, 0f, 1f) : chance;
+
+    /// <summary>Chance of at least one success in independent rolls.</summary>
+    public static float AtLeastOne(IEnumerable<float> chances) => 1f - chances.Aggregate(1f, (none, c) => none * (1f - c));
 }

@@ -63,6 +63,8 @@ public sealed class TelemetryTunables
     [Serialize(Optional = true)] public int MaxFileMegabytes = 32;
     /// <summary>At session start the oldest files go until the telemetry folder is below this size.</summary>
     [Serialize(Optional = true)] public int MaxFolderMegabytes = 1024;
+    /// <summary>Co-op: a client sends its telemetry files to the host, which keeps a copy of each in telemetry/players/&lt;player name&gt;/. Each machine follows its own switch.</summary>
+    [Serialize(Optional = true)] public bool RelayToHost = true;
 
     /// <summary>
     /// Methods to trace, as "Namespace.Type:Method". Every overload of the name gets traced. A missing method is a warning

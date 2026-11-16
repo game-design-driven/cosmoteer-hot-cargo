@@ -48,7 +48,7 @@ static class DebtHelp
         if (sim.MapNode?.ControllingFaction is not { } id) return null;
         var t = run.T.Debt;
         string key = id.ToString();
-        bool hostileDebt = run.State.Debt.Of(key) is { } d && Lenders.StageOf(run, d) == DebtStage.Hostile;
+        bool hostileDebt = run.State.Debt.Debts.Any(d => d.Faction == key && Lenders.StageOf(run, d) == DebtStage.Hostile);
         bool ok = key != Factions.FactionsArea.Roles(run).Ally.ID.ToString() && run.Mode.GetFactionReputation(id) >= t.HelpMinReputation
                   && !Lenders.Wants(sim, key) && !hostileDebt;
         return ok ? GameApp.Rules.GetFactionRules(id) : null;
@@ -105,8 +105,9 @@ static class DebtHelp
             Hunters.HunterOrders.MoveTo(hailer, target.DetWorldCenter, 150f);
         if (now >= g.LeaveAt)
         {
-            // Spec 1436: no answer puts the price on the tab.
-            Tab(run, g);
+            // Spec 1436: no answer puts the price on the tab of the player whose ship is nearest the helper.
+            Tab(run, g, SimQueries.NearestHumanShip(sim, hailer.DetWorldCenter)?.Metadata.PlayerIndex
+                ?? throw new InvalidOperationException("a helper waits for an answer with no human ship in the system"));
             Leave(run, sim, g);
         }
     }
@@ -130,11 +131,11 @@ static class DebtHelp
     }
 
     /// <summary>Spec 1435: the price goes on the debt with the helpers' faction.</summary>
-    public static void Tab(Run run, HelpGroup g)
+    public static void Tab(Run run, HelpGroup g, int player)
     {
         int price = Price(run, g);
-        DebtDeals.Owe(run, g.Faction, price);
-        DebtArea.Chat(run, DebtArea.Format("HelpTabFmt", Cosmoteer.Extensions.ToXmlCostString(price), Lenders.Name(g.Faction)));
+        DebtDeals.Owe(run, g.Faction, player, price);
+        DebtArea.Chat(run, DebtArea.Format("HelpTabFmt", DebtArea.DebtMoney(price), Lenders.Name(g.Faction)));
     }
 
     /// <summary>

@@ -29,32 +29,56 @@ static class Lenders
 
     static bool IsStation(Ship ship) => SpaceStation.GetStation(ship, onlyOperating: true) is not null;
 
-    /// <summary>Spec 1402: a faction trade station that offers a loan now.</summary>
-    public static bool OffersLoan(Run run, Ship station) =>
+    /// <summary>Spec 1402: a faction trade station that offers this player a loan now.</summary>
+    public static bool OffersLoan(Run run, Ship station, int player) =>
         run.State.Result == RunResult.Running && run.T.Debt.Enabled && station.HasTag(TradeStationTag) && !station.HasTag(BuyerTag)
-        && FactionOf(station) is { } f && run.State.Debt.Of(f.ID.ToString()) is null && IsStation(station)
+        && FactionOf(station) is { } f && run.State.Debt.Of(f.ID.ToString(), player) is null && IsStation(station)
         && DebtModel.Offers(new FastRand((uint)station.UniqueID, OfferSalt).Single(), run.T.Debt.LoanStationChance);
 
     const ulong RefinanceSalt = 0x4445_4254_5245_46UL;
 
-    /// <summary>Spec 1421: the debts that a trade station of another faction offers to buy now, in list order.</summary>
-    public static List<Debt> Refinances(Run run, Ship station)
+    /// <summary>Spec 1421: this player's debts that a trade station of another faction offers to buy now, in list order.</summary>
+    public static List<Debt> Refinances(Run run, Ship station, int player)
     {
         if (run.State.Result != RunResult.Running || !run.T.Debt.Enabled || run.State.Debt.Debts.Count == 0 || !station.HasTag(TradeStationTag)
             || station.HasTag(BuyerTag) || FactionOf(station) is not { } f || !IsStation(station)) return [];
         string id = f.ID.ToString();
-        if (run.State.Debt.Of(id) is not null || Factions.FactionsArea.Roles(run).Ally.ID.ToString() == id
+        if (run.State.Debt.Of(id, player) is not null || Factions.FactionsArea.Roles(run).Ally.ID.ToString() == id
             || new FastRand((uint)station.UniqueID, RefinanceSalt).Single() >= run.T.Debt.RefinanceStationChance) return [];
-        return run.State.Debt.Debts.Where(d => d.Faction != id).ToList();
+        return run.State.Debt.OfPlayer(player).Where(d => d.Faction != id).ToList();
     }
 
-    /// <summary>Spec 1405: the debt that a station of the lender or a collector takes payments for, or null.</summary>
-    public static Debt? DebtAt(Run run, Ship ship)
+    /// <summary>
+    /// Spec 1405 and 1413: the debt that a collector asks for, or this player's debt that a station of the lender takes payments for, or null.
+    /// </summary>
+    public static Debt? DebtAt(Run run, Ship ship, int player)
     {
         if (run.State.Result != RunResult.Running) return null;
         var s = run.State.Debt;
-        if (s.Collectors.FirstOrDefault(c => c.Ship == ship.UniqueID) is { } c) return s.Of(c.Faction);
-        return FactionOf(ship) is { } f && s.Of(f.ID.ToString()) is { } d && IsStation(ship) ? d : null;
+        if (s.Collectors.FirstOrDefault(c => c.Ship == ship.UniqueID) is { } c) return s.Of(c.Faction, c.Player);
+        return FactionOf(ship) is { } f && s.Of(f.ID.ToString(), player) is { } d && IsStation(ship) ? d : null;
+    }
+
+    /// <summary>Spec 1417: the credit limit of an overdraft at a tier: the tier-1 limit × the vanilla standard mission pay of the tier ÷ that of tier 1.</summary>
+    public static long CreditLimit(Run run, int tier) =>
+        (long)Math.Round(run.T.Debt.OverdraftLimitTier1 * (double)GameData.StandardMissionMoney(tier) / GameData.StandardMissionMoney(1));
+
+    /// <summary>Spec 1417: what this player can still borrow from the overdraft lender here: the limit minus the balance, never below 0.</summary>
+    public static long CreditLeft(Run run, SimRoot sim, int player) =>
+        Math.Max(0, CreditLimit(run, run.CurrentTier) - (run.State.Debt.Of(OverdraftLender(run, sim, player), player)?.Balance ?? 0));
+
+    /// <summary>
+    /// Spec 1417: who lends when money goes below 0. The system's controlling faction, else the faction of the operating station
+    /// nearest to the player's ships, else the corporation's rival.
+    /// </summary>
+    public static string OverdraftLender(Run run, SimRoot sim, int player)
+    {
+        if (sim.MapNode?.ControllingFaction is { } owner) return owner.ToString();
+        var ships = sim.Ships.HumanPlayerShips.Where(h => h.Metadata.PlayerIndex == player).Select(h => h.DetWorldCenter).ToList();
+        var station = ships.Count == 0 ? null : SpaceStation.GetStations(sim, onlyOperating: true).Select(st => st.PhysicalShip).OfType<Ship>()
+            .Where(st => FactionOf(st) is not null)
+            .OrderBy(st => ships.Min(h => h.DistanceSquaredTo(st.DetWorldCenter))).ThenBy(st => st.UniqueID).FirstOrDefault();
+        return (station is not null ? FactionOf(station)! : Factions.FactionsArea.Roles(run).Rival).ID.ToString();
     }
 
     public static Collector? CollectorOf(Run run, Ship ship) => run.State.Debt.Collectors.FirstOrDefault(c => c.Ship == ship.UniqueID);
@@ -93,6 +117,9 @@ static class DebtTick
         var s = run.State.Debt;
         var t = run.T.Debt;
         double now = run.State.GameSeconds;
+        // Spec 1417: a stable order, so every machine opens the same debts.
+        foreach (int player in run.Game.HumanPlayersIndexes.Order())
+            if (run.Game.GetPlayerState(player, deterministic: true).Money < 0) Overdraft(run, sim, player);
         foreach (var d in s.Debts)
         {
             while (now >= d.NextInterestAt)
@@ -106,10 +133,28 @@ static class DebtTick
             bool wanted = Lenders.Wants(sim, d.Faction);
             if (d.WasWanted && !wanted) d.NextCollectorAt = Math.Min(d.NextCollectorAt, now + t.ReturnSeconds);
             d.WasWanted = wanted;
-            if (!wanted && now >= d.NextCollectorAt && !s.Collectors.Any(c => c.Faction == d.Faction) && CollectorAnchor(run, sim) is { } anchor)
+            bool collectorHere = s.Collectors.Any(c => c.Faction == d.Faction && c.Player == d.Player);
+            if (!wanted && now >= d.NextCollectorAt && !collectorHere && CollectorAnchor(sim, d.Player) is { } anchor)
             {
-                SpawnCollector(run, sim, d, anchor.DetWorldCenter);
+                SpawnCollector(run, sim, d, anchor.DetWorldCenter, overdraft: false);
                 d.NextCollectorAt = now + t.CollectorSeconds;
+            }
+            // Spec 1418: one hail for each overdraft debt, when it comes due.
+            if (d.HailAt is { } hailAt && now >= hailAt)
+            {
+                d.HailAt = null;
+                if (d.Balance >= Lenders.CreditLimit(run, run.CurrentTier) && !wanted && !collectorHere && CollectorAnchor(sim, d.Player) is { } owner)
+                {
+                    SpawnCollector(run, sim, d, owner.DetWorldCenter, overdraft: true);
+                    Telemetry.Tele.Emit(Telemetry.Cat.Economy, "debt.hail", d, static (w, d) =>
+                    {
+                        w.WriteNumber("player", d.Player);
+                        w.WriteString("lender", d.Faction);
+                        w.WriteNumber("balance", d.Balance);
+                        w.WriteString("cause", "overdraft");
+                    });
+                }
+                else Log.Info($"debt: no overdraft hail for player {d.Player} and {d.Faction}, balance {d.Balance}");
             }
         }
         TickCollectors(run, sim, now);
@@ -117,12 +162,36 @@ static class DebtTick
         DebtHelp.Tick(run, sim, now);
     }
 
+    /// <summary>Spec 1323 and 1401: the collector comes to a ship of the player who owes the debt. Null while that player has no ship here.</summary>
+    static Ship? CollectorAnchor(SimRoot sim, int player) =>
+        SimQueries.AnchorShip(sim, s => s.Metadata.PlayerIndex == player ? 1f : 0f) is { } ship && ship.Metadata.PlayerIndex == player ? ship : null;
+
     /// <summary>
-    /// Spec 1323: a debt belongs to the whole crew (the run saves no borrower), so the collector comes to the ship of the player with the
-    /// most credits: the one who can pay. Money is per player in co-op.
+    /// Spec 1417: the player's money below 0 goes back to 0, and the shortfall goes on the player's debt with the lender. A new debt
+    /// comes due for the lender's hail (spec 1418).
     /// </summary>
-    static Ship? CollectorAnchor(Run run, SimRoot sim) =>
-        SimQueries.AnchorShip(sim, s => run.Game.GetPlayerState(s.Metadata.PlayerIndex, deterministic: true).Money);
+    static void Overdraft(Run run, SimRoot sim, int player)
+    {
+        var state = run.Game.GetPlayerState(player, deterministic: true);
+        // Spec 1417: borrow only up to the credit limit; past it the money stays below 0 and the vanilla buy checks stop spending.
+        int shortfall = (int)Math.Min(-state.Money, Lenders.CreditLeft(run, sim, player));
+        if (shortfall <= 0) return;
+        string lender = Lenders.OverdraftLender(run, sim, player);
+        bool isNew = run.State.Debt.Of(lender, player) is null;
+        state.AddMoney(shortfall);
+        var d = DebtDeals.Owe(run, lender, player, shortfall);
+        if (isNew) d.HailAt = run.State.GameSeconds + run.T.Debt.OverdraftHailSeconds;
+        DebtArea.Chat(run, DebtArea.Format("OverdraftFmt", run.IsMultiplayer ? DebtArea.PlayerName(run, player) : DebtArea.Text("You"), DebtArea.DebtMoney(shortfall), Lenders.Name(lender)));
+        Telemetry.Tele.Emit(Telemetry.Cat.Economy, "debt.overdraft", (d, shortfall, isNew), static (w, x) =>
+        {
+            w.WriteNumber("player", x.d.Player);
+            w.WriteString("lender", x.d.Faction);
+            w.WriteNumber("amount", x.shortfall);
+            w.WriteNumber("balance", x.d.Balance);
+            w.WriteBoolean("new", x.isNew);
+        });
+        Log.Info($"debt: player {player} overdraft {shortfall} on {lender}, balance {d.Balance}, new {isNew}");
+    }
 
     /// <summary>Collectors belong to the system they came to.</summary>
     public static void OnSystemEntered(Run run, bool firstVisit)
@@ -158,12 +227,31 @@ static class DebtTick
                 continue;
             }
             // Paid off at a station: nothing left to collect.
-            if (run.State.Debt.Of(c.Faction) is null) { Leave(run, sim, c, ship); i--; continue; }
-            // Spec 1407: it flies to the nearest human ship until it is in comms range (a small ship's comms reach about 400).
-            if (!c.Hailed && !(c.Hailed = Events.EventHail.TryHail(sim, c.Ship)) && SimQueries.NearestHumanShip(sim, ship.DetWorldCenter) is { } target)
+            if (run.State.Debt.Of(c.Faction, c.Player) is null) { Leave(run, sim, c, ship); i--; continue; }
+            // Spec 1407: it flies to the debtor's nearest ship until it is in comms range (a small ship's comms reach about 400).
+            if (!c.Hailed && !(c.Hailed = HailDebtor(sim, ship, c.Player)) && NearestShipOf(sim, c.Player, ship.DetWorldCenter) is { } target)
                 Hunters.HunterOrders.MoveTo(ship, target.DetWorldCenter, 150f);
             if (now >= c.LeaveAt) { Leave(run, sim, c, ship); i--; }
         }
+    }
+
+    static Ship? NearestShipOf(SimRoot sim, int player, Vector2 at) =>
+        sim.Ships.HumanPlayerSignificantShips.Where(h => h.Metadata.PlayerIndex == player)
+            .OrderBy(h => h.DetWorldCenter.DistanceSquaredTo(at)).ThenBy(h => h.UniqueID).FirstOrDefault();
+
+    /// <summary>
+    /// Spec 1407: the collector hails the debtor's nearest ship that can call it back, like an event carrier (EventHail.TryHail, which
+    /// picks any player's ship). False while no such ship is in range.
+    /// </summary>
+    static bool HailDebtor(SimRoot sim, Ship collector, int player)
+    {
+        var mode = (CareerSimModeManager)sim.Mode;
+        var target = sim.Ships.HumanPlayerSignificantShips
+            .Where(h => h.Metadata.PlayerIndex == player && mode.CanShipCallShip(h, collector) && mode.WillShipAnswerCall(h, collector))
+            .OrderBy(h => h.DetWorldCenter.DistanceSquaredTo(collector.DetWorldCenter)).ThenBy(h => h.UniqueID).FirstOrDefault();
+        if (target is null) return false;
+        mode.AIHailPlayer(collector, target);
+        return true;
     }
 
     /// <summary>
@@ -174,7 +262,7 @@ static class DebtTick
     {
         run.State.Debt.Collectors.Remove(c);
         string name = Lenders.Name(c.Faction);
-        if (run.State.Debt.Of(c.Faction) is { } d && Lenders.StageOf(run, d) == DebtStage.Hostile)
+        if (run.State.Debt.Of(c.Faction, c.Player) is { } d && Lenders.StageOf(run, d) == DebtStage.Hostile)
         {
             Lenders.Want(sim, c.Faction);
             d.WasWanted = true;
@@ -187,12 +275,15 @@ static class DebtTick
         DebtArea.Chat(run, DebtArea.Format("CollectorLeavesFmt", ship.Metadata.PlainShipName));
     }
 
-    /// <summary>Spec 1407: one combat ship of the lender near the fleet.</summary>
-    static void SpawnCollector(Run run, SimRoot sim, Debt d, Vector2 center)
+    /// <summary>Spec 1407 and 1418: one combat ship of the lender near the debtor's ship.</summary>
+    static void SpawnCollector(Run run, SimRoot sim, Debt d, Vector2 center, bool overdraft)
     {
         var t = run.T.Debt;
         var ship = SpawnFactionShip(run, sim, d.FactionId, center, t.CollectorDistance);
-        run.State.Debt.Collectors.Add(new Collector { Ship = ship.UniqueID, Faction = d.Faction, LeaveAt = run.State.GameSeconds + t.CollectorWaitSeconds });
+        run.State.Debt.Collectors.Add(new Collector
+        {
+            Ship = ship.UniqueID, Faction = d.Faction, Player = d.Player, Overdraft = overdraft, LeaveAt = run.State.GameSeconds + t.CollectorWaitSeconds,
+        });
         DebtArea.Chat(run, DebtArea.Format("CollectorArrivesFmt", ship.Metadata.PlainShipName, Lenders.Name(d.Faction)));
         Log.Info($"debt: collector {ship.Metadata.PlainShipName} of {d.Faction} arrived, balance {d.Balance}, stage {Lenders.StageOf(run, d)}");
     }

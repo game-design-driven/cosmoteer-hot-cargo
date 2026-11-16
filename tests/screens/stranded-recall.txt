@@ -1,0 +1,21 @@
+# The stuck run of the 2026-11-15 playtest with the recall (spec 1566, 1567, 1601): a ship without tech jumps alone and dies.
+# RUNNER=mac scripts/screens.sh tests/screens/stranded-recall.txt <out-dir>
+render on
+newgame
+wait 8
+closepanel
+wait 1
+ev_set Enabled false
+pause off
+jw_twin save
+jw_twin spawn
+wait 2
+jw_jump_split
+waitfor sector == 2 30
+wait 2
+ux RecallSeconds 60
+kill
+waitfor ux_stranded == 1 30
+wait 10
+screenshot stranded-recall
+quit

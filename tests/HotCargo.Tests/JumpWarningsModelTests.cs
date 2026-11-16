@@ -73,4 +73,23 @@ public class JumpWarningsModelTests
         Assert.Null(JumpWarningsModel.RejoinTarget(0, true, waiting));
         Assert.Null(JumpWarningsModel.RejoinTarget(0, false, [("Arden", 0)]));
     }
+
+    [Fact]
+    public void The_recall_comes_after_its_delay_and_again_after_a_failed_vote()
+    {
+        Assert.Equal(30, JumpWarningsModel.RecallLeft(100, 100, null, 30));
+        Assert.True(JumpWarningsModel.RecallLeft(130, 100, null, 30) <= 0);
+        // A recall went out at 130 and the vote failed: the next one waits another 30 s.
+        Assert.Equal(25, JumpWarningsModel.RecallLeft(135, 100, 130, 30));
+    }
+
+    [Fact]
+    public void All_tech_stays_when_only_ships_that_stay_hold_it()
+    {
+        // Playtest: the captured hunter jumped alone, the mothership with the last tech unit stayed.
+        Assert.True(JumpWarningsModel.AllTechStays([(true, 0), (false, 1), (false, 0)]));
+        Assert.False(JumpWarningsModel.AllTechStays([(true, 2), (false, 1)]));
+        // No tech anywhere: nothing to warn about.
+        Assert.False(JumpWarningsModel.AllTechStays([(true, 0), (false, 0)]));
+    }
 }
