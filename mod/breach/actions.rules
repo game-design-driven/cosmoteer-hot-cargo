@@ -1,0 +1,9 @@
+// Crew breach (spec 1613): the breach part. Not in the build menu; Breach/BreachArea.cs places it.
+	{
+		Action = AddMany
+		AddTo = "<ships/terran/terran.rules>/Terran/Parts"
+		ManyToAdd
+		[
+			&<breach/breach.rules>/Part
+		]
+	}

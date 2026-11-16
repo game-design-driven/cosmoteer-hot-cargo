@@ -1,0 +1,14 @@
+// Crew breach (spec 1613): the entry that crew cut into a ship with no working airlock. A vanilla airlock with its art, weaker and
+// cheaper. Not in the build menu (no editor group); C# (Breach/BreachArea.cs) places it.
+Part : <./Data/ships/terran/airlock/airlock.rules>/Part
+{
+	ID = yarden_zamir.breach
+	NameKey = "HotCargoBreach/Name"
+	DescriptionKey = "HotCargoBreach/Desc"
+	EditorGroups = []
+	Resources
+	[
+		[steel, 4]
+	]
+	MaxHealth = 250
+}
