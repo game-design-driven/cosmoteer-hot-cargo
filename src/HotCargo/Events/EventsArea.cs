@@ -188,6 +188,8 @@ public static class EventsArea
             "on" => true, "off" => false, _ => throw new InvalidOperationException("ev_pause needs: on|off"),
         };
         // ev_set <EventsTunables field> <value>: changes a live tunable for this run. Test only.
+        // ev_dismiss: the local player closes the result page of the last event choice (GUI only).
+        Autotest.Commands["ev_dismiss"] = _ => EventDialog.DismissResult(RequireRun());
         Autotest.Commands["ev_set"] = arg =>
         {
             var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);

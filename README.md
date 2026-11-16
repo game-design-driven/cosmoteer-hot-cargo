@@ -130,9 +130,9 @@ Spec: [Co-op listen-in](spec/47-co-op-listen-in.md)
 <details>
 <summary><b>Share resources</b>: one switch pools the whole crew's steel and parts</summary>
 
-In co-op, a "Share resources" switch sits above the comms button. Any player can flip it. While it is on, everyone's ships share construction resources and help each other build, like one player's fleet. A chat line says who turned it on or off.
+In co-op, a "Share resources" switch sits next to the ship tool buttons. Any player can flip it. While it is on, everyone's ships share construction resources and help each other build, like one player's fleet. A chat line says who turned it on or off.
 
-<img src="docs/screenshots/coop-share.jpg" width="70%" alt="The chat line after a player turns resource sharing on">
+<img src="docs/screenshots/coop-share.jpg" width="70%" alt="The Share resources switch, on, next to the ship tool buttons, and the chat line after a player turns it on">
 
 Spec: [AI upkeep, requirements 1318 to 1320](spec/53-ai-upkeep.md)
 </details>

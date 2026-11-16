@@ -133,6 +133,15 @@ public static class UxArea
             var sim = Autotest.RequireRun().Game.Sim;
             sim.PlayerInput.SelectSingleShip(sim.Ships.LocalPlayerShips.FirstOrDefault() ?? throw new InvalidOperationException("no own ship"));
         };
+        // deselect: no own ship is selected, so the ships card and the ship tool buttons hide.
+        Autotest.Commands["deselect"] = _ => Autotest.RequireRun().Game.Sim.PlayerInput.ClearSelectedShips();
+        // commsbox open|close: opens or closes the comms toolbox (the list of ships to hail), like the comms button. It needs a selected ship.
+        Autotest.Commands["commsbox"] = arg => Autotest.RequireRun().Mode._commsBtn.IsSelected = arg.Trim() switch
+        {
+            "open" => true,
+            "close" => false,
+            _ => throw new InvalidOperationException("commsbox needs: open | close"),
+        };
         Autotest.Commands["closepanel"] = _ => CenterPanel.CloseAll();
         // comms open|contract|chain|close: opens a comms window from the first own ship to the nearest trading station
         // (contract: the station of the offer that contract_pick chose; chain: the test chain's station), or closes it.

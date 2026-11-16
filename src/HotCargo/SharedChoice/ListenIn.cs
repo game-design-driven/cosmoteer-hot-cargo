@@ -135,6 +135,7 @@ public static class ListenIn
             var top = game.Gui.RootWidget.Children;
             int windows = top.IndexOf(game.Gui.FloatingWindows);
             if (windows >= 0) top.Insert(windows, _bar); else top.Add(_bar);
+            Ux.HudStack.Register(game.Gui, _bar);
             _barGame = game;
             _shown = [];
         }
@@ -169,13 +170,8 @@ public static class ListenIn
             ((ImageButton)_bar.Children[i]).Text = SharedChoices.Format(key, PlayerName(run, h.CallerPlayer, role == HailRole.Join), h.Callee.Metadata.PlainShipName);
         }
         _bar.Height = _shown.Count * (ButtonHeight + Gap);
-        // Above the comms button, or above the comms box while it is open. Without the button (no ship selected): above the tool row.
-        var root = game.Gui.RootWidget.ScreenRect;
-        var below = mode.CommsToolbox is { SelfActive: true } box ? box.ScreenRect : mode._commsBtn is { SelfActive: true } btn ? btn.ScreenRect : (Rect?)null;
-        _bar.X = below is { } r1 ? r1.X - root.X : 10f;
-        // The co-op resource switch (spec 1318) sits directly above the comms button, so the list goes above it.
-        float reserved = Tactics.ShareResourcesHud.ReservedHeight;
-        _bar.Y = below is { } r2 ? r2.Y - root.Bottom - Gap - _bar.Height - reserved : -80f - _bar.Height - reserved;
+        // Above every vanilla panel in the tool button column, and above the co-op resource switch (spec 1318).
+        Ux.HudStack.Place(game.Gui, _bar, [Tactics.ShareResourcesHud.Button]);
     }
 
     [HarmonyPatch(typeof(CommWindow), nameof(CommWindow.OnParented))]

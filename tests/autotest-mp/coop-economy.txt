@@ -324,6 +324,18 @@ on 1 waitfor share_on == 1 10
 expect share_p1_usable_gain >= 100
 on 1 expect share_p1_usable_gain >= 100
 on 1 waitfor share_hud == 1 5
+# The players can see the switch (on screen, under no vanilla panel or window) with no ship selected, a ship selected and the comms
+# box open. The result page of an earlier step covers the middle of the small test screen, so the client closes it first.
+on 1 ev_dismiss
+on 1 deselect
+on 1 waitfor share_hud == 1 5
+on 1 select
+on 1 waitfor share_hud == 1 5
+on 1 commsbox open
+on 1 wait 1
+on 1 share_hud_report
+on 1 waitfor share_hud == 1 5
+on 1 commsbox close
 mp share_break 1
 wait 2
 expect share_p1_queued >= 1
