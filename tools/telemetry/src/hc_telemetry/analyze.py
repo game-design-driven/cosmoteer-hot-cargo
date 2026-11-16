@@ -40,6 +40,7 @@ class RunReport:
     economy: list[Series] = field(default_factory=list)
     heat_sources: dict[str, float] = field(default_factory=dict)
     sector_stays: list[tuple[str, float]] = field(default_factory=list)
+    sector_time_use: list[tuple[str, dict[str, float]]] = field(default_factory=list)
     ai_modules: dict[str, int] = field(default_factory=dict)
     perf: list[Series] = field(default_factory=list)
 
@@ -148,6 +149,32 @@ def heat_section(rep: RunReport) -> None:
 
 # ---- Sectors
 
+ACTIVITIES = ["fight", "build", "trade", "travel", "repair", "idle"]
+
+
+def visit_time_use(sessions: list, visit_of) -> dict[int, dict[str, float]]:
+    """
+    Game seconds by activity for each visit (spec 1762). The sums count per session and per stay, so the last record of a visit in
+    each session (a snapshot, or the system.enter that ends the visit) holds that session's part; the parts add up.
+    """
+    last: dict[tuple[int, int], dict[str, float]] = {}
+    for si, sess in enumerate(sessions):
+        for e in sess.events:
+            if e["e"] == "snap" and "time_use" in e:
+                last[(si, visit_of(e))] = e["time_use"]
+            elif e["e"] == "system.enter" and "prev_time_use" in e:
+                last[(si, visit_of(e) - 1)] = e["prev_time_use"]
+    out: dict[int, dict[str, float]] = defaultdict(lambda: dict.fromkeys(ACTIVITIES, 0.0))
+    for (_, visit), use in last.items():
+        for a in ACTIVITIES:
+            out[visit][a] += use.get(a, 0.0)
+    return out
+
+
+def shares(use: dict[str, float] | None) -> list[str]:
+    total = sum(use.values()) if use else 0
+    return [f"{100 * use[a] / total:.0f}" if use and total > 0 else "-" for a in ACTIVITIES]
+
 
 def sector_section(rep: RunReport) -> None:
     ev = rep.run.events
@@ -186,26 +213,35 @@ def sector_section(rep: RunReport) -> None:
                 per[i]["missions_accepted"] += 1
             case "econ.trade" if e.get("is_tech"):
                 per[i]["tech_sold"] += e["amount"]
+    use = visit_time_use(rep.run.sessions, visit_of)
     rows = []
     for i, v in enumerate(visits):
         c = per[i]
         rows.append([
             v["sec"], v["sys"], v["arch"], v["tier"], v.get("jump", ""), mmss(v["gs"]), mmss(v.get("stay")), fmt(v["heat_in"]), fmt(v.get("heat_out")),
             c["stages"], c["missions_accepted"], c["missions_done"], c["hunters"], c["destroyed_hunter"], c["destroyed_hostile"], c["tech_sold"],
+            *shares(use.get(i)),
         ])
         rep.sector_stays.append((f"S{v['sec']} {v['sys']}", v.get("stay") or 0))
+        if i in use and sum(use[i].values()) > 0:
+            rep.sector_time_use.append((f"S{v['sec']} {v['sys']}", use[i]))
     rep.tables.append(
         Table(
             "Sectors",
             ["sector", "system", "type", "tier", "jump in", "entered", "stay", "heat in", "heat out", "stages", "missions taken", "missions done",
-             "hunters", "hunters killed", "hostiles killed", "tech sold"],
+             "hunters", "hunters killed", "hostiles killed", "tech sold", *[f"{a} %" for a in ACTIVITIES]],
             rows,
-            "Stay is run game time in the system; it stops after a win. A load of an older save replays game time, so such a visit can show twice.",
+            "Stay is run game time in the system; it stops after a win. A load of an older save replays game time, so such a visit can show twice. "
+            "The % columns split the stay by activity (spec 1760 to 1762): fight, build, trade, travel, repair, idle, one at a time in that priority.",
         )
     )
     stays: list[float] = [v["stay"] for v in visits[:-1] if v.get("stay")]
     if stays:
         rep.findings.append(f"Mean stay per finished sector visit: {mmss(statistics.mean(stays))} (n={len(stays)}).")
+    if rep.sector_time_use:
+        total = {a: sum(u[a] for _, u in rep.sector_time_use) for a in ACTIVITIES}
+        whole = sum(total.values())
+        rep.findings.append("Time in systems by activity: " + ", ".join(f"{a} {100 * t / whole:.0f} %" for a, t in sorted(total.items(), key=lambda kv: -kv[1])) + ".")
 
 
 # ---- Economy

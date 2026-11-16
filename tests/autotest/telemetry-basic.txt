@@ -13,6 +13,21 @@ vault destroy
 wait 3
 tech add 1
 wait 2
+# Time use (spec 1763): each activity shows once. Damage to the own ship makes a fight and repairs, a far move order travel,
+# a sale at the station trade, a blueprint part build. The quiet start is idle.
+damage 0.6
+telemove 5000
+wait 6
+tostation
+tech sell 1
+pt_build cosmoteer.hyperdrive_small
+wait 15
+expect tele_time_idle > 0
+expect tele_time_fight > 0
+expect tele_time_travel > 0
+expect tele_time_trade > 0
+expect tele_time_build > 0
+expect tele_time_repair > 0
 telesnap test
 wait 12
 teleflush

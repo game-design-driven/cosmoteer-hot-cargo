@@ -148,6 +148,15 @@ public static class TelemetryArea
             TestShield.On = arg != "off";
             Log.Info($"AUTOTEST shieldplayers {TestShield.On}");
         };
+        // telemove <distance>: one right click that orders the own ship to a point this far ahead (time use: travel). Test only.
+        Autotest.Commands["telemove"] = arg =>
+        {
+            var game = Autotest.RequireRun().Game;
+            var ship = game.Sim.Ships.LocalPlayerShips.FirstOrDefault() ?? throw new InvalidOperationException("no own ship");
+            var to = ship.DetWorldCenter + Vector2.FromAngle(0f) * float.Parse(arg, CultureInfo.InvariantCulture);
+            var move = new Cosmoteer.Ships.Commands.MoveCommand(ship, ship.Commands.AllocLocalCommandID(), to, null, Cosmoteer.Ships.Commands.CollisionAvoidanceFlags.All, isTentative: false);
+            game.NetManager.EnqueueInput(new Cosmoteer.Game.Multiplayer.MPInputs.MPEnqueueCommandsInput(move, append: false, playLocalSound: false));
+        };
         // telestats: logs the overhead numbers of the session, for reports.
         Autotest.Commands["telestats"] = _ =>
             Log.Info($"TELEMETRY STATS events={Interlocked.Read(ref Stats.Events)} bytes={Interlocked.Read(ref Stats.Bytes)} dropped={Interlocked.Read(ref Stats.Dropped)} " +
