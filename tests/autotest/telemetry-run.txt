@@ -3,6 +3,7 @@
 # Three systems: an event, a contract, an escort, a sale, heat stages with hunters, won fights, a capture, a destroyed vault, an event,
 # a save and a load, and a win at the Buyer. It checks telemetry coverage, not balance, so the player's ships cannot be hurt
 # (shieldplayers) and damagehostiles stands in for won fights.
+# missions: random
 newgame run
 wait 8
 shieldplayers on
