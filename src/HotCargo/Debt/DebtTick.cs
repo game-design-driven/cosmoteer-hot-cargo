@@ -120,13 +120,16 @@ static class DebtTick
         // Spec 1417: a stable order, so every machine opens the same debts.
         foreach (int player in run.Game.HumanPlayersIndexes.Order())
             if (run.Game.GetPlayerState(player, deterministic: true).Money < 0) Overdraft(run, sim, player);
+        List<(int Player, string Faction, long Added, long Balance)>? charged = null;
         foreach (var d in s.Debts)
         {
+            long before = d.Balance;
             while (now >= d.NextInterestAt)
             {
                 d.Balance = DebtModel.Interest(d.Balance, t.InterestRate * d.RateFactor);
                 d.NextInterestAt += t.InterestSeconds;
             }
+            if (d.Balance > before) (charged ??= []).Add((d.Player, d.Faction, d.Balance - before, d.Balance));
             var stage = Lenders.StageOf(run, d);
             if (stage > d.Stage) StageRose(run, sim, d, stage);
             d.Stage = stage;
@@ -157,6 +160,7 @@ static class DebtTick
                 else Log.Info($"debt: no overdraft hail for player {d.Player} and {d.Faction}, balance {d.Balance}");
             }
         }
+        if (charged is not null) InterestNotice(run, charged);
         TickCollectors(run, sim, now);
         DebtMissions.Tick(run, sim);
         DebtHelp.Tick(run, sim, now);
@@ -201,6 +205,24 @@ static class DebtTick
         run.State.Debt.Help = null;
     }
 
+    /// <summary>Notices shown on this machine, for autotests (spec 1426).</summary>
+    internal static int InterestNotices;
+
+    /// <summary>
+    /// Spec 1426: the local player who owes hears the vanilla money tick-down sound once and sees one notice for all the interest
+    /// of this tick: a red center line with the total, and a chat line for each lender. UI only, so safe in the sim tick.
+    /// </summary>
+    static void InterestNotice(Run run, List<(int Player, string Faction, long Added, long Balance)> charged)
+    {
+        var mine = charged.Where(c => c.Player == run.Game.LocalPlayerIndex).ToList();
+        if (mine.Count == 0) return;
+        InterestNotices++;
+        Ux.UxKit.Guard("debt interest sound", () => App.Audio.Play(GameApp.Rules.Game.GameGui.MoneyTickDownSound, Cosmoteer.AudioGroups.Interface));
+        DebtArea.Center(run, DebtArea.Format("InterestCenterFmt", DebtArea.DebtMoney(mine.Sum(c => c.Added))));
+        foreach (var c in mine)
+            DebtArea.Chat(run, DebtArea.Format("InterestChatFmt", Lenders.Name(c.Faction), DebtArea.DebtMoney(c.Added), DebtArea.DebtMoney(c.Balance)));
+    }
+
     static void StageRose(Run run, SimRoot sim, Debt d, DebtStage stage)
     {
         string name = Lenders.Name(d.Faction);
@@ -210,7 +232,7 @@ static class DebtTick
             Lenders.Want(sim, d.Faction);
             DebtArea.Center(run, DebtArea.Format("HostileCenterFmt", name));
         }
-        DebtArea.Chat(run, DebtArea.Format(stage == DebtStage.Hostile ? "HostileChatFmt" : "FirmChatFmt", name, ratio));
+        DebtArea.Chat(run, DebtArea.Format(stage == DebtStage.Hostile ? "HostileChatFmt" : "FirmChatFmt", name, ratio, run.T.Debt.HostileRatio.ToString("0.#")));
         Onboarding.RunLog.Add(run, Onboarding.RunLogKind.Debt, DebtArea.Format(stage == DebtStage.Hostile ? "LogHostileFmt" : "LogFirmFmt", name, ratio));
         Log.Info($"debt: {d.Faction} stage {stage} at ratio {ratio}");
     }

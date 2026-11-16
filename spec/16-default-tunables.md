@@ -123,5 +123,6 @@
 | `Telemetry.RelayToHost` | on | 1592 |
 | `Debt.OverdraftLimitTier1` | 20,000 credits; other tiers × the vanilla standard mission pay of the tier ÷ tier 1 (tier 2: 27,000, tier 8: 106,000) | 1417 |
 | `Debt.OverdraftHailSeconds` | 60 game seconds | 1418 |
+| `Debt.DebtHeatFactor` | 1.1 (time heat while anyone owes money) | 1425 |
 
 The defaults are first guesses. Live tuning sets the real values.
