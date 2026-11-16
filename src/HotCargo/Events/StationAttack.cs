@@ -298,11 +298,15 @@ static class StationAttack
     {
         var parts = piece.Parts.OrderBy(p => p.DetWorldCenter.DistanceSquaredTo(station.DetWorldCenter)).ThenBy(p => p.Location.X).ThenBy(p => p.Location.Y)
             .Take(count).ToList();
+        int before = piece.Parts.Count;
         using (var info = ShipUpdateInfo.Alloc(piece))
         {
             foreach (var part in parts) info.PartsToRemove.Add(new PartInfo(part));
             info.ApplyPhysical();
         }
+        // DebrisTaken counts these parts, so they must be gone.
+        if (piece.Parts.Count != before - parts.Count)
+            throw new InvalidOperationException($"took {parts.Count} parts of {piece.Metadata.PlainShipName}, but it went from {before} to {piece.Parts.Count} parts");
         // No lost-ship handling: it reads the local player and writes a local file, so it is not the same on every machine.
         if (piece.Parts.Count == 0 && sim.Ships.Contains(piece)) sim.Ships.Remove(piece, dispose: true, handleLostShip: false);
         return parts.Count;
