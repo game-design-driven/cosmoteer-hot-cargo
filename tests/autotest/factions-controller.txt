@@ -4,7 +4,8 @@
 newgame run
 wait 8
 ev_set Enabled false
-godmode on
+# The tour visits many systems: no part may break, or a roaming hostile can leave no ship to place things near.
+shieldplayers on
 pause off
 fa_controller_tour 1
 quit

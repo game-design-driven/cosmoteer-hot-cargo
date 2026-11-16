@@ -8,6 +8,9 @@ shipai Log on
 aiset FleeEnabled false
 aiset CallEnabled false
 aiset RegroupEnabled false
+# Open space, away from stations and other ships: a ship that the start world puts nearby (a chain ship, a hunt target)
+# triggers KeepSpacing before HoldFormation.
+openspace 3000 1500
 tactics_ally
 tactics_ally
 # Ships 1 and 2 follow ship 0 (the lowest ID) in the V.
@@ -38,6 +41,9 @@ tactics_ship 0
 tactics_manual
 wait 2
 tactics_ship 1
+tacticsauto off
+# Ship 2 holds still too: its keep-spacing row would push ship 1 off the line after the block.
+tactics_ship 2
 tacticsauto off
 tactics_ship 0
 tactics HC1:AllyInLineOfFire>HoldFire=0;Always>TargetNearest
