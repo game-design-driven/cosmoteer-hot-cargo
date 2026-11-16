@@ -5,7 +5,7 @@
 | `RunSectorCount` | 8 | 1 |
 | `FinalSectorTier` | 12 (rules value in `mod/journey/galaxy.rules`, restart needed) | 3 |
 | `RewardScale` | 1.0 | 4 |
-| `Journey.MissionMoneyScale` | 2 | 4 |
+| `Journey.MissionMoneyScale` | 1.5 | 4 |
 | `Debris.SalvageDropFactor` | 0.6 | 1247 |
 | `Debris.MiningYieldFactor`, `LaserMiningYieldFactor` | 1.2, 1.3 | 1248 |
 | `Journey.TechCostScale` | 2.5 | 301 |
