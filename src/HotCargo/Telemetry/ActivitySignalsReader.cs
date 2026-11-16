@@ -8,8 +8,9 @@ namespace HotCargo.Telemetry;
 
 /// <summary>
 /// Spec 1761: the activity signals of the players' fleet, read from state that the game already keeps. Read only.
-/// Limit: the build tool is the local GUI, so in co-op each machine sees only its own player's editor; the other signals are sim
-/// state and the same on every machine. Revisit if the files of host and client must agree on build time.
+/// Limits: the build tool is the local GUI, so in co-op each machine sees only its own player's editor; the other signals are sim
+/// state and the same on every machine. A placed part that never gets its resources counts as build until it is built or removed.
+/// Revisit if the files of host and client must agree on build time, or if unpaid blueprint parts inflate build time.
 /// </summary>
 static class ActivitySignalsReader
 {
@@ -27,7 +28,10 @@ static class ActivitySignalsReader
                 MoveCommand m => (m.Location ?? (m.TargetObjectID is { } id ? sim.Ships[id]?.DetWorldCenter : null)) is { } to && to.DistanceTo(ship.DetWorldCenter) >= far,
                 _ => false,
             };
-            if (ship.OptionalConstructionManager is { } cm && (cm.QueuedPartDeconstructions.Count > 0 || cm.QueuedDoorDeconstructions.Count > 0)) build = true;
+            // New parts placed: queued and not blocked by something in the way, also while the crew still fetch the resources.
+            if (ship.OptionalConstructionManager is { } cm && (cm.QueuedPartDeconstructions.Count > 0 || cm.QueuedDoorDeconstructions.Count > 0
+                || cm.QueuedPartConstructions.Any(q => !q.IsRepair && !cm.BlockedPartConstructions.Contains(q)) || cm.QueuedDoorConstructions.Any(q => !q.IsRepair)))
+                build = true;
             if (build && trade && repair) continue;
             var rebuilds = ship.OptionalConstructionManager?.QueuedPartConstructions.Where(q => q.IsRepair).Select(q => q.ConstructionJob).ToHashSet();
             foreach (var crew in ship.Crew.Assigned)
