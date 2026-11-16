@@ -371,9 +371,10 @@ Spec: [Contract economy](spec/26-contract-economy.md)
 <details>
 <summary><b>Debt</b>: borrow now, and the collectors come later</summary>
 
-A faction station can lend you money. Interest grows, and collectors jump in to ask for payment, with a harder tone each time. Let it run away and the lender turns hostile. The lender's debt page lets you refinance, and in a hard fight a faction can send help that you pay for afterwards.
+A faction station can lend you money, and spending below zero borrows from the local faction, up to a credit limit. In co-op, each player has their own debts. The money tooltip shows what you owe and how much credit is left. Interest grows, and collectors jump in to ask for payment, with a harder tone each time. Let it run away and the lender turns hostile. The lender's debt page lets you refinance, and in a hard fight a faction can send help that you pay for afterwards.
 
-<img src="docs/screenshots/debt.jpg" width="70%" alt="A debt collector hails the players">
+<img src="docs/screenshots/debt.jpg" width="49%" alt="A debt collector hails the players">
+<img src="docs/screenshots/debt-money-tip.jpg" width="49%" alt="The money tooltip shows debts and credit left">
 
 Spec: [Debt](spec/55-debt.md)
 </details>
