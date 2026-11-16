@@ -167,6 +167,10 @@ on 1 expect tactics_snapshot_changed == 0
 step missions.escort-ambush
 # Playtest 2026-11-15: after a resync, the convoy freighter reached the ambush point at a different tick on each machine,
 # the raiders spawned at different spots, and the game desynced (spec 1512). Objectives read the sim position of their ships.
+# No hunter fights the freighter on its way: on main (CI 2026-11-16) a hunter of the steps before held it up past the limit.
+mp godmode on
+mp maxhunters 0
+mp stasishunters
 mp hc_generate escort
 mp hc_accept escort
 mp hc_escort_goto

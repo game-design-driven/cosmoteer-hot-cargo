@@ -59,6 +59,23 @@ if [[ -n "$FIRST" ]]; then
   grep -m1 "MPHASH game=$GAME tick=$TICK " <<<"$CLIENT" | sed 's/.*MPHASH/   client:/'
 fi
 
+# Spec 1513: the start world of each game, one MPWORLD line per game on each machine, paired by n. The first pair that differs
+# names its parts, with the content lists of both machines.
+worlds() { sed -n 's/.*MPWORLD \(n=[0-9]* .*\)/\1/p' <<<"$1"; }
+HOST_WORLDS="$(worlds "$HOST")" CLIENT_WORLDS="$(worlds "$CLIENT")"
+echo "== start worlds: $(grep -c . <<<"$HOST_WORLDS" || true) host, $(grep -c . <<<"$CLIENT_WORLDS" || true) client"
+while read -r hline; do
+  [[ -z "$hline" ]] && continue
+  n="${hline%% *}"
+  cline="$(grep -m1 "^$n " <<<"$CLIENT_WORLDS" || true)"
+  [[ -z "$cline" || "$cline" == "$hline" ]] && continue
+  REASONS+=("start world differs")
+  echo "   start world $n differs in: $(comm -3 <(tr ' ' '\n' <<<"$hline" | sort) <(tr ' ' '\n' <<<"$cline" | sort) | sed 's/^\t//; s/=.*//' | sort -u | tr '\n' ' ')"
+  grep -m1 "MPWORLDLIST $n " <<<"$HOST" | sed 's/.*MPWORLDLIST/   host:  /'
+  grep -m1 "MPWORLDLIST $n " <<<"$CLIENT" | sed 's/.*MPWORLDLIST/   client:/'
+  break
+done <<<"$HOST_WORLDS"
+
 # A member that the hash cannot serialize is a gap that hides desyncs in it.
 GAPS="$(sed -n 's/.*MPHASH cannot serialize \([^ ]*\) .*/\1/p' <<<"$HOST$CLIENT" | sort -u | tr '\n' ' ')"
 if [[ -n "$GAPS" ]]; then REASONS+=("state hash gap"); echo "   the state hash cannot serialize: $GAPS"; fi

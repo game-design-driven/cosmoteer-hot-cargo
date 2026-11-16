@@ -50,7 +50,7 @@ Co-op tests are sessions: `tests/autotest-mp/<session>.txt` (`coop-core`, `coop-
 - `step <area>.<name>` starts a step. Each step logs its own result. A failure skips only the rest of its step, so one failure does not hide the others. The area is the lowercase area folder name: `scripts/autotest-affected.sh` runs every session with a step of a changed area.
 - `end` closes the last step, sends the client away and quits.
 - Both machines log `MPHASH` and `MPFIELDS` lines every 150 sim ticks: a hash of every saved `RunState` member, money per player, ship and part counts and the sim random state. A desync that the game detects writes an `MP DESYNC` error line, in tests and in normal play.
-- `scripts/coop-report.sh <host log> <client log>` gives the verdict from the two logs only: one line per step, then `== result: PASS` or `== result: FAIL: <reasons>` (join failed, steps failed, desync, state differs, state hash gap, errors). On a state difference it names the first game and tick, the step and the members that differ.
+- `scripts/coop-report.sh <host log> <client log>` gives the verdict from the two logs only: one line per step, then `== result: PASS` or `== result: FAIL: <reasons>` (join failed, steps failed, desync, start world differs, state differs, state hash gap, errors). On a state difference it names the first game and tick, the step and the members that differ. On a start world difference (spec 1513) it names the game, the parts of the world that differ and the offers and stasis tags of both machines.
 - The join retries once inside the game. A whole session runs again only when nothing ran in the host.
 
 Commands for co-op sessions (`src/HotCargo/Dev/MpAutotest.cs`):

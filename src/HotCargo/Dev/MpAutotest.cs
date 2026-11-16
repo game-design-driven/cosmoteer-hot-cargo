@@ -461,7 +461,7 @@ public static class MpAutotest
     static readonly HashSet<string> _hashErrorsLogged = [];
 
     /// <summary>The first 4 bytes of the SHA-256 of the value as the save writes it (object bits), as hex. "error" when it cannot serialize.</summary>
-    static string Hash(string name, object? value, Type type)
+    internal static string Hash(string name, object? value, Type type)
     {
         try
         {
