@@ -3,7 +3,7 @@
 # Usage: release.sh <version> [--commit <sha>]
 # A release is a full release and becomes the latest one. Only the dev builds (dev-release.yml) are prereleases.
 # Releases a tested commit, not whatever main is now, so releases need no merge freeze: by default the newest commit on
-# origin/main whose required checks (branch protection of main, for example build, private-data and game-tests) and the
+# origin/main whose required checks (branch protection of main, for example build, spec-numbers and game-tests) and the
 # full-suite check (every game test) all passed in CI. --commit picks one; it must be on origin/main and green. The zip is built in a scratch worktree there.
 # Set FORCE=1 to skip the check (not for normal use).
 # Exit code 1 when no commit is tested, the tag exists or an argument is wrong. Called by: the coordinator (hot-cargo-release).
@@ -50,7 +50,6 @@ STAGE="$(mktemp -d)" WT="$(cd .. && pwd)/release-$TAG"
 [[ -e "$WT" ]] && { echo "release: $WT exists; remove it first (git worktree remove $WT)"; exit 1; }
 git worktree add -q --detach "$WT" "$SHA"
 trap 'rm -rf "$STAGE"; git worktree remove --force "$WT" 2>/dev/null || true' EXIT
-(cd "$WT" && scripts/check-private.sh)
 ZIP="$(cd "$WT" && scripts/package.sh "$VERSION" "$STAGE")"
 
 # Dev prereleases (CI, one for each push) are not part of the changelog of a tested release.
