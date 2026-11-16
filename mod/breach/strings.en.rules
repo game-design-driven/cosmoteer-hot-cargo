@@ -1,0 +1,9 @@
+
+// Crew breach (spec 1611, 1613). {0} = the crew member, {1} = the ship.
+HotCargoBreach
+{
+	Name = "Breach"
+	Desc = "A hole that your crew cut into the hull because no airlock was left to get in. It works like an airlock. Remove it in the ship editor if you do not want it."
+	StartFmt = "{0} has no way into {1} and starts to cut a breach in its hull."
+	DoneFmt = "{0} cut a breach into {1}. Your crew can get in through it."
+}

@@ -722,6 +722,100 @@ Events
 
 	// ---- Friendly encounters (spec 1360 and later). Ships that carry their page and ask for something.
 
+	// Spec 480 to 485: a ship pays the players to take a troublemaker aboard. 30 %: a thief who steals at the next station visit.
+	{
+		ID = troublemaker
+		Trigger = Arrival
+		Weight = 5
+		// Only a fleet with a free bunk gets the offer: the troublemaker needs a place to sleep.
+		Need { Bunks = 1 }
+		Carrier = Recruit
+		Title = "The Troublemaker"
+		Text = "A tired captain hails you. \"We have a troublemaker aboard, and my crew wants them gone before somebody gets hurt. Take them off our hands and we pay you for it. They can work. Mostly.\""
+		Choices
+		[
+			{
+				Text = "Take them aboard."
+				Need { Bunks = 1 }
+				Outcomes [ { Text = "The troublemaker drifts over with one bag and a grin. The captain looks very relieved."; Effect = troublemaker } ]
+			}
+			{
+				Text = "Not our problem."
+				Outcomes [ { Text = "\"Can't blame you.\" The captain cuts the channel."; Effect = leave } ]
+			}
+		]
+	}
+
+	// Spec 486 to 499: the scientist chain. The station carries the offer (a Station event, spec 768); the partner pages have no trigger.
+	{
+		ID = scientist
+		Trigger = Station
+		Weight = 5
+		Need { Bunks = 1 }
+		Title = "The Scientist"
+		Text = "The dock officer patches through a passenger. A scientist with a battered case asks for a berth. \"I had to leave the corporate labs in a hurry. I can earn my keep in your workshop.\""
+		Choices
+		[
+			{
+				Text = "Welcome aboard."
+				Need { Bunks = 1 }
+				Outcomes [ { Text = "The scientist carries the case aboard and asks where the workbench is."; Effect = scientist } ]
+			}
+			{
+				Text = "No passengers."
+				Outcomes [ { Text = "The scientist nods and walks back into the crowd." } ]
+			}
+		]
+	}
+	{
+		ID = scientist_partner
+		MaxPerRun = 0
+		Title = "A Challenge"
+		Text = "A heavy ship drops out of FTL and hails. \"My partner flew with you, and now they are dead. Your careless command killed them. Face me, captain: your ship against mine. No one else joins in.\""
+		Choices
+		[
+			{
+				Text = "We accept."
+				Outcomes [ { Text = "\"Good. One ship against one ship.\""; Effect = partner_accept } ]
+			}
+			{
+				Text = "We decline."
+				Outcomes [ { Text = "\"Then you are a coward as well.\""; Effect = partner_decline } ]
+			}
+		]
+	}
+	{
+		ID = scientist_partner_yield
+		MaxPerRun = 0
+		Title = "I Yield"
+		Text = "\"Enough! You fight fair, and you fight well. Maybe my partner chose well after all. Let me join your crew. I know a lab as well as they did.\""
+		Choices
+		[
+			{
+				Text = "Welcome aboard."
+				Need { Bunks = 1 }
+				Outcomes [ { Text = "The partner sends their ship home and comes aboard."; Effect = partner_join } ]
+			}
+			{
+				Text = "Go home."
+				Outcomes [ { Text = "\"As you wish.\" The ship turns away."; Effect = partner_home } ]
+			}
+		]
+	}
+	{
+		ID = scientist_revenge
+		MaxPerRun = 0
+		Title = "Revenge"
+		Text = "\"You could not even fight fair. Now you face all of us. This is for my partner.\""
+		Choices
+		[
+			{
+				Text = "Bring it on."
+				Outcomes [ { Text = "Their guns swing toward you." } ]
+			}
+		]
+	}
+
 	// Spec 1361: a crew asks to join the fleet. A clear deal: pay their debts, and the ship is yours.
 	{
 		ID = join_request
@@ -960,6 +1054,21 @@ Events
 			{
 				Text = "Not my problem."
 				Outcomes [ { Text = "\"We'll find someone.\" The channel closes." } ]
+			}
+		]
+	}
+
+	// Spec 92: the hail of a station under attack. No trigger: the station attack (Events/StationAttack.cs) opens it on the station.
+	{
+		ID = station_attack
+		MaxPerRun = 0
+		Title = "Mayday"
+		Text = "The station hails on every channel. \"Raiders! They hit our hull and they will not stop. Drive them off and we pay you well. If you stay out of it, keep clear of their guns, and mind your fire: a shot that hits the station counts against you.\""
+		Choices
+		[
+			{
+				Text = "Understood."
+				Outcomes [ { Text = "The station's guns open up on the raiders." } ]
 			}
 		]
 	}

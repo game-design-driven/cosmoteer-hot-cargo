@@ -83,6 +83,37 @@ public sealed class EventsTunables
     [Serialize(Optional = true)] public float RescueSunMargin = 300f;
     /// <summary>Rescue Beacon: game seconds that the tug flies off before it leaves the sim.</summary>
     [Serialize(Optional = true)] public float RescueTugLeaveSeconds = 20f;
+    /// <summary>Station attack (spec 90): chance on the first visit of a system, from this sector on, while the Pursuit pacer allows one.</summary>
+    [Serialize(Optional = true)] public float StationAttackChance = 0.2f;
+    [Serialize(Optional = true)] public int StationAttackMinSector = 2;
+    /// <summary>Station attack: the roll waits this many game seconds after the arrival, so it does not land on top of the Arrival event.</summary>
+    [Serialize(Optional = true)] public float StationAttackDelaySeconds = 40f;
+    /// <summary>Station attack: then it runs once, when a player ship's hull first comes within this distance of a trade station's hull.</summary>
+    [Serialize(Optional = true)] public float StationAttackTriggerDistance = 1500f;
+    /// <summary>Station attack: the share of the weapon parts of the station and its defense platforms that the raiders' first strike destroys, so the players' help matters.</summary>
+    [Serialize(Optional = true)] public float StationAttackGunsDown = 0.9f;
+    /// <summary>Station attack (spec 93): a player ship within this hull-to-hull distance of a raider is in its way.</summary>
+    [Serialize(Optional = true)] public float StationAttackInTheWayRange = 150f;
+    /// <summary>Station attack (spec 94): the raiders win when the station's health falls below this fraction.</summary>
+    [Serialize(Optional = true)] public float StationAttackFallHealth = 0.8f;
+    /// <summary>Station attack: game seconds after which the raiders give up and leave (the station holds).</summary>
+    [Serialize(Optional = true)] public float StationAttackMaxSeconds = 240f;
+    /// <summary>Station attack: the pay for help in event money units, and the reputation with the station's faction in reputation units.</summary>
+    [Serialize(Optional = true)] public float StationAttackReward = 1f;
+    [Serialize(Optional = true)] public float StationAttackReputation = 1f;
+    /// <summary>Station rebuild (spec 96): the station pulls in debris within this distance of its hull.</summary>
+    [Serialize(Optional = true)] public float StationRebuildRadius = 1000f;
+    /// <summary>Station rebuild: the speed of the debris piece that the station pulls in.</summary>
+    [Serialize(Optional = true)] public float StationRebuildPullSpeed = 40f;
+    /// <summary>Station rebuild: the station takes in parts of a piece within this hull-to-hull distance.</summary>
+    [Serialize(Optional = true)] public float StationRebuildReach = 20f;
+    /// <summary>Station rebuild: game seconds between two steps; each step takes in StationRebuildPartsPerStep debris parts.</summary>
+    [Serialize(Optional = true)] public float StationRebuildStepSeconds = 1f;
+    [Serialize(Optional = true)] public int StationRebuildPartsPerStep = 3;
+    /// <summary>Station rebuild: destroyed station parts that one debris part rebuilds.</summary>
+    [Serialize(Optional = true)] public float StationRebuildPerDebrisPart = 2f;
+    /// <summary>Station rebuild (spec 97): with no debris in reach for this many game seconds, the station rebuilds from its own stock.</summary>
+    [Serialize(Optional = true)] public float StationRebuildWaitSeconds = 60f;
     /// <summary>One relic ship per run holds 1 tech unit. Off: new runs get none.</summary>
     [Serialize(Optional = true)] public bool RelicEnabled = true;
     /// <summary>The relic ship appears in a random sector from this one up to the sector before the Buyer.</summary>

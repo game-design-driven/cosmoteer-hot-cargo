@@ -1,0 +1,35 @@
+# Crew breach (spec 1611, 1613): a crew member cuts a breach into a claimed hulk with no airlock (chat line), then the breach.
+# Windowed test slot (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+# Close the run intro.
+closepanel
+wait 1
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+ev_set HulkLootChance 0
+godmode on
+ev_abandoned
+ev_abandoned_goto 150
+pause off
+wait 3
+br_mark
+br_noairlocks hulk
+wait 1
+br_send 2 me hulk
+waitfor br_cutting >= 1 60
+wait 2
+pause on
+br_camera hulk 30
+wait 1
+screenshot breach-cutting
+pause off
+waitfor br_made == 1 20
+waitfor br_aboard_hulk >= 1 30
+pause on
+br_camera hulk 30
+wait 1
+screenshot breach-open
+quit

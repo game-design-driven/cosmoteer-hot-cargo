@@ -322,6 +322,33 @@ static class UxAutotest
     /// <summary>Spec 1569: jump warnings. A copy of the starter ship stands in for a captured ship (the starter ships have no hyperdrive).</summary>
     static void RegisterJumpWarnings()
     {
+        // jw_drive notech: single player. Builds a hyperdrive on the own ship without tech, so the tech carrier stays behind (spec 1602).
+        Autotest.Commands["jw_drive"] = arg =>
+        {
+            if (arg != "notech") throw new InvalidOperationException("jw_drive needs: notech");
+            var ship = Autotest.RequireRun().Game.Sim.Ships.LocalPlayerSignificantShips.OrderBy(s => s.UniqueID).FirstOrDefault(s => Vaults.ShipTech(s) == 0)
+                ?? throw new InvalidOperationException("no own ship without tech; run jw_twin spawn first");
+            Factions.FactionsAutotest.BuildDrive(ship);
+        };
+        // jw_gatejump: single player. Moves every own ship with a working hyperdrive to the relay toward the first unvisited neighbor and
+        // orders it to jump. fa_torelay and fa_gatejump act on the lowest ID ship, which is not always the one with the drive.
+        Autotest.Commands["jw_gatejump"] = _ =>
+        {
+            var run = Autotest.RequireRun();
+            if (run.IsMultiplayer) throw new InvalidOperationException("jw_gatejump is single player only");
+            var sim = run.Game.Sim;
+            var ships = sim.Ships.LocalPlayerSignificantShips.Where(s => s.Ftl.HasFtlDrives).OrderBy(s => s.UniqueID).ToList();
+            if (ships.Count == 0) throw new InvalidOperationException("no own ship with a working hyperdrive");
+            var gate = Factions.FactionsAutotest.Gate();
+            foreach (var ship in ships) Autotest.Teleport(ship, Autotest.ClearSpotNear(sim, gate.DetWorldCenter, 700f, ship.WorldBoundingRadius));
+            // The relay leaves stasis when a ship comes near it. Ask again each time: the lookup returns a new object then.
+            Autotest.WaitFor(() => Factions.FactionsAutotest.Gate().PhysicalShip is not null, 20, "the relay to leave stasis", () =>
+            {
+                foreach (var ship in ships) Factions.FactionsAutotest.OrderGateJump(ship);
+                Log.Info($"AUTOTEST ux: {ships.Count} ships with a hyperdrive ordered to jump");
+            });
+        };
+        Autotest.Fields["jw_ready"] = () => Autotest.RequireRun().Game.Sim.Ships.LocalPlayerSignificantShips.Count(s => s.Ftl.IsReadyToJump);
         // jw_twin save|spawn: single player. save keeps the design of the acting ship; spawn adds a crewed copy of it as an own ship nearby.
         Autotest.Commands["jw_twin"] = arg =>
         {

@@ -18,10 +18,8 @@ tipshow jumpship
 wait 1
 screenshot jump-02-hover
 tipclear
-fa_torelay
-wait 2
-fa_gatejump
-waitfor fa_ready == 1 120
+jw_gatejump
+waitfor jw_ready >= 1 120
 fa_set BlindFuelFactor 100
 fa_blind on
 wait 3
@@ -30,8 +28,8 @@ wait 1
 screenshot jump-03-window-too-big
 tipclear
 fa_blind off
-fa_gatejump
-waitfor fa_ready == 1 120
+jw_gatejump
+waitfor jw_ready >= 1 120
 wait 1
 screenshot jump-04-window
 jw_engage

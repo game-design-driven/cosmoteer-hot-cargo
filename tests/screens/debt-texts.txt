@@ -1,0 +1,28 @@
+# Debt texts (spec 1402, 1412, 1419): a station's loan page, then the money tooltip and the heat panel with two debts. Windowed test slot.
+render on
+newgame run
+wait 10
+ev_set Enabled false
+closepanel
+godmode on
+debt_set LoanStationChance 1
+debt_goto loan
+wait 3
+pause on
+debt_look loan
+debt_open_page
+debt_open loan
+wait 2
+screenshot debt-page-loan
+debt_close
+pause off
+pu_setmoney 100
+debt_spend 9100
+wait 2
+debt_owe other 5000
+wait 1
+pause on
+tipshow money
+wait 2
+screenshot debt-tip
+quit

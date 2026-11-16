@@ -1,0 +1,63 @@
+# The scientist (spec 486 to 499): research, defection, and the fair duel with the partner of a scientist who died. Each roll is fixed by
+# its chance (1 or 0).
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+ev_set CooldownSeconds 0
+godmode on
+pause off
+fr_set ScientistMinutes 0.1
+fr_set PartnerMinutes 0.1
+# The starter fleet has no free bunk; the offer needs one.
+fr_free_bunk
+# Spec 488: research. One tech unlocks.
+fr_set ScientistResearchChance 1
+event scientist
+choose 1
+expect sc_scientists == 1
+sc_mark
+waitfor sc_scientists == 0 30
+expect sc_techs_delta == 1
+# Spec 489: defection. At the next ship nearby they take the processors, go over and join its crew.
+fr_set ScientistResearchChance 0
+sc_processors 5
+fr_free_bunk
+event scientist
+choose 1
+sc_mark
+waitfor sc_phase == 1 30
+dip_spawn friend 300
+waitfor sc_phase == 2 10
+expect sc_processors_delta == -5
+waitfor sc_scientists == 0 60
+expect sc_landed == 1
+# Spec 490 to 492, 494, 496: a scientist dies aboard; the partner comes and challenges; a fair duel; the partner yields and joins.
+fr_set ScientistMinutes 10
+event scientist
+choose 1
+sc_kill
+waitfor sc_partner == 1 5
+waitfor sc_partner == 2 30
+expectevent scientist_partner
+ev_carrier_goto
+ev_comms carrier We accept
+expect sc_partner == 3
+expect sc_hostile == 1
+sc_hurt
+waitfor sc_partner == 4 10
+expect sc_hostile == 0
+waitfor ev_pending == 1 10
+expectevent scientist_partner_yield
+fr_set PartnerResearchChance 1
+fr_set ScientistMinutes 0.1
+# Shots of the duel that are still in flight can kill crew; let them land first.
+wait 5
+ev_comms carrier Welcome aboard
+expect sc_partner == 0
+expect sc_scientists == 1
+sc_mark
+waitfor sc_scientists == 0 30
+expect sc_techs_delta == 1
+quit

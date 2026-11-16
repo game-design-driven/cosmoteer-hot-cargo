@@ -27,7 +27,9 @@ public static class DebtArea
         Run.Hooks.SystemEntered += DebtTick.OnSystemEntered;
         var score = Run.Hooks.ScoreAdjust;
         Run.Hooks.ScoreAdjust = (run, s) => DebtModel.Score(score(run, s), run.State.Debt.Total, run.T.Debt.ScoreDebtFactor);
-        HeatPanel.ExtraLines.Add(PanelLines);
+        // Spec 1425: time heat rises a little faster while anyone in the crew owes money. Not shown on the heat panel.
+        var timeHeat = Run.Hooks.TimeHeatFactor;
+        Run.Hooks.TimeHeatFactor = run => timeHeat(run) * (run.State.Debt.Debts.Count > 0 ? run.T.Debt.DebtHeatFactor : 1f);
         RegisterAutotest();
     }
 
@@ -59,28 +61,6 @@ public static class DebtArea
             + "\n" + Format("MoneyTipStagesFmt", t.FirmRatio.ToString("0.#"), t.HostileRatio.ToString("0.#"));
     }
 
-    /// <summary>Spec 1412: one heat panel line for each debt of the local player.</summary>
-    static string? PanelLines(Run run)
-    {
-        var s = run.State.Debt;
-        var mine = s.OfPlayer(run.Game.LocalPlayerIndex).ToList();
-        if (mine.Count == 0 || run.Game.Sim is not { } sim) return null;
-        double now = run.State.GameSeconds;
-        return string.Join("\n", mine.Select(d =>
-        {
-            string name = Lenders.Name(d.Faction);
-            var stage = Lenders.StageOf(run, d);
-            string next = Lenders.Wants(sim, d.Faction) ? Format("PanelHunted")
-                : s.Collectors.Any(c => c.Faction == d.Faction && c.Player == d.Player) ? Text("PanelCollectorHere")
-                : run.State.Result != RunResult.Running ? ""
-                : Format("PanelCollectorFmt", Pursuit.PursuitModel.Clock(Math.Max(0, d.NextCollectorAt - now)));
-            string interest = run.State.Result != RunResult.Running ? ""
-                : Format("PanelInterestFmt", (run.T.Debt.InterestRate * d.RateFactor * 100f).ToString("0.#"), Pursuit.PursuitModel.Clock(Math.Max(0, d.NextInterestAt - now)));
-            string line = Format("PanelFmt", d.Balance.ToString("N0"), name, Lenders.Ratio(d).ToString("0.0"), interest, next);
-            return stage switch { DebtStage.Hostile => $"<bad>{line}</bad>", DebtStage.Firm => $"<limited_color>{line}</limited_color>", _ => line };
-        }));
-    }
-
     static Run R() => Autotest.RequireRun();
 
     static SimRoot Sim() => R().Game.Sim;
@@ -110,6 +90,8 @@ public static class DebtArea
     }
 
     static long _marked;
+    static float _heatMark = 1f;
+    static int _noticeMark;
     static string _looked = "loan";
 
     /// <summary>The comms page of the ship that debt_look named, as the dialogue tab gets it for the acting ship.</summary>
@@ -166,7 +148,8 @@ public static class DebtArea
         Autotest.Fields["debt_loan_stations"] = () => Stations().Count(s => Lenders.OffersLoan(R(), s, Autotest.ActingPlayerIndex));
         Autotest.Fields["debt_loan_credits"] = () => DebtDeals.LoanCredits(R());
         Autotest.Fields["debt_collector_in"] = () => First().NextCollectorAt - R().State.GameSeconds;
-        Autotest.Fields["debt_panel"] = () => HeatPanel.ExtraText.Contains(Lenders.Name(First().Faction), StringComparison.Ordinal) ? 1 : 0;
+        // Spec 1412: 1 when the heat panel shows no debt line (debt shows in the money tooltip, spec 1419).
+        Autotest.Fields["debt_panel_clean"] = () => HeatPanel.ExtraText.Contains(Lenders.Name(First().Faction), StringComparison.Ordinal) ? 0 : 1;
         // Spec 1411: (money + held units × the Buyer price − the score) ÷ the debt. The debt factor when the score counts the debt.
         Autotest.Fields["debt_score_factor"] = () =>
         {
@@ -231,6 +214,10 @@ public static class DebtArea
         };
         // debt_limits: logs the credit limit of tiers 1 to 8 (the scale for the PR text).
         Autotest.Commands["debt_limits"] = _ => Log.Info("AUTOTEST debt limits: " + string.Join(", ", Enumerable.Range(1, 8).Select(t => $"tier {t} {Lenders.CreditLimit(R(), t):N0}")));
+        // Spec 1425, 1426: debt_mark_pressure notes the time heat factor and the interest notices; the fields give the change since.
+        Autotest.Commands["debt_mark_pressure"] = _ => { _heatMark = Run.Hooks.TimeHeatFactor(R()); _noticeMark = DebtTick.InterestNotices; };
+        Autotest.Fields["debt_heat_ratio"] = () => Run.Hooks.TimeHeatFactor(R()) / _heatMark;
+        Autotest.Fields["debt_notices"] = () => DebtTick.InterestNotices - _noticeMark;
         Autotest.Fields["debt_hail_due"] = () => Mine().HailAt is null ? 0 : 1;
         Autotest.Fields["debt_overdraft_collectors"] = () => R().State.Debt.Collectors.Count(c => c.Overdraft);
         // The acting player's lenders whose name and balance the money tooltip shows.

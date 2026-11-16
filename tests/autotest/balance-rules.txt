@@ -19,6 +19,10 @@ expect peaktier == 1
 # Spec 304: every trade station keeps the fuel floor (tier 1: 10 fuel), the stations near the start too.
 expect balance_station_fuel_floor == 10
 expect balance_station_fuel_gap >= 0
+# The crew of a station move fuel between its own tiles. Vanilla shows less fuel for sale until they drop it, but the station
+# still holds the floor (the held fuel stays the same, balance_station_fuel_move checks it).
+balance_station_fuel_move
+expect balance_station_fuel_gap >= 0
 balance_visit 1
 wait 3
 balance_visit 2
