@@ -722,6 +722,30 @@ Events
 
 	// ---- Friendly encounters (spec 1360 and later). Ships that carry their page and ask for something.
 
+	// Spec 480 to 485: a ship pays the players to take a troublemaker aboard. 30 %: a thief who steals at the next station visit.
+	{
+		ID = troublemaker
+		Trigger = Arrival
+		Weight = 5
+		// Only a fleet with a free bunk gets the offer: the troublemaker needs a place to sleep.
+		Need { Bunks = 1 }
+		Carrier = Recruit
+		Title = "The Troublemaker"
+		Text = "A tired captain hails you. \"We have a troublemaker aboard, and my crew wants them gone before somebody gets hurt. Take them off our hands and we pay you for it. They can work. Mostly.\""
+		Choices
+		[
+			{
+				Text = "Take them aboard."
+				Need { Bunks = 1 }
+				Outcomes [ { Text = "The troublemaker drifts over with one bag and a grin. The captain looks very relieved."; Effect = troublemaker } ]
+			}
+			{
+				Text = "Not our problem."
+				Outcomes [ { Text = "\"Can't blame you.\" The captain cuts the channel."; Effect = leave } ]
+			}
+		]
+	}
+
 	// Spec 1361: a crew asks to join the fleet. A clear deal: pay their debts, and the ship is yours.
 	{
 		ID = join_request

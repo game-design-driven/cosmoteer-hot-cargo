@@ -13,6 +13,8 @@ public sealed class FriendlyState
     [Serialize(Optional = true)] public List<ObjectID> Wayfarers = [];
     /// <summary>Systems where the Wayfarers' help roll already ran (spec 1370): one roll per system for the run.</summary>
     [Serialize(Optional = true)] public HashSet<ObjectID> HelpRolled = new();
+    /// <summary>Troublemakers aboard that have not reached a station yet (spec 480 to 485).</summary>
+    [Serialize(Optional = true)] public List<TroublemakerState> Troublemakers = [];
     /// <summary>Total part health of the players' ships at the last help check (spec 1370), or -1 before the first.</summary>
     [Serialize(Optional = true)] public long PlayerHealth = -1;
     /// <summary>True once the Wayfarers came in this run (spec 1370): they come at most once per run.</summary>
@@ -49,4 +51,17 @@ public sealed class ApprenticeState
     [Serialize] public double Until;
     /// <summary>Enemy ships that died near it.</summary>
     [Serialize] public int Fights;
+}
+
+/// <summary>A troublemaker that a player took aboard (spec 481).</summary>
+[ReflectiveSerialization(Explicit = true)]
+public sealed class TroublemakerState
+{
+    [Serialize] public ObjectID Soul;
+    [Serialize] public int Player;
+    /// <summary>The pay that the player got, in credits. A thief steals TroublemakerTheftFactor times this.</summary>
+    [Serialize] public int Pay;
+    /// <summary>The result of the roll when they joined (spec 482).</summary>
+    [Serialize] public bool Thief;
+    [Serialize] public string Name = "";
 }
