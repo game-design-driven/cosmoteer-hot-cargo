@@ -53,6 +53,8 @@ public sealed class TelemetryTunables
     [Serialize(Optional = true)] public float ScanSeconds = 5f;
     /// <summary>Game seconds without damage to the players or their enemies that end a fight (combat.fight).</summary>
     [Serialize(Optional = true)] public float FightGapSeconds = 90f;
+    /// <summary>A player ship with a move order to a point at least this far away travels (time use, spec 1761).</summary>
+    [Serialize(Optional = true)] public float TravelMinDistance = 1500f;
     /// <summary>A ship logs at most one AI module switch per this many game seconds.</summary>
     [Serialize(Optional = true)] public float AiSwitchMinSeconds = 3f;
     /// <summary>At most this many AI switch events per real minute, over all ships. The sums in snapshots count every switch.</summary>
@@ -99,6 +101,7 @@ public sealed class TelemetryTunables
         require(AccrualSeconds >= 0.5f, "Telemetry.AccrualSeconds must be 0.5 or more");
         require(ScanSeconds >= 1, "Telemetry.ScanSeconds must be 1 or more");
         require(FightGapSeconds >= 5, "Telemetry.FightGapSeconds must be 5 or more");
+        require(TravelMinDistance >= 0, "Telemetry.TravelMinDistance must not be negative");
         require(AiSwitchMinSeconds >= 0 && AiEventsPerMinute >= 0 && CallerLookupsPerSecond >= 0, "Telemetry rate limits must not be negative");
         require(MaxFileMegabytes >= 1 && MaxFolderMegabytes >= MaxFileMegabytes, "Telemetry.MaxFileMegabytes must be 1 or more and at most MaxFolderMegabytes");
         require(TraceMethods.All(m => m.Contains(':')), "Telemetry.TraceMethods entries need the form Namespace.Type:Method");

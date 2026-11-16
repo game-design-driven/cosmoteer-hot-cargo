@@ -94,6 +94,12 @@ sealed class Session
 
     // ---- Fights (spec 1588) and the loss timer state (spec 1590)
     FightJoiner? _fights;
+
+    // ---- Time use of the stay (spec 1760 to 1763): sampled every UseSampleSeconds of sim time, the sample's activity takes the time since the last one.
+    const double UseSampleSeconds = 0.5;
+    readonly TimeUse _stayUse = new(), _sessionUse = new();
+    readonly Lock _useGate = new();
+    double _lastUseSample;
     readonly Lock _fightGate = new();
     string _lossTimer = "";
 
@@ -393,6 +399,7 @@ sealed class Session
             ScanOffers(sim);
             ScanStasis(sim);
         }
+        if (_simSeconds - _lastUseSample >= UseSampleSeconds) SampleUse(sim);
         if (_snapAfterEntry && sim.Ships.HumanPlayerShips.Any())
         {
             _snapAfterEntry = false;
@@ -536,6 +543,29 @@ sealed class Session
 
     internal void FightCrewDied() { lock (_fightGate) Fights.AddCrewDeath(); }
 
+    /// <summary>Spec 1761: a combat.fight is open and its last damage window is at most AccrualSeconds old.</summary>
+    internal bool InFight
+    {
+        get { lock (_fightGate) return Fights.Current is { } f && Run.State.GameSeconds - f.End <= T.AccrualSeconds; }
+    }
+
+    /// <summary>Gives the sim seconds since the last sample to the activity that the signals show now.</summary>
+    void SampleUse(SimRoot sim) => AddUse(ActivitySignalsReader.Read(this, sim));
+
+    void AddUse(ActivitySignals signals)
+    {
+        double dt = _simSeconds - _lastUseSample;
+        _lastUseSample = _simSeconds;
+        lock (_useGate) { _stayUse.Add(signals, dt); _sessionUse.Add(signals, dt); }
+    }
+
+    internal double SessionUse(Activity a) { lock (_useGate) return _sessionUse[a]; }
+
+    void WriteUse(Utf8JsonWriter w, string prefix = "")
+    {
+        lock (_useGate) _stayUse.Write(w, prefix);
+    }
+
     void CloseFight()
     {
         Fight? ended;
@@ -592,6 +622,7 @@ sealed class Session
         _jumpHeatKept = Run.Hooks.JumpHeatKept(Run);
         // The ships are in jump limbo now, so the fleet tech count drops to 0 until they arrive.
         AddTechHint("jump");
+        if (Game.Sim is { } stay) SampleUse(stay);
         CloseFight();
         // Spec 1582: the ships in jump limbo jump; the human ships still in the old system stay behind.
         var path = FleetTelemetry.JumpPath(Game);
@@ -604,6 +635,7 @@ sealed class Session
             w.WriteString("kind", _jumpKind);
             Tele.Num(w, "heat_kept", _jumpHeatKept);
             Tele.Num(w, "stay_s", _simSeconds - _enteredSim);
+            WriteUse(w);
             w.WriteNumber("open_contracts", ContractBook.Open(Run).Count());
             TelemetryModel.WriteJumpShips(w, "jumped", jumped.Select(sh => FleetTelemetry.JumpShipOf(sh, path)));
             TelemetryModel.WriteJumpShips(w, "left", left.Select(sh => FleetTelemetry.JumpShipOf(sh, path)));
@@ -617,6 +649,8 @@ sealed class Session
         string from = s._system;
         double staySim = s._simSeconds - s._enteredSim, stayReal = s.RealSeconds - s._enteredReal;
         int done = s._missionsDoneInSystem, accepted = s._missionsAcceptedInSystem;
+        // The sim seconds of the jump itself (since the last sample of the old system) count as travel of the old stay.
+        s.AddUse(new ActivitySignals(Fight: false, Build: false, Trade: false, Travel: true, Repair: false));
         s.RefreshPlace();
         Tele.Emit(Cat.Run, "system.enter", w =>
         {
@@ -624,6 +658,7 @@ sealed class Session
             w.WriteBoolean("first_visit", firstVisit);
             Tele.Num(w, "prev_stay_s", staySim);
             Tele.Num(w, "prev_stay_real_s", stayReal);
+            s.WriteUse(w, "prev_");
             w.WriteNumber("prev_missions_done", done);
             w.WriteNumber("prev_missions_accepted", accepted);
             Tele.Num(w, "heat_before", s._heatBeforeJump);
@@ -637,6 +672,7 @@ sealed class Session
         s._snapAfterEntry = true;
         s._enteredSim = s._simSeconds;
         s._enteredReal = s.RealSeconds;
+        lock (s._useGate) s._stayUse.Reset();
         s._missionsDoneInSystem = s._missionsAcceptedInSystem = 0;
         s._offersSeen.Clear();
         s._nextScan = s._simSeconds + 2;
@@ -1006,6 +1042,8 @@ sealed class Session
         {
             var s = Run.State;
             w.WriteString("why", why);
+            Tele.Num(w, "stay_s", _simSeconds - _enteredSim);
+            WriteUse(w);
             w.WriteString("result", s.Result.ToString());
             w.WriteNumber("stages", s.StagesStarted);
             Tele.Num(w, "notoriety", s.Notoriety);

@@ -227,3 +227,36 @@ public class RelayModelTests
         Assert.Equal(40, RelayModel.FolderName(new string('a', 99)).Length);
     }
 }
+
+public class TimeUseTests
+{
+    [Fact]
+    public void The_priority_rule_picks_one_activity()
+    {
+        Assert.Equal(Activity.Fight, TimeUse.Pick(new(true, true, true, true, true)));
+        Assert.Equal(Activity.Build, TimeUse.Pick(new(false, true, true, true, true)));
+        Assert.Equal(Activity.Trade, TimeUse.Pick(new(false, false, true, true, true)));
+        Assert.Equal(Activity.Travel, TimeUse.Pick(new(false, false, false, true, true)));
+        Assert.Equal(Activity.Repair, TimeUse.Pick(new(false, false, false, false, true)));
+        Assert.Equal(Activity.Idle, TimeUse.Pick(default));
+    }
+
+    [Fact]
+    public void The_sums_add_up_to_the_stay_and_overlaps_show_apart()
+    {
+        var t = new TimeUse();
+        t.Add(new(false, false, false, true, true), 30);
+        t.Add(new(true, false, false, false, false), 10);
+        t.Add(default, 5);
+        t.Add(new(false, false, false, false, true), 0);
+        Assert.Equal(45, t.Total);
+        Assert.Equal(30, t[Activity.Travel]);
+        Assert.Equal(0, t[Activity.Repair]);
+        Assert.Equal(30, t.Any(Activity.Repair));
+        Assert.Equal(5, t[Activity.Idle]);
+        var copy = t.Copy();
+        t.Reset();
+        Assert.Equal(0, t.Total);
+        Assert.Equal(45, copy.Total);
+    }
+}
