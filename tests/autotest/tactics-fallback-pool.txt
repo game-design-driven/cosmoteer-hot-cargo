@@ -25,7 +25,9 @@ aiset FallBackTripSeconds 600
 openspace 6000
 # Roaming pirates would attack the player ship; a lost player ship sends every AI ship into stasis.
 fr_kill_enemies
-aispawn monolith 1
+# A fixed hull: on Linux CI a random Iota became a wreck during its pool repair, the same way in each run (#184, #188).
+# Cartridge is the hull of the last green full suite.
+aispawn monolith 1 1 hull=Cartridge
 aispawn monolith 1 3 trade
 # Every other ship of the test's sides and every other enemy of the players leave the system (#184): the patrols of the test
 # world turned hostile with the test's war and fought the player ship.
