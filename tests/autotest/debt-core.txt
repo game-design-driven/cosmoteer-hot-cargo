@@ -28,17 +28,28 @@ expect debt_page_debt_parts == 0
 ev_set Enabled false
 debt_open_page
 debt_page loan
+debt_mark_pressure
 debt_loan
 wait 1
 expect debt_count == 1
 expect debt_ratio == 1
+# Spec 1425: time heat × DebtHeatFactor (1.1) while anyone owes money.
+expect debt_heat_ratio > 1.09
+expect debt_heat_ratio < 1.11
 expect debt_principal > 0
-# Two interest steps: 1.05 x 1.05.
+# Two interest steps in one tick: 1.05 x 1.05, one combined notice (spec 1426).
+debt_mark_pressure
 debt_age 1200
 wait 1
 expect debt_ratio > 1.1
 expect debt_ratio < 1.11
-waitfor debt_panel == 1 5
+expect debt_notices == 1
+# One more step later: one more notice.
+debt_age 600
+wait 1
+expect debt_notices == 2
+# Spec 1412: the heat panel shows no debt line.
+expect debt_panel_clean == 1
 # A payment at the lender's station.
 debt_goto lender
 wait 1
