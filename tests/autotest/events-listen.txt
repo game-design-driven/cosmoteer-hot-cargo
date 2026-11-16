@@ -40,7 +40,8 @@ expect ev_listening == 0
 expect ev_heat_gain < 1
 expect ev_heat_gain > -1
 expect ev_listened == 0
-# A full listen (forced success): heat -4, and the ship is heard.
+# A full listen (forced success): heat -4, and the ship is heard. A short listen, so the faction ship has no time to fly off.
+ev_set ListenSeconds 3
 ev_faction_goto 150
 wait 2
 ev_mark
@@ -51,8 +52,10 @@ waitfor ev_listening == 0 20
 expect ev_heat_gain <= -3
 expect ev_listened == 1
 expect ev_faction_heard == 1
-# A failure (forced): heat +5.
+# A failure (forced): heat +5. Back next to the faction ship first: it moved on since the last listen.
 ev_listen_forget
+ev_faction_goto 150
+wait 2
 ev_mark
 ev_listen_force 0
 ev_listen

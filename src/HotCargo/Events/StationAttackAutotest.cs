@@ -27,17 +27,23 @@ static class StationAttackAutotest
     static long PlayerHealth() => Sim().Ships.HumanPlayerSignificantShips.Sum(p => p.Parts.Sum(x => (long)x.Health));
 
     /// <summary>Parts of the unclaimed debris within the rebuild radius of the station (spec 96).</summary>
-    static int DebrisParts(Ship station)
+    static List<Ship> DebrisPieces(Ship station)
     {
         var run = R();
         var reach = DebrisArea.TractorReach(Sim(), run.T.Debris.TractorMargin);
-        return Sim().Ships.Where(x => DebrisArea.Unclaimed(run, x, reach) && Hunters.HunterOrders.EdgeDistance(x, station) <= run.T.Events.StationRebuildRadius)
-            .Sum(x => x.Parts.Count);
+        return Sim().Ships.Where(x => DebrisArea.Unclaimed(run, x, reach) && Hunters.HunterOrders.EdgeDistance(x, station) <= run.T.Events.StationRebuildRadius).ToList();
     }
+
+    static int DebrisParts(Ship station) => DebrisPieces(station).Sum(x => x.Parts.Count);
+
+    /// <summary>Parts of the ships that sa_mark saw near the station, as they are now (a piece that is gone counts 0). Pieces that drift in later do not count.</summary>
+    static int MarkedPieceParts() => _pieces.Sum(id => Sim().Ships[id]?.Parts.Count ?? 0);
 
     static Cosmoteer.Game.ObjectID? _station;
     static long _health, _money;
     static int _debris, _destroyed;
+    static List<Cosmoteer.Game.ObjectID> _pieces = [];
+    static int _pieceParts;
 
     internal static void Register()
     {
@@ -72,7 +78,12 @@ static class StationAttackAutotest
         {
             _health = PlayerHealth();
             _money = Money();
-            _debris = DebrisParts(Station());
+            // Every other ship near the station, also a wreck that still has crew: it can become unclaimed debris later.
+            var station = Station();
+            var pieces = Sim().Ships.Where(x => x != station && !x.IsHumanPlayerShip && Hunters.HunterOrders.EdgeDistance(x, station) <= R().T.Events.StationRebuildRadius).ToList();
+            _pieces = pieces.Select(x => x.UniqueID).ToList();
+            _debris = DebrisParts(station);
+            _pieceParts = pieces.Sum(x => x.Parts.Count);
             _destroyed = Station().DestroyedParts.Count;
             Log.Info($"AUTOTEST station attack mark: debris {_debris}, destroyed {_destroyed}, money {_money}");
         };
@@ -127,7 +138,10 @@ static class StationAttackAutotest
         Autotest.Fields["sa_taken"] = () => A().DebrisTaken;
         Autotest.Fields["sa_rebuilt"] = () => A().Rebuilt;
         Autotest.Fields["sa_debris"] = () => DebrisParts(Station());
-        Autotest.Fields["sa_debris_drop"] = () => _debris - DebrisParts(Station());
+        // The parts that the marked debris pieces lost: other wreck pieces can drift into the rebuild radius meanwhile.
+        // Destroyed station parts that came back since sa_mark.
+        Autotest.Fields["sa_destroyed_drop"] = () => _destroyed - Station().DestroyedParts.Count;
+        Autotest.Fields["sa_debris_drop"] = () => _pieceParts - MarkedPieceParts();
         Autotest.Fields["sa_player_lost"] = () => _health - PlayerHealth();
         Autotest.Fields["sa_station_tag"] = () => StationAttack.Tag(A(), A().Station) is null ? 0 : 1;
         Autotest.Fields["sa_pacer"] = () => Pursuit.Pacer.Count(R(), Pursuit.PacedKinds.StationAttack);

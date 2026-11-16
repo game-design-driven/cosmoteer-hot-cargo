@@ -35,7 +35,8 @@ wait 22
 hunters late_all
 expect hunterwaves == 5
 expect hunterspending == 0
-expect hunterfuelmin >= 40
+# The last wave carries its fuel. An older hunter may have spent some on its own drive already.
+expect hunterfuelmin_new >= 40
 # Waiting groups survive a save and load.
 stageset Strike WaveGapSeconds 60
 spawnstage Strike

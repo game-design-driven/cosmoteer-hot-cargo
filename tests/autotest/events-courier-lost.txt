@@ -1,4 +1,5 @@
 # Courier Job (spec 1103): the job fails when the sealed case is gone from the fleet and the system.
+# missions: random
 newgame run
 wait 8
 # The fleet must keep its hold: a random fight at the station or the arrival gate can destroy the case or the beacon.

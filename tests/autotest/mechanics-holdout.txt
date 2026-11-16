@@ -1,4 +1,5 @@
 # Hold-outs (spec 132, 137): the clock runs only with a human ship on station, waves spawn while guarded, completion and failure.
+# missions: random
 newgame run
 wait 8
 ev_set Enabled false

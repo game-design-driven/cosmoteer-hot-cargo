@@ -49,7 +49,7 @@ public sealed class Hacker : IHailProvider, ISharedChoiceDomain
         s.Hacker = null;
         if (!firstVisit || !t.Enabled || run.State.SectorIndex < t.HackerMinSector || run.State.SectorIndex >= run.T.Journey.RunSectorCount) return;
         if (!Pacer.MayStart(run, PacedKinds.Hacker)) return;
-        var rand = Outage.SectorRand(run, 0x4841_434B_4552UL);
+        var rand = run.SectorRand(0x4841_434B_4552UL);
         if (rand.Single() >= t.HackerChance) return;
         s.HackerDueAt = run.State.GameSeconds + t.HackerDelayMin + rand.Single() * (t.HackerDelayMax - t.HackerDelayMin);
         Log.Info($"pursuit: hacker rolled for {s.HackerDueAt:0}s");
