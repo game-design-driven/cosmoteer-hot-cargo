@@ -5,11 +5,13 @@ using Halfling.Serialization;
 
 namespace HotCargo.Debt;
 
-/// <summary>One debt to one lender (spec 1401). Times are <see cref="Core.RunState.GameSeconds"/>.</summary>
+/// <summary>One player's debt to one lender (spec 1401). Times are <see cref="Core.RunState.GameSeconds"/>.</summary>
 [ReflectiveSerialization(Explicit = true)]
 public sealed class Debt
 {
     [Serialize] public string Faction = "";
+    /// <summary>The human player index of the player who owes it.</summary>
+    [Serialize(Optional = true)] public int Player;
     [Serialize] public long Principal;
     [Serialize] public long Balance;
     [Serialize] public double NextInterestAt;
@@ -20,6 +22,8 @@ public sealed class Debt
     [Serialize] public bool WasWanted;
     /// <summary>Spec 1421: the interest of this debt is InterestRate × this. A refinanced debt has a lower factor.</summary>
     [Serialize(Optional = true)] public float RateFactor = 1f;
+    /// <summary>Spec 1418: when the lender of an overdraft debt gets in touch, or null when no hail is due.</summary>
+    [Serialize(Optional = true)] public double? HailAt;
 
     public ID<FactionRules> FactionId => new(Faction);
 }
@@ -30,6 +34,10 @@ public sealed class Collector
 {
     [Serialize] public ObjectID Ship;
     [Serialize] public string Faction = "";
+    /// <summary>The player who owes the debt that this collector asks for.</summary>
+    [Serialize(Optional = true)] public int Player;
+    /// <summary>Spec 1418: the collector came because an overdraft debt crossed the hail limit.</summary>
+    [Serialize(Optional = true)] public bool Overdraft;
     [Serialize] public bool Hailed;
     [Serialize] public double LeaveAt;
 }
@@ -53,7 +61,7 @@ public sealed class HelpGroup
 [ReflectiveSerialization(Explicit = true)]
 public sealed class DebtState
 {
-    /// <summary>One debt for each lender, in the order the players took them (a stable order for the tick).</summary>
+    /// <summary>One debt for each player and lender, in the order they started (a stable order for the tick).</summary>
     [Serialize] public List<Debt> Debts = [];
     [Serialize] public List<Collector> Collectors = [];
     /// <summary>Spec 1422: the systems (map node IDs) that offered a Collect a Debt job.</summary>
@@ -62,7 +70,9 @@ public sealed class DebtState
     [Serialize(Optional = true)] public List<ObjectID> HelpSystems = [];
     [Serialize(Optional = true)] public HelpGroup? Help;
 
-    public Debt? Of(string faction) => Debts.FirstOrDefault(d => d.Faction == faction);
+    public Debt? Of(string faction, int player) => Debts.FirstOrDefault(d => d.Faction == faction && d.Player == player);
+
+    public IEnumerable<Debt> OfPlayer(int player) => Debts.Where(d => d.Player == player);
 
     public long Total => Debts.Sum(d => d.Balance);
 }

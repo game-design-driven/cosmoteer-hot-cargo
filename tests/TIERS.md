@@ -57,6 +57,7 @@ The prune of 2026-11-14 classified every game test with evidence: git history (f
 | debris-decay | KEEP | Debris smoke test; it deletes world objects. | 55 |
 | debt-core | KEEP | New complex feature: loan, collectors, wanted state. | - |
 | debt-missions | KEEP | Mission payout hooks and refinance offer. | - |
+| debt-overdraft | KEEP | Money below 0 becomes a player's debt; the lender's hail timing and limit; co-op money is per player. | - |
 | debt-help | KEEP | New complex feature: help spawns in a fight, real hits of both sides count, the hail and each answer. | - |
 | diplomacy-friends | KEEP | Start-world fix elsewhere. | 67 |
 | diplomacy-demand-odds | 50 s | a damaged enemy does not demand from a stronger fleet; far allies do not count | vanilla dialogue rule, sim positions | RiskModel | keep |

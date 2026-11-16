@@ -161,7 +161,7 @@ static class UxAutotest
         // logselect [text]: selects the mission in the open mission log whose name contains text, else the first.
         Autotest.Commands["logselect"] = arg =>
             SelectMission(Autotest.RequireRun().Mode._missionLog ?? throw new InvalidOperationException("no mission log; run missionlog open first"), arg, null);
-        // tipshow map|mapcur|station|fame|item|text <xml>: shows that tooltip (item: the shown item action button, spec 1111) at a fixed spot, for screenshots. The capture hides hover
+        // tipshow map|mapcur|station|fame|money|item|text <xml>: shows that tooltip (item: the shown item action button, spec 1111) at a fixed spot, for screenshots. The capture hides hover
         // tooltips, because the real cursor rests somewhere over the hidden window. tipclear removes it.
         Autotest.Commands["tipshow"] = arg =>
         {
@@ -173,6 +173,7 @@ static class UxAutotest
                 "mapcur" => run.Mode.GetMapNodeToolTip(run.Game.CurrentMapNode) ?? "",
                 "station" => run.Game.Sim.Mode.GetShipMouseOverText(TechAutotest.NearestStation()),
                 "fame" => Walk(run.Game.Gui.RootWidget).OfType<Cosmoteer.Game.Gui.PlayerFameLabel>().First().ToolTips.TextProvider?.Text ?? "",
+                "money" => Walk(run.Game.Gui.RootWidget).OfType<Cosmoteer.Game.Gui.PlayerMoneyLabel>().First().ToolTips.TextProvider?.Text ?? "",
                 "item" => Walk(run.Game.Gui.RootWidget).OfType<Events.ItemActionButton>().FirstOrDefault(b => b.SelfActive)?.ToolTips.TextProvider?.Text
                     ?? throw new InvalidOperationException("no item action button shows"),
                 "text" when parts.Length == 2 => parts[1],
@@ -180,7 +181,7 @@ static class UxAutotest
                 "jumpship" => run.Game.Sim.Mode.GetShipMouseOverText(run.Game.Sim.Ships.LocalPlayerSignificantShips.OrderBy(s => s.UniqueID)
                     .FirstOrDefault(s => JumpWarnings.Standing(run.Game, s).Reason != StayReason.None) ?? throw new InvalidOperationException("no own ship stays behind")),
                 "jumptip" => JumpWarnings.WindowTip(run.Game, FirstStaying(run)),
-                _ => throw new InvalidOperationException("tipshow needs: map | mapcur | station | fame | item | jumpship | jumptip | text <xml>"),
+                _ => throw new InvalidOperationException("tipshow needs: map | mapcur | station | fame | money | item | jumpship | jumptip | text <xml>"),
             };
             TipClear(run.Game.Gui);
             var screen = run.Game.Gui.RootWidget.ScreenRect;
