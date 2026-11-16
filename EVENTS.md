@@ -117,7 +117,7 @@ Reads as: tech, money or blood. Vault damage destroys tech, so the fight risks t
 
 #### 8. Freighter Under Fire (Arrival, sector 2+)
 A freighter with failing shields and two raiders (tier − 1), 2,000 to 2,600 away.
-- Help: a "Freighter Under Fire" mission with a 4-minute time limit. Defeat the raiders and keep the freighter alive. Pays 1.5 × standard money, 1 × fame and reputation with the freighter's faction.
+- Help: a "Freighter Under Fire" mission with a 4-minute time limit. Defeat the raiders and keep the freighter alive. Pays 2 × standard money, 2 × fame and reputation with the freighter's faction.
 - Stay out: nothing.
 
 Reads as: FTL's station under siege. The time limit makes "move on or burn" a real choice; fame from the rescue adds heat.
@@ -179,7 +179,7 @@ Reads as: FTL's mysterious signal. The only event that can give tech back.
 Debris only: sweep it for a little steel, or move on. A signal always shows something.
 
 #### 17. Wanted Broadcast (Arrival, sector 2+, heat 60+; weight 6 + 0.1 × heat)
-Every buoy plays your hull number and a reward. Local bounty hunters: 2 ships with local faction designs, named "Bounty Hunter ...", tag `hc_ev_bounty` (never `hc_hunter`), with a bounty mission that pays 0.75 × a standard mission.
+Every buoy plays your hull number and a reward. Local bounty hunters: 2 ships with local faction designs, named "Bounty Hunter ...", tag `hc_ev_bounty` (never `hc_hunter`), with a bounty mission that pays 1 × a standard mission's money (BALANCE.md, finding 10).
 | Choice | Cost / Need | Outcomes |
 |---|---|---|
 | Pay the broadcaster | 1 money | Heat −10. |
@@ -230,7 +230,7 @@ Reads as: the last hold-or-sell question. Money now buys repairs and escorts for
 #### 23. Courier Job (station mission offer)
 Not an event page: a Hot Cargo mission in the station's mission list (spec 85). The first trade station that the players reach in a system offers it with chance `CourierChance` (50 %), once per system.
 - The job: the accept puts a Sealed Case in your hold (it needs a free storage slot). Find the neutral contact ("Quiet Contact", "The Night Ferry", ...) 4,000 to 6,000 away (8,000 to 12,000 times the system scale) and hail it within 7 minutes: hand the case over. You can open the case in the hold first (select its storage, "Open the case"): it holds corporate access codes to sell at a station, or a tracer beacon that adds heat each minute until you space it. The contact may notice an opened case: it pays less, turns hostile or jumps away. Then collect the pay at the station. A lost case fails the job (spec 1100 to 1104, 1115 to 1118).
-- Pay: 1.25 × a standard mission's money, 0.5 × its fame. A quiet job: good money, little fame, so little heat.
+- Pay: 1.25 × a standard mission's money, 1 × its fame (BALANCE.md, finding 10). A quiet job: good money and no fight.
 - Contract terms (economy): free, flat heat 3, trail weight 0.5, informant chance 15 %.
 
 #### 19. Vault Coolant Leak (Arrival, 2+ tech; category Unavoidable)
@@ -246,7 +246,7 @@ From Cosmoteer's Career 2.0 dev blog: a distress signal can be "a broken-down sh
 | Choice | Cost / Need | Outcomes |
 |---|---|---|
 | Hand over the selected parts | options: steel (shares of 25 + 5/tier), coils (shares of 5 + 1/tier); a share of each, or two of one | 0.5 money, 0.3 fame, +0.5 reputation. |
-| Tow them to the nearest station | Tractor Beam Emitter | A Tow Job mission: pull the freighter (no AI, no drive) to the nearest trade station at least 3,000 away. Pays 1 × standard money, 0.75 × fame and reputation. Fails if the freighter is destroyed. |
+| Tow them to the nearest station | Tractor Beam Emitter | A Tow Job mission: pull the freighter (no AI, no drive) to the nearest trade station at least 3,000 away. Pays 1 × standard money, 1 × fame and reputation. Fails if the freighter is destroyed. |
 | Strip their cargo | — | Steel, heat +10, −1 reputation. |
 | Leave them | — | Nothing. |
 

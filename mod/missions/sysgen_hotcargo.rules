@@ -16,8 +16,8 @@ Escort
 {
 	Type = None
 	Tags = [hc_group_escort]
-	// Spec 105: fewer offers per system for a faster run (was 60%).
-	SpawnChance = 45%
+	// BALANCE.md, finding 10: no Hot Cargo type in more than half of the systems, and as many as that allows (was 45%, before that 60%).
+	SpawnChance = 50%
 	RootLocation = Tag
 	RootLocationTag = trade_station
 
@@ -103,20 +103,20 @@ Escort
 							]
 						}
 					]
-					// Like a fleet bounty (the raiders also pay kill fame), plus 50% for the babysitting.
+					// 2x money and fame, like a vanilla station rescue (BALANCE.md, finding 10). The raiders also pay kill fame.
 					Rewards
 					[
 						{
 							Type = Money
 							MoneyPerHighTier = &/TIER_TABLES/StandardMoneyPerTier
-							MoneyPerTierMultiplier = 1.5
+							MoneyPerTierMultiplier = 2
 							RoundToMultiple = 500
 						}
 						{
 							Type = Fame
 							FamePerHighTier = &/TIER_TABLES/StandardFamePerTier
 							MaxFamePerHighTier = &/TIER_TABLES/StandardMaxFamePerTier
-							FamePerTierMultiplier = 1.5
+							FamePerTierMultiplier = 2
 						}
 						{
 							Type = Reputation
@@ -145,8 +145,8 @@ FleetAssault
 {
 	Type = None
 	Tags = [hc_group_assault]
-	// Spec 105: was 40%.
-	SpawnChance = 30%
+	// BALANCE.md, finding 10: 50% (was 30%, before that 40%).
+	SpawnChance = 50%
 
 	SubSpawners
 	[
@@ -236,20 +236,20 @@ FleetAssault
 							]
 						}
 					]
-					// A vanilla pirate base pays 2x. The strike group carries part of the fight, so this pays 1.5x.
+					// A vanilla pirate base pays 2x, and so does this (BALANCE.md, finding 10). The strike group helps, but it takes a whole fleet.
 					Rewards
 					[
 						{
 							Type = Money
 							MoneyPerHighTier = &/TIER_TABLES/StandardMoneyPerTier
-							MoneyPerTierMultiplier = 1.5
+							MoneyPerTierMultiplier = 2
 							RoundToMultiple = 1000
 						}
 						{
 							Type = Fame
 							FamePerHighTier = &/TIER_TABLES/StandardFamePerTier
 							MaxFamePerHighTier = &/TIER_TABLES/StandardMaxFamePerTier
-							FamePerTierMultiplier = 1.5
+							FamePerTierMultiplier = 2
 						}
 						{
 							Type = Reputation
@@ -276,8 +276,8 @@ ShadyBounty
 {
 	Type = None
 	Tags = [hc_shady, hc_group_shady]
-	// Spec 105: was 70% and 1 to 2 offers. Distance and gaps follow the vanilla bounties (contracts/system_scale.rules).
-	SpawnChance = 60%
+	// BALANCE.md, finding 10: 50%, at most every other system (was 60%, before that 70% and 1 to 2 offers). Distance and gaps follow the vanilla bounties (contracts/system_scale.rules).
+	SpawnChance = 50%
 	Count = 1
 	Distance = [0, "(&<../contracts/system_scale.rules>/Scale) * 19000"]
 	// hc_shady belongs to this None spawner and leaves no object, so a later spawn keeps its gap from the target ship instead.

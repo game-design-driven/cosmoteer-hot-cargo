@@ -4,18 +4,18 @@
 
 ## Mechanics missions
 
-These missions use the game's own systems: building, tractor beams, mining, crew, surrender, sensors and careful targeting. Each one shows up in a modest share of systems (`Mechanics.<Name>Chance`, 15 to 25 %). Rewards use the vanilla tier tables, so the pay rises with the sector tier. The table shows each reward as a multiple of a standard vanilla mission.
+These missions use the game's own systems: building, tractor beams, mining, crew, surrender, sensors and careful targeting. Each one shows up in half of the systems (`Mechanics.<Name>Chance`, 50 %; BALANCE.md, finding 10). Rewards use the vanilla tier tables, so the pay rises with the sector tier. The table shows each reward as a multiple of a standard vanilla mission.
 
 | Mission | Offered at | Money | Fame | Contract terms |
 |---|---|---|---|---|
-| Drone Siege | Stations | 1.5× | 1.25× | free |
-| Prototype Retrieval | Bounties | 2× | 1.5× | fee 0.3, heat +5, informant 10 % |
+| Drone Siege | Stations | 2× | 3× (no kill fame) | free |
+| Prototype Retrieval | Bounties | 2× | 2× | fee 0.3, heat +5, informant 10 % |
 | Sunside Ore | Deliveries | 1.25× plus ore sales | 1× | free, rival `ore_claims`, informant 5 % |
 | Salvage Rights | Stations | 1.25× | 1× | free, rival `salvage_rights` |
-| Repossession | Bounties | 1.75× | 1.25× | fee 0.4, heat +4, rival `salvage_rights`, informant 10 % |
-| Storm Survey | Stations | 1× | 0.75× | free, trail weight 0.5 |
-| Claim Jumpers | Stations | 1.25× | 1× | free, rival `ore_claims`, informant 5 % |
-| Listening Post | Faction wars | 1.75×, more with intensive scans | 1.25× | heat +3, informant 10 % |
+| Repossession | Bounties | 2× | 2× | fee 0.4, heat +4, rival `salvage_rights`, informant 10 % |
+| Storm Survey | Stations | 1.25× | 1× | free, trail weight 0.5 |
+| Claim Jumpers | Stations | 2× | 3× (no kill fame) | free, rival `ore_claims`, informant 5 % |
+| Listening Post | Faction wars | 2×, more with intensive scans | 3× (no kill fame) | heat +3, informant 10 % |
 
 The contract terms are `HotCargoContract` entries in each mission's rewards (the economy area reads them). The fee is in units of a standard mission's pay at the mission's tier.
 

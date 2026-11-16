@@ -7,7 +7,7 @@ namespace HotCargo.Stash;
 public sealed class StashTunables
 {
     /// <summary>Spec 970: chance that a system offers a stash rumour at a trade station.</summary>
-    [Serialize(Optional = true)] public float OfferChance = 0.35f;
+    [Serialize(Optional = true)] public float OfferChance = 0.5f;
     /// <summary>Spec 971: chance that the corporation found the stash first, at the moment of the offer.</summary>
     [Serialize(Optional = true)] public float FoundFirstBase = 0.1f;
     /// <summary>Spec 971: the found-first chance grows by this much for each game minute after the offer.</summary>
