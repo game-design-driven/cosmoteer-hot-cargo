@@ -310,7 +310,7 @@ static class JumpWarnings
     {
         if (_button is not { } b || b.Gui != game.Gui)
         {
-            var button = new Halfling.Gui.Button { AnchorRect = Halfling.Gui.AnchorPresets.TopCenter, Y = 300f, Width = 260f, Height = 44f };
+            var button = new Halfling.Gui.Button { AnchorRect = Halfling.Gui.AnchorPresets.TopCenter, X = -130f, Y = 300f, Width = 260f, Height = 44f };
             button.Clicked += (_, _) => { if (_buttonNode is { } n) Recall(game, n, "button"); };
             game.Gui.RootWidget.AddChild(button);
             _button = b = (game.Gui, button);
