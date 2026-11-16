@@ -15,6 +15,10 @@ public sealed class FriendlyState
     [Serialize(Optional = true)] public HashSet<ObjectID> HelpRolled = new();
     /// <summary>Troublemakers aboard that have not reached a station yet (spec 480 to 485).</summary>
     [Serialize(Optional = true)] public List<TroublemakerState> Troublemakers = [];
+    /// <summary>Scientists aboard whose research time has not come, or who are on their way out (spec 486 to 499).</summary>
+    [Serialize(Optional = true)] public List<ScientistState> Scientists = [];
+    /// <summary>The partner of a scientist who died aboard (spec 491 to 497). Phase None while there is none.</summary>
+    [Serialize(Optional = true)] public PartnerState Partner = new();
     /// <summary>Total part health of the players' ships at the last help check (spec 1370), or -1 before the first.</summary>
     [Serialize(Optional = true)] public long PlayerHealth = -1;
     /// <summary>True once the Wayfarers came in this run (spec 1370): they come at most once per run.</summary>
@@ -65,3 +69,49 @@ public sealed class TroublemakerState
     [Serialize] public bool Thief;
     [Serialize] public string Name = "";
 }
+
+public enum ScientistPhase { Aboard, Defecting, Flying }
+
+/// <summary>A scientist in the players' crew (spec 487).</summary>
+[ReflectiveSerialization(Explicit = true)]
+public sealed class ScientistState
+{
+    [Serialize] public ObjectID Soul;
+    [Serialize] public int Player;
+    [Serialize] public string Name = "";
+    [Serialize] public ScientistPhase Phase;
+    /// <summary>Run game seconds of the research roll.</summary>
+    [Serialize] public double Due;
+    /// <summary>Seed of the research roll and the tech pick, from the page seed.</summary>
+    [Serialize] public ulong Seed;
+    [Serialize] public float ResearchChance;
+    /// <summary>True: a failed research roll means they defect (spec 489). False (the partner, spec 496): nothing happens.</summary>
+    [Serialize] public bool CanDefect;
+    /// <summary>True: their death aboard brings their partner (spec 491). The partner who joins has no partner of their own.</summary>
+    [Serialize] public bool HasPartner;
+    /// <summary>The ship they defect to, and the processors they took.</summary>
+    [Serialize(Optional = true)] public ObjectID? Target;
+    [Serialize(Optional = true)] public int Stolen;
+}
+
+public enum PartnerPhase { None, Due, Challenge, Duel, Yield, RevengeDue, Revenge }
+
+/// <summary>The partner of a dead scientist (spec 491 to 497).</summary>
+[ReflectiveSerialization(Explicit = true)]
+public sealed class PartnerState
+{
+    [Serialize] public PartnerPhase Phase;
+    /// <summary>Run game seconds at which the partner, or the revenge fleet, comes.</summary>
+    [Serialize] public double At;
+    /// <summary>The player whose scientist died.</summary>
+    [Serialize] public int Player;
+    /// <summary>The dead scientist's name, for the pages and messages.</summary>
+    [Serialize] public string Name = "";
+    [Serialize(Optional = true)] public ObjectID? Ship;
+    /// <summary>The player ship that fights the duel.</summary>
+    [Serialize(Optional = true)] public ObjectID? Champion;
+    /// <summary>True once the yield page opened.</summary>
+    [Serialize(Optional = true)] public bool Hailed;
+    [Serialize(Optional = true)] public List<ObjectID> Fleet = [];
+}
+

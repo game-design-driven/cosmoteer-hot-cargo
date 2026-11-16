@@ -23,6 +23,7 @@ public static class FriendlyArea
         EventRunner.Effects.Add("debtor", Debtor.Apply);
         EventRunner.Effects.Add("wayfarers_leave", PayItForward.LeaveEffect);
         EventRunner.Effects.Add("troublemaker", Troublemaker.Apply);
+        Scientist.Register();
         Run.Hooks.Tick += Troublemaker.OnTick;
         Run.Hooks.Tick += PayItForward.OnTick;
         Run.Hooks.SystemEntered += PayItForward.OnSystemEntered;
