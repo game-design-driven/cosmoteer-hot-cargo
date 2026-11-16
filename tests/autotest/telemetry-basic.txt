@@ -6,6 +6,28 @@ wait 8
 expect tele_active == 1
 expect tele_trace_missing == 0
 expect tele_trace_patched >= 10
+# Time use (spec 1763), before the heat lines bring hunters: each activity shows once, one after the other, because a higher activity hides a lower one.
+# The quiet start is idle. Damage to the own ship makes a fight, the repair button repairs, a far move order travels,
+# a sale at the station trades, a blueprint part builds.
+damage 0.3
+wait 3
+telerepair
+wait 14
+telemove 5000
+wait 6
+# A move order to the ship's own spot ends the travel, so the ship stays at the station for the sale.
+telemove 0
+tostation
+tech sell 1
+wait 6
+pt_build cosmoteer.corridor
+wait 5
+expect tele_time_idle > 0
+expect tele_time_fight > 0
+expect tele_time_travel > 0
+expect tele_time_trade > 0
+expect tele_time_build > 0
+expect tele_time_repair > 0
 heat 12
 fame 300
 contract_money 25000
@@ -13,24 +35,6 @@ vault destroy
 wait 3
 tech add 1
 wait 2
-# Time use (spec 1763): each activity shows once, one after the other, because a higher activity hides a lower one.
-# The quiet start is idle. Damage to the own ship makes a fight, then repairs; a far move order travel; a sale at the station
-# trade; a blueprint part build.
-damage 0.6
-wait 12
-telemove 5000
-wait 6
-tostation
-tech sell 1
-wait 6
-pt_build cosmoteer.hyperdrive_small
-wait 4
-expect tele_time_idle > 0
-expect tele_time_fight > 0
-expect tele_time_travel > 0
-expect tele_time_trade > 0
-expect tele_time_build > 0
-expect tele_time_repair > 0
 telesnap test
 wait 12
 teleflush

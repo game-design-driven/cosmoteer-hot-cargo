@@ -111,7 +111,7 @@ Spec 1760 to 1763. Each system stay splits its game seconds into what the player
 |---|---|
 | fight | an open `combat.fight` whose last damage window is at most `AccrualSeconds` old |
 | build | this machine's build tool is open, new parts or doors are placed and not built yet, or a deconstruction is queued |
-| trade | a human ship is in comms, or crew do a station trade |
+| trade | a human ship is in comms, or crew (often the station's) carry a trade to or from a human ship |
 | travel | a move order to a point at least `TravelMinDistance` away, a relay jump order, or a local FTL jump |
 | repair | crew repair a part or rebuild a destroyed one |
 | idle | none of these |

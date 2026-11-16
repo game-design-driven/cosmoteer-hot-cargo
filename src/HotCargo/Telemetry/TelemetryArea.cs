@@ -148,6 +148,19 @@ public static class TelemetryArea
             TestShield.On = arg != "off";
             Log.Info($"AUTOTEST shieldplayers {TestShield.On}");
         };
+        // teleactivity: logs the time use signals now and the construction queues of the own ships (TELEMETRY.md, Time use).
+        Autotest.Commands["teleactivity"] = _ =>
+        {
+            var s = Session.Current ?? throw new InvalidOperationException("no telemetry session");
+            var sim = Autotest.RequireRun().Game.Sim;
+            var queues = string.Join("; ", sim.Ships.HumanPlayerSignificantShips.Select(sh => sh.OptionalConstructionManager is { } cm
+                ? $"{sh.Metadata.PlainShipName}: adds {cm.QueuedPartConstructions.Count} (rebuild {cm.QueuedPartConstructions.Count(q => q.IsRepair)}, blocked {cm.BlockedPartConstructions.Count}), repairs {cm.QueuedPartRepairs.Count}, jobs [{string.Join(",", sh.Crew.Assigned.Select(c => c.Job is Cosmoteer.Ships.Crew.Jobs.ResourceTransferJob rj ? $"Transfer:{rj.TradeType}" : c.Job?.GetType().Name).Where(n => n is not null and not "IdleJob"))}]"
+                : $"{sh.Metadata.PlainShipName}: no construction manager"));
+            Log.Info($"AUTOTEST teleactivity {ActivitySignalsReader.Read(s, sim)} | {queues}");
+        };
+        // telerepair: the repair-all button of the own ship's build window, without a purchase (time use: repair). Test only.
+        Autotest.Commands["telerepair"] = _ => Playthrough.QueueRepair(
+            Autotest.RequireRun().Game.Sim.Ships.LocalPlayerShips.FirstOrDefault() ?? throw new InvalidOperationException("no own ship"), (_, _) => { });
         // telemove <distance>: one right click that orders the own ship to a point this far ahead (time use: travel). Test only.
         Autotest.Commands["telemove"] = arg =>
         {
