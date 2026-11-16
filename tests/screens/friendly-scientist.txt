@@ -1,0 +1,32 @@
+# The scientist (spec 486, 491): the station's offer, then the challenge of the partner of a scientist who died aboard.
+# Windowed test slot (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+# Close the run intro.
+closepanel
+wait 1
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+fr_free_bunk
+fr_set PartnerMinutes 0.05
+ev_tostation 300
+pause off
+sc_offer
+ev_open carrier
+ev_dialogue carrier
+wait 1
+screenshot friendly-scientist-offer
+ev_comms carrier Welcome aboard
+closepanel
+pause off
+sc_kill
+waitfor sc_partner == 2 30
+ev_carrier_goto
+wait 2
+ev_open carrier
+wait 2
+screenshot friendly-scientist-challenge
+quit

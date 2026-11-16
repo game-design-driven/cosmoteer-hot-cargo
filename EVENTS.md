@@ -355,6 +355,9 @@ Buy their debt for 1.5 money units. The debtor fights at your side for 30 minute
 #### The Troublemaker (Arrival; weight 5; needs a free bunk)
 A ship pays you a quarter of a mission's pay to take its troublemaker aboard as crew. 70 %: just a crew member. 30 %: at the next station they take twice the pay from your account and slip off. Refuse: the ship leaves (spec 480 to 485).
 
+#### The Scientist (Station; weight 5; needs a free bunk)
+A scientist asks to join your crew. 10 minutes later: 75 %, they research one of the 5 cheapest techs you can research; 25 %, they take up to 5 processors and defect to the next ship you pass. If they die aboard, their partner comes 10 minutes later and challenges you to a duel, one ship against one. Fight fair, and at low health the partner yields and asks to join (80 % research later). Let another ship or an ally join in, or decline, and the partner comes back 15 minutes later with a fleet (spec 486 to 499).
+
 #### Pay It Forward (in a fight; at most once per run; 15 % per qualifying fight)
 When you are clearly outclassed in an actual fight (enemies near you at least twice your strength, and shots fired in the last 5 seconds; the first time in a system counts), the Wayfarers may drop in: 2 ships with their own allegiance that fight your enemies. When the fight is over they repair, their captain hails ("Pay it forward to the next one in need."), and they leave (spec 1369 to 1371).
 

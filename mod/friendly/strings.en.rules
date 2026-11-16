@@ -5,6 +5,16 @@ HotCargoFriendly
 	JoinGone = "The ship is gone before it can join you."
 	FollowerGone = "The ship is gone before it can follow you."
 	LeavesFmt = "{0} spins up its drive and leaves the system."
+	ScientistResearchFmt = "{0} finished their research: {1} is unlocked."
+	ScientistNothingFmt = "{0} has nothing left to research."
+	ScientistDefectedFmt = "{0} took {1} processors from your hold and joined the crew of {2}."
+	ScientistDiedFmt = "{0}, the scientist, died aboard."
+	PartnerDuelFmt = "The duel starts: {0} against {1}. Keep your other ships and allies out of it."
+	PartnerCursesFmt = "{0}: \"You could not even fight fair! I will be back, and not alone.\""
+	PartnerDeclinedFmt = "The partner of {0} curses you and jumps away. \"I will be back, and not alone.\""
+	PartnerDeadFmt = "The partner of {0} is dead."
+	PartnerWonFmt = "{0} won the duel and leaves."
+	RevengeBeatenFmt = "The revenge for {0} is over."
 	TroublemakerFledFmt = "{0} was trouble after all: they took {1} credits from your account and slipped off at {2}."
 	// Riddle ship (spec 1366). {0} = heat before, {1} = heat after.
 	// Debtor (spec 1367, 1368). {1} = minutes, {2} = credits.

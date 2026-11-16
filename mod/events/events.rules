@@ -746,6 +746,76 @@ Events
 		]
 	}
 
+	// Spec 486 to 499: the scientist chain. The station carries the offer (a Station event, spec 768); the partner pages have no trigger.
+	{
+		ID = scientist
+		Trigger = Station
+		Weight = 5
+		Need { Bunks = 1 }
+		Title = "The Scientist"
+		Text = "The dock officer patches through a passenger. A scientist with a battered case asks for a berth. \"I had to leave the corporate labs in a hurry. I can earn my keep in your workshop.\""
+		Choices
+		[
+			{
+				Text = "Welcome aboard."
+				Need { Bunks = 1 }
+				Outcomes [ { Text = "The scientist carries the case aboard and asks where the workbench is."; Effect = scientist } ]
+			}
+			{
+				Text = "No passengers."
+				Outcomes [ { Text = "The scientist nods and walks back into the crowd." } ]
+			}
+		]
+	}
+	{
+		ID = scientist_partner
+		MaxPerRun = 0
+		Title = "A Challenge"
+		Text = "A heavy ship drops out of FTL and hails. \"My partner flew with you, and now they are dead. Your careless command killed them. Face me, captain: your ship against mine. No one else joins in.\""
+		Choices
+		[
+			{
+				Text = "We accept."
+				Outcomes [ { Text = "\"Good. One ship against one ship.\""; Effect = partner_accept } ]
+			}
+			{
+				Text = "We decline."
+				Outcomes [ { Text = "\"Then you are a coward as well.\""; Effect = partner_decline } ]
+			}
+		]
+	}
+	{
+		ID = scientist_partner_yield
+		MaxPerRun = 0
+		Title = "I Yield"
+		Text = "\"Enough! You fight fair, and you fight well. Maybe my partner chose well after all. Let me join your crew. I know a lab as well as they did.\""
+		Choices
+		[
+			{
+				Text = "Welcome aboard."
+				Need { Bunks = 1 }
+				Outcomes [ { Text = "The partner sends their ship home and comes aboard."; Effect = partner_join } ]
+			}
+			{
+				Text = "Go home."
+				Outcomes [ { Text = "\"As you wish.\" The ship turns away."; Effect = partner_home } ]
+			}
+		]
+	}
+	{
+		ID = scientist_revenge
+		MaxPerRun = 0
+		Title = "Revenge"
+		Text = "\"You could not even fight fair. Now you face all of us. This is for my partner.\""
+		Choices
+		[
+			{
+				Text = "Bring it on."
+				Outcomes [ { Text = "Their guns swing toward you." } ]
+			}
+		]
+	}
+
 	// Spec 1361: a crew asks to join the fleet. A clear deal: pay their debts, and the ship is yours.
 	{
 		ID = join_request
