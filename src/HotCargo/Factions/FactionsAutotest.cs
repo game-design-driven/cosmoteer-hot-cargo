@@ -138,30 +138,13 @@ static class FactionsAutotest
         };
         // fa_gatejump: single player. Plots the jump to the first unvisited neighbor and orders the player ship onto its relay,
         // like a right click on the relay. The drives then spin up (they need power).
-        Autotest.Commands["fa_gatejump"] = _ =>
-        {
-            var game = R().Game;
-            var ship = TechAutotest.PlayerShip();
-            game.DestinationMapNode = new Cosmoteer.Game.Multiplayer.MPValue<Cosmoteer.GalaxyMap.MapNode>(Next());
-            var gateShip = Gate().PhysicalShip ?? throw new InvalidOperationException("the relay is in stasis; run fa_torelay first");
-            ship.Commands.EnqueueCommand(new Cosmoteer.Ships.Commands.FtlGateJumpCommand(ship, ship.Commands.AllocGlobalCommandID(), gateShip,
-                Cosmoteer.Ships.Commands.CollisionAvoidanceFlags.All, isTentative: false), append: false, confirmed: true);
-        };
+        Autotest.Commands["fa_gatejump"] = _ => OrderGateJump(TechAutotest.PlayerShip());
         // fa_saveblock <seconds>: holds a vanilla game save block for that many game seconds, like a multi-step explosion in a fight.
         Autotest.Commands["fa_saveblock"] = arg => HoldSaveBlock(float.Parse(arg, CultureInfo.InvariantCulture));
         // fa_engage: the real player action of the ENGAGE button (MPReadyFtlJumpInput).
         Autotest.Commands["fa_engage"] = _ => R().Game.NetManager.EnqueueInput(new Cosmoteer.Modes.Creative.MPInputs.MPReadyFtlJumpInput());
         // fa_drive: single player. Builds a small hyperdrive on the player ship (the starter ships have none), for the fuel checks.
-        Autotest.Commands["fa_drive"] = _ =>
-        {
-            var ship = TechAutotest.PlayerShip();
-            // Careers start with the hyperdrive blueprint locked, and a locked part is not a valid blueprint part.
-            R().Mode.Techs.UnlockTech(new ID<Cosmoteer.Modes.Career.TechTree.TechRules>("cosmoteer.hyperdrive_small"));
-            StartingVault.PlaceOutside(ship, ship.Rules.PartsByID[new ID<Cosmoteer.Ships.Parts.PartRules>("cosmoteer.hyperdrive_small")], requireCrewPath: false);
-            // The starter ships carry no hyperium. Fill the new drive's tank, so it can spin up.
-            foreach (var drive in ship.Ftl) drive.Fuel = drive.MaxFuel;
-            Log.Info($"AUTOTEST factions drive: {ship.Name} has drives={ship.Ftl.HasFtlDrives}, fuel {ship.Ftl.GetTotalFuel()}");
-        };
+        Autotest.Commands["fa_drive"] = _ => BuildDrive(TechAutotest.PlayerShip());
         // fa_base: records the prices that the ratio fields compare to.
         Autotest.Commands["fa_base"] = _ =>
         {
@@ -277,14 +260,35 @@ static class FactionsAutotest
         Autotest.Fields["fa_buygap"] = () => (double.IsNaN(_moneyBeforeBuy) ? 0 : _moneyBeforeBuy - Money()) - _expectedBuy;
     }
 
-    static Cosmoteer.GalaxyMap.MapNode Next()
+    /// <summary>Builds a small hyperdrive on the ship (the starter ships have none) and fills its tank. Test only.</summary>
+    internal static void BuildDrive(Cosmoteer.Ships.Ship ship)
+    {
+        // Careers start with the hyperdrive blueprint locked, and a locked part is not a valid blueprint part.
+        R().Mode.Techs.UnlockTech(new ID<Cosmoteer.Modes.Career.TechTree.TechRules>("cosmoteer.hyperdrive_small"));
+        StartingVault.PlaceOutside(ship, ship.Rules.PartsByID[new ID<Cosmoteer.Ships.Parts.PartRules>("cosmoteer.hyperdrive_small")], requireCrewPath: false);
+        // The starter ships carry no hyperium. Fill the new drive's tank, so it can spin up.
+        foreach (var drive in ship.Ftl) drive.Fuel = drive.MaxFuel;
+        Log.Info($"AUTOTEST factions drive: {ship.Name} has drives={ship.Ftl.HasFtlDrives}, fuel {ship.Ftl.GetTotalFuel()}");
+    }
+
+    /// <summary>Plots the jump to the first unvisited neighbor and orders the ship onto its relay, like a right click on the relay. Test only.</summary>
+    internal static void OrderGateJump(Cosmoteer.Ships.Ship ship)
+    {
+        var game = R().Game;
+        game.DestinationMapNode = new Cosmoteer.Game.Multiplayer.MPValue<Cosmoteer.GalaxyMap.MapNode>(Next());
+        var gateShip = Gate().PhysicalShip ?? throw new InvalidOperationException("the relay is in stasis; move a ship to it first");
+        ship.Commands.EnqueueCommand(new Cosmoteer.Ships.Commands.FtlGateJumpCommand(ship, ship.Commands.AllocGlobalCommandID(), gateShip,
+            Cosmoteer.Ships.Commands.CollisionAvoidanceFlags.All, isTentative: false), append: false, confirmed: true);
+    }
+
+    internal static Cosmoteer.GalaxyMap.MapNode Next()
     {
         var run = R();
         return run.Game.CurrentMapNode.Connections.FirstOrDefault(n => !run.State.VisitedNodes.Contains(n.UniqueID))
             ?? throw new InvalidOperationException("no unvisited neighbor system");
     }
 
-    static Cosmoteer.Ships.Special.MetaFtlGate Gate() =>
+    internal static Cosmoteer.Ships.Special.MetaFtlGate Gate() =>
         Cosmoteer.Ships.Special.FtlGate.GetGateForDestination(R().Game.Sim, Next()) ?? throw new InvalidOperationException("no relay toward the neighbor");
 
     static async void HoldSaveBlock(float seconds)

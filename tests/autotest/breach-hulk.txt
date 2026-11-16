@@ -1,0 +1,36 @@
+# Crew breach (spec 1610 to 1617): a claimed hulk with no airlock. The crew wait outside, one of them cuts a breach, and then all of
+# them get in. The breach stays across a save and load.
+# tier: smoke
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+ev_set HulkLootChance 0
+godmode on
+ev_abandoned
+ev_abandoned_goto 150
+pause off
+wait 3
+br_mark
+br_noairlocks hulk
+wait 1
+expect br_airlocks_hulk == 0
+br_send 2 me hulk
+# Spec 1610, 1611: they wait, then one of them cuts.
+waitfor br_cutting >= 1 60
+expect br_made == 0
+expect br_aboard_hulk == 0
+waitfor br_made == 1 20
+expect br_parts_hulk == 1
+expect br_airlocks_hulk == 1
+# Spec 1614: all of them get in through the breach. One breach is enough.
+waitfor br_aboard_hulk >= 2 60
+expect br_out_hulk == 0
+expect br_made == 1
+# Spec 1613: the breach is part of the ship and stays.
+save breach
+load breach
+wait 8
+expect br_parts_hulk == 1
+quit

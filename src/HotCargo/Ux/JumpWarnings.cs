@@ -94,7 +94,7 @@ static class JumpWarnings
         var reason = JumpWarningsModel.Reason(f);
         if (reason == StayReason.None) return "";
         string fix = Fix(ship, reason, f.Cost, planned: true);
-        return $"<bad>{UxKit.Format("JumpStaysFmt", ship.Metadata.XmlShipName, Short(reason))}{Carries(ship)}</bad>" + (fix == "" ? "" : "\n" + fix);
+        return $"<bad>{UxKit.Format("JumpStaysFmt", ship.Metadata.XmlShipName, Short(reason) + Carries(ship))}</bad>" + (fix == "" ? "" : "\n" + fix);
     }
 
     [HarmonyPatch(typeof(FtlJumpGui.ShipStatus), MethodType.Constructor, typeof(GameRoot), typeof(Ship))]

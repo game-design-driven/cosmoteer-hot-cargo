@@ -42,6 +42,7 @@ public static class Mod
             // Relays registers its comms provider before Diplomacy, so a relay page owns its shared choices (spec 958).
             Relays.RelaysArea.Register();
             Debris.DebrisArea.Register();
+            Breach.BreachArea.Register();
             Stash.StashArea.Register();
             Diplomacy.DiplomacyArea.Register();
             Debt.DebtArea.Register();
