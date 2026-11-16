@@ -113,7 +113,7 @@ Spec 1760 to 1763. Each system stay splits its game seconds into what the player
 | build | this machine's build tool is open, new parts or doors are placed and not built yet, or a deconstruction is queued |
 | trade | a human ship is in comms, or crew (often the station's) carry a trade to or from a human ship |
 | travel | a move order to a point at least `TravelMinDistance` away, a relay jump order, or a local FTL jump |
-| repair | crew repair a part or rebuild a destroyed one |
+| repair | repairs or rebuilds of destroyed parts are ordered and not done yet |
 | idle | none of these |
 
 The sums count from the system entry or the session start, like `stay_s`. The build tool is local, so in co-op each file counts its own player's editor.
@@ -172,7 +172,7 @@ For your own analysis, each line is one JSON object: for example `jq -c 'select(
 
 `scripts/autotest.sh` and `scripts/autotest-mp.sh` send `telename <script name>` first (`<session>.host` and `<session>.client` for co-op), so `session.start` has the test name in `label`.
 
-- Commands: `telename <name>`, `telemove <distance>` (a move order of the own ship to a point this far ahead), `telerelaychunk <bytes>` (a smaller relay chunk on this machine), `damagehostiles <fraction>` (test only: weakens nearby hostile ships so the player wins the fight), `shieldplayers on|off` (test only: human ship parts lose no health and human crew do not die), `teleflush` (wait until the writer wrote every queued event), `telesnap [why]`, `telecount <event> <op> <n>` (counts events of the current run in its files), `telestats` (logs the overhead numbers).
+- Commands: `telename <name>`, `telemove <distance>` (a move order of the own ship to a point this far ahead), `telerepair` (the repair button of the own ship), `teleactivity` (logs the time use signals now), `telerelaychunk <bytes>` (a smaller relay chunk on this machine), `damagehostiles <fraction>` (test only: weakens nearby hostile ships so the player wins the fight), `shieldplayers on|off` (test only: human ship parts lose no health and human crew do not die), `teleflush` (wait until the writer wrote every queued event), `telesnap [why]`, `telecount <event> <op> <n>` (counts events of the current run in its files), `telestats` (logs the overhead numbers).
 - Fields: `tele_active`, `tele_events`, `tele_dropped`, `tele_nested_dropped`, `tele_overhead_ms`, `tele_overhead_pct` (telemetry time in percent of the session's real time), `tele_trace_missing`, `tele_trace_patched`, `tele_time_<activity>` (game seconds of each time use activity in the session), `tele_relay_pending` and `tele_relay_pending_closed` (client: bytes the host has not confirmed, all files or the closed ones), `tele_relay_received`, `tele_relay_copies`, `tele_relay_bad` (host: bytes received, valid and broken client copies).
 - Tests: `tests/autotest/telemetry-basic.txt` (every category and a save and load), `tests/autotest/telemetry-run.txt` (a scripted run over three systems that ends with a win; it checks that each event kind shows and makes data for a report).
 
