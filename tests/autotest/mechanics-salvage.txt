@@ -1,4 +1,5 @@
 # Tow (spec 134) and capture (spec 135, 1110: the bank takes the freighter at the station).
+# missions: random
 newgame run
 wait 8
 ev_set Enabled false

@@ -1,5 +1,6 @@
 # Prototype Retrieval (spec 133, 1108): the core goes on the carrier when it is live, a broken core fails, a wrecked carrier with the core
 # intact completes: the core goes into the hold and the broker takes it in comms.
+# missions: random
 newgame run
 wait 8
 ev_set Enabled false

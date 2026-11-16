@@ -1,6 +1,7 @@
 # Worlds (spec 105, 220, 221, 225, 229): every archetype is on the run map and the start is basic; the tooltip shows the hazard.
 # Real system generation places each archetype mission and keeps the archetype objects clear of stations and gates.
 # "worlds always" makes every archetype mission group spawn. A trade hub has a current band and the Hot Cargo missions of the basic sector.
+# missions: random
 newgame run
 wait 8
 worlds map

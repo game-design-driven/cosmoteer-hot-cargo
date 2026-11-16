@@ -1,4 +1,5 @@
 # Factions: hot zone (corporate ally), shelter, rival fence prices, hot zone offer money, notoriety, tooltip lines and markers.
+# missions: random
 newgame
 wait 8
 ev_set Enabled false

@@ -8,6 +8,8 @@ shieldplayers on
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0
 ev_set CourierChance 0
+# No station attack (spec 90): its Mayday page would sit in front of the station's sell line.
+ev_set StationAttackChance 0
 worlds jumpto hc_trade_hub
 ev_tostation
 wait 2
