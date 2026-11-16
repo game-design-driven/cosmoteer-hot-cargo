@@ -123,20 +123,7 @@ public static class Playthrough
                 Log.Info("AUTOTEST playthrough: repair: nothing to repair");
                 return;
             }
-            List<ID<ResourceRules>> resources;
-            using (var sui = ShipUpdateInfo.Alloc(ship))
-            {
-                if (!sui.TryConstruct(ConstructionFlags.RepairExisting | ConstructionFlags.RebuildDestroyed, maxCrewToHire: 0))
-                    throw new InvalidOperationException("repair: construction blocked");
-                using var cost = sui.GetTotalPhysicalCost(MPValueType.Displayed, returnFinalCost: true, isBuild: false);
-                resources = [.. cost.Resources.Keys];
-                foreach (var (resource, units) in cost.Resources)
-                    if (units > Stored(resource)) Buy(resource, units - Stored(resource));
-                var flags = UpdateShipFlags.Repair | UpdateShipFlags.DestroyBlocking;
-                if (Game().Sim.Mode.AllowInsufficientResources(ship)) flags |= UpdateShipFlags.AllowPartialConstruction;
-                Game().NetManager.EnqueueInput(new MPUpdateShipInput(sui, flags));
-                Log.Info($"AUTOTEST playthrough: repair queued, cost {string.Join(", ", cost.Resources.Select(r => $"{r.Value} {r.Key}"))}");
-            }
+            var resources = QueueRepair(ship, (resource, units) => { if (units > Stored(resource)) Buy(resource, units - Stored(resource)); });
             double next = GameSeconds() + 20;
             Autotest.WaitFor(() =>
             {
@@ -207,6 +194,25 @@ public static class Playthrough
                 Errors.Guard("playthrough watch", () => Status("watch"));
             };
         };
+    }
+
+    /// <summary>
+    /// The repair-all button of the build window (BuildToolbox.OnRepairAllClicked): repair damaged parts, rebuild destroyed ones.
+    /// Calls beforeQueue with each resource of the cost first. Returns the resources of the cost.
+    /// </summary>
+    internal static List<ID<ResourceRules>> QueueRepair(Ship ship, Action<ID<ResourceRules>, int> beforeQueue)
+    {
+        var game = ship.Sim?.Game ?? throw new InvalidOperationException("repair: the ship is in no system");
+        using var sui = ShipUpdateInfo.Alloc(ship);
+        if (!sui.TryConstruct(ConstructionFlags.RepairExisting | ConstructionFlags.RebuildDestroyed, maxCrewToHire: 0))
+            throw new InvalidOperationException("repair: construction blocked");
+        using var cost = sui.GetTotalPhysicalCost(MPValueType.Displayed, returnFinalCost: true, isBuild: false);
+        foreach (var (resource, units) in cost.Resources) beforeQueue(resource, units);
+        var flags = UpdateShipFlags.Repair | UpdateShipFlags.DestroyBlocking;
+        if (game.Sim.Mode.AllowInsufficientResources(ship)) flags |= UpdateShipFlags.AllowPartialConstruction;
+        game.NetManager.EnqueueInput(new MPUpdateShipInput(sui, flags));
+        Log.Info($"AUTOTEST playthrough: repair queued, cost {string.Join(", ", cost.Resources.Select(r => $"{r.Value} {r.Key}"))}");
+        return [.. cost.Resources.Keys];
     }
 
     /// <summary>

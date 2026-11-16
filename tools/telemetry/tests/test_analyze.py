@@ -78,3 +78,28 @@ def test_a_client_copy_on_the_host_stays_its_own_run(tmp_path: Path) -> None:
     write(tmp_path / "r__cli.jsonl", [ev("session.start", 0, session="cli", host=False, local_player=1, **head)])
     runs = {r.id: [s.id for s in r.sessions] for r in load(tmp_path)}
     assert runs == {"r": ["host"], "r (client 1)": ["cli"]}
+
+
+def test_time_use_splits_each_visit_and_adds_session_parts(tmp_path: Path) -> None:
+    def use(**kw: float) -> dict:
+        return {"fight": 0, "build": 0, "trade": 0, "travel": 0, "repair": 0, "idle": 0, **kw}
+    snap = {"why": "timer", "money": {"0": 0}, "fleet_value": 1, "tech_value": 1, "fleet_firepower": 1, "fleet_parts": 1, "crew": 1, "notoriety": 0}
+    write(tmp_path / "r__s1.jsonl", [
+        ev("session.start", 0, run="r", session="s1", wall_utc="1"),
+        ev("snap", 50, **snap, time_use=use(travel=30, idle=20)),
+        ev("snap", 100, **snap, time_use=use(travel=60, fight=40)),
+    ])
+    # A load continues the first visit: the new session counts its part from 0.
+    write(tmp_path / "r__s2.jsonl", [
+        ev("session.start", 100, run="r", session="s2", wall_utc="2"),
+        ev("system.enter", 200, sys="B", sec=2, prev_time_use=use(repair=100)),
+        ev("snap", 260, sys="B", sec=2, **snap, time_use=use(trade=60)),
+    ])
+    rep = analyze(load(tmp_path)[0])
+    visits = dict(rep.sector_time_use)
+    assert visits["S1 A"] == use(travel=60, fight=40, repair=100)
+    assert visits["S2 B"] == use(trade=60)
+    sectors = next(t for t in rep.tables if t.title == "Sectors")
+    assert sectors.columns[-6:] == ["fight %", "build %", "trade %", "travel %", "repair %", "idle %"]
+    assert sectors.rows[0][-6:] == ["20", "0", "0", "30", "50", "0"]
+    assert any(f.startswith("Time in systems by activity: repair 38 %") for f in rep.findings)

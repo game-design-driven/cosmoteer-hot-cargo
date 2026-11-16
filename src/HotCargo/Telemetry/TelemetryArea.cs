@@ -81,6 +81,8 @@ public static class TelemetryArea
         Autotest.Fields["tele_overhead_pct"] = OverheadPct;
         Autotest.Fields["tele_trace_missing"] = () => Stats.TraceMissing;
         Autotest.Fields["tele_trace_patched"] = () => Stats.TracePatched;
+        // Spec 1763: game seconds of each activity in this session (tele_time_fight, tele_time_build, ...).
+        foreach (var a in TimeUse.All) Autotest.Fields[$"tele_time_{TimeUse.Name(a)}"] = () => Session.Current?.SessionUse(a) ?? -1;
         // Spec 1593: the co-op relay. Client: bytes that the host has not confirmed. Host: bytes received, good and bad client copies.
         Autotest.Fields["tele_relay_pending"] = () => Session.Current is { } rs ? Relay.Pending(rs, closedOnly: false) : -1;
         Autotest.Fields["tele_relay_pending_closed"] = () => Session.Current is { } rs ? Relay.Pending(rs, closedOnly: true) : -1;
@@ -145,6 +147,28 @@ public static class TelemetryArea
             if (Autotest.RequireRun().IsMultiplayer) throw new InvalidOperationException("shieldplayers is single player only");
             TestShield.On = arg != "off";
             Log.Info($"AUTOTEST shieldplayers {TestShield.On}");
+        };
+        // teleactivity: logs the time use signals now and the construction queues of the own ships (TELEMETRY.md, Time use).
+        Autotest.Commands["teleactivity"] = _ =>
+        {
+            var s = Session.Current ?? throw new InvalidOperationException("no telemetry session");
+            var sim = Autotest.RequireRun().Game.Sim;
+            var queues = string.Join("; ", sim.Ships.HumanPlayerSignificantShips.Select(sh => sh.OptionalConstructionManager is { } cm
+                ? $"{sh.Metadata.PlainShipName}: adds {cm.QueuedPartConstructions.Count} (rebuild {cm.QueuedPartConstructions.Count(q => q.IsRepair)}, blocked {cm.BlockedPartConstructions.Count}), repairs {cm.QueuedPartRepairs.Count}, jobs [{string.Join(",", sh.Crew.Assigned.Select(c => c.Job is Cosmoteer.Ships.Crew.Jobs.ResourceTransferJob rj ? $"Transfer:{rj.TradeType}" : c.Job?.GetType().Name).Where(n => n is not null and not "IdleJob"))}]"
+                : $"{sh.Metadata.PlainShipName}: no construction manager"));
+            Log.Info($"AUTOTEST teleactivity {ActivitySignalsReader.Read(s, sim)} | {queues}");
+        };
+        // telerepair: the repair-all button of the own ship's build window, without a purchase (time use: repair). Test only.
+        Autotest.Commands["telerepair"] = _ => Playthrough.QueueRepair(
+            Autotest.RequireRun().Game.Sim.Ships.LocalPlayerShips.FirstOrDefault() ?? throw new InvalidOperationException("no own ship"), (_, _) => { });
+        // telemove <distance>: one right click that orders the own ship to a point this far ahead (time use: travel). Test only.
+        Autotest.Commands["telemove"] = arg =>
+        {
+            var game = Autotest.RequireRun().Game;
+            var ship = game.Sim.Ships.LocalPlayerShips.FirstOrDefault() ?? throw new InvalidOperationException("no own ship");
+            var to = ship.DetWorldCenter + Vector2.FromAngle(0f) * float.Parse(arg, CultureInfo.InvariantCulture);
+            var move = new Cosmoteer.Ships.Commands.MoveCommand(ship, ship.Commands.AllocLocalCommandID(), to, null, Cosmoteer.Ships.Commands.CollisionAvoidanceFlags.All, isTentative: false);
+            game.NetManager.EnqueueInput(new Cosmoteer.Game.Multiplayer.MPInputs.MPEnqueueCommandsInput(move, append: false, playLocalSound: false));
         };
         // telestats: logs the overhead numbers of the session, for reports.
         Autotest.Commands["telestats"] = _ =>

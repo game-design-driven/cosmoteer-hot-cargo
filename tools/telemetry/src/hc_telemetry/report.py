@@ -95,12 +95,34 @@ def bar_chart(title: str, values: Mapping[str, float]) -> str | None:
     return png(fig)
 
 
+ACTIVITY_COLORS = {"fight": "#d62728", "build": "#9467bd", "trade": "#2ca02c", "travel": "#1f77b4", "repair": "#ff7f0e", "idle": "#bbbbbb"}
+
+
+def time_use_chart(title: str, visits: Sequence[tuple[str, Mapping[str, float]]]) -> str | None:
+    """One stacked bar per sector visit: the share of the stay that each activity took (spec 1762)."""
+    if not visits:
+        return None
+    fig, ax = plt.subplots(figsize=(9, max(2.0, 0.4 * len(visits) + 1.0)))
+    labels = [label for label, _ in visits][::-1]
+    left = [0.0] * len(labels)
+    for activity, color in ACTIVITY_COLORS.items():
+        share = [100 * u.get(activity, 0) / (sum(u.values()) or 1) for _, u in visits][::-1]
+        ax.barh(labels, share, left=left, color=color, label=activity)
+        left = [a + b for a, b in zip(left, share, strict=True)]
+    ax.set_xlim(0, 100)
+    ax.set_xlabel("% of the stay")
+    ax.set_title(title, fontsize=10)
+    ax.legend(fontsize=8, ncol=6, loc="upper center", bbox_to_anchor=(0.5, -0.25))
+    return png(fig)
+
+
 def run_charts(r: RunReport) -> list[str]:
     charts = [
         line_chart("Heat (dashed: system entry, dotted: stage start)", r.heat, r.sector_marks, r.stage_marks, "heat"),
         line_chart("Money, fleet value and tech value", r.economy, r.sector_marks, ylabel="credits", logy=True),
         bar_chart("Heat by source", r.heat_sources),
         bar_chart("Stay per sector visit (game seconds)", dict(r.sector_stays)),
+        time_use_chart("Time use per sector visit", r.sector_time_use),
         bar_chart("AI strategy switches logged, by target module", r.ai_modules),
         line_chart("Performance per window", r.perf, xlabel="real time of the session (min)"),
     ]

@@ -309,3 +309,60 @@ public static class RelayModel
         return s.Length == 0 ? "player" : s[..Math.Min(s.Length, 40)];
     }
 }
+
+/// <summary>Spec 1760: what the players' fleet does, in the order of the priority rule. The first activity whose signal is on wins.</summary>
+public enum Activity { Fight, Build, Trade, Travel, Repair, Idle }
+
+/// <summary>Spec 1761: the signals of one sample. Idle has no signal: it is the time when none is on.</summary>
+public readonly record struct ActivitySignals(bool Fight, bool Build, bool Trade, bool Travel, bool Repair);
+
+/// <summary>
+/// Spec 1760, 1762: the game seconds of a system stay by activity. Each second goes to exactly one activity (the priority rule),
+/// so the sums add up to the stay. Next to it, the seconds that each signal was on at all, also while a higher activity won.
+/// </summary>
+public sealed class TimeUse
+{
+    public static readonly Activity[] All = Enum.GetValues<Activity>();
+    readonly double[] _main = new double[All.Length], _any = new double[All.Length];
+
+    public static Activity Pick(ActivitySignals s) =>
+        s.Fight ? Activity.Fight : s.Build ? Activity.Build : s.Trade ? Activity.Trade : s.Travel ? Activity.Travel : s.Repair ? Activity.Repair : Activity.Idle;
+
+    public void Add(ActivitySignals s, double seconds)
+    {
+        if (seconds <= 0) return;
+        _main[(int)Pick(s)] += seconds;
+        if (s.Fight) _any[(int)Activity.Fight] += seconds;
+        if (s.Build) _any[(int)Activity.Build] += seconds;
+        if (s.Trade) _any[(int)Activity.Trade] += seconds;
+        if (s.Travel) _any[(int)Activity.Travel] += seconds;
+        if (s.Repair) _any[(int)Activity.Repair] += seconds;
+    }
+
+    public double this[Activity a] => _main[(int)a];
+    public double Any(Activity a) => _any[(int)a];
+    public double Total => _main.Sum();
+
+    public void Reset() { Array.Clear(_main); Array.Clear(_any); }
+
+    public TimeUse Copy()
+    {
+        var c = new TimeUse();
+        _main.CopyTo(c._main, 0);
+        _any.CopyTo(c._any, 0);
+        return c;
+    }
+
+    public static string Name(Activity a) => a.ToString().ToLowerInvariant();
+
+    /// <summary>Writes "&lt;prefix&gt;time_use" (seconds by activity, they add up to the stay) and "&lt;prefix&gt;time_any" (seconds each signal was on).</summary>
+    public void Write(System.Text.Json.Utf8JsonWriter w, string prefix = "")
+    {
+        w.WriteStartObject(prefix + "time_use");
+        foreach (var a in All) w.WriteNumber(Name(a), Math.Round(this[a], 3));
+        w.WriteEndObject();
+        w.WriteStartObject(prefix + "time_any");
+        foreach (var a in All.Where(a => a != Activity.Idle)) w.WriteNumber(Name(a), Math.Round(Any(a), 3));
+        w.WriteEndObject();
+    }
+}
