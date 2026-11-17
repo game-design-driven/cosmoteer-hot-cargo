@@ -1,0 +1,62 @@
+# Pirate thieves (spec 1770 to 1799): a thief group fights a player ship and aims at its cargo. When enough player cargo floats near it,
+# it stops fighting, collects with crew and funnel, flees and jumps out. A second group dies, and its storage drops.
+# tier: smoke
+newgame run
+wait 8
+ev_set Enabled false
+scav_set FactionEnabled false
+th_set Enabled true
+godmode on
+openspace 6000 3000
+pause off
+th_cargo me steel 200
+# Spec 1781: the encounter roll from the second sector on, paced like the other big events.
+th_set EncounterChance 1
+th_roll
+wait 2
+expect th_count == 0
+th_set MinSector 1
+th_roll
+wait 2
+expect th_count >= 2
+expect th_pacer == 1
+fr_kill_enemies all
+waitfor th_count == 0 10
+th_set EncounterChance 0
+# Spec 1776: the thieves fight and aim at the player's storage.
+th_encounter
+expect th_count >= 2
+expect th_pacer == 2
+th_near 600
+waitfor th_attacking >= 1 30
+waitfor th_aim_storage == 1 30
+expect th_phase == 0
+# Spec 1778: player cargo floats near them above the threshold: they stop fighting and collect.
+th_spill steel 400
+waitfor th_phase == 1 10
+expect th_attacking == 0
+# Spec 1779: crew and funnel collect it, then they flee and jump out with it.
+waitfor th_cargo_value > 0 60
+th_mark
+waitfor th_count == 0 180
+# The player's turrets may still kill one of them while they collect.
+expect th_escaped_since >= 1
+expect th_loose_mine < 2000
+# Spec 1780: a thief joins a pirate group that shows up: same player index, so the pirates are its allies. Pirate groups of the
+# world that come into the live range may get one too.
+th_set JoinChance 1
+dip_spawn enemy 2500
+waitfor th_count >= 1 10
+expect th_allied == 1
+fr_kill_enemies all
+waitfor th_count == 0 10
+th_set JoinChance 0
+# Spec 1782: a thief that dies drops its storage, so the players can win the loot back.
+th_mark
+th_spawn 1 800
+th_cargo thieves steel 300
+wait 1
+th_kill
+waitfor th_died_since >= 1 10
+waitfor th_loose_other > 0 10
+quit

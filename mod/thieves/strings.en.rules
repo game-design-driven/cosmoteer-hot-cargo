@@ -1,0 +1,7 @@
+
+// Pirate thieves (spec 1778, 1782). {0} = a thief ship.
+HotCargoThieves
+{
+	TriggerFmt = "{0} and its crew stop shooting and go for the cargo that you spilled."
+	EscapedFmt = "A thief got away with cargo worth {0} credits."
+}

@@ -75,6 +75,8 @@ Category switches are in the `Telemetry` tunables section. The table names the s
 | `combat.fight` | Combat | `start_gs`, `end_gs`, `duration_s`, `fight_sec`, `sides`, `damage` and `destroyed` by side, `kills` (hunters and hostiles), `losses` (player ships), `crew_lost`, `windows`. Damage windows and wrecks joined until `FightGapSeconds` pass without either (spec 1588). |
 | `combat.removed` | Combat | ship fields, `src`, `caller`. A ship that left for good: a hunter that jumps out (`flee_jump`), a trader that exits. |
 | `combat.crew_died` | Combat | `player`, `cause`, `carried_tech` |
+| `thief.trigger` | Combat | `group`, `tier`, `value`, `threshold`, `thieves`. A thief group stops fighting to collect spilled player cargo (spec 1778). |
+| `thief.end` | Combat | `group`, `tier`, `outcome` (`escaped`, `died`), `phase`, `stolen` (cargo value that escaped). One thief leaves the fight for good (spec 1782). |
 | `combat.damage` | Combat | per side of the damaged ship: `damage`, `repaired`, `parts_lost`. Summed over `AccrualSeconds`. Side `vault` holds the Tech Vault part of the player damage again. |
 | `debt.overdraft` | Economy | `player`, `lender` (faction ID), `amount`, `balance`, `new` (the overdraft opened the debt). Money below 0 became a debt (spec 1417). |
 | `debt.hail` | Economy | `player`, `lender`, `balance`, `cause` (`overdraft`). The lender of an overdraft debt gets in touch (spec 1418). |

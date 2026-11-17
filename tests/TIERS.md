@@ -41,6 +41,7 @@ The prune of 2026-11-14 classified every game test with evidence: git history (f
 | balance-rules | KEEP | Station fuel floor (fix da82271); smoke test. | 218 |
 | breach-hulk | KEEP | Breach smoke test: crew placement changes ship parts in the sim; save and load. | - |
 | breach-player | KEEP | Player ship with no airlock; no breach while an airlock works. | - |
+| thieves-basic | KEEP | Thieves smoke test: spawns, aim, trigger, collect, escape and death in the sim. | - |
 | chains-blackbox | DELETE | Duplicate of chains-later (recorder, broker hand-over, payment). | 115 |
 | chains-cargo | DELETE | Loose crate reward: duplicate of chains-later. | 46 |
 | chains-content | KEEP | Every chain page renders and every stage spawns. | 71 |

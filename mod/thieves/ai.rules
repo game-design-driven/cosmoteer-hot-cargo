@@ -1,0 +1,14 @@
+// Hot Cargo thief modules for the vanilla pirate AIs (spec 1771). mod/thieves/actions.rules appends them last, so they come first. They do
+// nothing unless the ship is a thief (RunState.Thieves): HcThief collects and flees, HcRob aims the guns at cargo.
+Strategy
+[
+	{
+		Type = HcThief
+	}
+]
+Targeting
+[
+	{
+		Type = HcRob
+	}
+]

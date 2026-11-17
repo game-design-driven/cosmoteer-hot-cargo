@@ -181,6 +181,26 @@ expect hunters >= 1
 expect hunterstasis == 0
 on 1 expect hunterstasis == 0
 
+step thieves.collect
+# Spec 1783, in a new run: a thief group fights the host's ship, the spilled cargo stops it, it collects and leaves. The phases and
+# the counts are run state, and the state hash compares them, so a divergence fails the step. Every setup line runs on both machines.
+mprestart
+mp godmode on
+mp ev_set Enabled false
+mp scav_set FactionEnabled false
+mp th_set Enabled true
+mp th_set JoinChance 0
+mp th_cargo me steel 200
+mp th_encounter
+mp th_near 600
+waitfor th_attacking >= 1 60
+mp th_spill steel 400
+waitfor th_phase == 1 20
+on 1 waitfor th_phase == 1 20
+# The players' turrets may kill some while they collect with their guns off; the others flee and jump out.
+waitfor th_count == 0 240
+on 1 waitfor th_count == 0 60
+
 step journey.buyer-win
 # A new run: the Buyer appears, the client flies to it and sells tech from its own machine, and the run is won on both.
 mprestart
