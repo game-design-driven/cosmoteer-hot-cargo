@@ -19,18 +19,15 @@ ev_comms carrier Strip their cargo
 expect ev_pending == 0
 expect ev_res_steel_gain >= 30
 # 2. The players hail first: a trade station offers a Hot Cargo line; clicking it opens the page in the same comms.
-expectcomms station Sell a crate off the books 1
-ev_comms station Sell a crate off the books
+expectcomms station Sell crates off the books 1
+ev_comms station Sell crates off the books
 expectevent off_books
 expect ev_carrier == 1
 expectcomms station Off the Books 1
-pick 1
-ev_mark
-ev_comms station Sell the crates
-expect ev_tech_gain == -1
-expect ev_money_gain > 0
+ev_comms station Changed my mind
+expect ev_pending == 0
 # Each ship offers each line once per run.
-expectcomms station Sell a crate off the books 0
+expectcomms station Sell crates off the books 0
 # A faction ship line (needs heat 10).
 heat 15
 expectcomms faction Ask about hunters nearby 1

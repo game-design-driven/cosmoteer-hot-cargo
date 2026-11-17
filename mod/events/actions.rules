@@ -85,5 +85,11 @@
 			DescriptionKey = "HotCargoEventMissions/CourierDesc"
 			CategoryID = deliveries
 		}
+		HotCargoOffBooks
+		{
+			NameKey = "HotCargoEventMissions/OffBooks"
+			DescriptionKey = "HotCargoEventMissions/OffBooksDesc"
+			CategoryID = deliveries
+		}
 	}
 }
