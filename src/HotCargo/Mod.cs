@@ -49,6 +49,7 @@ public static class Mod
             Debt.DebtArea.Register();
             // After Hunters: its stage hooks read the ships that the Hunters area just spawned.
             Pursuit.PursuitArea.Register();
+            Storyteller.StorytellerArea.Register();
             Telemetry.TelemetryArea.Register();
             Dev.Invariants.Register();
             Dev.Playthrough.Register();

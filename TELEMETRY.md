@@ -67,6 +67,7 @@ Category switches are in the `Telemetry` tunables section. The table names the s
 | `event.choice` | Story | `serial`, `player`, `outcome` (all outcome rules fields) |
 | `event.result` | Story | `serial`, `title`, `lines` (one line per effect) |
 | `chain.start`, `chain.stage` | Story | `chain`, `station`, `from_stage`, `stage`, `part`, `ended`, `result`, `flags`, `story` |
+| `story.profile` | Story | `adapt` (adapt minutes), `pressure`, `impact`, `sector`, `ships_lost`, `crew_killed` (losses of the last visit). Once per system entry (spec 1730). |
 | `combat.census` | Combat | `live` (ships by side), `factions`, `stasis_ships`. At the first visit of a system. |
 | `combat.spawn` | Combat | ship fields, `from_stasis`. Every non-player ship that appears after the census, without derelicts (the pieces of a broken ship). |
 | `combat.destroyed` | Combat | `ship`, `name`, `player`, `side`, `faction`, `hunter`, `value`, `tags`. A ship that became a derelict, once: a broken ship counts when its last live piece is a wreck, with the fields of the ship before it broke (spec 1580). |

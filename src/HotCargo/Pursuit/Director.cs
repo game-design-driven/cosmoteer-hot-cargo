@@ -14,7 +14,10 @@ public static class Director
 
     /// <summary>Spec 901: the factor on the repeat Strike wave interval.</summary>
     public static float IntervalFactor(Run run) =>
-        run.T.Pursuit.Enabled ? PursuitModel.Lerp(run.T.Pursuit.EarlyIntervalFactor, run.T.Pursuit.LateIntervalFactor, Progress(run)) : 1f;
+        run.T.Pursuit.Enabled
+            // Spec 1727: a storyteller pressure above 1 shortens the interval, below 1 lengthens it.
+            ? PursuitModel.Lerp(run.T.Pursuit.EarlyIntervalFactor, run.T.Pursuit.LateIntervalFactor, Progress(run)) / Storyteller.StorytellerArea.Pressure(run)
+            : 1f;
 
     /// <summary>
     /// Spec 902: the value of the human fleet in this system per human player (vanilla BasePhysicalValue, so damage counts), against
@@ -30,13 +33,22 @@ public static class Director
         return PursuitModel.FleetFactor(value / (double)players, reference, t.FleetFactorPerDoubling, t.FleetFactorMax);
     }
 
-    /// <summary>Spec 901, 902: hunter ships of a stage response × ramp × fleet factor. Sim logic: it rolls sim.Rand for a fraction.</summary>
+    /// <summary>For tests and logs: the fleet factor × the storyteller pressure of the last stage response. Not saved.</summary>
+    internal static float LastMix { get; private set; } = float.NaN;
+
+    /// <summary>
+    /// Spec 901, 902, 1726: hunter ships of a stage response × ramp × (fleet factor × storyteller pressure, clamped). Sim logic: it rolls
+    /// sim.Rand for a fraction.
+    /// </summary>
     internal static int ScaleShips(Run run, SimRoot sim, int ships)
     {
         if (!run.T.Pursuit.Enabled) return ships;
-        float ramp = RampFactor(run), fleet = FleetFactor(run, sim);
-        int scaled = PursuitModel.ScaleCount(ships, ramp * fleet, sim.Rand.Double);
-        Log.Info($"pursuit: hunter ships {ships} x ramp {ramp:0.00} x fleet {fleet:0.00} = {scaled}");
+        var st = run.T.Storyteller;
+        float ramp = RampFactor(run), fleet = FleetFactor(run, sim), story = Storyteller.StorytellerArea.Pressure(run);
+        float mix = Storyteller.StorytellerModel.Combined(fleet, story, st.CombinedMin, st.CombinedMax);
+        LastMix = mix;
+        int scaled = PursuitModel.ScaleCount(ships, ramp * mix, sim.Rand.Double);
+        Log.Info($"pursuit: hunter ships {ships} x ramp {ramp:0.00} x fleet {fleet:0.00} x story {story:0.00} (together {mix:0.00}) = {scaled}");
         return scaled;
     }
 }
