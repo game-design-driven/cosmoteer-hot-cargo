@@ -66,6 +66,8 @@ static class TechAutotest
         Autotest.Fields["vaultburned"] = () => VaultDropPatch.LostMessages;
         // Spec 1554: vaults taken apart whose tech moved to other vaults or normal storage.
         Autotest.Fields["vaultrehomed"] = () => VaultDropPatch.Rehomed;
+        Autotest.Fields["vaultwaiting"] = () => Active().State.Tech.Waiting.Sum(w => w.Units);
+        Autotest.Fields["panelwaiting"] = () => Ui.HeatPanel.TechText.Contains(Ux.UxKit.Format("TechWaitingFmt", Active().State.Tech.Waiting.Sum(w => w.Units))) ? 1 : 0;
         Autotest.Fields["wreckspills"] = () => HunterGrab.WreckSpills;
         Autotest.Fields["hunterheld"] = () => Active().State.Tech.HunterHeld.Sum(h => h.Units);
         // The units on the blip of the first hunter that holds tech, or 0 when the blip does not show them.

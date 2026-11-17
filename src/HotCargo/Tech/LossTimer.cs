@@ -17,6 +17,8 @@ public sealed class TechState
     [Serialize(Optional = true)] public List<HunterTech> HunterHeld = new();
     /// <summary>Spec 1547: decay of the tech stacks that have any, by place. Only TechDecay changes it, in the sim tick.</summary>
     [Serialize(Optional = true)] public List<DecayEntry> Decay = new();
+    /// <summary>Spec 1554: tech of vaults that crew took apart, waiting on its ship for room. Only VaultWait and VaultDropPatch change it, in the sim.</summary>
+    [Serialize(Optional = true)] public List<WaitingTech> Waiting = new();
 }
 
 /// <summary>Saved form of <see cref="TechWear"/>.</summary>

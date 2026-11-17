@@ -14,7 +14,8 @@ MaxStackSize = 4
 // "Supply Stolen Tech" job out of every storage part's job list, so crews never prefer storage.
 FlexGridPriorityKey = "flex_grid_processor"
 FlexGridDefaultPriority = 1
-// A vault loses tech only when it is destroyed: it drops its tech as crates (spec 65, 445; VaultDropPatch burns it with a small chance). Salvage drops it too.
+// A vault loses tech only when it is destroyed: it drops its tech as crates (spec 65, 445; VaultDropPatch burns it with a small chance).
+// A vault that crew take apart keeps its tech aboard (VaultDropPatch, spec 1554). Salvaged normal storage drops its tech.
 // Killed crew lose the tech they carry (spec 9): CrewKilled would fall back to StorageDestroyed without its own value.
 DropRates
 {

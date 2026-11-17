@@ -20,20 +20,30 @@ expect shipvalid == 1
 tech add 4
 wait 1
 expect tech == 8
-# Spec 1554: a vault with tech that crew take apart moves its tech to the other vaults, then to normal storage. No crate, no loss.
+# Spec 1554: crew take apart a full vault while the other vault is full (the playtest case). The tech waits on the ship for the
+# rebuilt vault: no crate, not in normal storage (it would decay). It counts in the fleet tech and the heat panel, and survives save and load.
 vault grab full
 wait 1
 vault place
-wait 2
+waitfor vaultrehomed >= 1 300
+expect vaultwaiting == 4
+expect tech == 8
+expect techcrates == 0
+expect storagetech == 0
+waitfor panelwaiting == 1 10
+save techmove
+load techmove
+wait 1
+expect livetech == 8
+# The rebuilt vault takes the waiting tech.
 waitfor vaultsbusy == 0 300
+waitfor vaultwaiting == 0 60
 tech dump
 expect vaults == vaultsneeded
 expect vaultsbuilt == vaults
 expect shipvalid == 1
-expect vaultrehomed >= 1
-expect techcrates == 0
+expect vaulttech == 8
 expect tech == 8
-# The rebuilt vault takes the tech back from normal storage (spec 1543).
-waitfor storagetech == 0 240
-waitfor vaulttech == 8 60
+expect techcrates == 0
+expect storagetech == 0
 quit

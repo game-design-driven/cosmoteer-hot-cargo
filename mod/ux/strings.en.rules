@@ -15,6 +15,7 @@ HotCargoUx
 	TechDerelictFmt = "{0} in a derelict ship"
 	TechCratesFmt = "+{0} in crates"
 	TechHuntersFmt = "hunters hold {0}"
+	TechWaitingFmt = "{0} wait for a vault"
 	StatusWonFmt = "DELIVERED   score {0}"
 	StatusLost = "TECH LOST"
 	StatusHeatOff = "Heat is off"

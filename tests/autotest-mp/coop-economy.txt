@@ -369,6 +369,31 @@ mp tech_set DecaySeconds 360
 on 1 vault fill on
 wait 2
 
+step tech.move
+# Spec 1554: the client moves a full vault with the grab tool (its real input) while every vault and every storage is full.
+# The tech waits for the rebuilt vault on both machines, then goes into it: no crate, no loss, the same state on both.
+# A new run, calm and without godmode: godmode heals parts each tick, so crew could never take the vault apart.
+mprestart
+mp godmode off
+mp ev_set Enabled false
+mp tech_set DecaySeconds 0
+as 1 vault steel 64
+mp tech add 99
+wait 2
+on 1 vault grab full
+wait 1
+on 1 vault place
+waitfor vaultrehomed >= 1 300
+on 1 waitfor vaultrehomed >= 1 30
+expect techcrates == 0
+on 1 expect techcrates == 0
+waitfor vaultwaiting == 0 300
+on 1 waitfor vaultwaiting == 0 30
+waitfor vaultsbuilt == vaults 60
+on 1 waitfor vaultsbuilt == vaults 30
+expect techcrates == 0
+mp tech_set DecaySeconds 360
+
 step tech.trade-loss
 # Spec 17, 443, 1011: a new run. Each player's starter ship has 2 vaults and a share of the tech (4 + 4, or 3 + 3 + 2 with
 # 3 players); each player sells from their own ship. The last sale loses the run for all.
