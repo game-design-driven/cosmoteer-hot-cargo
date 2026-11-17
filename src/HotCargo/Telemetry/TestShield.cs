@@ -6,8 +6,8 @@ namespace HotCargo.Telemetry;
 
 /// <summary>
 /// Test only: the autotest command "shieldplayers on" keeps human ship parts from losing health and human crew from dying,
-/// so a scripted run (telemetry-run) does not depend on the starter ship surviving. Repairs still work. Single player only:
-/// it changes the sim from a GUI command. Turn it off around test commands that damage on purpose (vault damage).
+/// so a scripted run (telemetry-run) does not depend on the starter ship surviving. Repairs still work. It changes the sim, so
+/// in co-op it runs only with "mp" (every machine at the same tick). Turn it off around test commands that damage on purpose (vault damage).
 /// </summary>
 static class TestShield
 {

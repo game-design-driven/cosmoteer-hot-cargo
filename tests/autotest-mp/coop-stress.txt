@@ -4,6 +4,8 @@
 mphost {PORT}
 mpstart {PLAYERS}
 mp godmode on
+# The measure does not need the player ships: a ship that the fight takes does not stop the session.
+mpallowloss
 mp maxhunters 16
 mp strikeinterval 20
 mp airocks 10 900

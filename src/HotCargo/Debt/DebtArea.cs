@@ -281,7 +281,7 @@ public static class DebtArea
             "claim" => DebtChoice.HelpClaim,
             _ => throw new ArgumentException("debt_help_answer needs: pay | tab | claim"),
         }, 0));
-        // debt_kill_enemies: removes every enemy ship of the players (single player), so the fight ends.
+        // debt_kill_enemies: removes every live enemy ship of the players, so the fight ends. In co-op run it through "mp".
         Autotest.Commands["debt_kill_enemies"] = _ =>
         {
             foreach (var ship in Sim().Ships.Where(sh => DebtHelp.IsEnemyOfPlayers(Sim(), sh)).ToList()) Sim().Ships.Remove(ship, dispose: true, handleLostShip: false);

@@ -246,6 +246,39 @@ public static class MpAutotest
             Log.Info($"AUTOTEST MP game {_mpGames}: host={game.NetManager.IsHost} local player={game.LocalPlayerIndex} humans={game.HumanPlayerCount}");
         };
         Run.Hooks.Tick += LogState;
+        App.Director.FrameEnded += (_, _) => WatchLosses();
+        // mpallowloss: the host does not stop the session when a player loses its last ship (WatchLosses). For a session that
+        // does not need the ship, such as a performance measure of a heavy fight.
+        Autotest.Commands["mpallowloss"] = _ => _allowLoss = true;
+    }
+
+    /// <summary>Host: the human ships and their players at the last frame, in _watchedSim.</summary>
+    static Dictionary<Ship, int> _humanShips = [];
+    static SimRoot? _watchedSim;
+    static bool _allowLoss;
+
+    /// <summary>
+    /// Host of a co-op session: a player whose last ship is destroyed or becomes derelict cannot do the later steps, and each of
+    /// them would fail for that one cause (CI 2026-11-17: one lost ship failed 6 steps of coop-core). So the session stops at
+    /// once and names the cause. The loss of a ship while the player keeps another one is not a stop: steps lose taken hunters.
+    /// Same loss rule as Ux/ShipAlerts: a ship that left the human ships of the same sim and is disposed, without parts or junk.
+    /// A jump, a load or a resync replaces the sim and starts the watch again. "mpallowloss" turns it off for the session.
+    /// </summary>
+    static void WatchLosses()
+    {
+        if (_allowLoss || Autotest.Following || Autotest.Game is not { NetManager: BaseMPManager } game || game.Sim is not { } sim) return;
+        if (sim != _watchedSim) { _humanShips.Clear(); _watchedSim = sim; }
+        var now = sim.Ships.HumanPlayerShips.ToDictionary(s => s, s => s.Metadata.PlayerIndex);
+        foreach (var (ship, player) in _humanShips)
+        {
+            if (now.ContainsKey(ship) || now.ContainsValue(player)) continue;
+            string how = ship.IsDisposed || ship.Parts.Count == 0 ? "destroyed" : ship.IsJunk ? "derelict" : "";
+            if (how == "") continue;
+            Autotest.StopSession($"player {player} lost its last ship {ship.Metadata.PlainShipName} ({how}) at sim tick {sim.Tick}");
+            now.Clear();
+            break;
+        }
+        _humanShips = now;
     }
 
     static GameRoot RequireMpGame() =>

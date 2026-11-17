@@ -217,6 +217,21 @@ public static class Autotest
         _script?.Enqueue(("quit", "", _line));
     }
 
+    /// <summary>
+    /// Fails the step that runs now (else the script) and ends at once: the next line is "end", which closes the step, logs the
+    /// totals and ends a co-op session. For a cause that would fail every later step too (MpAutotest.WatchLosses).
+    /// </summary>
+    internal static void StopSession(string reason)
+    {
+        var ex = new InvalidOperationException(reason);
+        if (_step is { } step) FailStep(step, "session stopped", ex);
+        else Log.Error($"AUTOTEST FAIL session stopped: {reason}", ex);
+        _waitFor = null;
+        _wait = null;
+        _script?.Clear();
+        Inject(["end"]);
+    }
+
     static void FailStep(string step, string what, Exception ex)
     {
         // The reason in the same line, so scripts/coop-report.sh can print it.

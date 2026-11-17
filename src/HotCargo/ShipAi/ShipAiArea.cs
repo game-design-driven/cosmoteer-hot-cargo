@@ -155,12 +155,10 @@ public static class ShipAiArea
 
     static Ship TestShip()
     {
-        var sim = Sim();
-        int player = Autotest.ActingPlayerIndex;
+        var own = OwnShips();
+        // Only the acting player's ships: in co-op every player can have a ship with the same name (the start ship).
         if (_shipName is { } name)
-            return sim.Ships.HumanPlayerShips.Where(s => s.Metadata.PlainShipName == name).MinBy(s => s.UniqueID)
-                ?? throw new InvalidOperationException($"no own ship named '{name}'");
-        var own = sim.Ships.HumanPlayerShips.Where(s => s.Commands.IsCommandableBy(player)).OrderBy(s => s.UniqueID).ToList();
+            return own.FirstOrDefault(s => s.Metadata.PlainShipName == name) ?? throw new InvalidOperationException($"no own ship named '{name}'");
         if (_shipIndex >= own.Count) throw new InvalidOperationException($"no own ship {_shipIndex}; the player has {own.Count}");
         return own[_shipIndex];
     }
