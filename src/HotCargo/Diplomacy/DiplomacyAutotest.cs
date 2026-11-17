@@ -27,7 +27,7 @@ static class DiplomacyAutotest
 {
     static ObjectID? _friend, _enemy, _focus;
     static string _pageText = "";
-    static int _pageButtons, _pageActive, _pageSlider, _pageToggles;
+    static int _pageButtons, _pageActive, _pageSlider, _pageToggles, _holdLast;
 
     static int _markedAllies;
 
@@ -131,6 +131,7 @@ static class DiplomacyAutotest
             _pageButtons = page.Buttons.Count + page.Rows.Count;
             _pageActive = page.Buttons.Count(b => b.SelfInputActive) + page.Rows.Count(r => r.Active);
             _pageSlider = page.Rows.Count(r => r.Slider is not null);
+            _holdLast = page.Rows.Count > 0 && page.Rows[^1].Key == Offer.Hold.ToString() ? 1 : 0;
             _pageToggles = page.Rows.Count(r => r.Toggle);
             Log.Info($"AUTOTEST PAGE {target.Metadata.PlainShipName}: {_pageText.Replace('\n', ' ')} | rows: " +
                      string.Join(" | ", page.Rows.Select(r => (r.Active ? "" : "(off) ") + (r.Toggle ? (r.Selected ? "[X] " : "[ ] ") : "") + r.Text + (r.Slider is { } sl ? $" <{sl.Key}>" : ""))) +
@@ -275,6 +276,8 @@ static class DiplomacyAutotest
         Autotest.Fields["dip_pagebuttons"] = () => _pageButtons;
         Autotest.Fields["dip_pageactive"] = () => _pageActive;
         Autotest.Fields["dip_pageslider"] = () => _pageSlider;
+        // 1 when the hold row is the last option row of the page that dip_page built (spec 1800).
+        Autotest.Fields["dip_holdlast"] = () => _holdLast;
         Autotest.Fields["dip_answers"] = () => _friend is { } f && Sim().Ships[f] is { } s && Situation.Career(Sim()).WillShipAnswerCall(Me(), s) ? 1 : 0;
     }
 

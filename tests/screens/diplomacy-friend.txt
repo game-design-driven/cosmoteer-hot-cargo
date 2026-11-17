@@ -1,0 +1,16 @@
+# Diplomacy (spec 1800): a friendly ship's comms page. Asking it to hold tech is the last choice.
+# Windowed test slot (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run
+wait 10
+ev_set Enabled false
+closepanel
+godmode on
+dip_set MercChance 0
+dip_spawn friend 250
+wait 2
+pause on
+dip_open friend
+wait 2
+screenshot diplomacy-friend-page
+quit
