@@ -28,6 +28,8 @@ public sealed class MissionTunables
     [Serialize(Optional = true)] public float EscortRaiderFocus = 20f;
     /// <summary>Spec 1851: after the accept, the escort stops this far from the hull of the nearest player ship and waits.</summary>
     [Serialize(Optional = true)] public float EscortMeetGap = 300f;
+    /// <summary>Spec 1851: the escort stops at least this far inside the comms circle of the player ship, so the player can call it.</summary>
+    [Serialize(Optional = true)] public float EscortCommsMargin = 50f;
     /// <summary>Spec 1851: the waiting escort goes at most this far from where it started. Past it, the players come to the escort.</summary>
     [Serialize(Optional = true)] public float EscortMeetRange = 3000f;
     /// <summary>Spec 1852: the waiting escort hails when a player ship's hull is this close to its hull.</summary>

@@ -187,6 +187,9 @@ wait 3
 # Spec 1852: the freighter hails, and the client answers "Ready" in its own comms window (the shared choice input).
 # Both machines see the freighter leave.
 waitfor hc_escort_hailed == 1 60
+# The freighter came to the host's nearest ship. The client brings its own ship into comms reach first.
+as 1 hc_escort_bring
+wait 2
 on 1 hc_escort_call
 on 1 comms_click Ready
 waitfor hc_escort_waiting == 0 15

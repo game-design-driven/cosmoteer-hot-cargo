@@ -73,7 +73,7 @@ public static class MissionArea
             + new Vector2(arg.Trim().Length == 0 ? 0f : float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture), 0f));
         Autotest.Commands["hc_escort_arrive"] = _ => TestEscortArrive();
         // Spec 1850 to 1853. hc_escort_ready: the "Ready" pick of the escort page, as the shared choice input of the acting player.
-        // hc_escort_call: opens the real comms window from the acting player's ship to the escort (then comms_click).
+        // hc_escort_call: opens the real comms window from the acting player's ship nearest the escort (then comms_click).
         Autotest.Commands["hc_escort_ready"] = _ =>
         {
             RequireRun().Game.NetManager.EnqueueInput(EscortHail.Pick(RequireEscort().Escort.ShipID));
@@ -82,10 +82,25 @@ public static class MissionArea
         Autotest.Commands["hc_escort_call"] = _ =>
         {
             var game = RequireRun().Game;
-            var own = Autotest.ActingShip(game.Sim) ?? throw new InvalidOperationException("no own ship");
             var escort = RequireEscort().Escort.TargetShip ?? throw new InvalidOperationException("escort is not live");
+            // The acting player's ship nearest the escort: its comms must reach the escort, or the window closes at once.
+            int player = Autotest.ActingPlayerIndex;
+            var own = game.Sim.Ships.HumanPlayerSignificantShips.Where(s => s.Commands.CanExecuteCrewCommandsFrom(player))
+                .OrderBy(s => s.DetWorldCenter.DistanceSquaredTo(escort.DetWorldCenter)).ThenBy(s => s.UniqueID).FirstOrDefault()
+                ?? throw new InvalidOperationException("no own ship");
             game.Gui.FloatingWindows.AddChild(new Cosmoteer.Modes.Career.Comms.CommWindow(game, own, escort));
             Autotest.Wait(1);
+        };
+        // hc_escort_bring: moves the acting player's ship nearest the escort next to it (sim; "as 1" in co-op), so that player can call it.
+        Autotest.Commands["hc_escort_bring"] = _ =>
+        {
+            var sim = RequireSim();
+            var escort = RequireEscort().Escort.TargetShip ?? throw new InvalidOperationException("escort is not live");
+            int player = Autotest.ActingPlayerIndex;
+            var own = sim.Ships.HumanPlayerSignificantShips.Where(s => s.Commands.CanExecuteCrewCommandsFrom(player))
+                .OrderBy(s => s.DetWorldCenter.DistanceSquaredTo(escort.DetWorldCenter)).ThenBy(s => s.UniqueID).FirstOrDefault()
+                ?? throw new InvalidOperationException("no own ship");
+            Autotest.Teleport(own, Autotest.ClearSpotNear(sim, escort.DetWorldCenter, escort.DetWorldBoundingCircle.Radius + own.DetWorldBoundingCircle.Radius + 150f, own.DetWorldBoundingCircle.Radius));
         };
         // 1 while the escort waits for the answer; 1 once it hailed; the hull gap from the escort to the nearest player ship.
         Autotest.Fields["hc_escort_waiting"] = () => RequireEscort().Waiting ? 1 : 0;

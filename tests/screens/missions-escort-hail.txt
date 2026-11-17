@@ -1,0 +1,22 @@
+# Escort meeting (spec 1850 to 1854): the freighter comes to the players and hails; its comms page asks "Ready to leave?".
+# Windowed test slot or RUNNER=mac (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+closepanel
+wait 1
+ev_set Enabled false
+godmode
+hc_generate escort
+hc_accept escort
+hc_escort_goto 1800
+pause off
+waitfor hc_escort_hailed == 1 90
+wait 1
+pause on
+wait 1
+screenshot missions-escort-hailed
+hc_escort_call
+wait 1
+screenshot missions-escort-ready
+quit

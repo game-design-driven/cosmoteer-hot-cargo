@@ -282,8 +282,8 @@ internal sealed class EscortObjective : Objective, IMissionMarkers
     const float MeetSlack = 150f;
 
     /// <summary>
-    /// Spec 1851 to 1853, sim tick: the live escort flies to the nearest player ship, stops EscortMeetGap from its hull (at most
-    /// EscortMeetRange from its start), and hails when a player hull is within EscortHailGap, again every EscortRehailSeconds.
+    /// Spec 1851 to 1853, sim tick: the live escort flies to the nearest player ship, stops EscortMeetGap from its hull or closer,
+    /// inside that ship's comms reach (at most EscortMeetRange from its start), and hails when a player hull is within EscortHailGap, again every EscortRehailSeconds.
     /// </summary>
     void Meet(SimRoot sim)
     {
@@ -295,14 +295,19 @@ internal sealed class EscortObjective : Objective, IMissionMarkers
             .OrderBy(h => h.DetWorldCenter.DistanceSquaredTo(at)).ThenBy(h => h.UniqueID).FirstOrDefault();
         if (player is null) return;
         float escortRadius = ship.DetWorldBoundingCircle.Radius, playerRadius = player.DetWorldBoundingCircle.Radius;
-        var spot = MissionModel.MeetSpot(N(player.DetWorldCenter), playerRadius, N(at), escortRadius, t.EscortMeetGap, N(Start), t.EscortMeetRange);
+        var spot = MissionModel.MeetSpot(N(player.DetWorldCenter), playerRadius, player.Sensors.DetWorldCommsCircle.Radius, N(at), escortRadius,
+            t.EscortMeetGap, t.EscortCommsMargin, N(Start), t.EscortMeetRange);
         if (ship.AI is { } ai) SteerTo(ai, new Vector2(spot.X, spot.Y), MeetSlack);
         float gap = at.DistanceTo(player.DetWorldCenter) - escortRadius - playerRadius;
         if (gap > t.EscortHailGap || HailIn > 0 || !Events.EventHail.TryHail(sim, ship.UniqueID)) return;
         HailIn = t.EscortRehailSeconds;
         Log.Info($"escort {ship.Metadata.PlainShipName} hails the players (first {!Hailed})");
-        if (!Hailed) Ux.UxKit.ChatLine(sim.RequireGame(), Strings.FormatText("HotCargoObjectives/EscortHailedFmt", Escort.GetXmlTargetName(sim)));
-        Hailed = true;
+        if (!Hailed)
+        {
+            Ux.UxKit.ChatLine(sim.RequireGame(), Strings.FormatText("HotCargoObjectives/EscortHailedFmt", Escort.GetXmlTargetName(sim)));
+            Hailed = true;
+            OnDisplayLinesChanged();
+        }
     }
 
     /// <summary>
@@ -321,6 +326,7 @@ internal sealed class EscortObjective : Objective, IMissionMarkers
         }
         Log.Info($"escort {Escort.GetPlainTargetName(sim)} departs, answer by player {playerIndex}, via start {Via is not null}");
         Ux.UxKit.ChatLine(sim.RequireGame(), Strings.FormatText("HotCargoObjectives/EscortDepartsFmt", Escort.GetXmlTargetName(sim)));
+        OnDisplayLinesChanged();
     }
 
     static readonly ID<SimObjectSpawner> SunTag = new("sun");
