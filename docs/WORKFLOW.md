@@ -14,7 +14,7 @@ coordinator thread ── briefs ──► one agent per area (own worktree, own
                                    │ local tests (unit, headless sim, PC)
                                    ▼
                                  PR ── CI on the PR: build, unit tests, spec numbers, test set check
-                                   │ gh pr merge --auto --merge
+                                   │ gh pr merge --auto
                                    ▼
                                  merge queue ── the PR's game test set in the headless sim
                                    ▼
@@ -60,7 +60,7 @@ Hot Cargo:
 
 Generic:
 - Every change goes through a PR. Nobody pushes to `main`.
-- The agent that owns a PR merges it: mark it ready, then `gh pr merge --auto --merge`. Only the coordinator uses `--admin`, and only for a known flake (`hot-cargo-coordinate`).
+- The agent that owns a PR merges it: mark it ready, then `gh pr merge --auto`. Only the coordinator uses `--admin`, and only for a known flake (`hot-cargo-coordinate`).
 - `main` has a GitHub merge queue. It tests each PR on top of the newest `main` and the PRs ahead of it. A PR does not have to be up to date with `main`.
 - `main` gets one merge commit for each PR, titled with the PR title. Read the history with `git log --first-parent --oneline`. Squash merges are off, because they broke stacked branches.
 - PR text starts with 🤖, stays short, and shows images of visible changes.
