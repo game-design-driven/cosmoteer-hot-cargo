@@ -17,8 +17,9 @@ public static class DebtModel
 
     /// <summary>Spec 1404: one interest step, rounded up to whole credits.</summary>
     public static long Interest(long balance, float rate) =>
-        // decimal: (decimal)0.05f is exactly 0.05, so 10,000 gives 10,500 and not 10,501.
-        balance > 0 ? (long)Math.Ceiling(balance * (1m + (decimal)rate)) : 0;
+        // The float to decimal cast differs by runtime: .NET 10 gives 0.05 for 0.05f, .NET 11 the exact 0.0500000007...
+        // Rounding the rate to 6 places gives 0.05 on both, so 10,000 gives 10,500 and not 10,501. Rates are tunables with few decimals.
+        balance > 0 ? (long)Math.Ceiling(balance * (1m + Math.Round((decimal)rate, 6))) : 0;
 
     public static float Ratio(long balance, long principal) =>
         principal > 0 ? (float)balance / principal : throw new ArgumentOutOfRangeException(nameof(principal), principal, "a debt needs a principal above 0");
