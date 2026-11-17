@@ -141,10 +141,12 @@ public static class TelemetryArea
             }
             Log.Info($"AUTOTEST wrecks: {count} derelict ships");
         };
-        // shieldplayers on|off: human ship parts lose no health and human crew do not die (TestShield). Test only, single player.
+        // shieldplayers on|off: human ship parts lose no health and human crew do not die (TestShield). Test only. In co-op only
+        // with "mp", so every machine turns it on at the same sim tick.
         Autotest.Commands["shieldplayers"] = arg =>
         {
-            if (Autotest.RequireRun().IsMultiplayer) throw new InvalidOperationException("shieldplayers is single player only");
+            if (Autotest.RequireRun().IsMultiplayer && Autotest.SimPlayer is null)
+                throw new InvalidOperationException("shieldplayers in co-op needs \"mp\" (it changes the sim)");
             TestShield.On = arg != "off";
             Log.Info($"AUTOTEST shieldplayers {TestShield.On}");
         };

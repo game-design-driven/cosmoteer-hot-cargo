@@ -118,6 +118,9 @@ expect heatperminute == 50
 step shipai.tactics
 # Spec 409, 411: edits by either player go through the tactics input. The client's edits come from its own machine.
 mp aiset FleeEnabled false
+# The host's start ship. Ship IDs are random, so "ship 0" can be a hunter of hunters.capture, which has no command points
+# and never runs its tactics (vanilla CanExecuteCommands).
+tactics_ship Model-L
 tactics Defensive
 tacticsauto on
 on 1 tactics Sniper
@@ -129,10 +132,15 @@ expecttacticsany Defensive
 step shipai.fight
 # Both machines run the same tactics decisions in a fight.
 # Two ships of the sector tier: the Warning response of the last sector (#19 removed the Patrol stage).
+# The player ships take no damage and lose no crew in the fight: it tests the tactics, not who wins. CI 2026-11-17: a random
+# Iota group and a Strike wave took the client's only ship, and the later steps failed with it.
+mp shieldplayers on
 mp stageset Warning EarlyScale 1
 mp spawnstage Warning
 wait 30
+# Two start ships with tactics, one evaluation each second.
 expect tactics_evals > 20
+mp shieldplayers off
 
 step core.resync
 # The resync that follows a desync (and a late join): every machine reloads the host's game. A pending event, a sprung trap,
