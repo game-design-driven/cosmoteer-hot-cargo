@@ -70,11 +70,11 @@ static class PaymentHint
             {
                 if (!PaymentHintModel.Tell(DueHere(game, payment), Told, mission.MissionID)) continue;
                 HintsShown++;
-                string name = mission.Name.Text;
-                Log.Info($"ux: payment hint for {name}");
-                UxKit.ChatLine(game, $"<fame_color>{UxKit.Format("PaymentHintFmt", Halfling.StringTools.EscapeForXml(name))}</fame_color>");
-                // The banner label shows plain text.
-                ShipAlerts.Banner(game, UxKit.Format("PaymentHintFmt", name), WidgetRules.Instance.LimitedTextColor);
+                string plain = MissionTitle.Plain(mission);
+                Log.Info($"ux: payment hint for {plain}");
+                // The title is XML (a chain stage carries a color tag): the chat line renders it, the banner label shows plain text.
+                UxKit.ChatLine(game, $"<fame_color>{UxKit.Format("PaymentHintFmt", MissionTitle.Xml(mission))}</fame_color>");
+                ShipAlerts.Banner(game, UxKit.Format("PaymentHintFmt", plain), WidgetRules.Instance.LimitedTextColor);
             }
     }
 }
