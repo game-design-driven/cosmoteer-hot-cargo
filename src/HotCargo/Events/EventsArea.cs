@@ -47,6 +47,7 @@ public static class EventsArea
         Run.Hooks.Tick += PatrolListen.OnTick;
         Run.Hooks.Frame += PatrolListen.OnFrame;
         Run.Hooks.Tick += RescueBeacon.OnTick;
+        OffBooks.Register();
         Run.Hooks.SystemEntered += StationAttack.OnSystemEntered;
         Run.Hooks.Tick += StationAttack.OnTick;
         Hunters.HunterOrders.Overrides.Add(StationAttack.Override);

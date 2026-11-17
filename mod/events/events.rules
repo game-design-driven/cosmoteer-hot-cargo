@@ -1117,30 +1117,54 @@ Events
 	// ---- Hail lines (spec 769): extra Hot Cargo lines in the comms of stations and faction ships. Once per ship and line.
 
 	{
+		// Spec 1801 to 1807: the station sets up a meet with a fence; the sale happens at the fence (off_books_meet).
 		ID = off_books
 		Trigger = Hail
 		HailTarget = Station
-		HailLine = "Sell a crate off the books."
+		HailLine = "Sell crates off the books."
 		MaxPerRun = 0
 		Need { Tech = 2 }
 		Title = "Off the Books"
-		Text = "The dock officer lowers her voice. \"No trade log, no tax, no questions. We pay under market, but the sale never happened.\""
-		Options
-		[
-			{ Text = "Crates to sell"; Pay = Tech; MinUnits = 1; MaxUnits = 3; Effect { MoneyTech = 0.85; Heat = -10 } }
-		]
+		Text = "The dock officer lowers her voice. \"Not here: everything here is logged. A buyer of mine waits out in the dark. No tax, no trade log. He pays {ob_price} a crate today. A word of warning: each crate has about a {ob_risk} % chance to end up in a corporate report, and corporate ships near the meet make it worse.\""
 		Choices
 		[
 			{
-				// Spec 811: each crate pays 0.85 tech value and cuts heat by 10, as one crate did before.
-				Text = "Sell the crates."
-				NeedPoints = 1
+				Text = "Set up the meet."
 				Need { Tech = 1 }
-				Outcomes [ { Text = "The sale never happened. Neither did your last port call." } ]
+				Outcomes [ { Text = "\"He'll wait for you. Bring the crates yourself.\""; Effect = off_books_meet } ]
 			}
 			{
 				Text = "Changed my mind."
 				Outcomes [ { Text = "\"Suit yourself.\"" } ]
+			}
+		]
+	}
+
+	// Spec 1805 to 1807: the hand-over at the fence. The line shows while the meet runs (HotCargoHandOver, Page = off_books_meet).
+	// The option row takes the crates; the sale effect pays the quote and rolls the sting. "Not yet" keeps everything.
+	{
+		ID = off_books_meet
+		Trigger = Hail
+		HailTarget = Contact
+		HailLine = "Hand over the crates."
+		MaxPerRun = 0
+		Title = "The Fence"
+		Text = "The fence keeps his engines warm. \"{ob_quote} a crate, as agreed. Risk of a report: {ob_quote_risk} % per crate. {ob_sting}\""
+		Options
+		[
+			{ Text = "Crates to hand over"; Pay = Tech; MinUnits = 1; MaxUnits = 3 }
+		]
+		Choices
+		[
+			{
+				Text = "Hand them over."
+				NeedPoints = 1
+				Need { Tech = 1 }
+				Outcomes [ { Text = "Crates go across, credits come back."; Effect = off_books_sale; HandOver = true } ]
+			}
+			{
+				Text = "Not yet."
+				Outcomes [ { Text = "\"Don't take long.\"" } ]
 			}
 		]
 	}

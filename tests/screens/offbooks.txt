@@ -1,0 +1,30 @@
+# Off the Books (spec 1801, 1805): the station's quote, then the fence's page at the meet.
+# Windowed test slot (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+closepanel
+wait 1
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+ev_tostation
+heat 30
+ev_open station
+ev_click station Sell crates off the books
+wait 1
+screenshot offbooks-quote
+ev_click station Set up the meet
+dip_close
+ev_contact_goto
+pause off
+ev_contact_goto
+pause off
+waitfor ob_fence == 1 20
+ev_open contact
+ev_click contact Hand over the crates
+pick 1
+wait 1
+screenshot offbooks-fence
+quit

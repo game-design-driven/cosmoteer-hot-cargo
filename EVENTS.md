@@ -308,10 +308,10 @@ One per run, in a sector from 2 to the one before the Buyer. Within 3,000 the va
 Events do not only pop up. Ships carry them and talk:
 - **Ship-carried pages.** An event with a `Carrier` spawns its ship when it opens. The ship calls ("Courier is calling. Fly within comms range to answer, or hail it."), hails you in comms range, and its comms tab shows the page and the choices. It stays a real ship: attack it and the page closes ("The ship is gone, and so is the offer"), or leave it behind. Dead in Space now comes from its freighter, and the tow choice tows that freighter.
 - **Stations hail.** A Station event (The Fence, Smugglers' Den, The Informant, The Archive) comes from the station's comms.
-- **Hot Cargo lines in vanilla hails.** Stations offer "Sell a crate off the books." Faction ships offer "Ask about hunters nearby." (heat 10+). Once per ship and line.
+- **Hot Cargo lines in vanilla hails.** Stations offer "Sell crates off the books." Faction ships offer "Ask about hunters nearby." (heat 10+). Once per ship and line.
 
-#### 33. Off the Books (Hail line, trade stations; 2+ tech)
-Sell 1 to 3 crates (an option; keeps the last one): each 0.85 × tech value and heat −10. Or change your mind.
+#### 33. Off the Books (Hail line, trade stations; 2+ tech; spec 1801 to 1809)
+The dock officer quotes a price per crate (0.85 × tech value, less with heat and hunters, more with good standing) and an informant chance per crate (4 % + 10 % per 100 heat, less with good standing). "Set up the meet": a fence waits 3,000 to 4,000 out for 5 minutes. Fly the crates there and hand over 1 to 3 in its comms. Corporate ships near the fence add 15 % each. Clean: the money and heat −10 per crate. Sting: the same money, but heat +15 and corporate ships jump in. Against the trade screen (full price, no heat cut) and the Buyer (the best price, at the end).
 
 #### 34. Patrol Chatter (Hail line, faction ships; heat 10+)
 Pay 0.2 money units for patrol logs (heat −8), or never mind. A clear deal only.

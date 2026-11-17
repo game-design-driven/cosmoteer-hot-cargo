@@ -9,7 +9,7 @@ expect debt_loan_stations >= 1
 expect debt_count == 0
 debt_goto loan
 wait 2
-# Spec 1416: the station's normal page has one debt line and its other lines (events on: "Sell a crate off the books."),
+# Spec 1416: the station's normal page has one debt line and its other lines (events on: "Sell crates off the books."),
 # but no debt choices. The debt page has only the debt part.
 ev_set ArrivalEventChance 0
 ev_set StationEventChance 0
