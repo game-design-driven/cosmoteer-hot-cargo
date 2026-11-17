@@ -4,7 +4,9 @@ using Cosmoteer.Data;
 using Cosmoteer.Game;
 using Cosmoteer.Game.Multiplayer;
 using Cosmoteer.Game.Multiplayer.MPInputs;
+using Cosmoteer.Modes.Career;
 using Cosmoteer.Modes.Career.Comms;
+using Cosmoteer.Ships.AI.CommsModules;
 using Cosmoteer.Modes.Career.Missions;
 using Cosmoteer.Modes.Career.Missions.Objectives;
 using Cosmoteer.Modes.Career.TechTree;
@@ -123,19 +125,82 @@ public static class Playthrough
                 Log.Info("AUTOTEST playthrough: repair: nothing to repair");
                 return;
             }
-            var resources = QueueRepair(ship, (resource, units) => { if (units > Stored(resource)) Buy(resource, units - Stored(resource)); });
+            var resources = new HashSet<ID<ResourceRules>>();
+            // The repair order of the repair button, with buys for what it costs. A fire that still burns after the order hurts more parts,
+            // and the order does not cover them, so the wait gives the order again (#184).
+            void Queue(Ship s) => resources.UnionWith(QueueRepair(s, (resource, units) =>
+            {
+                if (units > Stored(resource) && !BuyPending(resource)) Buy(resource, units - Stored(resource));
+            }));
+            Queue(ship);
             double next = GameSeconds() + 20;
             Autotest.WaitFor(() =>
             {
-                if (!Repairing(TechAutotest.PlayerShip())) return true;
+                var s = TechAutotest.PlayerShip();
+                if (!Repairing(s)) return true;
                 double now = GameSeconds();
                 if (now < next) return false;
                 next = now + 20;
                 if (!Near()) GoTo("station");
-                else foreach (var r in resources.Where(r => Stored(r) == 0 && !BuyPending(r))) Buy(r, RepairTopUp);
+                else
+                {
+                    // The resources that the queued repairs still wait for count too: the first cost can be 0 while the ship still holds
+                    // stock, and the repairs then use it up (a storage repair waited for 1 steel, #184).
+                    if (s.OptionalConstructionManager is { } cm)
+                        resources.UnionWith(cm.QueuedPartRepairs.SelectMany(q => q.ResourceSinks).Where(k => k.GetRemainingCapacity(k.ResourceType, false) > 0).Select(k => k.ResourceType));
+                    foreach (var r in resources.Where(r => Stored(r) == 0 && !BuyPending(r))) Buy(r, RepairTopUp);
+                    if (s.NeedsPhysicalRepairs) Queue(s);
+                }
                 return false;
             }, timeout, "the crew to repair the ship");
         };
+        // pt_hire: the station's "hire all" button in the comms hire tab (vanilla CommHireTab.OnAutoHireClicked): crew for every free
+        // bed, as far as fame, money and a path to a bed allow. A fire or a fight can kill crew; with too few left, all of them man
+        // parts and nobody repairs (#184).
+        Autotest.Commands["pt_hire"] = _ =>
+        {
+            var game = Game();
+            var ship = TechAutotest.PlayerShip();
+            var station = Station();
+            var mode = (CareerGameModeManager)game.Mode;
+            var input = new CommHireTab.MPHireCrewInput(station, ship);
+            int total = mode.GetTotalPlayerCrew(game.LocalPlayerIndex), maxCrew = mode.GetCurrentMaxCrew(), beds = ship.Crew.RemainingCrewCapacity;
+            int money = game.LocalPlayerSpendableMoney, spent = 0;
+            var sources = CommHireTab.GetAvailableSources(ship);
+            var offered = station.AI?.CommsModules.OfType<AICrewProviderModule>().SelectMany(m => m.CrewForHire).ToList() ?? [];
+            foreach (var crew in offered)
+            {
+                if (beds <= 0 || !(mode.PlayerFame >= mode.GetFamePrereq(total + input.Crew.Count + 1))) break;
+                int cost = CommHireTab.GetHireCost(game, crew, total + input.Crew.Count + 1, maxCrew);
+                if (money < spent + cost) break;
+                if (CommHireTab.GetReachableCrewSource(sources, crew) is not { } source) break;
+                input.Crew.Add((crew, source));
+                beds--;
+                spent += cost;
+            }
+            Log.Info($"AUTOTEST playthrough: hire {input.Crew.Count} crew for {spent} (crew {ship.Crew.Assigned.Count}, free beds {ship.Crew.RemainingCrewCapacity}, offered {offered.Count})");
+            if (input.Crew.Count > 0) game.NetManager.EnqueueInput(input);
+        };
+        // pt_fuel: the move order of the hyperdrive's parts panel: the crew carry the ship's hyperium into the drive. After a fight
+        // with a fire, crew did not refuel the new drive by themselves (no delivery job; cause not found), so the drives never got
+        // ready at the relay (#184). Revisit when vanilla refuels a drive in that state.
+        Autotest.Commands["pt_fuel"] = _ =>
+        {
+            var game = Game();
+            var ship = TechAutotest.PlayerShip();
+            var hyperium = new ID<ResourceRules>("hyperium");
+            var drive = ship.Parts.SelectMany(p => p.Components.OfType<Cosmoteer.Ships.Parts.Resources.ResourceStorage>()).First(st => st.Part.Components.OfType<Cosmoteer.Ships.Parts.Ftl.FtlDrive>().Any() && st.Rules.ResourceType == hyperium);
+            var src = new List<(IResourceSource Source, int AnticipatedResources, float Distance)>();
+            ship.Resources.SearchAllAvailableResourceSources(ship, hyperium, MPValueType.Displayed, src);
+            foreach (var (source, n, _) in src)
+            {
+                if (source is Cosmoteer.Ships.Parts.Resources.ResourceStorage rs && rs == drive) continue;
+                var id = MPMoveResourcesInput.GetJobOwner(source, drive, game.LocalPlayerIndex).Jobs.AllocLocalJobID();
+                game.NetManager.EnqueueInput(new MPMoveResourcesInput(source, drive, n, id));
+                Log.Info($"AUTOTEST playthrough: fuel: move {n} hyperium into the drive");
+            }
+        };
+        Autotest.Fields["pt_crew"] = () => TechAutotest.PlayerShip().Crew.Assigned.Count;
         // pt_build <part id>: a blueprint part on a free spot next to the hull, confirmed like the build tool's button. Crew build it.
         Autotest.Commands["pt_build"] = arg =>
         {
