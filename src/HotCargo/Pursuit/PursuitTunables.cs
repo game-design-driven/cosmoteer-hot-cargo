@@ -42,6 +42,7 @@ public sealed class PursuitTunables
         new() { Kind = PacedKinds.Hacker, MaxPerRun = 1, MinGapSeconds = 0f },
         new() { Kind = PacedKinds.RelayLockdown, MaxPerRun = 2, MinGapSeconds = 1200f },
         new() { Kind = PacedKinds.StationAttack, MaxPerRun = 2, MinGapSeconds = 1200f },
+        new() { Kind = PacedKinds.Thieves, MaxPerRun = 3, MinGapSeconds = 900f },
     ];
 
     // ---- Reporting scout (spec 910 to 914)
@@ -138,4 +139,5 @@ public static class PacedKinds
     public const string Hacker = "Hacker";
     public const string RelayLockdown = "RelayLockdown";
     public const string StationAttack = "StationAttack";
+    public const string Thieves = "Thieves";
 }

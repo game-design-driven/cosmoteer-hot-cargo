@@ -43,6 +43,7 @@ public static class Mod
             Relays.RelaysArea.Register();
             Debris.DebrisArea.Register();
             Breach.BreachArea.Register();
+            Thieves.ThievesArea.Register();
             Stash.StashArea.Register();
             Diplomacy.DiplomacyArea.Register();
             Debt.DebtArea.Register();

@@ -25,6 +25,7 @@ src/HotCargo/
   RunRecord/               run record (section 49): past runs in the save folder, rows in the career log tab and the Past Runs window of the main menu
   Debris/                  debris decay (section 50): old loose junk glows, then burns up (DebrisModel, DebrisGlow)
   Breach/                  crew breach (section 61): crew with no airlock into their ship cut one (BreachModel)
+  Thieves/                 pirate thieves (section 63): thief ships (ThiefShip), the cargo trigger, collect and flee (Thieves, ThievesModel), the HcThief and HcRob AI modules
   Friendly/                friendly encounters (section 54): the outcome effects of friendly ship pages (join, and later ones)
   Ui/                      overlay, heat panel (areas add lines through HeatPanel.ExtraLines), run intro and end panels
   Dev/Autotest.cs          headless test commands

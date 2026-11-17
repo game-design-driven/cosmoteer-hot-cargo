@@ -1,0 +1,21 @@
+// Pirate thieves (spec 1771). The area folder sorts after tactics, so these modules come last in the lists and run before the tactics.
+	{
+		Action = AddMany
+		AddTo = "<ai/ai_normal.rules>/StrategyModules"
+		ManyToAdd = &<thieves/ai.rules>/Strategy
+	}
+	{
+		Action = AddMany
+		AddTo = "<ai/ai_normal.rules>/TargetingModules"
+		ManyToAdd = &<thieves/ai.rules>/Targeting
+	}
+	{
+		Action = AddMany
+		AddTo = "<ai/ai_wanderer.rules>/StrategyModules"
+		ManyToAdd = &<thieves/ai.rules>/Strategy
+	}
+	{
+		Action = AddMany
+		AddTo = "<ai/ai_wanderer.rules>/TargetingModules"
+		ManyToAdd = &<thieves/ai.rules>/Targeting
+	}

@@ -75,6 +75,9 @@ public static class GameData
         return _tierValueMaximums[Math.Clamp(tier, 1, _tierValueMaximums.Length) - 1];
     }
 
+    /// <summary>The number of tiers: the length of TIER_TABLES/TierValueMaximums.</summary>
+    public static int TierCount => (_tierValueMaximums ??= LoadTable<int>("TierValueMaximums")).Length;
+
     static T[] LoadTable<T>(string name)
     {
         string path = (string)(Paths.DataFolder / "modes/career/tier_tables.rules");

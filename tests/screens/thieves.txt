@@ -1,0 +1,29 @@
+# Pirate thieves (spec 1772): the thief designs of tiers 1, 4, 6, 9, 12 and 16 side by side, then tiers 1, 6 and 12 up close.
+# Windowed test slot (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+closepanel
+wait 1
+ev_set Enabled false
+scav_set FactionEnabled false
+th_set JoinChance 0
+godmode on
+reveal on
+openspace 6000 3000
+th_lineup 1 4 6 9 12 16
+pause on
+wait 1
+th_camera 9 700
+wait 1
+screenshot thieves-lineup
+th_camera 1 60
+wait 1
+screenshot thieves-tier1
+th_camera 6 70
+wait 1
+screenshot thieves-tier6
+th_camera 12 110
+wait 1
+screenshot thieves-tier12
+quit
