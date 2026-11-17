@@ -19,6 +19,8 @@ dip_page friend
 expect dip_pagebuttons >= 2
 # Hold and help each have their own slider in their row (spec 591).
 expect dip_pageslider == 2
+# Spec 1800: asking to hold tech is the last option row.
+expect dip_holdlast == 1
 # Hold for free, then the return without betrayal. Held tech counts in the fleet tech.
 dip_set HoldChanceBase 5
 dip_set FeeChanceBase -5

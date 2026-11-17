@@ -246,12 +246,6 @@ public sealed class DiplomacyHail : IHailProvider
             Button(run, sim, player, caller, ship, page, Offer.DeclineHoldFee, 0, DipText.Text("DeclineFee"));
             return;
         }
-        int stock = Situation.VaultTech(sim);
-        if (stock > 0 && Situation.MayHold(run, ship))
-        {
-            var spec = new SliderSpec("hold", DipText.Text("SliderUnits"), 1, stock, 1, 1, v => DipText.Format("UnitsFmt", v, stock));
-            Row(run, sim, player, caller, ship, page, Offer.Hold, spec, k => DipText.Format("HoldFmt", k, Pct(Quotes.Hold(run, sim, ship, k))));
-        }
         if (held > 0) Button(run, sim, player, caller, ship, page, Offer.Return, 0, DipText.Format("ReturnAskFmt", held));
         if (merc)
         {
@@ -267,6 +261,14 @@ public sealed class DiplomacyHail : IHailProvider
             if (Situation.WantedAnywhere(sim, player) && !Done(run, ship, Offer.Hire)) page.AddText(DipText.Text("HireWanted"));
             Row(run, sim, player, caller, ship, page, Offer.Hire, spec, steps =>
                 DipText.Format("HireFmt", Cost(run, steps * step), (int)Math.Ceiling(run.T.Diplomacy.HireSeconds / 60.0), Pct(Quotes.Hire(run, sim, player, ship, steps * step))));
+        }
+        // Spec 1800: asking to hold tech is the last option row, below hire and merc time. Limit: rows show above the page's buttons
+        // (Return, event hail lines), so a button can still come after it; revisit if the user wants it below those too.
+        int stock = Situation.VaultTech(sim);
+        if (stock > 0 && Situation.MayHold(run, ship))
+        {
+            var spec = new SliderSpec("hold", DipText.Text("SliderUnits"), 1, stock, 1, 1, v => DipText.Format("UnitsFmt", v, stock));
+            Row(run, sim, player, caller, ship, page, Offer.Hold, spec, k => DipText.Format("HoldFmt", k, Pct(Quotes.Hold(run, sim, ship, k))));
         }
     }
 }
