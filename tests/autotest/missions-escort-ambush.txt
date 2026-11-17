@@ -11,6 +11,7 @@ expect hc_escort_raiders == 0
 hc_escort_goto
 pause off
 wait 3
+hc_escort_ready
 # Just before the ambush point. The freighter flies on and springs the ambush itself.
 hc_escort_advance 0.25
 pause off

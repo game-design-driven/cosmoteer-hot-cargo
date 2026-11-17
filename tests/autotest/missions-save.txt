@@ -23,6 +23,8 @@ hc_escort_goto
 # The game can pause by itself here (enemy spotted or a codex page, with default settings in test slots).
 pause off
 wait 5
+# Spec 1850: the freighter leaves only after a player answers its hail.
+hc_escort_ready
 expect hc_escort_steering == 1
 hc_escort_arrive
 wait 3

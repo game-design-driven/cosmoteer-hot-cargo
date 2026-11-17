@@ -26,4 +26,14 @@ public sealed class MissionTunables
     /// with exponent 1.5 and keeps its target until another scores 6 times higher, so the freighter needs a large value to win over a nearer player ship.
     /// </summary>
     [Serialize(Optional = true)] public float EscortRaiderFocus = 20f;
+    /// <summary>Spec 1851: after the accept, the escort stops this far from the hull of the nearest player ship and waits.</summary>
+    [Serialize(Optional = true)] public float EscortMeetGap = 300f;
+    /// <summary>Spec 1851: the waiting escort goes at most this far from where it started. Past it, the players come to the escort.</summary>
+    [Serialize(Optional = true)] public float EscortMeetRange = 3000f;
+    /// <summary>Spec 1852: the waiting escort hails when a player ship's hull is this close to its hull.</summary>
+    [Serialize(Optional = true)] public float EscortHailGap = 800f;
+    /// <summary>Spec 1853: seconds between two hails of a waiting escort while a player ship stays close.</summary>
+    [Serialize(Optional = true)] public float EscortRehailSeconds = 60f;
+    /// <summary>Spec 1854: radius of the map ring that marks a waiting escort.</summary>
+    [Serialize(Optional = true)] public float EscortMarkerRadius = 600f;
 }

@@ -2,6 +2,10 @@
 
 `spec/24-mechanics-missions.md` holds the numbered requirements. This file describes how each mission plays. Numbers are defaults. The `Mechanics` section of `tunables.rules` holds the live numbers. Rewards are in `mod/missions/mechanics/sysgen_mechanics.rules`.
 
+## Escorts
+
+Spec 64 (requirements 1850 to 1855). Every escort (Convoy Duty and the chain escort stages) waits for the players before it leaves. After the accept, the escorted ship flies to your nearest ship and stops close (`Missions.EscortMeetGap`, 300 from your hull). It goes at most `EscortMeetRange` (3,000) from where it started; past that, fly to it. The map ring and the objective line show where it is. When your hull is within `EscortHailGap` (800), it hails you: "Ready to leave?". Click **Ready. Lead the way.** in its comms, and it starts its route from there. **Not yet** closes the window. It never leaves by itself: it hails again every 60 s while you stay close, and you can always call it. In co-op, "Ready" is a shared choice, so every player sees it and can vote.
+
 ## Mechanics missions
 
 These missions use the game's own systems: building, tractor beams, mining, crew, surrender, sensors and careful targeting. Each one shows up in half of the systems (`Mechanics.<Name>Chance`, 50 %; BALANCE.md, finding 10). Rewards use the vanilla tier tables, so the pay rises with the sector tier. The table shows each reward as a multiple of a standard vanilla mission.

@@ -38,6 +38,8 @@ public static class MissionArea
     public static void Register()
     {
         MissionMarkers.Register();
+        Ui.CommsHail.Providers.Add(EscortHail.Instance);
+        SharedChoice.SharedChoices.Register(EscortHail.Instance);
         foreach (var (name, metatype) in Metatypes)
         {
             var id = new ID<MissionMetatype>(metatype);
@@ -66,8 +68,37 @@ public static class MissionArea
         Autotest.Fields["hc_visit"] = () => VisitState();
         Autotest.Commands["hc_generate"] = TestGenerate;
         Autotest.Commands["hc_accept"] = TestAccept;
-        Autotest.Commands["hc_escort_goto"] = _ => TeleportPlayers(RequireEscort().Escort.DetLocation() ?? throw new InvalidOperationException("escort is not in this system"));
+        // hc_escort_goto [distance]: the players next to the escort, or this much farther away (spec 1851: it comes to them).
+        Autotest.Commands["hc_escort_goto"] = arg => TeleportPlayers((RequireEscort().Escort.DetLocation() ?? throw new InvalidOperationException("escort is not in this system"))
+            + new Vector2(arg.Trim().Length == 0 ? 0f : float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture), 0f));
         Autotest.Commands["hc_escort_arrive"] = _ => TestEscortArrive();
+        // Spec 1850 to 1853. hc_escort_ready: the "Ready" pick of the escort page, as the shared choice input of the acting player.
+        // hc_escort_call: opens the real comms window from the acting player's ship to the escort (then comms_click).
+        Autotest.Commands["hc_escort_ready"] = _ =>
+        {
+            RequireRun().Game.NetManager.EnqueueInput(EscortHail.Pick(RequireEscort().Escort.ShipID));
+            Autotest.Wait(2);
+        };
+        Autotest.Commands["hc_escort_call"] = _ =>
+        {
+            var game = RequireRun().Game;
+            var own = Autotest.ActingShip(game.Sim) ?? throw new InvalidOperationException("no own ship");
+            var escort = RequireEscort().Escort.TargetShip ?? throw new InvalidOperationException("escort is not live");
+            game.Gui.FloatingWindows.AddChild(new Cosmoteer.Modes.Career.Comms.CommWindow(game, own, escort));
+            Autotest.Wait(1);
+        };
+        // 1 while the escort waits for the answer; 1 once it hailed; the hull gap from the escort to the nearest player ship.
+        Autotest.Fields["hc_escort_waiting"] = () => RequireEscort().Waiting ? 1 : 0;
+        Autotest.Fields["hc_escort_hailed"] = () => RequireEscort().Hailed ? 1 : 0;
+        Autotest.Fields["hc_escort_gap"] = () =>
+        {
+            var escort = RequireEscort().Escort.TargetShip ?? throw new InvalidOperationException("escort is not live");
+            var c = escort.DetWorldBoundingCircle;
+            return RequireSim().Ships.HumanPlayerSignificantShips.Min(h => c.Center.DistanceTo(h.DetWorldCenter) - c.Radius - h.DetWorldBoundingCircle.Radius);
+        };
+        // 1 when the comms button of the local player flashes for a hail of the escort (vanilla AI hailers).
+        Autotest.Fields["hc_escort_hailing"] = () =>
+            RequireRun().Game.Sim.Mode is CareerSimModeManager m && RequireEscort().Escort.TargetShip is { } e && m.IsShipHailingLocalPlayer(e) ? 1 : 0;
         Autotest.Commands["hc_escort_diag"] = arg => LogEscort(arg);
         Autotest.Commands["hc_escort_advance"] = arg => TestEscortAdvance(float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture));
         Autotest.Commands["hc_escort_ambush"] = _ =>
