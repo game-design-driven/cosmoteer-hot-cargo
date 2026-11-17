@@ -123,6 +123,7 @@ public static class TunablesFile
         t.Stash.Validate(Require);
         t.Telemetry.Validate(Require);
         t.Pursuit.Validate(Require, stages);
+        t.Storyteller.Validate(Require, Cosmoteer.GameApp.Assets?.Rules is null ? null : l => RunModes.Difficulty.IsVanillaLevel(RunModes.DifficultySetting.Combat, l));
         t.Debt.Validate(Require);
     }
 }

@@ -20,6 +20,7 @@ src/HotCargo/
   ShipAi/                  player ship tactics: model (ShipAiModel), per-ship state and save hooks (ShipTactics), sim controller, MP input, editor
   Autonomy/                autonomous ships (section 45): Computer manning and ownership, Funnel, cargo and trade (AutonomyModel, AutonomyWorld)
   Scavenge/                scavenging (section 56): the age check, the shared find, salvage, collect and sell steps (Scavenger), the HcScavenge AI module
+  Storyteller/             the storyteller (section 62): adapt minutes from time and losses, the pressure on hunter waves (StorytellerModel)
   Pursuit/                 the Pursuit director: wave ramp, fleet factor, big event pacer (Pacer), reporting scout, relay blockade, network outage, hacker
   Debt/                    debt (section 55): loans, interest, collectors, the hostile lender, the comms pages and shared choice domain
   RunRecord/               run record (section 49): past runs in the save folder, rows in the career log tab and the Past Runs window of the main menu

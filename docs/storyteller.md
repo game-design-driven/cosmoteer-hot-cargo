@@ -1,6 +1,6 @@
 # Adaptive enemy AI: the storyteller (draft)
 
-Status: proposal for review. No code exists. The requirements use draft numbers (ST1, ST2 and so on). When Yarden approves the proposal, the requirements move to a new `spec/` section with a number block from the coordinator, and the draft numbers go away.
+Status: step 1 is built and its requirements are in `spec/62-storyteller.md` (1720 to 1731): the adaptation dial of section 2, approach A. **Step 2 is parked**: the plan of beats, Intel, the faction sweep, presets and a name for the storyteller. Do not build it. This doc keeps its background, its draft requirements (ST numbers) and its open questions. Yarden's decisions on 2026-11-17: step 1 only; the band is 0.85 to 1.25 (sector 1 at most 1.0); default on (off in autotests); long stays: measure first (option L0), no L1 or L2 now.
 
 The idea: a hidden storyteller watches how the players play and changes the enemy pressure: what spawns, when, and how hard. Intel gives the players part of its plan.
 
@@ -34,7 +34,9 @@ Revised after the RimWorld comparison (section 7) and the playtest (section 8). 
 
 **Recommendation: B, in two steps.** Step 1 is A (the adaptation dial) with telemetry, and one of the long-stay options of section 8 if Yarden picks one. Step 2 adds the plan, the pacing rules and Intel. 🟠 Step 1 alone already meets "adjust enemy pressure". The playtest found hunter strength balanced, so the band stays narrow: the storyteller changes timing and choice more than size. The requirements below describe B.
 
-## 3. Requirements
+## 3. Requirements (draft; step 1 moved to spec section 62, the rest is parked)
+
+The step 1 parts (ST1, ST5, ST12, ST13, ST28 and ST32 to ST34) are now requirements 1720 to 1731, with these changes: the band is 0.85 to 1.25; tech losses do not count (no counter tells a lost unit from a sold one), crew deaths do; the pressure is read when a wave is sized, not only at a system arrival. Everything else here is parked.
 
 ### Model
 
@@ -113,7 +115,7 @@ ST31. **Telemetry.** New events `story.profile`, `story.plan`, `story.intel` and
 
 The last-column values exist only on each machine. The storyteller reads the middle column; telemetry stays a tuning tool. Leaving ships in another system lowers the fleet value that the Pursuit reads (spec 902). RimWorld has the same gap with caravans (section 7); the narrow band keeps it small.
 
-## 5. Beats
+## 5. Beats (parked)
 
 Every beat in step 2 uses code that exists. No new spawn type.
 
@@ -129,6 +131,8 @@ Every beat in step 2 uses code that exists. No new spawn type.
 | Help nearby: a higher Wayfarers or debt help chance | quiet | Wayfarers (spec 1370), debt help (spec 1430) | poor condition only |
 
 ## 6. Open questions
+
+Answered on 2026-11-17: 4 (band 0.85 to 1.25), 5 (on), 7 (section 62, 1720 to 1759), 9 (L0: measure first). The others belong to the parked step 2.
 
 1. Does the storyteller have a name in the fiction (for example "the corporate analyst"), or does it stay unnamed? A name makes Intel texts easier to write.
 2. Patrol listen: does Intel replace its heat gain of −4 (spec 1122), or come with it?
@@ -190,7 +194,7 @@ RimWorld's storyteller is the best-known design of this kind. This section lists
 | Apophenia and abstracted feedback | **Copy.** Intel (ST17 to ST22) and the run log after each beat (ST21). | A simple model looks smart when the players see its reasons. RimWorld shows the storyteller only by its effects; Hot Cargo adds partial Intel. |
 | Caravan wealth gap | **Note.** Ships left in another system lower the fleet value of spec 902. | The narrow band keeps the gain small. |
 
-## 8. Long stays
+## 8. Long stays (decision: L0, measure first)
 
 **Playtest context.** Yarden found hunter strength balanced. The final wipe felt fair, because the players were not ready to jump. The co-op playtest of 2026-11-15 had stays of 58 and 111 minutes in the two finished sectors. The balance model assumes 17.5 minutes and 6 missions per sector (BALANCE.md). The players took 10 and 11 missions and finished 6 and 7, about the model's count. So they did not do more missions than the model: the time in and between missions was 3 to 6 times longer. Time heat gave 62 % of their heat. The fixes offered so far (more time heat, heat that grows with fleet size) push the players out by threat. Yarden dislikes both.
 

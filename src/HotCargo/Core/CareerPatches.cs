@@ -88,6 +88,7 @@ static class CareerPatches
         iHash.AddHash((int)(((s.Debt.Help?.HelperDamage ?? -1) * 31 + (s.Debt.Help?.PlayerDamage ?? -1)) % int.MaxValue));
         iHash.AddHash(s.Scavenge.Seen.Count);
         iHash.AddHash((int)(s.Scavenge.ProvokedUntil * 10));
+        iHash.AddHash((int)(s.Storyteller.AdaptMinutes * 100));
         // string.GetHashCode is random per process, so it would differ between clients. This hash is stable.
         int tunables = 0;
         foreach (char c in run.State.TunablesHash) tunables = tunables * 31 + c;

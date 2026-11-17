@@ -1,0 +1,44 @@
+# The storyteller's adaptation (spec 1720 to 1731): game time raises the adapt minutes (not above 0 in sector 1), a lost
+# player ship lowers them at once, and the pressure scales the next hunter stage response.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+# Autotests start with the Pursuit and the storyteller off (spec 943, 1720).
+pu_set Enabled true
+pu_set ScoutChance 0
+pu_set BlockadeChance 0
+expect story_pressure == 1000
+story_set Enabled true
+expect story_adapt == 0
+expect story_pressure == 1000
+# Sector 1: time does not raise the minutes above 0.
+wait 90
+expect story_adapt == 0
+# A later sector: one game minute and more adds about one adapt minute each.
+sectorindex 3
+wait 90
+expect story_adapt >= 1
+expect story_pressure > 1000
+# A lost player ship takes AdaptLossShip (20) at once.
+story_adapt 30
+aiplayership
+wait 3
+story_lose_ship
+wait 2
+expect story_ships_lost == 1
+expect story_adapt < 15
+expect story_adapt > 5
+# The pressure scales the stage response: at the low end the hunters come lighter, at the top heavier (the fleet factor is 0.85 to 1.15).
+story_adapt -30
+spawnstage Warning
+wait 2
+expect story_last_mix < 1000
+story_adapt 60
+spawnstage Hunt
+wait 2
+expect story_last_mix > 1000
+# Off: the pressure is 1.
+story_set Enabled false
+expect story_pressure == 1000
+quit

@@ -133,3 +133,8 @@
 | `Debt.DebtHeatFactor` | 1.1 (time heat while anyone owes money) | 1425 |
 
 The defaults are first guesses. Live tuning sets the real values.
+| `Storyteller.Enabled` | on (off in autotests) | 1720 |
+| `Storyteller.AdaptMin`, `AdaptMax`, `PressureMin`, `PressureMax` | −30, 60, 0.85, 1.25 | 1721, 1724 |
+| `Storyteller.AdaptPerMinute`, `AdaptLossShip`, `AdaptLossCrew` | 1, 20, 1 | 1722, 1723 |
+| `Storyteller.Impact` | no_death 1, easy 1, normal 0.9, hard 0.7, very_hard 0.5 | 1725 |
+| `Storyteller.CombinedMin`, `CombinedMax` | 0.75, 1.4 | 1726 |
