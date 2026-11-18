@@ -130,6 +130,8 @@ mp debt_kill_enemies
 step ai.personalities
 # Spec 369: hostile pirates and hunters with personalities, cover rocks and teams fight both players' ships.
 # Spec 1303: the starting control room stands in for the sensor array, so calls in this fight are intercepted on both machines.
+# The player ships take no damage and lose no crew: the step tests the AI, not who wins (a Mac run 2026-11-18 lost the client's ship).
+mp shieldplayers on
 mp tacticlog on
 mp aiset CallInterceptParts cosmoteer.control_room_small
 mp airocks 6 600
@@ -150,6 +152,7 @@ expect ai_call_intercept >= 1
 on 1 expect ai_call_intercept >= 1
 expect tactic_fallback >= 1
 on 1 expect tactic_fallback >= 1
+mp shieldplayers off
 
 step pursuit.coop
 # Spec 912, 934, in a new run: the client's stage start sends a reporting scout, and its report raises heat on both machines.
@@ -231,6 +234,9 @@ step journey.buyer-win
 mprestart
 # The loss steps before turned godmode off. Without it, ships near the Buyer can destroy the client's vaults before the sale.
 mp godmode on
+# The player ships take no damage and lose no crew: the step tests the sale and the win, not a fight near the Buyer.
+# Full suite 44186766891: the client's ship became a wreck after the win.
+mp shieldplayers on
 mp ev_set Enabled false
 mp buyer spawn
 waitfor buyers == 1 30

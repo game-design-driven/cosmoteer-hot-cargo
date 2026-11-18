@@ -51,7 +51,7 @@ internal sealed class ScavengeStrategy(ScavengeStrategyRules rules) : AIStrategy
     public override bool OnAITick(Ship ship, ShipAI ai)
     {
         var step = ScavengeStep.Idle;
-        if (Run.Current is { } run && run.T.Scavenge.Enabled && SideMay(run.T.Scavenge, ship))
+        if (Run.Current is { } run && run.T.Scavenge.Enabled && SideMay(run.T.Scavenge, ship) && ScavengeAutotest.MayScavenge(ship))
         {
             _keep ??= new Dictionary<string, int>(Autonomy.AutonomyWorld.CargoByType(ship), StringComparer.Ordinal);
             var keep = _keep;
