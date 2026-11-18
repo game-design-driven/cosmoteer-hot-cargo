@@ -56,30 +56,19 @@ static class VaultDropPatch
 
     /// <summary>
     /// Spec 1554: crew take the vault apart (a rebuild, a move with the grab tool). That is no destruction, so the tech stays aboard:
-    /// first into the other vaults of the ship, then into its normal storage, where it decays. Only tech that finds no room at all
-    /// stays in the tiles, and the game drops it as crates. A toast and a chat line say where the tech went. Telemetry names the cause `vault_deconstructed` (TelemetryPatches.VaultHitPatch).
+    /// first into the other vaults of the ship. The rest waits on the ship for the rebuilt vault (VaultWait), safe from decay.
+    /// When no vault is pending (the player removed it), the rest goes into normal storage, where it decays, and only tech
+    /// that finds no room there waits. No crate and no notice: a move is a normal action. Telemetry names the cause `vault_deconstructed` (TelemetryPatches.VaultHitPatch).
     /// </summary>
     static void Rehome(Run run, Cosmoteer.Ships.Ship ship, TypedResourceGrid grid, int units)
     {
         foreach (var tile in grid) tile.Resources = 0;
-        int toVaults = Vaults.Add(Vaults.OnShip(ship).Where(g => g != grid), units);
-        int toStorage = Vaults.AddToStorage([ship], units - toVaults);
-        int left = units - toVaults - toStorage;
-        int back = left;
-        foreach (var tile in grid)
-        {
-            int n = Math.Min(back, tile.MaxResources);
-            tile.Resources = n;
-            back -= n;
-        }
+        int toVaults = Vaults.Add(Vaults.LiveVaults(ship).Where(g => g != grid), units);
+        int toStorage = Vaults.VaultPending(ship) ? 0 : Vaults.AddToStorage([ship], units - toVaults);
+        int waiting = units - toVaults - toStorage;
+        if (waiting > 0) VaultWait.Add(run, ship, waiting);
         Rehomed++;
-        Log.Info($"vault at {grid.Part.Location} taken apart: {toVaults} tech to other vaults, {toStorage} to storage, {left} dropped as crates");
-        string text = Strings.FormatText(left > 0 ? "HotCargoTech/VaultApartCratesFmt" : "HotCargoTech/VaultApartFmt", toVaults, toStorage, left);
-        Run.OnNextFrame(() =>
-        {
-            Ux.UxKit.CenterText(run.Game, text);
-            Ux.UxKit.ChatLine(run.Game, text);
-        });
+        Log.Info($"vault at {grid.Part.Location} taken apart: {toVaults} tech to other vaults, {toStorage} to storage, {waiting} wait for room");
     }
 
     /// <summary>Vaults taken apart since start whose tech moved (spec 1554). For autotests.</summary>

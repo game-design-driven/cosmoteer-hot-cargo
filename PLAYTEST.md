@@ -259,7 +259,7 @@ The autotests `onboarding-hints` and `onboarding-log` cover each trigger, the or
 ## Events in ship comms (spec 767-771)
 
 1. Dead in Space: does the freighter call you, and does its hail show the page in the comms window? Is "Fly within comms range to answer, or hail it" clear?
-2. Dock at a trade station and open its comms. Do "Sell a crate off the books" and station events read well inside the comms window? Do the gold key numbers work there?
+2. Dock at a trade station and open its comms. Do "Sell crates off the books" and station events read well inside the comms window? Do the gold key numbers work there?
 3. Hail a faction patrol ship at heat 10+. Does "Ask about hunters nearby" show?
 4. Shoot the freighter while its page is open. Does the page close with "The ship is gone"?
 5. Co-op: both players open the same ship's comms. One chooses. Does the other's window update, with no double effect?

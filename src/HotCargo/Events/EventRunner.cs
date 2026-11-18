@@ -305,6 +305,7 @@ public static class EventRunner
         s.Pending = null;
         foreach (var pick in picks) ApplyPick(run, sim, playerIndex, pick, p, lines);
         if (picks.Count > 0) MultiChoice.MultiChoices.Clear(run, EventsMultiDomain.Name, serial);
+        p.PickedUnits = picks.Sum(k => k.Units);
         ApplyOutcome(run, sim, playerIndex, outcome, p, lines);
         // Tokens fill after the effects, so a text sees the counts that the choice left.
         string outcomeText = EventText.Fill(outcome.Text, Vaults.CountFleetTech(sim), p);
@@ -633,7 +634,7 @@ public static class EventRunner
         Log.Info($"buyer price multiplier {before:0.00} -> {run.State.BuyerPriceMultiplier:0.00}");
     }
 
-    static void ChangeHeat(Run run, SimRoot sim, float amount, List<string> lines)
+    internal static void ChangeHeat(Run run, SimRoot sim, float amount, List<string> lines)
     {
         float before = run.State.Heat;
         run.AddHeat(amount, sim);

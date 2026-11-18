@@ -1022,3 +1022,57 @@ ScientistRevenge
 		}
 	]
 }
+
+// Off the Books (spec 1804): the fence waits 3,000 to 4,000 from the players' ship, away from the station's logs. C# spawns this at the
+// players' ship; the mission goes straight into the log: hand the crates over in the fence's comms (events.rules, off_books_meet).
+OffBooksMeet
+{
+	Spawners
+	[
+		{
+			Type = Ships
+			Tags = [hc_ob_fence]
+			Distance = [3000, 4000]
+			MinDistanceFromTags = [[station, 2500]]
+			SuppressLocationAssertions = true
+			Allegiance = Neutral
+			NameGenerator = { Type = NameList; Names = ["The Quiet Hold", "No Questions", "Back Channel", "Grey Ledger", "Night Market"]; }
+			ShipCriteria
+			{
+				UseLocalFactionWeights = true
+				UseTierField = true
+				AllowTierRangeExpansion = true
+				Tags = [trade]
+			}
+			AI
+			{
+				Type = Normal
+				ChanceToConsiderSurrenderingToPlayer = 0
+				PatrolRadius = 100
+				TargetAcquireRangeFromOrigin = 200
+				TargetUnacquireRangeFromOrigin = 300
+			}
+		}
+		{
+			Type = Mission
+			Metatype = HotCargoOffBooks
+			SpawnAt = Player
+			Faction = None
+			Objectives
+			[
+				{
+					Type = HotCargoHandOver
+					Page = off_books_meet
+					LineKey = "HotCargoEventMissions/OffBooksLineFmt"
+					ContactShipTag = { Mode=Latest; Tag=hc_ob_fence; }
+				}
+			]
+			Rewards
+			[
+				// Added straight to the log: no contract terms. The sale pays in the fence's comms, not as a mission reward.
+				{ Type = HotCargoContract; AcceptFee = 0; FlatHeat = 0; TrailWeight = 0; InformantChance = 0; }
+			]
+		}
+	]
+}
+

@@ -43,6 +43,8 @@ public sealed class EventsState
     [Serialize(Optional = true)] public StationAttackState? Attack;
     /// <summary>Game seconds at which the station attack roll runs, or -1 when none is due.</summary>
     [Serialize(Optional = true)] public double AttackDueSeconds = -1;
+    /// <summary>The running Off the Books meet (spec 1804), or null. One at a time.</summary>
+    [Serialize(Optional = true)] public OffBooksMeet? OffBooks;
     /// <summary>Game seconds of the last triggered event, or -1.</summary>
     [Serialize(Optional = true)] public double LastEventSeconds = -1;
     /// <summary>Game seconds at which the Arrival roll runs, or -1 when none is due.</summary>
@@ -84,6 +86,8 @@ public sealed class PendingEvent
     [Serialize(Optional = true)] public int OfferUnits;
     [Serialize(Optional = true)] public long OfferValue;
     [Serialize(Optional = true)] public int OfferPrice;
+    /// <summary>The units of the options picked with the choice, set just before its outcome applies, for C# effects (Off the Books).</summary>
+    [Serialize(Optional = true)] public float PickedUnits;
     /// <summary>Outcome text and result lines of the choice that led to this page, or empty.</summary>
     [Serialize(Optional = true)] public string Lead = "";
 }
@@ -117,3 +121,19 @@ public sealed class EventResult
     /// <summary>One XML line per effect, for example the money gained.</summary>
     [Serialize(Optional = true)] public string[] Lines = [];
 }
+
+/// <summary>An Off the Books meet (spec 1804): the quote from the station and the fence that waits.</summary>
+[ReflectiveSerialization(Explicit = true)]
+public sealed class OffBooksMeet
+{
+    /// <summary>The station that set it up; its faction gives the standing.</summary>
+    [Serialize] public ObjectID Station;
+    /// <summary>The fence ship, once it spawned.</summary>
+    [Serialize(Optional = true)] public ObjectID? Fence;
+    /// <summary>The quote: credits per crate and the informant chance per crate.</summary>
+    [Serialize] public int PricePerCrate;
+    [Serialize] public float RiskPerCrate;
+    /// <summary>Run game seconds at which the fence leaves.</summary>
+    [Serialize] public double Until;
+}
+

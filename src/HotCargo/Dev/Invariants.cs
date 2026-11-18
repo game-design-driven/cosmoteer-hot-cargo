@@ -109,7 +109,7 @@ public static class Invariants
         foreach (Ship ship in Vaults.HumanShips(sim).OrderBy(s => s.UniqueID))
         {
             int stored = ship.Resources.GetResourceTotal(Vaults.TechId, includeStored: true, includeCarried: false);
-            int held = Vaults.ShipTech(ship);
+            int held = Vaults.StoredTech(ship);
             if (stored != held)
                 Fail("tech_count", $"{ship.UniqueID}/{stored}/{held}",
                     $"{ship.Metadata.PlainShipName}: the game counts {stored} stored tech, but its vaults and storage hold {held}");

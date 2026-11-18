@@ -114,6 +114,33 @@ public sealed class EventsTunables
     [Serialize(Optional = true)] public float StationRebuildPerDebrisPart = 2f;
     /// <summary>Station rebuild (spec 97): with no debris in reach for this many game seconds, the station rebuilds from its own stock.</summary>
     [Serialize(Optional = true)] public float StationRebuildWaitSeconds = 60f;
+    /// <summary>Off the Books (spec 1802): the price of a crate as a share of the tech value, before the situation.</summary>
+    [Serialize(Optional = true)] public float OffBooksPriceBase = 0.85f;
+    /// <summary>Off the Books: the price share per 100 heat (buyers fear hot cargo).</summary>
+    [Serialize(Optional = true)] public float OffBooksPricePerHeat = -0.15f;
+    /// <summary>Off the Books: the price share per hunter in the system.</summary>
+    [Serialize(Optional = true)] public float OffBooksPricePerHunter = -0.05f;
+    /// <summary>Off the Books: the price share per reputation (−1 to 1) with the station's faction.</summary>
+    [Serialize(Optional = true)] public float OffBooksPricePerReputation = 0.1f;
+    [Serialize(Optional = true)] public float OffBooksPriceMin = 0.5f;
+    [Serialize(Optional = true)] public float OffBooksPriceMax = 0.95f;
+    /// <summary>Off the Books (spec 1803): the informant chance per crate at heat 0 and neutral standing.</summary>
+    [Serialize(Optional = true)] public float OffBooksRiskBase = 0.04f;
+    /// <summary>Off the Books: the informant chance per crate per 100 heat.</summary>
+    [Serialize(Optional = true)] public float OffBooksRiskPerHeat = 0.1f;
+    /// <summary>Off the Books: the informant chance per crate falls this much per reputation (−1 to 1) with the station's faction.</summary>
+    [Serialize(Optional = true)] public float OffBooksRiskPerReputation = 0.04f;
+    /// <summary>Off the Books (spec 1805): the sting chance per corporate ship (a hunter or a military ship of the corporation's ally) near the meet.</summary>
+    [Serialize(Optional = true)] public float OffBooksRiskPerCorporate = 0.15f;
+    /// <summary>Off the Books: corporate ships within this distance of the fence's hull count.</summary>
+    [Serialize(Optional = true)] public float OffBooksCorporateRadius = 3000f;
+    [Serialize(Optional = true)] public float OffBooksRiskCap = 0.9f;
+    /// <summary>Off the Books (spec 1806): heat change per crate on a clean sale.</summary>
+    [Serialize(Optional = true)] public float OffBooksHeatPerCrate = -10f;
+    /// <summary>Off the Books (spec 1807): heat change of a sting (instead of the cut).</summary>
+    [Serialize(Optional = true)] public float OffBooksStingHeat = 15f;
+    /// <summary>Off the Books (spec 1804): game seconds that the fence waits at the meet.</summary>
+    [Serialize(Optional = true)] public float OffBooksMeetSeconds = 300f;
     /// <summary>One relic ship per run holds 1 tech unit. Off: new runs get none.</summary>
     [Serialize(Optional = true)] public bool RelicEnabled = true;
     /// <summary>The relic ship appears in a random sector from this one up to the sector before the Buyer.</summary>

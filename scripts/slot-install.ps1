@@ -78,10 +78,10 @@ Write-SharedText $rc $jsonText
 # Without this file, Steamworks restarts the game through Steam when a script starts the exe directly.
 Write-SharedText (Join-Path $game "Bin\steam_appid.txt") "799600"
 
-# Test slots: own settings with the mod on.
+# Test slots: own settings with the mod on and the sound off (a windowed screenshot run plays over the player's game otherwise).
 if ($slot -ne "main") {
   $entry = [char]34 + ($modDir -replace "\\", "/") + [char]34
-  [IO.File]::WriteAllText((Join-Path $root "settings.rules"), "GameSettings`r`n{`r`n`tEnabledMods [$entry]`r`n`tAutoDisableMods = false`r`n`tShowNewsOnStartup = false`r`n`tShowTipsOnStartup = false`r`n`tIsFirstBoot = false`r`n}`r`n")
+  [IO.File]::WriteAllText((Join-Path $root "settings.rules"), "GameSettings`r`n{`r`n`tEnabledMods [$entry]`r`n`tAutoDisableMods = false`r`n`tShowNewsOnStartup = false`r`n`tShowTipsOnStartup = false`r`n`tIsFirstBoot = false`r`n`tMasterVolume = 0`r`n}`r`n")
 }
 "deployed to $modDir (slot $slot, $cacheState)"
 if ($autotestFile) {

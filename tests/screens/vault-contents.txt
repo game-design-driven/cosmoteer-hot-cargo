@@ -1,0 +1,13 @@
+# Spec 1540: a vault shows its tech as items. One full vault next to an empty one, close up.
+render on
+newgame run 0
+wait 10
+closepanel
+wait 1
+tech remove 4
+wait 1
+pause on
+vault focus
+wait 3
+screenshot vault-contents
+quit

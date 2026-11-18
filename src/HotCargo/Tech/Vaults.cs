@@ -25,8 +25,11 @@ public static class Vaults
     /// </summary>
     public static bool HoldsForPlayers(SimRoot sim, Ship ship) => ship.IsJunk || sim.Mode.IsHumanPlayerShip(ship);
 
+    /// <summary>Tech that one ship holds: stored tech, plus tech of a vault taken apart that waits for room (spec 1554).</summary>
+    public static int ShipTech(Ship ship) => StoredTech(ship) + VaultWait.Units(ship);
+
     /// <summary>Tech stored on one ship: its vaults and its normal storage (spec 1543), the same units that the storage art shows.</summary>
-    public static int ShipTech(Ship ship) => OnShip(ship).Sum(g => g.Resources) + StorageTech(ship);
+    public static int StoredTech(Ship ship) => OnShip(ship).Sum(g => g.Resources) + StorageTech(ship);
 
     /// <summary>Spec 1543: tech in the normal storage (flexible grids) of one ship. It decays (spec 1547).</summary>
     public static int StorageTech(Ship ship) => FlexResourceGrid.GetAllOnShip(ship).Sum(g => g.GetTotalQuantity(TechId));
@@ -78,6 +81,17 @@ public static class Vaults
         || crew.Job is ResourceTransferJob { TradeType: TradeType.Sell, Source.Ship: { } from } && sim.Mode.IsHumanPlayerShip(from);
 
     public static IEnumerable<Part> VaultParts(Ship ship) => ship.Parts.Where(p => p.Rules.ID == VaultId);
+
+    /// <summary>
+    /// Spec 1554: the ship has a vault blueprint that crew did not build yet, for example the new place of a moved vault.
+    /// A vault at 0 health is not built: the game raises Part.Destroying at 0 health and takes the part off the ship later.
+    /// </summary>
+    public static bool VaultPending(Ship ship) =>
+        ship.BlueprintParts.Count(p => p.Rules.ID == VaultId) > LiveVaults(ship).Count();
+
+    /// <summary>Built vault grids of the ship with health left, in part location order. A vault that is being taken apart has none.</summary>
+    public static IEnumerable<TypedResourceGrid> LiveVaults(Ship ship) =>
+        OnShip(ship).Where(g => !g.Part!.IsUnderConstruction && g.Part.Health > 0);
 
     /// <summary>Tech Vault grids on human ships, in a stable order (player, then part location).</summary>
     public static List<TypedResourceGrid> All(SimRoot sim) =>

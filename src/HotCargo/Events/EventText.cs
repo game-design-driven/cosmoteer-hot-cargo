@@ -103,9 +103,13 @@ public static class EventText
     /// {offer_units} ("2 crates"), {offer_worth} (the tech value of those units), {offer_value} (the research value),
     /// {offer_price} (a research sale's price).
     /// </summary>
+    /// <summary>Token fillers of other code (Off the Books, spec 1802): each gets the text and returns it with its tokens filled. UI text only.</summary>
+    public static readonly List<Func<string, string>> Tokens = [];
+
     public static string Fill(string text, int fleetTech, PendingEvent? p = null)
     {
         text = text.Replace("{crates}", Crates(fleetTech), StringComparison.Ordinal);
+        foreach (var fill in Tokens) text = fill(text);
         if (p is null || !text.Contains("{offer_", StringComparison.Ordinal)) return text;
         return text
             .Replace("{offer_techs}", ResearchOffers.Names(p), StringComparison.Ordinal)

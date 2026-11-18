@@ -11,6 +11,7 @@ HotCargoEventMissions
 	HandOverFmt = "Hand the {0} {1} to {2}: hail it"
 	HandOverLostFmt = "The {0} is lost. The job failed."
 	OkaforPickupFmt = "Get Okafor off {0}: hail it"
+	OffBooksLineFmt = "Hand the crates to {0}: hail it"
 	DeliverGone = "The ship is gone"
 	DeliverFarFmt = "Bring {0} within {1:0} of the station"
 	DeliverCrewFmt = "Take your crew off {0} first"
@@ -22,6 +23,8 @@ HotCargoEventMissions
 	FlightRecorderDesc = "A corporate hunter's flight recorder, still sending. A station broker wants it."
 	RecoverFmt = "Recover the {0} {1}"
 	Courier = "Courier Job"
+	OffBooks = "Off the Books"
+	OffBooksDesc = "Fly your tech crates to the fence and hand them over in its comms. He does not wait long."
 	CourierDesc = "Carry a sealed case to the contact across the system and hail it, within {time_limit_minutes} min.\nThe case needs a free storage slot."
 	SiegeDesc = "Drive the raiders off a pinned freighter before its shields fail."
 	RescueTow = "Rescue Tow"
@@ -110,3 +113,15 @@ HotCargoStationAttack
 	TagRebuilding = "REBUILDING"
 	TagRaider = "RAIDER"
 }
+
+// Off the Books (spec 1801 to 1807).
+HotCargoOffBooks
+{
+	MeetLineFmt = "The fence waits at the marked spot for {0} min."
+	NoCorporate = "No corporate ship near."
+	CorporateFmt = "Corporate ships near: {1}. Each adds {2} %."
+	Sting = "The fence was a corporate informant. Corporate ships drop out of FTL."
+	FenceGone = "The fence is gone. The meet is off."
+	FenceLeft = "The fence got tired of waiting and left."
+}
+
