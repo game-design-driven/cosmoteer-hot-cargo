@@ -33,6 +33,7 @@ PEER = {
     "HotCargoSurvey": ("Explore", "visit 3 points in clouds and storms"),
     "HotCargoClaimJumpers": ("ClearAsteroidFieldPirates", "guard a barge in an asteroid field; its waves pay no kill fame"),
     "HotCargoListeningPost": ("StationRescue", "escort a scout through 4 waves; its waves pay no kill fame"),
+    "HotCargoMiningEscort": ("StationRescue", "escort a miner to a field and back through 2 waves; its waves pay no kill fame"),
     "HotCargoHoldPass": ("ClearAsteroidFieldPirates", "clear a pass, then hold it against waves"),
     "HotCargoSundive": ("Explore", "dive into a heat zone; the heat burns vault tech"),
     "HotCargoLairRaid": ("PirateBaseDestruction", "find and raid a pirate lair"),

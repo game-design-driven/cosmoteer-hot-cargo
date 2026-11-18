@@ -4,7 +4,7 @@ newgame run
 wait 8
 ev_set Enabled false
 # The test takes several offers of one rival group (spec 103: tow and capture share salvage_rights, sun mining and
-# claim jumpers share ore_claims). With rivals on, an open contract dismisses every new offer of its group.
+# claim jumpers and the mining escort share ore_claims). With rivals on, an open contract dismisses every new offer of its group.
 contract_set RivalsEnabled off
 godmode on
 mech_generate prototype
@@ -23,6 +23,16 @@ mech_generate sunmining
 mech_accept sunmining
 mech_generate listening nonebula
 mech_accept listening
+# Mining Escort (spec 1860): saved while it mines, with its goal and ore count.
+mech_generate miningescort
+mech_accept miningescort
+mech_mine_goto
+pause off
+waitfor mech_mine_hailed == 1 60
+mech_mine_ready
+mech_mine_field
+pause off
+waitfor mech_mine_ore > 0 120
 mech_generate siege
 mech_accept siege
 mech_hold_goto
@@ -42,4 +52,8 @@ expect mech_active_listening == 1
 expect mech_active_siege == 1
 expect mech_hold_seconds >= 100
 expect mech_survey_markers == 3
+expect mech_active_miningescort == 1
+expect mech_mine_phase == 2
+expect mech_mine_goal > 0
+expect mech_mine_ore > 0
 quit

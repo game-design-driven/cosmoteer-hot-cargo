@@ -1,0 +1,10 @@
+// The Mining Escort miner's AI (spec 1862). No strategy modules: the objective (Missions/Mechanics/MiningEscortObjective.cs) gives every
+// move, salvage and collect order, and vanilla modules would replace them (SelfRepair clears orders while it rebuilds). No comms
+// modules: the Hot Cargo comms hook answers calls while the miner waits for the players (spec 1852).
+UpdateInterval = 1
+
+StrategyModules []
+TacticsModules []
+TargetingModules []
+CommsModules []
+StasisModules []

@@ -1,6 +1,7 @@
 using Cosmoteer.Game;
 using Cosmoteer.Localization;
 using Cosmoteer.Modes.Career.Missions;
+using Cosmoteer.Modes.Career.Missions.Objectives;
 using Cosmoteer.Ships;
 using Cosmoteer.Simulation;
 using HotCargo.Core;
@@ -21,14 +22,14 @@ internal sealed class EscortHail : IHailProvider, ISharedChoiceDomain
 
     EscortHail() { }
 
-    /// <summary>The waiting escort objective of an accepted mission whose escort is this ship, or null. Sim state only.</summary>
-    internal static EscortObjective? WaitingFor(Run run, ObjectID ship)
+    /// <summary>The waiting escort objective of an accepted mission whose ship is this ship, or null. Sim state only.</summary>
+    internal static IMeetingEscort? WaitingFor(Run run, ObjectID ship)
     {
-        var found = new List<EscortObjective>();
+        var found = new List<Objective>();
         foreach (Mission m in run.Mode.Missions)
             if (m.Completion == CompletionState.InProgress)
                 foreach (var o in m.Objectives) o.GetObjectives(found);
-        return found.FirstOrDefault(o => o.Waiting && o.Escort.ShipID == ship);
+        return found.OfType<IMeetingEscort>().FirstOrDefault(o => o.Waiting && o.Escort.ShipID == ship);
     }
 
     public static int Serial(ObjectID ship) => unchecked((int)(uint)ship);

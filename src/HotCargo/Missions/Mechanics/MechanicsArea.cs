@@ -39,6 +39,7 @@ public static class MechanicsArea
         new("survey", "HotCargoSurvey", t => t.SurveyChance),
         new("guard", "HotCargoClaimJumpers", t => t.MiningGuardChance),
         new("listening", "HotCargoListeningPost", t => t.ListeningPostChance),
+        new("miningescort", "HotCargoMiningEscort", t => t.MiningEscortChance),
     ];
 
     static readonly ID<ResourceRules> OreId = new("yarden_zamir.helion_ore");
@@ -104,6 +105,88 @@ public static class MechanicsArea
             var o = Hold();
             var sim = RequireSim();
             return SimQueries.TaggedShips(sim, o.WaveTag).Count(s => sim.RequireGame().HumanPlayersIndexes.All(h => sim.Mode.AreEnemies(s.PlayerIndex, h)));
+        };
+
+        // Mining Escort (spec 1860 to 1867). mech_mine_goto: the players next to the miner. mech_mine_ready: the "Ready" pick as the
+        // shared choice input. mech_mine_field: the miner and the players at the field. mech_mine_drop <n>: n units of the miner's ore
+        // loose next to the miner, as a player drops them. mech_mine_dock: the miner next to the station.
+        Autotest.Commands["mech_mine_goto"] = _ => MissionArea.TeleportPlayers(Miner().Escort.DetLocation() ?? throw new InvalidOperationException("miner is not in this system"));
+        Autotest.Commands["mech_mine_ready"] = _ =>
+        {
+            RequireRun().Game.NetManager.EnqueueInput(EscortHail.Pick(Miner().Escort.ShipID));
+            Autotest.Wait(2);
+        };
+        Autotest.Commands["mech_mine_field"] = _ =>
+        {
+            var o = Miner();
+            Ship miner = o.Escort.TargetShip ?? throw new InvalidOperationException("miner is not live");
+            var sim = RequireSim();
+            Autotest.Teleport(miner, Autotest.ClearSpotNear(sim, o.Field, 0f, miner.WorldBoundingRadius));
+            MissionArea.TeleportPlayers(miner.DetWorldCenter + new Vector2(0f, 600f));
+        };
+        Autotest.Commands["mech_mine_drop"] = arg =>
+        {
+            var o = Miner();
+            Ship miner = o.Escort.TargetShip ?? throw new InvalidOperationException("miner is not live");
+            var sim = RequireSim();
+            var before = Nuggets(sim).ToHashSet();
+            SimQueries.DropLoose(sim, miner.DetWorldCenter, miner.WorldBoundingRadius + 100f, o.Ore, int.Parse(arg, CultureInfo.InvariantCulture));
+            _dropped = [.. Nuggets(sim).Where(n => !before.Contains(n))];
+        };
+        // Units of the last mech_mine_drop that are still loose: 0 once the miner took them all in.
+        Autotest.Fields["mech_mine_dropped_left"] = () =>
+        {
+            var now = Nuggets(RequireSim()).ToHashSet();
+            return _dropped.Where(now.Contains).Sum(n => n.Quantity);
+        };
+        Autotest.Commands["mech_mine_dock"] = _ =>
+        {
+            var o = Miner();
+            Ship miner = o.Escort.TargetShip ?? throw new InvalidOperationException("miner is not live");
+            // The station can still be in stasis: use its place. ClearSpotNear moves the spot off its hull; the miner flies the rest.
+            Vector2 station = o.Station.DetLocation() ?? throw new InvalidOperationException("station is not in this system");
+            var sim = RequireSim();
+            Autotest.Teleport(miner, Autotest.ClearSpotNear(sim, station, 1000f + miner.WorldBoundingRadius, miner.WorldBoundingRadius));
+            MissionArea.TeleportPlayers(miner.DetWorldCenter + new Vector2(0f, 600f));
+        };
+        // mech_mine_collect: the payment input at the miner's station, like the station's receive payment button. mech_mine_kill: removes the miner.
+        Autotest.Commands["mech_mine_collect"] = _ =>
+        {
+            var o = Miner();
+            Ship station = o.Station.TargetShip ?? throw new InvalidOperationException("station is not live");
+            RequireRun().Game.NetManager.EnqueueInput(new Cosmoteer.Modes.Career.Comms.CommMissionsTab.MPMissionPaymentInput(station, o.Mission ?? throw new InvalidOperationException("objective has no mission")));
+            Autotest.Wait(2);
+        };
+        // mech_mine_camera <size>: centers the camera on the miner, this many units wide (screenshots).
+        Autotest.Commands["mech_mine_camera"] = arg =>
+        {
+            Ship miner = Miner().Escort.TargetShip ?? throw new InvalidOperationException("miner is not live");
+            float size = float.Parse(arg, CultureInfo.InvariantCulture);
+            var view = RequireRun().Game.Sim.Camera.ViewController;
+            view.ClearFocus(clearFramesOfReferenceAndRotation: true);
+            view.FRLocation = miner.DetWorldCenter;
+            view.ZoomToFit(new Vector2(size, size), instant: true);
+        };
+        Autotest.Commands["mech_mine_kill"] = _ => RemoveShip(Miner().Escort.TargetShip ?? throw new InvalidOperationException("miner is not live"));
+        // mech_mine_mark: remembers the ore count; mech_mine_gain is the ore counted since.
+        Autotest.Commands["mech_mine_mark"] = _ => _markedOre = Miner().Mined;
+        Autotest.Fields["mech_mine_gain"] = () => Miner().Mined - _markedOre;
+        Autotest.Fields["mech_mine_phase"] = () => (int)Miner().Phase;
+        Autotest.Fields["mech_mine_hailed"] = () => Miner().Hailed ? 1 : 0;
+        Autotest.Fields["mech_mine_ore"] = () => Miner().Mined;
+        Autotest.Fields["mech_mine_goal"] = () => Miner().Goal;
+        Autotest.Fields["mech_mine_waves"] = () => Miner().WavesSent;
+        Autotest.Fields["mech_mine_raiders"] = () => Miner() is var o && o.WaveAllegiance != 0
+            ? SimQueries.TaggedShips(RequireSim(), MiningEscortObjective.WaveTag).Count(s => s.PlayerIndex == o.WaveAllegiance) : 0;
+        // Open salvage orders of the miner (its mining laser's jobs) and loose ore of its type in the system.
+        Autotest.Fields["mech_mine_salvage"] = () => Miner().Escort.TargetShip?.Resources.GetSalvageJobs(Cosmoteer.Game.Multiplayer.MPValueType.Confirmed).Count() ?? -1;
+        Autotest.Fields["mech_mine_loose"] = () =>
+        {
+            var sim = RequireSim();
+            var ore = Miner().Ore;
+            int n = 0;
+            for (int i = 0; i < sim.Nuggets.Count; i++) if (sim.Nuggets[i].ResourceType == ore) n += sim.Nuggets[i].Quantity;
+            return n;
         };
 
         // Prototype (spec 133).
@@ -242,7 +325,7 @@ public static class MechanicsArea
     {
         var all = new List<Objective>();
         foreach (var o in m.Objectives) o.GetObjectives(all);
-        return all.FirstOrDefault(o => o is HoldOutObjective or PrototypeObjective or TowObjective or CaptureObjective or SurveyObjective or DeliverResourcesObjective)
+        return all.FirstOrDefault(o => o is HoldOutObjective or PrototypeObjective or TowObjective or CaptureObjective or SurveyObjective or DeliverResourcesObjective or MiningEscortObjective)
             ?? throw new InvalidOperationException($"{m.MetatypeID} has no mechanics objective");
     }
 
@@ -265,6 +348,14 @@ public static class MechanicsArea
     static HoldOutObjective Hold() => Require<HoldOutObjective>();
     static PrototypeObjective Proto() => Require<PrototypeObjective>();
     static TowObjective Tow() => Require<TowObjective>();
+    static MiningEscortObjective Miner() => Require<MiningEscortObjective>();
+    static int _markedOre;
+    static List<Cosmoteer.Resources.Nugget> _dropped = [];
+
+    static IEnumerable<Cosmoteer.Resources.Nugget> Nuggets(SimRoot sim)
+    {
+        for (int i = 0; i < sim.Nuggets.Count; i++) yield return sim.Nuggets[i];
+    }
     static CaptureObjective Capture() => Require<CaptureObjective>();
     static SurveyObjective Survey() => Require<SurveyObjective>();
     static DeliverResourcesObjective Deliver() => Require<DeliverResourcesObjective>();

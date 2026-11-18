@@ -15,6 +15,11 @@ public sealed class MechanicsTunables
     [Serialize(Optional = true)] public float SurveyChance = 0.5f;
     [Serialize(Optional = true)] public float MiningGuardChance = 0.5f;
     [Serialize(Optional = true)] public float ListeningPostChance = 0.5f;
+    /// <summary>Spec 1867: chance that a system offers a Mining Escort.</summary>
+    [Serialize(Optional = true)] public float MiningEscortChance = 0.5f;
+
+    /// <summary>Spec 1860 to 1867: Mining Escort.</summary>
+    [Serialize(Optional = true)] public MiningEscortTunables MiningEscort = new();
 
     /// <summary>Spec 132: Drone Siege. Tier-1 to tier-3 drones, many of them, for five minutes.</summary>
     [Serialize(Optional = true)] public HoldOutTunables Siege = new()
@@ -69,6 +74,13 @@ public sealed class MechanicsTunables
         Require(t.DeliveryRadius > 0f, "DeliveryRadius must be above 0");
         Require(t.ScanRange > 0f && t.IntensivePayBonus >= 0f && t.IntensiveExtraShips >= 0f && t.MaxIntensivePerWave >= 0, "ScanRange must be above 0 and the intensive scan values must not be negative");
         Require(t.SurveyScanSeconds > 0f, "SurveyScanSeconds must be above 0");
+        var m = t.MiningEscort;
+        Require(m.SpawnDistanceMin >= 0f && m.SpawnDistanceMax >= m.SpawnDistanceMin, "MiningEscort: SpawnDistanceMax must be at least SpawnDistanceMin");
+        Require(m.OreGoal > 0 && m.FieldRadius > 0f && m.HostileRadius >= 0f && m.CollectRadius > 0f && m.StepSeconds > 0f && m.DockGap >= 0f && m.DockedGap > m.DockGap,
+            "MiningEscort: OreGoal, FieldRadius, CollectRadius and StepSeconds must be above 0, and DockedGap above DockGap");
+        Require(m.WaveShares.Length > 0 && m.WaveShares.All(s => s is > 0f and < 1f), "MiningEscort.WaveShares must hold shares between 0 and 1");
+        Require(m.ShipsBase >= 0f && m.ShipsPerTier >= 0f && m.MaxLiveShips >= 0 && m.ShipTierMax >= 1 && m.ShipTags.Length > 0,
+            "MiningEscort: ship counts must not be negative, ShipTierMax must be 1 or more, ShipTags must not be empty");
     }
 }
 
@@ -95,3 +107,42 @@ public sealed class HoldOutTunables
     /// <summary>Built-in ship tags of the wave pool.</summary>
     [Serialize(Optional = true)] public string[] ShipTags = ["combat"];
 }
+
+/// <summary>Mining Escort (spec 1860 to 1867): a miner fills its hold in an asteroid field while raiders come in waves.</summary>
+[ReflectiveSerialization(Explicit = true)]
+public sealed class MiningEscortTunables
+{
+    /// <summary>The miner waits this far from the station center, in a random direction.</summary>
+    [Serialize(Optional = true)] public float SpawnDistanceMin = 500f;
+    [Serialize(Optional = true)] public float SpawnDistanceMax = 800f;
+    /// <summary>The most ore the miner must bring back. A smaller hold sets a smaller goal. About 2.5 min of mining for the miner alone.</summary>
+    [Serialize(Optional = true)] public int OreGoal = 30;
+    /// <summary>The miner works on asteroids within this distance of the field center. Its ore type is the most common ore there.</summary>
+    [Serialize(Optional = true)] public float FieldRadius = 3000f;
+    /// <summary>
+    /// A field with a ship hostile to the players within this distance of its center offers no job. Vanilla field pirates and platforms
+    /// sit within 750 of it; wanderers and bounty targets nearby do not block the offer.
+    /// </summary>
+    [Serialize(Optional = true)] public float HostileRadius = 1000f;
+    /// <summary>The miner orders loose ore of its type within this distance of its hull to be collected, also ore that players drop.</summary>
+    [Serialize(Optional = true)] public float CollectRadius = 1500f;
+    /// <summary>Game seconds between two work steps of the miner (move order, salvage and collect orders).</summary>
+    [Serialize(Optional = true)] public float StepSeconds = 0.5f;
+    /// <summary>Shares of the goal at which a wave comes, one wave each.</summary>
+    [Serialize(Optional = true)] public float[] WaveShares = [0.25f, 0.65f];
+    /// <summary>Ships per wave = ShipsBase + ShipsPerTier × mission tier, rounded, capped so that live wave ships stay at MaxLiveShips or below.</summary>
+    [Serialize(Optional = true)] public float ShipsBase = 1f;
+    [Serialize(Optional = true)] public float ShipsPerTier = 0.15f;
+    [Serialize(Optional = true)] public int MaxLiveShips = 5;
+    /// <summary>Tier of each wave ship = ShipTierBase + ShipTierPerTier × mission tier, rounded, in 1..ShipTierMax.</summary>
+    [Serialize(Optional = true)] public float ShipTierBase = -1f;
+    [Serialize(Optional = true)] public float ShipTierPerTier = 1f;
+    [Serialize(Optional = true)] public int ShipTierMax = 99;
+    /// <summary>Built-in ship tags of the wave pool.</summary>
+    [Serialize(Optional = true)] public string[] ShipTags = ["combat"];
+    /// <summary>On the way back, the miner stops this far from the station's hull.</summary>
+    [Serialize(Optional = true)] public float DockGap = 200f;
+    /// <summary>The miner counts as docked, and the job is done, when its hull is this close to the station's hull.</summary>
+    [Serialize(Optional = true)] public float DockedGap = 500f;
+}
+
