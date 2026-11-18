@@ -1,0 +1,17 @@
+# Events with no working player ship (spec 1813): after a lost fight the players' ship is a derelict. An event that brings its own
+# carrier ship does not open, and triggers skip such events; nothing throws.
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set CourierChance 0
+ev_set CooldownSeconds 0
+ev_set ArrivalEventChance 1
+kill
+wait 3
+ev_try_open join_request
+expect ev_opened == 0
+expect ev_pending == 0
+ev_arrive
+wait 12
+expect ev_carrier == 0
+quit

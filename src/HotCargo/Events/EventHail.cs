@@ -28,10 +28,19 @@ public static class EventHail
     /// <summary>True when the pending page is carried by a ship. The event window does not show it.</summary>
     public static bool IsCarried(PendingEvent p) => p.Carrier is not null;
 
-    /// <summary>Spawns the event's carrier near the first player ship (spec 1537) and returns its ID. The generator must tag one ship hc_ev_carrier.</summary>
-    internal static ObjectID SpawnCarrier(SimRoot sim, EventRules e, ulong seed)
+    /// <summary>
+    /// Spec 1537, 1813: a carrier can spawn only near a working player ship. With none (a lost fight, stranded, all ships derelict), an
+    /// event with a carrier does not open.
+    /// </summary>
+    internal static bool CanSpawnCarrier(SimRoot sim) => SimQueries.AnchorShip(sim) is not null;
+
+    /// <summary>
+    /// Spawns the event's carrier near the first player ship (spec 1537) and returns its ID, or null when the players have no working ship
+    /// (spec 1813). The generator must tag one ship hc_ev_carrier.
+    /// </summary>
+    internal static ObjectID? SpawnCarrier(SimRoot sim, EventRules e, ulong seed)
     {
-        var at = SimQueries.AnchorShip(sim)?.DetWorldCenter ?? throw new InvalidOperationException("no human ships to spawn a carrier near");
+        if (SimQueries.AnchorShip(sim)?.DetWorldCenter is not { } at) return null;
         var before = SimQueries.TaggedShips(sim, CarrierTag).Select(t => t.Id).ToHashSet();
         EventLibrary.Spawn(e.Carrier).Generate(sim, new FastRand(seed, 0x4341_5252UL), loadInstantly: true, rootLoc: at, addExistingSpawnTags: true);
         var spawned = SimQueries.TaggedShips(sim, CarrierTag).Select(t => t.Id).Where(id => !before.Contains(id)).ToList();

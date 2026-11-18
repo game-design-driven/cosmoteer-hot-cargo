@@ -103,8 +103,9 @@ public static class ChainRunner
                 break;
             case (StageKind.Mission, _):
                 if (!due) break;
+                // Spec 1813: with no working player ship (and no station here), the stage waits for one.
+                if (((here ? FindStation(sim, c.StationId)?.DetWorldCenter : null) ?? SimQueries.AnchorShip(sim)?.DetWorldCenter) is not { } at) break;
                 c.DueSeconds = -1;
-                Vector2 at = (here ? FindStation(sim, c.StationId)?.DetWorldCenter : null) ?? SimQueries.AnchorShip(sim)?.DetWorldCenter ?? throw new InvalidOperationException("no human ships");
                 SpawnMission(run, sim, c, stage, at);
                 break;
             case (StageKind.Page, StageWhere.Station):
@@ -366,7 +367,8 @@ public static class ChainRunner
     {
         string story = ChainModel.StorySoFar(c.Story, run.T.Chains.StoryLines);
         string lead = string.Join("\n\n", new[] { c.Lead, story.Length > 0 ? $"<gray>So far: {story}</gray>" : "" }.Where(t => t.Length > 0));
-        EventRunner.Open(run, sim, EventLibrary.Get(stage.Page), lead);
+        // Spec 1813: a page that cannot open now (no working player ship for its carrier) waits for the next check.
+        if (!EventRunner.Open(run, sim, EventLibrary.Get(stage.Page), lead)) return;
         c.Lead = "";
         c.AwaitingSerial = run.State.Events.Pending?.Serial ?? throw new InvalidOperationException("the chain page did not open");
         Log.Info($"chain {c.ChainId} stage {c.Stage}: page {stage.Page} opened (serial {c.AwaitingSerial})");

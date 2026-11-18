@@ -201,7 +201,9 @@ public static class EventRunner
             return;
         }
         var snapshot = Snap(run, sim, RichestHumanMoney(run), run.CurrentTier, CurrentTechValue(run));
-        var candidates = EventLibrary.InOrder.Where(e => e.Trigger == trigger && Eligible(run, e, snapshot)).ToList();
+        // Spec 1813: an event that brings its own carrier waits for a working player ship.
+        bool carrierOk = carrier is not null || EventHail.CanSpawnCarrier(sim);
+        var candidates = EventLibrary.InOrder.Where(e => e.Trigger == trigger && (carrierOk || e.Carrier.Length == 0) && Eligible(run, e, snapshot)).ToList();
         var weights = candidates.Select(e => EventModel.EffectiveWeight(e.Weight, e.WeightPerHeat, e.WeightPerTech, run.State.Heat, run.State.FleetTech)
             * (e.Offer == OfferKind.None ? 1f : Math.Max(0f, t.ResearchWeightScale))).ToList();
         int pick = EventModel.PickWeighted(weights, sim.Rand.Single());
@@ -238,9 +240,15 @@ public static class EventRunner
     /// carrier: the ship whose comms show the page (spec 767, 768). Without one, an event with a Carrier spawn gets its own ship, which
     /// hails when CarrierHails is on. carrierHails: the given carrier hails the players (a station event).
     /// </summary>
-    public static void Open(Run run, SimRoot sim, EventRules e, string lead, ObjectID? carrier = null, bool carrierHails = false)
+    /// <returns>False when the page cannot open: it needs its own carrier and the players have no working ship (spec 1813).</returns>
+    public static bool Open(Run run, SimRoot sim, EventRules e, string lead, ObjectID? carrier = null, bool carrierHails = false)
     {
         var s = State(run);
+        if (carrier is null && e.Carrier.Length > 0 && !EventHail.CanSpawnCarrier(sim))
+        {
+            Log.Info($"event {e.ID} not opened: its carrier needs a working player ship, and there is none");
+            return false;
+        }
         s.Seen[e.ID] = s.Seen.GetValueOrDefault(e.ID) + 1;
         s.Pending = new PendingEvent
         {
@@ -255,7 +263,7 @@ public static class EventRunner
         ResearchOffers.Fill(run, s.Pending, e.Offer);
         if (carrier is null && e.Carrier.Length > 0)
         {
-            carrier = EventHail.SpawnCarrier(sim, e, s.Pending.Seed);
+            carrier = EventHail.SpawnCarrier(sim, e, s.Pending.Seed) ?? throw new InvalidOperationException("no working player ship after the check");
             carrierHails = e.CarrierHails;
         }
         s.Pending.Carrier = carrier;
@@ -263,6 +271,7 @@ public static class EventRunner
         s.Pending.HailDue = carrier is not null && carrierHails;
         if (carrier is { } c && carrierHails) EventText.ShowCalling(run.Game, sim.Ships[c]?.Metadata.PlainShipName ?? e.Title);
         Log.Info($"event opened: {e.ID} serial {s.Pending.Serial} tier {s.Pending.Tier} heat {run.State.Heat:0.0} tech {run.State.FleetTech}");
+        return true;
     }
 
     /// <summary>
@@ -701,15 +710,21 @@ public static class EventRunner
     static void DropNear(SimRoot sim, int playerIndex, string tagName, ID<ResourceRules> resource, int amount, List<string> lines)
     {
         var tag = new ID<SimObjectSpawner>(tagName);
+        // Spec 1813: with no working player ship, the crates drift beside the tagged ship; with neither, there is nowhere to drop them.
         var near = SimQueries.AnchorShip(sim, s => s.Metadata.PlayerIndex == playerIndex ? 1f : 0f)?.DetWorldCenter
-            ?? throw new InvalidOperationException("a DropNear gain with no player ship in the system");
+            ?? SimQueries.TaggedShips(sim, tag).OrderBy(t => t.Id).Select(t => (Vector2?)t.Location).FirstOrDefault();
+        if (near is not { } nearAt)
+        {
+            Log.Info($"event: {amount} {resource} not dropped: no working player ship and no ship tagged {tagName}");
+            return;
+        }
         var ship = Enumerable.Range(0, sim.Ships.Count).Select(i => sim.Ships[i]).Where(s => s.HasTag(tag))
-            .OrderBy(s => s.DetWorldCenter.DistanceSquaredTo(near)).ThenBy(s => s.UniqueID).FirstOrDefault();
-        var stasis = ship is null ? SimQueries.TaggedShips(sim, tag).OrderBy(t => t.Location.DistanceSquaredTo(near)).ThenBy(t => t.Id).Select(t => (Vector2?)t.Location).FirstOrDefault() : null;
+            .OrderBy(s => s.DetWorldCenter.DistanceSquaredTo(nearAt)).ThenBy(s => s.UniqueID).FirstOrDefault();
+        var stasis = ship is null ? SimQueries.TaggedShips(sim, tag).OrderBy(t => t.Location.DistanceSquaredTo(nearAt)).ThenBy(t => t.Id).Select(t => (Vector2?)t.Location).FirstOrDefault() : null;
         // A ship in stasis has no known size; 300 clears most hulls.
         (Vector2 at, float radius) = ship is not null ? (ship.DetWorldCenter, ship.WorldBoundingRadius)
             : stasis is { } loc ? (loc, 300f)
-            : (near, 300f);
+            : (nearAt, 300f);
         if (ship is null && stasis is null) Log.Info($"event: no ship tagged {tagName}; {amount} {resource} drift beside player {playerIndex}'s ship");
         SimQueries.DropLoose(sim, at, radius, resource, amount);
         lines.Add(EventText.Loose(resource, amount));
@@ -738,8 +753,12 @@ public static class EventRunner
     /// </summary>
     static void Spawn(Run run, SimRoot sim, string name, ulong seed, int playerIndex)
     {
-        Vector2 at = SimQueries.AnchorShip(sim, s => s.Metadata.PlayerIndex == playerIndex ? 1f : 0f)?.DetWorldCenter
-            ?? throw new InvalidOperationException("no human ships to spawn near");
+        // Spec 1813: with no working player ship there is nobody to spawn near, so the spawn does not happen.
+        if (SimQueries.AnchorShip(sim, s => s.Metadata.PlayerIndex == playerIndex ? 1f : 0f)?.DetWorldCenter is not { } at)
+        {
+            Log.Info($"event spawn {name} skipped: no working player ship");
+            return;
+        }
         EventLibrary.Spawn(name).Generate(sim, new FastRand(seed, 0x5350_4157UL), loadInstantly: true, rootLoc: at, addExistingSpawnTags: true);
         Log.Info($"event spawn {name} at {at}");
     }
