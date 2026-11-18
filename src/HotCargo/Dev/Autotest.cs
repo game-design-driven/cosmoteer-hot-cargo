@@ -59,15 +59,20 @@ public static class Autotest
     /// a tenth of real time or slower on a loaded machine fails its waits; raise the factor if that becomes normal.</summary>
     const double CapFactor = 10, CapExtraSeconds = 30;
 
-    /// <summary>The run's game seconds while its sim ticks; null when no run is active or its sim is paused.</summary>
-    static double? GameNow() =>
-        Run.Current is { } run && Game is { } game && run.Game == game && !game.Sim.IsPaused.Confirmed ? run.State.GameSeconds : null;
+    /// <summary>
+    /// The run whose game seconds the test clock counts: active in this game and without a result. Game seconds stop at a win or
+    /// a loss (Run.OnTick), so a wait after the end counts real seconds; before, it lasted its whole real-time budget.
+    /// </summary>
+    static Run? ClockRun() => Run.Current is { State.Result: RunResult.Running } run && Game is { } game && run.Game == game ? run : null;
 
-    /// <summary>A deadline in game seconds while a run is active, else in real seconds (requirement 1007).</summary>
+    /// <summary>The run's game seconds while its sim ticks; null when no run counts (ClockRun) or its sim is paused.</summary>
+    static double? GameNow() => ClockRun() is { } run && !run.Game.Sim.IsPaused.Confirmed ? run.State.GameSeconds : null;
+
+    /// <summary>A deadline in game seconds while a run counts (ClockRun), else in real seconds (requirement 1007).</summary>
     static Deadline GameAfter(double seconds)
     {
         double now = App.Clock.Time.Seconds;
-        double game = Run.Current is { } run && run.Game == Game ? run.State.GameSeconds + seconds : double.NaN;
+        double game = ClockRun() is { } run ? run.State.GameSeconds + seconds : double.NaN;
         return new(game, now + seconds, now + seconds * CapFactor + CapExtraSeconds);
     }
 
