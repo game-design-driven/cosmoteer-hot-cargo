@@ -323,6 +323,23 @@
 		ProportionalSize = true
 	}
 }
+// Mining escort: the vanilla salvage (mining) order icon.
+{
+	Action = Add
+	AddTo = "<gui/text_sprites.rules>"
+	Name = hc_mission_HotCargoMiningEscort
+	ToAdd
+	{
+		Texture
+		{
+			File = "./Data/gui/game/cmd_salvage.png"
+			MipLevels = max
+			SampleMode = Linear
+		}
+		Size = [1, 1]
+		ProportionalSize = true
+	}
+}
 // Listening post.
 {
 	Action = Add

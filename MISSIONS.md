@@ -4,11 +4,11 @@
 
 ## Escorts
 
-Spec 64 (requirements 1850 to 1855). Every escort (Convoy Duty and the chain escort stages) waits for the players before it leaves. After the accept, the escorted ship flies to your nearest ship and stops close (`Missions.EscortMeetGap`, 300 from your hull). It goes at most `EscortMeetRange` (3,000) from where it started; past that, fly to it. The map ring and the objective line show where it is. When your hull is within `EscortHailGap` (800), it hails you: "Ready to leave?". Click **Ready. Lead the way.** in its comms, and it starts its route from there. **Not yet** closes the window. It never leaves by itself: it hails again every 60 s while you stay close, and you can always call it. In co-op, "Ready" is a shared choice, so every player sees it and can vote.
+Spec 64 (requirements 1850 to 1855). Every escort (Convoy Duty, the chain escort stages and the Mining Escort) waits for the players before it leaves. After the accept, the escorted ship flies to your nearest ship and stops close (`Missions.EscortMeetGap`, 300 from your hull). It goes at most `EscortMeetRange` (3,000) from where it started; past that, fly to it. The map ring and the objective line show where it is. When your hull is within `EscortHailGap` (800), it hails you: "Ready to leave?". Click **Ready. Lead the way.** in its comms, and it starts its route from there. **Not yet** closes the window. It never leaves by itself: it hails again every 60 s while you stay close, and you can always call it. In co-op, "Ready" is a shared choice, so every player sees it and can vote.
 
 ## Mechanics missions
 
-These missions use the game's own systems: building, tractor beams, mining, crew, surrender, sensors and careful targeting. Each one shows up in half of the systems (`Mechanics.<Name>Chance`, 50 %; BALANCE.md, finding 10). Rewards use the vanilla tier tables, so the pay rises with the sector tier. The table shows each reward as a multiple of a standard vanilla mission.
+These missions use the game's own systems: building, tractor beams, mining, crew, surrender, sensors and careful targeting. Each one shows up in half of the systems (`Mechanics.<Name>Chance`, 50 %; BALANCE.md, finding 10). The Mining Escort also needs an asteroid field without pirates or platforms. Rewards use the vanilla tier tables, so the pay rises with the sector tier. The table shows each reward as a multiple of a standard vanilla mission.
 
 | Mission | Offered at | Money | Fame | Contract terms |
 |---|---|---|---|---|
@@ -20,6 +20,7 @@ These missions use the game's own systems: building, tractor beams, mining, crew
 | Storm Survey | Stations | 1.25× | 1× | free, trail weight 0.5 |
 | Claim Jumpers | Stations | 2× | 3× (no kill fame) | free, rival `ore_claims`, informant 5 % |
 | Listening Post | Faction wars | 2×, more with intensive scans | 3× (no kill fame) | heat +3, informant 10 % |
+| Mining Escort | Stations | 2× | 3× (no kill fame) | free, trail weight 0.5, rival `ore_claims`, informant 5 % |
 
 The contract terms are `HotCargoContract` entries in each mission's rewards (the economy area reads them). The fee is in units of a standard mission's pay at the mission's tier.
 
@@ -46,6 +47,9 @@ A civilian mining barge sits in an asteroid field. Raiders one tier below the se
 
 ### Listening Post
 A faction listening post hides in a gas cloud, 4,000 to 5,000 from a hostile base. Its scout follows you. Take it anywhere within 3,500 of the base. Then click **Start the scan here** in the mission panel. The base sends four waves, one every 45 s, from its side. Before each wave you can click **Intensive scan**, at most twice. Each click gives the next wave one more ship and one more tier, and gives the pay +25 %. If the scout dies, the mission fails.
+
+### Mining Escort
+Spec 64 (requirements 1860 to 1867). A civilian miner (the vanilla Model-M, one mining laser, two storage bays) waits at the station. It meets you and asks "Ready to leave?" like every escort. Then it flies to the nearest asteroid field without pirates or platforms and mines the field's most common ore with its laser. Its hold sets the goal, at most 30 units: about 2.5 to 3 minutes of mining alone. You can help: its crew collects loose ore of that type within 1,500 of its hull, so drop your own ore next to it. Raiders come in two waves, at a quarter and at about two thirds of the goal. With a full hold it flies back to the station. When it docks, the pay waits at the station. If the miner dies, the mission fails. It sits next to Claim Jumpers, which stays.
 
 ### Leave early (Drone Siege, Claim Jumpers, Listening Post)
 After the first wave interval, the mission panel shows **Leave now and keep X credits**. One click completes the mission at once. The pay is one share for each whole wave interval you survived, times the intensive-scan factor. For example, 2 of 4 waves pay half. Fame scales the same way, but without the intensive-scan factor. You collect the reward at the station as usual.

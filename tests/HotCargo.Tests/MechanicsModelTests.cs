@@ -53,4 +53,23 @@ public class MechanicsModelTests
         Assert.Equal(61, MechanicsModel.SecondsLeft(300, 239.5));
         Assert.Equal(0, MechanicsModel.SecondsLeft(300, 301));
     }
+
+    [Fact]
+    public void Ore_goal_is_the_hold_room_up_to_the_cap()
+    {
+        Assert.Equal(30, MechanicsModel.OreGoal(30, 60));
+        Assert.Equal(60, MechanicsModel.OreGoal(200, 60));
+        Assert.Throws<ArgumentOutOfRangeException>(() => MechanicsModel.OreGoal(0, 60));
+    }
+
+    [Fact]
+    public void Mining_waves_come_once_at_each_share_even_when_the_ore_jumps()
+    {
+        float[] shares = [0.25f, 0.65f];
+        Assert.Equal(0, MechanicsModel.MiningWavesDue(0, 9, 40, shares));
+        Assert.Equal(1, MechanicsModel.MiningWavesDue(9, 10, 40, shares));
+        Assert.Equal(0, MechanicsModel.MiningWavesDue(10, 12, 40, shares));
+        // A player drops a big stack: both waves are due at once.
+        Assert.Equal(2, MechanicsModel.MiningWavesDue(5, 30, 40, shares));
+    }
 }

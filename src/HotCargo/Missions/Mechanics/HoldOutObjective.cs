@@ -371,29 +371,7 @@ internal sealed class HoldOutObjective : Objective
         Vector2 center = target.DetWorldCenter;
         // Scan waves come from the base side; other waves from a random side.
         float direction = BaseLocation is { } b ? MathF.Atan2(b.Y - center.Y, b.X - center.X) : sim.Rand.Direction();
-        var tags = t.ShipTags.Select(s => new ID<BuiltinShipTag>(s)).ToArray();
-        for (int i = 0; i < count; i++)
-        {
-            BuiltinShipRules ship = WaveSpawns.PickShip(sim, tags, shipTier);
-            Vector2 loc = WaveSpawns.Location(sim, center, direction, 1800f, 2400f);
-            var spawner = new StasisShipSpawner(sim, ship.ID, loc, SpawnedShipFeatures.None, sim.Rand.UInt64(), [WaveTag])
-            {
-                AI = new ID<ShipAIRules>("Normal"),
-                AIParameters = new AIParameters
-                {
-                    PatrolOrigin = center,
-                    PatrolRadius = 300f,
-                    TargetAcquireRangeFromOrigin = 3000f,
-                    TargetUnacquireRangeFromOrigin = 4500f,
-                    ChanceToConsiderSurrenderingToPlayer = 0f,
-                },
-                Direction = loc.DirectionTo(in center),
-                ObjectAllegiance = WaveAllegiance,
-            };
-            spawner.Spawn(sim);
-            var spawned = sim.Ships[spawner.ReservedObjectID] ?? throw new InvalidOperationException($"wave ship {ship.ID} did not spawn");
-            _ = spawned.Renderer.AnimateFtlJumpIn(spawned.WorldFlightDirection);
-        }
+        WaveSpawns.Spawn(sim, center, direction, count, shipTier, t.ShipTags, WaveAllegiance, WaveTag);
         Log.Info($"hold-out {Profile}: wave of {count} tier-{shipTier} ships at {GuardedSeconds:0} s ({live} still live, {boost} intensive)");
     }
 
@@ -439,6 +417,37 @@ static class AllowHoldOutOrderPatch
 /// <summary>Ship picks and spawn points for waves that C# spawns in the sim tick.</summary>
 internal static class WaveSpawns
 {
+    /// <summary>
+    /// Spawns <paramref name="count"/> ships of the tags at the tier, 1,800 to 2,400 from the center near the direction, on one allegiance,
+    /// with the spawn tag. Each ship jumps in and attacks around the center (Normal AI, origin at the center). Sim tick only (sim.Rand).
+    /// </summary>
+    public static void Spawn(SimRoot sim, Vector2 center, float direction, int count, int shipTier, string[] shipTags, int allegiance, ID<SimObjectSpawner> tag)
+    {
+        var tags = shipTags.Select(s => new ID<BuiltinShipTag>(s)).ToArray();
+        for (int i = 0; i < count; i++)
+        {
+            BuiltinShipRules ship = PickShip(sim, tags, shipTier);
+            Vector2 loc = Location(sim, center, direction, 1800f, 2400f);
+            var spawner = new StasisShipSpawner(sim, ship.ID, loc, SpawnedShipFeatures.None, sim.Rand.UInt64(), [tag])
+            {
+                AI = new ID<ShipAIRules>("Normal"),
+                AIParameters = new AIParameters
+                {
+                    PatrolOrigin = center,
+                    PatrolRadius = 300f,
+                    TargetAcquireRangeFromOrigin = 3000f,
+                    TargetUnacquireRangeFromOrigin = 4500f,
+                    ChanceToConsiderSurrenderingToPlayer = 0f,
+                },
+                Direction = loc.DirectionTo(in center),
+                ObjectAllegiance = allegiance,
+            };
+            spawner.Spawn(sim);
+            var spawned = sim.Ships[spawner.ReservedObjectID] ?? throw new InvalidOperationException($"wave ship {ship.ID} did not spawn");
+            _ = spawned.Renderer.AnimateFtlJumpIn(spawned.WorldFlightDirection);
+        }
+    }
+
     /// <summary>A random built-in ship with the tags at the tier, or the nearest lower tier that has one.</summary>
     public static BuiltinShipRules PickShip(SimRoot sim, ID<BuiltinShipTag>[] tags, int tier)
     {

@@ -13,6 +13,7 @@ SubSpawners
 	&~/Capture
 	&~/Survey
 	&~/ClaimJumpers
+	&~/MiningEscort
 	&~/ListeningPost
 ]
 
@@ -773,6 +774,80 @@ ClaimJumpers
 							InformantChance = 5%
 						}
 					]
+				}
+			]
+		}
+	]
+}
+
+// Spec 1860 to 1867. A civilian miner waits at a trade station. It meets the players and waits for "Ready" (spec 1850), flies to the
+// nearest asteroid field, mines the field's most common ore until its hold holds the goal, and flies back. Two raider waves come while
+// it mines. Ore that players drop near it counts. The pay waits at the station when the miner docks. No field with ore and
+// without pirates or platforms: no offer.
+MiningEscort
+{
+	Type = None
+	Tags = [hc_mech_miningescort]
+	SpawnChance = 50%
+	RootLocation = Tag
+	RootLocationTag = trade_station
+
+	SubSpawners
+	[
+		{
+			Type = Mission
+			Metatype = HotCargoMiningEscort
+			SpawnAt = Tag
+			SpawnAtTag = { Mode=Nearest; Tag=trade_station; }
+			Faction = OwnerOfTag
+			FactionTag = { Mode=Nearest; Tag=trade_station; }
+			Objectives
+			[
+				{
+					Type = Sequential
+					SubObjectives
+					[
+						{
+							// Spawns the miner (yarden_zamir.miner) next to the station as a civilian of the mission's faction.
+							// A built-in ship takes its faction from its rules entry, so a rules ship spawner would need one entry per faction.
+							Type = HotCargoMiningEscort
+							FieldTag = asteroid_field_poi
+							StationTag = { Mode=Nearest; Tag=trade_station; }
+						}
+						{
+							Type = ReceiveRewards
+						}
+					]
+				}
+			]
+			// BALANCE.md, finding 10: 2x money like its peer (a station rescue) and the other escorts; 3x fame, because its waves pay no kill fame.
+			Rewards
+			[
+				{
+					Type = Money
+					MoneyPerHighTier = &/TIER_TABLES/StandardMoneyPerTier
+					MoneyPerTierMultiplier = 2
+					RoundToMultiple = 500
+				}
+				{
+					Type = Fame
+					FamePerHighTier = &/TIER_TABLES/StandardFamePerTier
+					FamePerTierMultiplier = 3
+					MaxFamePerHighTier = &/TIER_TABLES/StandardMaxFamePerTier
+				}
+				{
+					Type = Reputation
+					ReputationPerHighTier = &/TIER_TABLES/StandardReputationPerTier
+					ReputationPerTierMultiplier = 2
+				}
+				// A registered mining contract: legal and quiet, like a convoy (spec 100).
+				{
+					Type = HotCargoContract
+					AcceptFee = 0
+					FlatHeat = 0
+					TrailWeight = 0.5
+					RivalGroup = "ore_claims"
+					InformantChance = 5%
 				}
 			]
 		}

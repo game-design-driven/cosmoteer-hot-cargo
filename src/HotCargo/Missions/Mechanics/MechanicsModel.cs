@@ -40,6 +40,27 @@ public static class MechanicsModel
     /// <summary>Gap between two circles, 0 when they touch or overlap.</summary>
     public static float Gap(float centerDistance, float radiusA, float radiusB) => Math.Max(0f, centerDistance - radiusA - radiusB);
 
+    /// <summary>
+    /// Spec 1861: the ore that fills the miner's hold. The free room for that ore when the miner first goes live, capped at oreGoal,
+    /// so a large hold does not make the job long. A miner without room is a broken design.
+    /// </summary>
+    public static int OreGoal(int room, int oreGoal)
+    {
+        if (room <= 0) throw new ArgumentOutOfRangeException(nameof(room), room, "the miner has no room for the ore");
+        if (oreGoal <= 0) throw new ArgumentOutOfRangeException(nameof(oreGoal), oreGoal, "must be above 0");
+        return Math.Min(room, oreGoal);
+    }
+
+    /// <summary>
+    /// Spec 1863: mining waves that are due when the ore moves from before to after, out of goal. A wave comes when the ore first
+    /// reaches each share of the goal, so every wave comes once, also when players' ore makes the count jump.
+    /// </summary>
+    public static int MiningWavesDue(int before, int after, int goal, IReadOnlyList<float> shares)
+    {
+        if (goal <= 0) throw new ArgumentOutOfRangeException(nameof(goal), goal, "must be above 0");
+        return shares.Count(s => before < s * goal && after >= s * goal);
+    }
+
     /// <summary>Whole seconds left on a countdown, rounded up, never below 0.</summary>
     public static int SecondsLeft(double total, double elapsed) => Math.Max(0, (int)Math.Ceiling(total - elapsed));
 }

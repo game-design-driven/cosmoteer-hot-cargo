@@ -35,7 +35,7 @@ namespace HotCargo.Missions;
 /// </summary>
 [ReflectiveSerialization(Explicit = true)]
 [SerialDerivedType(TypeName = "HotCargoEscort")]
-internal sealed class EscortObjective : Objective, IMissionMarkers
+internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEscort
 {
     [ReflectiveSerialization(Explicit = true)]
     [SerialDerivedType(TypeName = "HotCargoEscort")]
@@ -116,16 +116,16 @@ internal sealed class EscortObjective : Objective, IMissionMarkers
     /// <summary>Spec 1850: a player answered the hail with "Ready". Until then the escort meets the players and the route waits.</summary>
     [Serialize(Optional = true)] public bool Ready { get; private set; }
     /// <summary>The escort hailed the players at least once.</summary>
-    [Serialize(Optional = true)] public bool Hailed { get; private set; }
+    [Serialize(Optional = true)] public bool Hailed;
     /// <summary>Game seconds until the waiting escort may hail again.</summary>
-    [Serialize(Optional = true)] public double HailIn { get; private set; }
+    [Serialize(Optional = true)] public double HailIn;
     /// <summary>The straight route keeps this distance from every sun (the spawner's SunClearance).</summary>
     [Serialize(Optional = true)] public float RouteSunClearance { get; private set; }
     /// <summary>Spec 1855: a stop before the destination, when the straight route from the meeting place passes a sun.</summary>
     [Serialize(Optional = true)] public Vector2? Via { get; private set; }
 
     /// <summary>The escort waits for the players' answer (spec 1850).</summary>
-    internal bool Waiting => Completion == CompletionState.InProgress && !Ready;
+    public bool Waiting => Completion == CompletionState.InProgress && !Ready;
 
     public override string ScriptTypeName => "HotCargoEscort";
 
@@ -281,40 +281,20 @@ internal sealed class EscortObjective : Objective, IMissionMarkers
     /// <summary>A moving player ship changes the meeting spot a little each tick. The AI origin follows only past this distance.</summary>
     const float MeetSlack = 150f;
 
-    /// <summary>
-    /// Spec 1851 to 1853, sim tick: the live escort flies to the nearest player ship, stops EscortMeetGap from its hull or closer,
-    /// inside that ship's comms reach (at most EscortMeetRange from its start), and hails when a player hull is within EscortHailGap, again every EscortRehailSeconds.
-    /// </summary>
+    /// <summary>Spec 1851 to 1853, sim tick: the live escort flies to the meeting spot and hails (<see cref="EscortMeeting.Step"/>).</summary>
     void Meet(SimRoot sim)
     {
         if (Escort.TargetShip is not { } ship) return;
-        var t = MissionArea.TunablesFor(sim.RequireGame());
-        HailIn = Math.Max(0, HailIn - sim.FixedUpdater.Interval.Seconds);
-        Vector2 at = ship.DetWorldCenter;
-        var player = sim.Ships.HumanPlayerSignificantShips
-            .OrderBy(h => h.DetWorldCenter.DistanceSquaredTo(at)).ThenBy(h => h.UniqueID).FirstOrDefault();
-        if (player is null) return;
-        float escortRadius = ship.DetWorldBoundingCircle.Radius, playerRadius = player.DetWorldBoundingCircle.Radius;
-        var spot = MissionModel.MeetSpot(N(player.DetWorldCenter), playerRadius, player.Sensors.DetWorldCommsCircle.Radius, N(at), escortRadius,
-            t.EscortMeetGap, t.EscortCommsMargin, N(Start), t.EscortMeetRange);
-        if (ship.AI is { } ai) SteerTo(ai, new Vector2(spot.X, spot.Y), MeetSlack);
-        float gap = at.DistanceTo(player.DetWorldCenter) - escortRadius - playerRadius;
-        if (gap > t.EscortHailGap || HailIn > 0 || !Events.EventHail.TryHail(sim, ship.UniqueID)) return;
-        HailIn = t.EscortRehailSeconds;
-        Log.Info($"escort {ship.Metadata.PlainShipName} hails the players (first {!Hailed})");
-        if (!Hailed)
-        {
-            Ux.UxKit.ChatLine(sim.RequireGame(), Strings.FormatText("HotCargoObjectives/EscortHailedFmt", Escort.GetXmlTargetName(sim)));
-            Hailed = true;
-            OnDisplayLinesChanged();
-        }
+        var spot = EscortMeeting.Step(sim, ship, Start, ref HailIn, ref Hailed, out bool firstHail);
+        if (spot is { } to && ship.AI is { } ai) SteerTo(ai, to, MeetSlack);
+        if (firstHail) OnDisplayLinesChanged();
     }
 
     /// <summary>
     /// Spec 1850, 1855: a player answered "Ready". The route starts where the escort is. When the straight route from here passes a sun
     /// closer than RouteSunClearance, the escort first flies back to its start, where the checked route began. Runs in the shared choice input.
     /// </summary>
-    internal void Depart(SimRoot sim, int playerIndex)
+    public void Depart(SimRoot sim, int playerIndex)
     {
         if (!Waiting) throw new InvalidOperationException("the escort is not waiting");
         Ready = true;

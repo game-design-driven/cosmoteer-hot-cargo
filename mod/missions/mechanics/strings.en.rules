@@ -14,6 +14,12 @@ HotCargoMechanics
 	SurveyDesc = "Hold a ship with a sensor array at each of {marker_count} storm markers for {scan_seconds} s.\nStorms hit hard: send a scout or bring shields."
 	ClaimJumpers = "Claim Jumpers"
 	ClaimJumpersDesc = "Guard the mining barge <b>{target_ship}</b> from raiders for {hold_minutes} min.\nThe clock stops when no ship is near. Leave early to keep partial pay."
+	MiningEscort = "Mining Escort"
+	MiningEscortDesc = "Escort the miner <b>{target_ship}</b> to the asteroid field. It mines {resource_icon} {resource_type_plural} while raiders come in two waves.\nDrop {resource_type_plural} near it to help. You get paid when it docks back here."
+	MiningToFieldFmt = "Escort {0} to the asteroid field"
+	MiningFmt = "{0} mines {1}: {2}/{3}. Drop yours near it to help"
+	MiningReturnFmt = "Escort {0} back to {1}"
+	MiningGoalPending = "?"
 	ListeningPost = "Listening Post"
 	ListeningPostDesc = "Take the scout <b>{target_ship}</b> within {scan_km} km of the hostile base, then start the scan.\nThe base sends {wave_count} waves. Each wave pays its share; leave early to keep it."
 

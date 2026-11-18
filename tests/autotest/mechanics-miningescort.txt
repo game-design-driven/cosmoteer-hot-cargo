@@ -1,0 +1,58 @@
+# Mining Escort (spec 1860 to 1867): the miner meets the players and waits for "Ready" (spec 1850), mines the field's ore with its
+# laser, takes in ore that players drop, two waves come, it docks at the station and the pay waits there. Then a failure: the miner dies.
+# missions: random
+# timeout: 900
+# tier: smoke
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+mech_generate miningescort
+mech_accept miningescort
+expect mech_active_miningescort == 1
+mech_mine_goto
+pause off
+# Spec 1850: it hails and waits. The goal is its hold room for the ore, up to MiningEscort.OreGoal (30).
+waitfor mech_mine_hailed == 1 60
+expect mech_mine_phase == 0
+expect mech_mine_goal > 0
+expect mech_mine_goal <= 30
+mech_mine_ready
+expect mech_mine_phase == 1
+mech_mine_field
+pause off
+waitfor mech_mine_phase == 2 60
+# Spec 1862: real mining: salvage orders for the laser, and ore in the hold.
+waitfor mech_mine_salvage > 0 60
+waitfor mech_mine_ore > 0 120
+# Spec 1864: ore that a player drops near the miner counts.
+mech_mine_mark
+mech_mine_drop 6
+expect mech_mine_dropped_left == 6
+waitfor mech_mine_dropped_left == 0 90
+expect mech_mine_gain >= 6
+# Spec 1863: the first wave at a quarter of the goal, hostile raiders around the miner.
+waitfor mech_mine_waves >= 1 120
+expect mech_mine_raiders >= 1
+# The rest of the hold from dropped ore: the second wave comes, and the miner goes home (spec 1865).
+mech_mine_drop 30
+waitfor mech_mine_phase == 3 180
+expect mech_mine_waves == 2
+mech_mine_dock
+pause off
+waitfor mech_goal_miningescort == 1 60
+# The pay waits at the station.
+hc_mark
+mech_mine_collect
+expect mech_state_miningescort == 1
+expect hc_money_gain > 0
+# Failure: a second miner dies while it waits.
+mech_generate miningescort
+mech_accept miningescort
+mech_mine_goto
+pause off
+wait 3
+mech_mine_kill
+wait 2
+expect mech_state_miningescort == 2
+quit
