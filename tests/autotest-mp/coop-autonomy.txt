@@ -43,6 +43,9 @@ on 1 scav_ship Scav
 on 1 waitfor scav_live == 1 60
 auto_ship Scav
 on 1 auto_ship Scav
+# The station guards of the system scavenge too (spec 1350). Full suite 44186766891: they took the test wreck and the steel, and the
+# test scavenger found nothing more to collect.
+mp scav_alone
 mp auto_wreck 0,500
 mp auto_loot steel 5 3 200
 # The wreck reaches the sim some ticks after the line. Earlier steps leave junk, so the age count alone does not show it.

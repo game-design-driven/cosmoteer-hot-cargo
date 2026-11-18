@@ -24,6 +24,12 @@ internal static class ScavengeAutotest
 
     static string _name = "";
 
+    /// <summary>Set by scav_alone: the only ship that scavenges. Null: every ship with the module may.</summary>
+    static Cosmoteer.Game.ObjectID? _alone;
+
+    /// <summary>Test only: false for every ship but the scav_alone ship, after scav_alone.</summary>
+    internal static bool MayScavenge(Ship ship) => _alone is not { } id || ship.UniqueID == id;
+
     static Ship TestShip() => Sim().Ships.AllShips.Where(s => s.Metadata.PlainShipName == _name && !s.IsJunk).MinBy(s => s.UniqueID)
         ?? throw new InvalidOperationException($"no live ship named '{_name}'");
 
@@ -46,6 +52,13 @@ internal static class ScavengeAutotest
             Spawn(p[0], p[1]);
         };
         Autotest.Commands["scav_ship"] = arg => _name = arg.Trim();
+        // scav_alone: from now on only the scav_ ship scavenges (the station guards of the system have the module too, spec 1350), so no other
+        // ship takes the test's wreck and loose steel. Nothing leaves the world. It changes the sim: use "mp" in co-op tests.
+        Autotest.Commands["scav_alone"] = _ =>
+        {
+            _alone = TestShip().UniqueID;
+            Log.Info($"AUTOTEST scav_alone: only {_name} id={_alone} scavenges");
+        };
         Autotest.Fields["scav_live"] = () => Sim().Ships.AllShips.Count(s => s.Metadata.PlainShipName == _name && !s.IsJunk);
         Autotest.Fields["scav_step"] = () => (int)Module(TestShip()).Step;
         // 0 no target, 1 a wreck, 2 a loose resource.
