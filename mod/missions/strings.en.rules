@@ -13,6 +13,18 @@ HotCargoMissions
 HotCargoObjectives
 {
 	EscortFmt = "Escort {0} to the jump point"
+	EscortMeetFmt = "Meet {0}. It comes to you"
+	EscortAnswerFmt = "Answer the hail of {0} when you are ready"
+	EscortHailedFmt = "{0} hails you: ready to leave?"
+	EscortDepartsFmt = "{0} is under way. Stay close."
 	SurviveAmbush = "Survive the ambush"
 	TrapSprung = "It was a setup. Corporate hunters drop out of the dark!"
+}
+
+// Spec 1852: the comms page of a waiting escort.
+HotCargoEscortHail
+{
+	Ask = "\"We are fueled and loaded. Ready to leave?\""
+	Ready = "Ready. Lead the way."
+	NotYet = "Not yet. Hold here."
 }

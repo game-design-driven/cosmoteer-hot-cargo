@@ -59,6 +59,28 @@ public static class MissionModel
         return Vector2.Distance(point, a + t * ab);
     }
 
+    /// <summary>
+    /// Spec 1851: where a waiting escort stops. It is on the line from the player ship to the escort, <paramref name="gap"/> from the
+    /// player's hull, closer when the player's comms circle (<paramref name="commsRadius"/> from its center) would not reach the escort
+    /// with <paramref name="commsMargin"/> to spare, but never inside the player's hull. Never more than <paramref name="meetRange"/>
+    /// from the escort's start.
+    /// </summary>
+    public static Vector2 MeetSpot(Vector2 player, float playerRadius, float commsRadius, Vector2 escort, float escortRadius, float gap, float commsMargin, Vector2 start, float meetRange)
+    {
+        if (gap < 0f) throw new ArgumentOutOfRangeException(nameof(gap), gap, "must not be negative");
+        if (meetRange < 0f) throw new ArgumentOutOfRangeException(nameof(meetRange), meetRange, "must not be negative");
+        Vector2 away = escort - player;
+        away = away == Vector2.Zero ? Vector2.UnitX : Vector2.Normalize(away);
+        float reachGap = Math.Max(0f, commsRadius - playerRadius - commsMargin);
+        Vector2 spot = player + away * (playerRadius + escortRadius + Math.Min(gap, reachGap));
+        Vector2 fromStart = spot - start;
+        return fromStart.Length() <= meetRange ? spot : start + Vector2.Normalize(fromStart) * meetRange;
+    }
+
+    /// <summary>Spec 1852: true when the straight route keeps <paramref name="clearance"/> from every sun.</summary>
+    public static bool RouteClear(Vector2 from, Vector2 to, float clearance, IEnumerable<Vector2> suns) =>
+        suns.All(s => SegmentDistance(from, to, s) >= clearance);
+
     /// <summary>Share of the route that the convoy covered, 0 at the start and 1 at the destination. Never below 0.</summary>
     public static float RouteProgress(float routeLength, float distanceLeft)
     {

@@ -23,6 +23,7 @@ hc_accept escort
 hc_escort_goto
 pause off
 wait 5
+hc_escort_ready
 hc_escort_arrive
 fame 15
 heat 50

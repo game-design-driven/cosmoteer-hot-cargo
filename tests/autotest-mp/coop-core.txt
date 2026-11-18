@@ -184,6 +184,16 @@ mp hc_accept escort
 mp hc_escort_goto
 pause off
 wait 3
+# Spec 1852: the freighter hails, and the client answers "Ready" in its own comms window (the shared choice input).
+# Both machines see the freighter leave.
+waitfor hc_escort_hailed == 1 60
+# The freighter came to the host's nearest ship. The client brings its own ship into comms reach first.
+as 1 hc_escort_bring
+wait 2
+on 1 hc_escort_call
+on 1 comms_click Ready
+waitfor hc_escort_waiting == 0 15
+on 1 waitfor hc_escort_waiting == 0 15
 # Just before the ambush point (EscortAmbushAt 0.3). The freighter flies on and springs the ambush itself. From 0.25 the
 # flight took 11 to 60+ s in CI queue runs (the hunters of the steps before fight it), too close to the 60 s limit.
 mp hc_escort_advance 0.29

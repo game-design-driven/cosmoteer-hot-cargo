@@ -39,6 +39,36 @@ public class ConvoyRouteTests
         Assert.Equal(0f, MissionModel.RouteProgress(8000, 9000));
     }
 
+    [Fact]
+    public void Meet_spot_is_the_gap_from_the_player_hull_on_the_escort_side()
+    {
+        // Player radius 100, escort radius 50, gap 300: the escort stops 450 from the player center, toward where it is now.
+        var spot = MissionModel.MeetSpot(new(1000, 0), 100, 2000, new(5000, 0), 50, 300, 50, new(5000, 0), 10000);
+        Assert.Equal(new Vector2(1450, 0), spot, new Vec(0.01f));
+    }
+
+    [Fact]
+    public void Meet_spot_comes_closer_when_the_player_comms_reach_is_short()
+    {
+        // Comms 300 from the center, hull radius 100, margin 50: the gap shrinks from 300 to 150.
+        var spot = MissionModel.MeetSpot(new(0, 0), 100, 300, new(5000, 0), 50, 300, 50, new(5000, 0), 10000);
+        Assert.Equal(new Vector2(300, 0), spot, new Vec(0.01f));
+    }
+
+    [Fact]
+    public void Meet_spot_stays_within_the_meet_range_of_the_start()
+    {
+        var spot = MissionModel.MeetSpot(new(-9000, 0), 100, 2000, new(0, 0), 50, 300, 50, new(0, 0), 2500);
+        Assert.Equal(new Vector2(-2500, 0), spot, new Vec(0.01f));
+    }
+
+    [Fact]
+    public void Route_clear_checks_every_sun()
+    {
+        Assert.True(MissionModel.RouteClear(new(-5000, 5000), new(5000, 5000), 4000, SunAtCenter));
+        Assert.False(MissionModel.RouteClear(new(-5000, 5000), new(5000, 5000), 6000, SunAtCenter));
+    }
+
     sealed class Vec(float tolerance) : IEqualityComparer<Vector2>
     {
         public bool Equals(Vector2 a, Vector2 b) => Vector2.Distance(a, b) <= tolerance;

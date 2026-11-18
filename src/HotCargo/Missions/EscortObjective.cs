@@ -30,6 +30,8 @@ namespace HotCargo.Missions;
 /// At creation it moves the destination POI to MissionTunables.EscortRouteShare of the gate ring. When the escort covers
 /// EscortAmbushAt of the route, it spawns the raiders from missions/convoy_ambush.rules ahead of the escort.
 /// It removes the POI when it completes or fails.
+/// Spec 1850 to 1855: after the accept the escort first meets the players. It flies to the nearest player ship, hails it and waits
+/// for "Ready" (<see cref="EscortHail"/>). Only then does it fly the route.
 /// </summary>
 [ReflectiveSerialization(Explicit = true)]
 [SerialDerivedType(TypeName = "HotCargoEscort")]
@@ -71,6 +73,7 @@ internal sealed class EscortObjective : Objective, IMissionMarkers
                 DestinationPoiID = poiId,
                 Start = start,
                 AmbushSeed = rand.UInt64(),
+                RouteSunClearance = SunClearance,
                 Tier = Math.Max(1, mode.TierFields.GetTier(destination) + TierOffset),
             };
         }
@@ -97,8 +100,6 @@ internal sealed class EscortObjective : Objective, IMissionMarkers
             Log.Info($"escort offer dropped: no route of {length:0} from {start} inside {reach:0}");
             return null;
         }
-
-        static System.Numerics.Vector2 N(Vector2 v) => new(v.X, v.Y);
     }
 
     [Serialize] public ObjectiveTargetShip Escort { get; private set; }
@@ -112,6 +113,19 @@ internal sealed class EscortObjective : Objective, IMissionMarkers
     [Serialize(Optional = true)] public Vector2 Start { get; private set; }
     [Serialize(Optional = true)] public ulong AmbushSeed { get; private set; }
     [Serialize(Optional = true)] public bool AmbushSprung { get; private set; }
+    /// <summary>Spec 1850: a player answered the hail with "Ready". Until then the escort meets the players and the route waits.</summary>
+    [Serialize(Optional = true)] public bool Ready { get; private set; }
+    /// <summary>The escort hailed the players at least once.</summary>
+    [Serialize(Optional = true)] public bool Hailed { get; private set; }
+    /// <summary>Game seconds until the waiting escort may hail again.</summary>
+    [Serialize(Optional = true)] public double HailIn { get; private set; }
+    /// <summary>The straight route keeps this distance from every sun (the spawner's SunClearance).</summary>
+    [Serialize(Optional = true)] public float RouteSunClearance { get; private set; }
+    /// <summary>Spec 1855: a stop before the destination, when the straight route from the meeting place passes a sun.</summary>
+    [Serialize(Optional = true)] public Vector2? Via { get; private set; }
+
+    /// <summary>The escort waits for the players' answer (spec 1850).</summary>
+    internal bool Waiting => Completion == CompletionState.InProgress && !Ready;
 
     public override string ScriptTypeName => "HotCargoEscort";
 
@@ -136,14 +150,21 @@ internal sealed class EscortObjective : Objective, IMissionMarkers
         Escort.GetIntegrityHash(iHash);
         Tier.GetIntegrityHash(iHash);
         AmbushSprung.GetIntegrityHash(iHash);
+        Ready.GetIntegrityHash(iHash);
+        Hailed.GetIntegrityHash(iHash);
     }
 
     public override Range<int>? GetTierRange(SimRoot curSim) => Tier;
 
     public override MapNode? GetFirstMapNode(GameRoot game) => Escort.MapNode;
 
-    public override Circle? GetAreaLocation(GameRoot game) =>
-        Completion == CompletionState.InProgress && game.Sim?.MapNode?.UniqueID == Escort.MapNodeID ? new Circle(Destination, ArrivalRadius) : null;
+    /// <summary>Spec 1854: the map marks the waiting escort, then the destination.</summary>
+    public override Circle? GetAreaLocation(GameRoot game)
+    {
+        if (Completion != CompletionState.InProgress || game.Sim?.MapNode?.UniqueID != Escort.MapNodeID) return null;
+        if (Ready) return new Circle(Destination, ArrivalRadius);
+        return Escort.DetLocation() is { } at ? new Circle(at, MissionArea.TunablesFor(game).EscortMarkerRadius) : null;
+    }
 
     public override bool IsShipAssociated(MetaShip ship) => Completion == CompletionState.InProgress && Escort.TargetMetaShip == ship;
 
@@ -164,7 +185,7 @@ internal sealed class EscortObjective : Objective, IMissionMarkers
     public override void GetDisplayLinesImpl(List<DisplayLine> lines, GameRoot game, CompletionState parentState) =>
         lines.Add(new DisplayLine
         {
-            Text = Strings.KeyStringFmt("HotCargoObjectives/EscortFmt", Escort.GetXmlTargetName(game.Sim)),
+            Text = Strings.KeyStringFmt(Ready ? "HotCargoObjectives/EscortFmt" : Hailed ? "HotCargoObjectives/EscortAnswerFmt" : "HotCargoObjectives/EscortMeetFmt", Escort.GetXmlTargetName(game.Sim)),
             State = Completion,
             CanFocus = CanFocusDisplayLine,
             OnFocused = OnDisplayLineFocused,
@@ -206,7 +227,13 @@ internal sealed class EscortObjective : Objective, IMissionMarkers
     {
         if (Mission is null || Completion != CompletionState.InProgress || sim != Mission.Game.Sim) return;
         if (sim.NodeId() != Escort.MapNodeID || Escort.DetLocation() is not { } at) return;
-        if (Escort.TargetShip?.AI is { } ai) SteerToDestination(ai);
+        if (!Ready)
+        {
+            Meet(sim);
+            return;
+        }
+        if (Via is { } via && at.DistanceTo(via) <= ArrivalRadius) Via = null;
+        if (Escort.TargetShip?.AI is { } ai) SteerTo(ai, Via ?? Destination, 0f);
         float left = at.DistanceTo(Destination);
         if (!AmbushSprung && Escort.TargetShip is not null
             && MissionModel.RouteProgress(Start.DistanceTo(Destination), left) >= MissionArea.TunablesFor(sim.RequireGame()).EscortAmbushAt)
@@ -240,16 +267,71 @@ internal sealed class EscortObjective : Objective, IMissionMarkers
     }
 
     /// <summary>
-    /// Moves the AI origin to the destination. The escort rules give a small TargetUnacquireRangeFromOrigin,
-    /// so AggroEnemies keeps flying it to the origin and fights only while it moves.
+    /// Moves the AI origin to a point, unless it is already within <paramref name="slack"/> of it. The escort rules give a small
+    /// TargetUnacquireRangeFromOrigin, so AggroEnemies keeps flying it to the origin and fights only while it moves.
     /// </summary>
-    void SteerToDestination(ShipAI ai)
+    static void SteerTo(ShipAI ai, Vector2 to, float slack)
     {
-        if (ai.Parameters?.PatrolOrigin is { } origin && origin == Destination) return;
+        if (ai.Parameters?.PatrolOrigin is { } origin && origin.DistanceTo(to) <= slack && (slack > 0f || origin == to)) return;
         AIParameters p = ai.Parameters?.Clone() ?? new AIParameters();
-        p.PatrolOrigin = Destination;
+        p.PatrolOrigin = to;
         ai.Parameters = p;
     }
+
+    /// <summary>A moving player ship changes the meeting spot a little each tick. The AI origin follows only past this distance.</summary>
+    const float MeetSlack = 150f;
+
+    /// <summary>
+    /// Spec 1851 to 1853, sim tick: the live escort flies to the nearest player ship, stops EscortMeetGap from its hull or closer,
+    /// inside that ship's comms reach (at most EscortMeetRange from its start), and hails when a player hull is within EscortHailGap, again every EscortRehailSeconds.
+    /// </summary>
+    void Meet(SimRoot sim)
+    {
+        if (Escort.TargetShip is not { } ship) return;
+        var t = MissionArea.TunablesFor(sim.RequireGame());
+        HailIn = Math.Max(0, HailIn - sim.FixedUpdater.Interval.Seconds);
+        Vector2 at = ship.DetWorldCenter;
+        var player = sim.Ships.HumanPlayerSignificantShips
+            .OrderBy(h => h.DetWorldCenter.DistanceSquaredTo(at)).ThenBy(h => h.UniqueID).FirstOrDefault();
+        if (player is null) return;
+        float escortRadius = ship.DetWorldBoundingCircle.Radius, playerRadius = player.DetWorldBoundingCircle.Radius;
+        var spot = MissionModel.MeetSpot(N(player.DetWorldCenter), playerRadius, player.Sensors.DetWorldCommsCircle.Radius, N(at), escortRadius,
+            t.EscortMeetGap, t.EscortCommsMargin, N(Start), t.EscortMeetRange);
+        if (ship.AI is { } ai) SteerTo(ai, new Vector2(spot.X, spot.Y), MeetSlack);
+        float gap = at.DistanceTo(player.DetWorldCenter) - escortRadius - playerRadius;
+        if (gap > t.EscortHailGap || HailIn > 0 || !Events.EventHail.TryHail(sim, ship.UniqueID)) return;
+        HailIn = t.EscortRehailSeconds;
+        Log.Info($"escort {ship.Metadata.PlainShipName} hails the players (first {!Hailed})");
+        if (!Hailed)
+        {
+            Ux.UxKit.ChatLine(sim.RequireGame(), Strings.FormatText("HotCargoObjectives/EscortHailedFmt", Escort.GetXmlTargetName(sim)));
+            Hailed = true;
+            OnDisplayLinesChanged();
+        }
+    }
+
+    /// <summary>
+    /// Spec 1850, 1855: a player answered "Ready". The route starts where the escort is. When the straight route from here passes a sun
+    /// closer than RouteSunClearance, the escort first flies back to its start, where the checked route began. Runs in the shared choice input.
+    /// </summary>
+    internal void Depart(SimRoot sim, int playerIndex)
+    {
+        if (!Waiting) throw new InvalidOperationException("the escort is not waiting");
+        Ready = true;
+        if (Escort.DetLocation() is { } at)
+        {
+            var suns = sim.Doodads.Where(d => d.Tags?.Contains(SunTag) == true).Select(d => N(d.Location));
+            if (!MissionModel.RouteClear(N(at), N(Destination), RouteSunClearance, suns)) Via = Start;
+            else Start = at;
+        }
+        Log.Info($"escort {Escort.GetPlainTargetName(sim)} departs, answer by player {playerIndex}, via start {Via is not null}");
+        Ux.UxKit.ChatLine(sim.RequireGame(), Strings.FormatText("HotCargoObjectives/EscortDepartsFmt", Escort.GetXmlTargetName(sim)));
+        OnDisplayLinesChanged();
+    }
+
+    static readonly ID<SimObjectSpawner> SunTag = new("sun");
+
+    static System.Numerics.Vector2 N(Vector2 v) => new(v.X, v.Y);
 
     public override int GetTypeIntegrityHash() => 0x4843_4553; // "HCES"
 }

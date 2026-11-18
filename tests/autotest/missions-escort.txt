@@ -1,4 +1,5 @@
-# Escort (spec 36): accept, the freighter steers to the jump point when a player is near, and arrival completes the objective.
+# Escort (spec 36, 1850 to 1853): accept, the freighter comes to the players and hails, the answer in its comms starts the route,
+# it steers to the jump point, and arrival completes the objective.
 # missions: random
 newgame run
 wait 8
@@ -16,10 +17,25 @@ expect hc_escort_cover == -8
 heat 20
 hc_cover_give
 expect heat <= 13
-hc_escort_goto
+# Spec 1851: the players wait 1,800 away. The freighter comes to them and stops close.
+hc_escort_goto 1800
 # The game can pause by itself here (enemy spotted or a codex page, with default settings in test slots).
 pause off
-wait 5
+# Spec 1852: it hails when a player hull is within EscortHailGap (800). The comms button flashes.
+waitfor hc_escort_hailed == 1 60
+expect hc_escort_hailing == 1
+expect hc_escort_gap <= 800
+expect hc_escort_waiting == 1
+expect hc_escort_steering == 0
+# "Not yet" only closes the window. "Ready" is the shared choice that starts the route.
+hc_escort_call
+comms_click Not yet
+wait 3
+expect hc_escort_waiting == 1
+hc_escort_call
+comms_click Ready
+waitfor hc_escort_waiting == 0 10
+wait 3
 expect hc_escort_steering == 1
 hc_mark
 hc_escort_diag before_flight
