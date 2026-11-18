@@ -73,10 +73,13 @@ public static class EventsArea
     static void AddAutotest()
     {
         // event <id>: opens the event now, replacing any pending page. Test only (single player, from a frame).
+        // ev_try_open <id>: opens the event like a trigger does; ev_opened is 1 when it opened (spec 1813: a carrier event needs a working ship).
+        Autotest.Commands["ev_try_open"] = arg => _opened = EventRunner.Open(RequireRun(), RequireSim(), EventLibrary.Get(arg.Trim()), lead: "") ? 1 : 0;
+        Autotest.Fields["ev_opened"] = () => _opened;
         Autotest.Commands["event"] = arg =>
         {
             var run = RequireRun();
-            EventRunner.Open(run, RequireSim(), EventLibrary.Get(arg), lead: "");
+            if (!EventRunner.Open(run, RequireSim(), EventLibrary.Get(arg), lead: "")) throw new InvalidOperationException($"event {arg} did not open (no working player ship for its carrier)");
             Autotest.Wait(1);
         };
         // choose <choice number | last> [outcome number]: without an outcome it sends the MP input like the dialog does and rolls.
@@ -881,7 +884,7 @@ public static class EventsArea
 
     /// <summary>The abandoned ship that ev_abandoned spawned last.</summary>
     static Cosmoteer.Game.ObjectID? _hulk;
-    static int _hulkSpawns;
+    static int _hulkSpawns, _opened = -1;
 
     static Ship TestHulk() =>
         (_hulk is { } id ? RequireSim().Ships[id] : null) ?? throw new InvalidOperationException("no live test hulk (ev_abandoned first)");

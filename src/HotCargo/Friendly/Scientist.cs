@@ -217,7 +217,8 @@ static class Scientist
     /// <summary>Spawns a generator near the players' anchor ship with the partner allegiance. Returns the live ships; stasis ships are removed.</summary>
     static List<ObjectID> Spawn(Run run, SimRoot sim, string spawn, ID<SimObjectSpawner> tag)
     {
-        var at = SimQueries.AnchorShip(sim)?.DetWorldCenter ?? throw new InvalidOperationException("scientist: no player ship to spawn near");
+        // Spec 1813: with no working player ship, nothing spawns; the partner or the fleet tries again at the next check.
+        if (SimQueries.AnchorShip(sim)?.DetWorldCenter is not { } at) return [];
         var before = sim.Ships.Where(x => x.HasTag(tag)).Select(x => x.UniqueID).ToHashSet();
         var stasisBefore = sim.Stasis.OfType<StasisShipSpawner>().Where(x => x.Tags?.Contains(tag) == true).Select(x => x.ReservedObjectID).ToHashSet();
         EventLibrary.Spawn(spawn).Generate(sim, new FastRand(sim.Rand.UInt64()), loadInstantly: true, rootLoc: at, addExistingSpawnTags: true);
