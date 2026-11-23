@@ -90,7 +90,7 @@ Category switches are in the `Telemetry` tunables section. The table names the s
 | `mp.players` | Coop | `from`, `to` |
 | `mp.desync` | Coop | `input_tick`, `host`, `expected` (a test resync) |
 | `mp.game_loaded` | Coop | `host`, `players`. A co-op game that the host's state rebuilt: a join or a resync. |
-| `note` | Run | A playtest note (spec 1984 to 1987): `text`, `player` (the player's name), `local_player`, `pressed_real_s` (real seconds at the key press), `screen` (what the player saw: `event`, `comms`, `build`, `dialog`), `screenshot` (the file in `notes/`, or null). |
+| `note` | Run | A playtest note (spec 1984 to 1987): `text`, `player` (the player's name), `local_player`, `pressed_real_s` (real seconds at the key press), `screen` (what the player saw: `event`, `comms`, `build`, `dialog`), `screenshot` (the file in `notes/`, or null), `wall_utc`. Also one line in the live file `notes.jsonl` at once (spec 1988). |
 | `log` | Log | `level`, `msg`: every `hot_cargo_log.txt` line, with user folder names and Steam IDs replaced by `<user>` and `<steam id>` (spec 1585) |
 | `trace` | Trace | `method`, `args`, `result`, `ms`, `ctx` |
 
@@ -167,6 +167,8 @@ Telemetry is not sim state. Each co-op machine writes its own file with its own 
 During play, press `\` (`Telemetry.NoteKey`), type a short note and press Enter; Escape cancels. The note goes into the session file as a `note` event, with what was on screen at the key press, and a chat line says "Note saved." A co-op client's note travels to the host with the client's file (`players/<name>/`). In co-op the game keeps running while a player types; in single player it pauses, like every vanilla dialog.
 
 The game also saves a screenshot through its own capture path (`App.Graphics.GetEndOfFrameScreenShot`, the path of the vanilla screenshot key) into `telemetry/notes/<run>__<time>.png` on that machine. The Mac app has the same capture (the Metal graphics manager); a headless game has no graphics device and saves the note without a screenshot. Screenshots do not travel to the host.
+
+To read notes during play, follow the live file on the host: `tail -F "$HOME/Library/Application Support/Cosmoteer/"*/Mods/hot_cargo/telemetry/notes.jsonl` on a Mac (`%USERPROFILE%\Saved Games\Cosmoteer\<steam id>\Mods\hot_cargo\telemetry\notes.jsonl` on Windows). Each note is one JSON line, written at once (spec 1988). A co-op client sends its note to the host at once, so the host's file holds every player's notes. Fields: the common fields (`e` = `note`, `t`, `gs`, `ss`, `sec`, `sys`, `tier`, `arch`, `heat`, `tech`), then `text`, `player`, `local_player`, `wall_utc`, `pressed_real_s`, `screen`, `screenshot`.
 
 The report lists the notes first, in play order, with the events within 60 game seconds of each.
 
