@@ -24,6 +24,8 @@ public sealed class OptionRows
         public required ImageButton Button;
         public required SliderRow Slider;
         public OptionRowView? View;
+        /// <summary>The icon shown now: null for the dialogue icon, else the check box state. Show runs every frame; the sprite changes only on a change.</summary>
+        public (bool Selected, bool Active)? Check;
     }
 
     readonly List<Row> _rows = [];
@@ -43,8 +45,8 @@ public sealed class OptionRows
         Box.NineSlice.Flags = NineSliceFlags.None;
         Box.AutoSize.AutoHeightMode = AutoSizeMode.Enable;
         Box.Children.LayoutAlgorithm = LayoutAlgorithms.StretchTopToBottom;
-        Box.Children.WidgetPadding = new Halfling.Geometry.Vector2(10f);
-        Box.Children.BorderPadding = new Borders(50f, 0f, 0f, 0f);
+        Box.Children.WidgetPadding = new Halfling.Geometry.Vector2(ChoiceButton.Gap);
+        Box.Children.BorderPadding = new Borders(ChoiceButton.Indent, 0f, 0f, 0f);
     }
 
     /// <summary>Shows the views, reusing rows. Call each frame.</summary>
@@ -58,8 +60,14 @@ public sealed class OptionRows
             var v = views[i];
             r.View = v;
             r.Box.SelfActive = true;
-            string mark = v.Toggle ? (v.Selected ? "<good>[X]</good> " : "<gray>[ ]</gray> ") : "";
-            r.Button.Text = mark + v.Text;
+            (bool, bool)? check = v.Toggle ? (v.Selected, v.Active) : null;
+            if (check != r.Check)
+            {
+                if (check is { } c) ChoiceButton.ShowCheck(r.Button, c.Item1, c.Item2);
+                else ChoiceButton.ShowDialogueIcon(r.Button);
+                r.Check = check;
+            }
+            r.Button.Text = v.Text;
             r.Button.ToolTips.Text = v.Tooltip;
             r.Button.SelfInputActive = v.Active;
             r.Button.PercentileWidth = v.Slider is null ? 100f : 62f;
@@ -92,20 +100,9 @@ public sealed class OptionRows
         box.NineSlice.Flags = NineSliceFlags.None;
         box.Children.LayoutAlgorithm = LayoutAlgorithms.StretchLeftToRight;
         box.Children.WidgetPadding = new Halfling.Geometry.Vector2(10f);
-        var button = new ImageButton();
-        button.CopySettingsFrom(WidgetRules.Instance.FlatButton);
-        foreach (var t in new[] { button.StateNormalTextRenderer, button.StateHighlightedTextRenderer, button.StatePressedTextRenderer, button.StateDisabledTextRenderer })
-        {
-            t.XmlFormatting = true;
-            t.FontSize = 20;
-            t.HAlignment = HAlignment.Left;
-            t.Padding = new Borders(10f);
-        }
-        var icon = GameApp.Rules.CareerMode.Gui.Comms.DefaultDialogueLineIcon;
-        button.ImageSprite.CopySpriteFrom(icon);
-        button.ImageRectController.InnerRectMode = InnerRectMode.Left;
-        button.ImageRectController.BorderPadding = new Borders(10f);
-        button.ImageRectController.InnerRectSize = button.ImageSprite.DesiredSize;
+        var button = ChoiceButton.New();
+        // The row has a fixed height (above), so the button fills it instead of sizing to its text.
+        button.AutoSize.AutoHeightMode = AutoSizeMode.Disable;
         var slider = new SliderRow(labelPercent: 0f) { };
         slider.Row.PercentileWidth = 38f;
         box.AddChild(button);

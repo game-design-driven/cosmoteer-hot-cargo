@@ -50,8 +50,14 @@ public sealed class SliderRow
         Row.AddChild(_label);
         // Without a label (an option row, where the slider is a narrow part of the row) the value gets half, so "40 Hyperium" fits on one line.
         float valuePercent = labelPercent > 0 ? 20f : 50f;
-        _slider = new ScrollBar(WidgetRules.Instance.HorizontalSlider) { PercentileWidth = 100f - labelPercent - valuePercent };
-        Row.AddChild(_slider);
+        // The slider keeps the height of the game's slider style (its round paddle), centered in its cell: a taller row
+        // (an option row) stretched it into an oval.
+        var cell = new LayoutBox { PercentileWidth = 100f - labelPercent - valuePercent };
+        cell.NineSlice.Flags = NineSliceFlags.None;
+        cell.Children.LayoutAlgorithm = LayoutAlgorithms.CenterMiddleByRow;
+        _slider = new ScrollBar(WidgetRules.Instance.HorizontalSlider) { PercentileWidth = 100f };
+        cell.AddChild(_slider);
+        Row.AddChild(cell);
         _value = new Label { PercentileWidth = valuePercent };
         _value.TextRenderer.XmlFormatting = true;
         _value.TextRenderer.FontSize = 20;

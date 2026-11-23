@@ -148,7 +148,8 @@ internal sealed class EventDialog : WindowBox
         _body.PercentileWidth = 100f;
         _body.AutoSize.AutoHeightMode = AutoSizeMode.Enable;
         _body.TextRenderer.XmlFormatting = true;
-        _body.TextRenderer.FontSize = 20;
+        // The size of the comms dialogue text (vanilla CommDialogueTab), where the same pages show when a ship carries them.
+        _body.TextRenderer.FontSize = 24;
         _body.TextRenderer.HAlignment = HAlignment.Left;
         header.Children.Add(_body);
         page.Children.Add(header);
@@ -166,8 +167,8 @@ internal sealed class EventDialog : WindowBox
         _buttons.NineSlice.Flags = NineSliceFlags.None;
         _buttons.PercentileWidth = 100f;
         _buttons.AutoSize.AutoHeightMode = AutoSizeMode.Enable;
-        _buttons.Children.BorderPadding = new Borders(30f, 0f, 0f, 0f);
-        _buttons.Children.WidgetPadding = new Vector2(12f);
+        _buttons.Children.BorderPadding = new Borders(Ui.ChoiceButton.Indent, 0f, 0f, 0f);
+        _buttons.Children.WidgetPadding = new Vector2(Ui.ChoiceButton.Gap);
         _buttons.Children.LayoutAlgorithm = LayoutAlgorithms.StretchTopToBottom;
         _buttons.Children.ClipChildren = false;
         page.Children.Add(_buttons);
