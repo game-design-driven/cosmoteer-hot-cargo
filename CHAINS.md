@@ -175,7 +175,7 @@ A dead hunter's flight recorder.
 graph LR
   recorder["The Black Box: drone at tier + 1, recover and hand over the recorder"] -->|success| playback("Playback")
   recorder -->|fail| END1[END]
-  playback -->|sold: 0.8 money| END2[END]
+  playback -->|sold: 2.5 money| END2[END]
   playback -->|routes: heat -15| routes("later, Arrival +1: Courier Schedule")
   playback -->|deal, 40%: heat -30| END3[END]
   playback -->|trap, 60% + heat| sting["later, Arrival +1: The Sting"]
