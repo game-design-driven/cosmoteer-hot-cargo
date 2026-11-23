@@ -18,6 +18,8 @@ Events
 	{
 		ID = distress_beacon
 		Trigger = Arrival
+		// Spec 1815: the tender itself sends the call and carries the page; Dead in Space (Next) stays on it.
+		Carrier = BrokenFreighter
 		Title = "Distress Beacon"
 		Text = "A looped distress call cuts through the static: a mining tender with a failing reactor and six crew still aboard. The voice sounds tired. The beacon is close."
 		Choices
@@ -667,6 +669,8 @@ Events
 	{
 		ID = research_shakedown
 		Trigger = Arrival
+		// Spec 1815: the rival lab's science ship hails and carries the page; it leaves after the answer.
+		Carrier = LabShip
 		Offer = ResearchTrade
 		Weight = 6
 		WeightPerHeat = 0.1
@@ -679,16 +683,16 @@ Events
 				Text = "Trade {offer_units} (worth {offer_worth}) for research worth {offer_value}."
 				Need { Tech = 1 }
 				Cost { OfferUnits = true }
-				Outcomes [ { Text = "The samples go over. The research comes back, and the lab keeps its mouth shut."; UnlockOffer = true } ]
+				Outcomes [ { Text = "The samples go over. The research comes back, and the lab keeps its mouth shut."; UnlockOffer = true; Effect = leave } ]
 			}
 			{
 				Text = "Pay them to forget you."
 				Cost { Money = 0.6 }
-				Outcomes [ { Text = "\"Credits work too.\" The channel closes." } ]
+				Outcomes [ { Text = "\"Credits work too.\" The channel closes."; Effect = leave } ]
 			}
 			{
 				Text = "Refuse."
-				Outcomes [ { Text = "They keep their word. Your position goes out on a corporate band."; Heat = 20 } ]
+				Outcomes [ { Text = "They keep their word. Your position goes out on a corporate band."; Heat = 20; Effect = leave } ]
 			}
 		]
 	}
@@ -696,6 +700,8 @@ Events
 	{
 		ID = research_buyer
 		Trigger = Arrival
+		// Spec 1815: the broker's ship hails and carries the page; it leaves after the answer.
+		Carrier = BrokerShip
 		Offer = ResearchSale
 		Weight = 6
 		Need { MinSector = 2 }
@@ -707,13 +713,13 @@ Events
 				Text = "Sell copies for {offer_price}."
 				Outcomes
 				[
-					{ Weight = 80; Text = "The transfer takes a minute. The payment takes less."; OfferPrice = true }
-					{ Weight = 20; WeightPerHeat = 0.2; Text = "The broker pays, but the transfer carried a corporate tracker."; OfferPrice = true; Heat = 15 }
+					{ Weight = 80; Text = "The transfer takes a minute. The payment takes less."; OfferPrice = true; Effect = leave }
+					{ Weight = 20; WeightPerHeat = 0.2; Text = "The broker pays, but the transfer carried a corporate tracker."; OfferPrice = true; Heat = 15; Effect = leave }
 				]
 			}
 			{
 				Text = "Keep your data."
-				Outcomes [ { Text = "\"Another time, perhaps.\"" } ]
+				Outcomes [ { Text = "\"Another time, perhaps.\""; Effect = leave } ]
 			}
 		]
 	}

@@ -54,7 +54,7 @@ Odds are at the default weights. "Sector" is the sector index (1 to 8). All numb
 #### 1. Clean Getaway? (removed)
 Removed after a playtest: a popup at the start of a run confused players. The forged codes (flag `fake_codes`) now come only from the Fence's Ledger chain (CHAINS.md).
 
-#### 2. Distress Beacon (Arrival, any sector)
+#### 2. Distress Beacon (Arrival, any sector; the tender hails, spec 1815)
 | Choice | Need | Outcomes |
 |---|---|---|
 | Answer the call | — | 40 %: 0.4 money, 0.3 fame. 20 %: +1 crew (if a bunk is free), 0.3 fame. 20 %: pirate lure, 2 raiders (tier − 1). 20 %: a broken-down ship, page 24 (Dead in Space). |
@@ -279,10 +279,10 @@ Offers are built from the vanilla tech tree when the page opens, never from a li
 Trade {offer_units} for research (shown: "Trade 1 crate (worth 15,000) for research worth 21,000"), or keep the crates.
 
 #### 28. A Lab That Won't Take No (Arrival, sector 2+, 2+ tech; weight 6 + 0.1 × heat)
-Extortion: trade, pay 0.6 money units, or refuse (heat +20).
+Extortion from the rival lab's ship, which hails (spec 1815): trade, pay 0.6 money units, or refuse (heat +20). It jumps out after the answer.
 
 #### 29. Data Broker (Arrival, sector 2+; weight 6)
-Copies of research you have, for 1.3 × their worth (cap 1.5 money units). You keep the research. 20 % + 0.2 × heat: the transfer carried a tracker (heat +15).
+The broker's ship hails (spec 1815): copies of research you have, for 1.3 × their worth (cap 1.5 money units). It jumps out after the answer. You keep the research. 20 % + 0.2 × heat: the transfer carried a tracker (heat +15).
 
 Reads as: tech units are also research currency. Spending one buys parts now and lowers the heat multiplier, at a cost to the final score.
 
@@ -307,6 +307,7 @@ One per run, in a sector from 2 to the one before the Buyer. Within 3,000 the va
 
 Events do not only pop up. Ships carry them and talk:
 - **Ship-carried pages.** An event with a `Carrier` spawns its ship when it opens. The ship calls ("Courier is calling. Fly within comms range to answer, or hail it."), hails you in comms range, and its comms tab shows the page and the choices. It stays a real ship: attack it and the page closes ("The ship is gone, and so is the offer"), or leave it behind. Dead in Space now comes from its freighter, and the tow choice tows that freighter.
+- **More ships hail.** Distress Beacon (the tender), A Lab That Won't Take No (the lab's ship) and Data Broker (the broker's ship) come from ships too (spec 1815).
 - **Stations hail.** A Station event (The Fence, Smugglers' Den, The Informant, The Archive) comes from the station's comms.
 - **Hot Cargo lines in vanilla hails.** Stations offer "Sell crates off the books." Faction ships offer "Ask about hunters nearby." (heat 10+). Once per ship and line.
 

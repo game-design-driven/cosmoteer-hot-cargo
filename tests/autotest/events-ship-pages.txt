@@ -1,0 +1,28 @@
+# Pages from ships (spec 1815): Distress Beacon and A Lab That Won't Take No come from a ship that hails, and the page shows in its comms.
+# The lab ship jumps out after the answer (effect leave).
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+ev_set CooldownSeconds 0
+godmode on
+event distress_beacon
+expect ev_carrier == 1
+ev_carrier_goto
+pause off
+waitfor ev_hailing == 1 20
+expectcomms carrier Answer the call 1
+ev_comms carrier Ignore it
+expect ev_pending == 0
+event research_shakedown
+expect ev_carrier == 1
+ev_carrier_goto
+pause off
+waitfor ev_hailing == 1 20
+expectcomms carrier Refuse 1
+expect dip_leaving == 0
+ev_comms carrier Refuse
+expect ev_pending == 0
+expect dip_leaving >= 1
+quit
