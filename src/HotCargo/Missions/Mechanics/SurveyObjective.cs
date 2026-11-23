@@ -104,6 +104,14 @@ internal sealed class SurveyObjective : Objective, IMissionMarkers
 
     public override bool IsPOIAssociated(POIDoodad poi) => Completion == CompletionState.InProgress && Markers.Any(m => m.PoiId == poi.UniqueID);
 
+    /// <summary>Spec 1873: a click shows the next marker to scan, or the system in another system.</summary>
+    /// <summary>Spec 1873: where the objective is, for the click on its line.</summary>
+    internal FocusTarget Where(GameRoot game) => new(NodeId, null, Next(game)?.PoiId, Next(game)?.Location);
+
+    public override bool CanFocusDisplayLine(GameRoot game) => MissionFocus.CanFocus(game, Where(game));
+
+    public override void OnDisplayLineFocused(GameRoot game) => MissionFocus.Focus(game, Where(game));
+
     public override void GetStringArgs(Dictionary<string, object?> args, GameRoot game)
     {
         base.GetStringArgs(args, game);
@@ -127,6 +135,8 @@ internal sealed class SurveyObjective : Objective, IMissionMarkers
         {
             Text = Strings.KeyStringFmt("Objectives/CountableFmt", Strings.KeyString("HotCargoMechanics/SurveyLine"), Done(game), Markers.Count),
             State = Completion,
+            CanFocus = CanFocusDisplayLine,
+            OnFocused = OnDisplayLineFocused,
         });
         if (Completion == CompletionState.InProgress && Next(game) is { Seconds: > 0f } m)
             lines.Add(new DisplayLine

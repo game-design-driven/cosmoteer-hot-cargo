@@ -1,0 +1,44 @@
+# Spec 1873: a click on a mission line shows where the mission is, before and after the players reach its system.
+# Playtest 2026-11-23 (dev.239): the Repossession line had no click while the freighter was far away, so the players could not find it.
+# The focus fields give the FocusStep value: 0 none, 1 galaxy map (another system), 2 target ship, 3 area marker, 4 target place.
+# missions: random
+newgame run
+wait 8
+ev_set Enabled false
+contract_set RivalsEnabled off
+godmode on
+mech_generate capture
+mech_accept capture
+mech_generate siege
+mech_accept siege
+mech_generate survey nonebula
+mech_accept survey
+expect mech_capture_galaxy == 1
+expect mech_capture_area == 1
+expect mech_capture_focus >= 2
+expect mech_survey_focus == 3
+expect mech_hold_focus == 1
+# Another system: the click opens the galaxy map on the mission's system.
+jump
+# The jump runs in real time (no run tick, spec 1007): wait for the arrival, not a fixed time.
+waitfor mech_capture_here == 0 25
+wait 2
+expect mech_capture_focus == 1
+expect mech_capture_galaxy == 1
+expect mech_survey_focus == 1
+expect mech_hold_focus == 1
+# Back in the system: the click shows the freighter when it is on radar, else the area marker (also with the freighter in stasis).
+jump back
+waitfor mech_capture_here == 1 25
+wait 2
+expect mech_capture_focus >= 2
+expect mech_capture_area == 1
+expect mech_survey_focus == 3
+expect mech_hold_focus == 1
+# Alongside the freighter: the click shows the ship.
+mech_capture_goto
+pause off
+wait 4
+expect mech_capture_focus == 2
+expect mech_capture_area == 1
+quit

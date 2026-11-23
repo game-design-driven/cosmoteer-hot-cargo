@@ -178,9 +178,10 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
         args["escort_ship"] = Escort.GetXmlTargetName(game.Sim);
     }
 
-    public override bool CanFocusDisplayLine(GameRoot game) => Escort.CanFocus();
+    /// <summary>Spec 1873: the vanilla target focus, else the escort's place (also in stasis, not yet discovered).</summary>
+    public override bool CanFocusDisplayLine(GameRoot game) => MissionFocus.CanFocus(game, Escort);
 
-    public override void OnDisplayLineFocused(GameRoot game) => Escort.OnFocused();
+    public override void OnDisplayLineFocused(GameRoot game) => MissionFocus.Focus(game, Escort);
 
     public override void GetDisplayLinesImpl(List<DisplayLine> lines, GameRoot game, CompletionState parentState) =>
         lines.Add(new DisplayLine

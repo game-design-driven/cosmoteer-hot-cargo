@@ -122,9 +122,13 @@ internal sealed class PrototypeObjective : Objective, IMissionMarkers
         args["target_ship"] = Holder.XmlName(game);
     }
 
-    public override bool CanFocusDisplayLine(GameRoot game) => Holder.Live(game.Sim) is not null;
+    /// <summary>Spec 1873: a click shows the carrier, its area marker or its place, also while it is in stasis or in another system.</summary>
+    /// <summary>Spec 1873: where the objective is, for the click on its line.</summary>
+    internal FocusTarget Where(GameRoot game) => new(Holder.NodeId, Holder.Live(game.Sim), AreaPoiId, Holder.Location(game.Sim));
 
-    public override void OnDisplayLineFocused(GameRoot game) => Holder.Live(game.Sim)?.FocusCamera();
+    public override bool CanFocusDisplayLine(GameRoot game) => MissionFocus.CanFocus(game, Where(game));
+
+    public override void OnDisplayLineFocused(GameRoot game) => MissionFocus.Focus(game, Where(game));
 
     public override void GetDisplayLinesImpl(List<DisplayLine> lines, GameRoot game, CompletionState parentState) =>
         lines.Add(new DisplayLine

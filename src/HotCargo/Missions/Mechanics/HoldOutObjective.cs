@@ -215,9 +215,10 @@ internal sealed class HoldOutObjective : Objective
         args["intensive_percent"] = (int)Math.Round(t.IntensivePayBonus * 100f);
     }
 
-    public override bool CanFocusDisplayLine(GameRoot game) => Target.CanFocus();
+    /// <summary>Spec 1873: the vanilla target focus, else the target's place (also in stasis, not yet discovered).</summary>
+    public override bool CanFocusDisplayLine(GameRoot game) => MissionFocus.CanFocus(game, Target);
 
-    public override void OnDisplayLineFocused(GameRoot game) => Target.OnFocused();
+    public override void OnDisplayLineFocused(GameRoot game) => MissionFocus.Focus(game, Target);
 
     bool InScanRange(SimRoot? sim) =>
         Phase == HoldOutPhase.Positioning && BaseLocation is { } b && sim is not null && Target.TargetShip is { } s
