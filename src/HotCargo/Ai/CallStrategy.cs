@@ -172,6 +172,8 @@ internal sealed class CallStrategy(CallStrategyRules rules) : AIStrategyModule
             }
         }
         TacticsLog.Event(ship, AiArea.CallComplete, $"call complete, {answered} answered");
+        // Spec 1922: the caller reports what it saw.
+        AiLearn.Report(ship, "call");
         AiText.Chat(ship, "CallCompleteFmt");
     }
 
@@ -203,7 +205,7 @@ internal sealed class CallStrategy(CallStrategyRules rules) : AIStrategyModule
     /// Spec 1300-1301. The first part, walking the human enemy ships in sim order, of a CallInterceptParts type with a working
     /// sensor whose radar range reaches the caller. The range is one sensor's term of SensorManager.RadarRadius.
     /// </summary>
-    static (Ship Ship, Part Part)? Interceptor(Ship caller, TacticsTunables t)
+    internal static (Ship Ship, Part Part)? Interceptor(Ship caller, TacticsTunables t)
     {
         foreach (var human in HunterOrders.Sim(caller).Ships.HumanPlayerSignificantShips)
         {
@@ -218,6 +220,16 @@ internal sealed class CallStrategy(CallStrategyRules rules) : AIStrategyModule
                 if (distance <= reach) return (human, part);
             }
         }
+        return null;
+    }
+
+    /// <summary>Spec 1925: the first working CallInterceptParts part on a human player ship, in sim order, or null.</summary>
+    internal static Part? PlayerInterceptPart(Cosmoteer.Simulation.SimRoot sim, TacticsTunables t)
+    {
+        var parts = InterceptParts.Of(t.CallInterceptParts);
+        foreach (var human in sim.Ships.HumanPlayerSignificantShips)
+            foreach (Sensor sensor in human.Sensors)
+                if (sensor.Part is { } part && parts.Contains(part.Rules.ID)) return part;
         return null;
     }
 

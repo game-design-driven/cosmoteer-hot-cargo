@@ -126,6 +126,8 @@ internal sealed class FleeStrategy : AIStrategyModule
                 _since = now;
                 (_checked, _station, _supplied) = (false, default, false);
                 TacticsLog.Event(ship, AiArea.Flee, $"starts at health {health:0.00} weapons={hasWeapons}");
+                // Spec 1922: a ship that flees reports what it saw.
+                AiLearn.Report(ship, "flee");
             }
             else TacticsLog.Event(ship, AiArea.FleeEnd, $"fights again at health {health:0.00}");
         }

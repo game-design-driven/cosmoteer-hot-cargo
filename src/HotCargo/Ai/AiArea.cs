@@ -26,14 +26,16 @@ public static class AiArea
     public const string CallBlocked = "call_blocked", CallAssist = "call_assist", CallIntercept = "call_intercept";
     public const string Regroup = "regroup", RegroupEnd = "regroup_end";
     public const string PersonalityEvent = "personality";
-    public const string KiteRead = "kite_read", KiteEnd = "kite_end", Anvil = "anvil";
+    public const string KiteRead = "kite_read", KiteEnd = "kite_end", Anvil = "anvil", CloudHold = "cloud_hold";
 
     static readonly string[] EventNames =
         [Flee, FleeStay, FleeEnd, FleeJump, CallStart, CallComplete, CallInterrupt, CallBlocked, CallAssist, CallIntercept, Regroup, RegroupEnd, PersonalityEvent,
-         KiteRead, KiteEnd, Anvil];
+         KiteRead, KiteEnd, Anvil, AiLearn.ReportEvent, AiLearn.PreparedEvent, CloudHold];
 
     public static void Register()
     {
+        // Spec 1923: reports age with each jump.
+        Run.Hooks.SystemEntered += (run, _) => Errors.Guard("ai reports", () => AiLearn.OnSystemEntered(run));
         foreach (string name in EventNames) Autotest.Fields[$"ai_{name}"] = () => TacticsLog.Count(name);
         // Spec 196: hunters that the local player has on radar but cannot see (a radar blip only).
         Autotest.Fields["ai_blips"] = () => HunterSpawner.Hunters(Sim()).Count(h =>

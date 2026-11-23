@@ -16,7 +16,7 @@ src/HotCargo/
   Core/                    Run, RunState (save), Tunables, TunablesFile (live reload, validation), HeatModel,
                            CareerPatches (lifecycle), Activation (requirement 63), Errors, SimQueries, ShipBuilder, DebugKeys
   <Area>/                  one folder for each area: <Area>Area.Register, <Area>Hub.cs (its Tunables and RunState fields), tunables, patches
-  Ai/                      enemy AI behaviors (flee, call, regroup, focus, counter kiting) and personalities; TacticsArea registers it, Tactics tunables
+  Ai/                      enemy AI behaviors (flee, call, regroup, focus, counter kiting, learned reports) and personalities; TacticsArea registers it, Tactics tunables
   ShipAi/                  player ship tactics: model (ShipAiModel), per-ship state and save hooks (ShipTactics), sim controller, MP input, editor
   Autonomy/                autonomous ships (section 45): Computer manning and ownership, Funnel, cargo and trade (AutonomyModel, AutonomyWorld)
   Scavenge/                scavenging (section 56): the age check, the shared find, salvage, collect and sell steps (Scavenger), the HcScavenge AI module

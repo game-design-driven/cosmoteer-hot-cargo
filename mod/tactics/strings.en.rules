@@ -7,6 +7,17 @@ HotCargoAi
 	CallInterceptFmt = "{0}: distress call from {1} intercepted early. It takes longer."
 	JumpedOutFmt = "{0} jumped away."
 
+	// Reports of what enemies learned (spec 1925). {0} is the sensor part name, {1} the group, {2} the habits.
+	ReportFmt = "{0}: {1} report how you fight: {2}."
+	PreparedFmt = "{0}: the incoming {1} know how you fight: {2}."
+	GroupHunters = "corporate hunters"
+	GroupPirates = "pirates"
+	HabitKite = "you hit from out of their range"
+	HabitCloud = "you fight from inside clouds"
+	HabitWeapons = "you shoot their weapons first"
+	HabitThrusters = "you shoot their engines first"
+	HabitCore = "you shoot their reactors and control rooms first"
+
 	// Co-op resource sharing (spec 1318). {0} is the player name.
 	ShareButtonOn = "Share resources: ON"
 	ShareButtonOff = "Share resources: OFF"

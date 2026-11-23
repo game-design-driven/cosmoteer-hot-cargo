@@ -90,6 +90,10 @@ static class CareerPatches
         iHash.AddHash(s.Scavenge.Seen.Count);
         iHash.AddHash((int)(s.Scavenge.ProvokedUntil * 10));
         iHash.AddHash((int)(s.Storyteller.AdaptMinutes * 100));
+        int reports = 0;
+        foreach (var r in s.AiReports.Groups)
+            reports = unchecked(reports * 31 + ShipAi.ShipAiModel.StableHash(r.Group) + (r.Kite ? 1 : 0) + (r.Cloud ? 2 : 0) + (r.Focus + 1) * 4 + r.Age * 16);
+        iHash.AddHash(reports * 31 + s.AiReports.Noticed.Count);
         // string.GetHashCode is random per process, so it would differ between clients. This hash is stable.
         int tunables = 0;
         foreach (char c in run.State.TunablesHash) tunables = tunables * 31 + c;

@@ -46,8 +46,8 @@ internal static class PersonalityAutotest
 
     public static void Register()
     {
-        // kiteplayer <index> [away <distance>]|off: from now on the human ship with the longest range keeps halfway between the longest
-        // weapon range of hostile ship <index> (Hostile order) and its own, edge to edge, each sim tick: a perfect kite. away: first moves
+        // kiteplayer <index>|last [away <distance>]|off: from now on the human ship with the longest range keeps halfway between the longest
+        // weapon range of hostile ship <index> (Hostile order; last: the newest live ship that aispawn spawned) and its own, edge to edge, each sim tick: a perfect kite. away: first moves
         // the hostile ship this far from the first human ship, out of reach of the start system's guards. off stops the kite, the ship
         // stays. Test only, single player.
         Autotest.Commands["kiteplayer"] = arg =>
@@ -62,7 +62,9 @@ internal static class PersonalityAutotest
             }
             var words = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length is not (1 or 3) || words.Length == 3 && words[1] != "away") throw new InvalidOperationException("kiteplayer needs: <index> [away <distance>] | off");
-            var enemy = Hostile()[int.Parse(words[0], CultureInfo.InvariantCulture)];
+            var enemy = words[0] == "last"
+                ? LastSpawned.AsEnumerable().Reverse().Select(id => Sim().Ships[id]).OfType<Ship>().FirstOrDefault(s => !s.IsJunk) ?? throw new InvalidOperationException("no live ship that aispawn spawned")
+                : Hostile()[int.Parse(words[0], CultureInfo.InvariantCulture)];
             var player = Kiter(Sim()) ?? throw new InvalidOperationException("no human ship");
             if (words.Length == 3)
             {
@@ -80,6 +82,15 @@ internal static class PersonalityAutotest
         Autotest.Fields["ai_kite_answer"] = () => (int)(Kitee().AI?.GetStrategyModule<CounterKiteStrategy>()?.Answer ?? KiteAnswer.None);
         Autotest.Fields["ai_kite_out_of_reach"] = () => Kiter(Sim()) is { } p
             && HunterOrders.EdgeDistance(Kitee(), p) > CounterKiteStrategy.Reach(p) ? 1 : 0;
+        // ai_report_now kitee|<index>: the kited ship (or hostile ship <index>) reports what it saw, as on a completed call (spec 1922).
+        // ai_reports_jump: the reports age by one jump, as on a system entry (spec 1923). Test only.
+        Autotest.Commands["ai_report_now"] = arg => AiLearn.Report(arg.Trim() == "kitee" ? Kitee() : Hostile()[int.Parse(arg, CultureInfo.InvariantCulture)], "test");
+        Autotest.Commands["ai_reports_jump"] = _ => AiLearn.OnSystemEntered(Autotest.RequireRun());
+        // The report of the aigroup group: kite and cloud 0 or 1, focus the FocusKind or -1. ai_reports: groups with a report.
+        Autotest.Fields["ai_report_kite"] = () => Autotest.RequireRun().State.AiReports.For(_group)?.Kite == true ? 1 : 0;
+        Autotest.Fields["ai_report_cloud"] = () => Autotest.RequireRun().State.AiReports.For(_group)?.Cloud == true ? 1 : 0;
+        Autotest.Fields["ai_report_focus"] = () => Autotest.RequireRun().State.AiReports.For(_group)?.Focus ?? -1;
+        Autotest.Fields["ai_reports"] = () => Autotest.RequireRun().State.AiReports.Groups.Count;
         Autotest.Fields["ai_hostile"] = () => Hostile().Count;
         foreach (var trait in Enum.GetValues<Trait>())
             Autotest.Fields[$"ai_has_{trait.ToString().ToLowerInvariant()}"] = () => Hostile().Count(s => PersonalityStrategy.Traits(s, T()).Has(trait));
