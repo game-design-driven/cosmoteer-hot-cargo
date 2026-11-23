@@ -1,5 +1,4 @@
 // Flight Recorder: The Black Box chain's cargo (spec 1100, 1107). Normal storage holds it, one to a storage slot. Stations do not trade it.
-// Sprites are the vanilla processor sprites with a tint.
 ID = yarden_zamir.flight_recorder
 NameKey = "HotCargoEventMissions/FlightRecorder"
 PluralNameKey = "HotCargoEventMissions/FlightRecorderPlural"
@@ -20,49 +19,11 @@ DropRates
 }
 Rarity = Unique
 
-TINT = [255, 90, 90]
-
-Icon
-{
-	Texture
-	{
-		File = "./Data/resources/processor/icon.png"
-		MipLevels = max
-	}
-	Size = [64, 64]
-	VertexColor = &~/TINT
-}
-
-Overlay
-{
-	Texture
-	{
-		File = "./Data/resources/processor/overlay.png"
-		SampleMode = Linear
-		MipLevels = max
-	}
-	Size = [1, 1]
-	VertexColor = &~/TINT
-}
-
-NuggetSprite
-{
-	File = "./Data/resources/processor/processor.png"
-	NormalsFile = "./Data/resources/processor/processor_normals.png"
-	Size = [1, 1]
-	Offset = [.25+6/64, 0]
-	UVRotation = 1
-	VertexColor = &~/TINT
-}
-
-StackSprites
-[
-	{
-		File = "./Data/resources/processor/processor_stack_1.png"
-		Size = [1, 1]
-		VertexColor = &~/TINT
-	}
-]
+// Own art, drawn by tools/sprites/make_items.py.
+Icon = &<sprites/flight_recorder/sprites.rules>/Icon
+Overlay = &<sprites/flight_recorder/sprites.rules>/Overlay
+NuggetSprite = &<sprites/flight_recorder/sprites.rules>/NuggetSprite
+StackSprites = &<sprites/flight_recorder/sprites.rules>/StackSprites
 
 StackReceiveMediaEffects = &/COMMON_EFFECTS/ProcessorDeliver
 StackPickupMediaEffects = &/COMMON_EFFECTS/ProcessorPickup
