@@ -18,14 +18,14 @@ uxpick 1
 wait 1
 godmode on
 screenshot hud-04-heat-calm
-# A greyed choice (no sensor array) and a follow-up page.
-event distress_beacon
+# A greyed choice (no forged codes) and a follow-up page, on a popup (Distress Beacon now comes from a ship, spec 1815).
+event corporate_checkpoint
 wait 1
 screenshot hud-05-event-greyed
-choose 1 4
+choose 3 2
 wait 2
 screenshot hud-06-event-followup
-choose 4 1
+choose 2 1
 wait 1
 uxpick 1
 wait 1
