@@ -1,4 +1,5 @@
-# Network outage (spec 920 to 925): gains are blocked, losses apply, it ends on time; a natural outage goes through the pacer.
+# Network outage (spec 920 to 925): gains are blocked, losses apply, event results say +0, it ends on time; a natural outage goes
+# through the pacer.
 newgame run
 wait 8
 ev_set Enabled false
@@ -9,7 +10,7 @@ pu_set ScoutChance 0
 pu_set BlockadeChance 0
 heat -100
 heat 10
-pu_outage 20 natural
+pu_outage 40 natural
 wait 1
 expect pu_outage >= 17
 expect pu_count_outage == 1
@@ -24,8 +25,22 @@ pu_gain -4
 wait 1
 expect heat <= 6.05
 expect heat >= 5.5
-# It ends on time, then gains count again.
-waitfor pu_outage == 0 20
+# An event heat gain is blocked, and its result says +0 (spec 922). Corporate Checkpoint, "Run the checkpoint" (choice 3): heat +15.
+ev_set Enabled true
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+event corporate_checkpoint
+choose 3 1
+expect heat <= 6.05
+expectresultline 1 Heat +0 (network down)
+ev_set Enabled false
+# It ends on time, then gains count again. The same choice shows its real gain.
+waitfor pu_outage == 0 40
+event corporate_checkpoint
+choose 3 1
+expectresultline 1 Heat +15
+expectresultline 0 network down
+ev_set Enabled false
 pu_gain 10
 wait 1
 expect heat >= 15.5

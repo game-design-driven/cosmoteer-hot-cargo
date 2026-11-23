@@ -643,12 +643,13 @@ public static class EventRunner
         Log.Info($"buyer price multiplier {before:0.00} -> {run.State.BuyerPriceMultiplier:0.00}");
     }
 
+    /// <summary>Spec 922: a gain that the network outage blocks shows "Heat +0 (network down)".</summary>
     internal static void ChangeHeat(Run run, SimRoot sim, float amount, List<string> lines)
     {
-        float before = run.State.Heat;
-        run.AddHeat(amount, sim);
-        float delta = run.State.Heat - before;
-        if (Math.Abs(delta) >= 0.5f) lines.Add(EventText.Heat(delta));
+        bool blocked = amount > 0 && Run.Hooks.HeatGainsBlocked(run);
+        float delta = run.AddHeat(amount, sim);
+        if (blocked && amount >= 0.5f) lines.Add(EventText.HeatBlocked());
+        else if (Math.Abs(delta) >= 0.5f) lines.Add(EventText.Heat(delta));
     }
 
     static void ChangeTech(SimRoot sim, int amount, List<string> lines)

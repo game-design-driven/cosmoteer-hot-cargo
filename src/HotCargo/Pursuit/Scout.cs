@@ -94,10 +94,9 @@ public static class Scout
     static void Report(Run run, SimRoot sim)
     {
         float heat = run.T.Pursuit.ScoutReportHeat;
-        bool blocked = Outage.Active(run);
-        run.AddHeat(heat, sim);
-        string text = PursuitText.Format("ScoutReportedFmt", blocked ? 0 : heat);
-        Log.Info($"pursuit: scout reported, heat +{(blocked ? 0 : heat):0}");
+        float gain = run.AddHeat(heat, sim);
+        string text = PursuitText.Format("ScoutReportedFmt", gain);
+        Log.Info($"pursuit: scout reported, heat +{gain:0}");
         PursuitText.Center(run, $"<bad>{text}</bad>");
         PursuitText.Chat(run, text);
     }

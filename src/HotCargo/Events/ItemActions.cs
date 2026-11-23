@@ -191,8 +191,8 @@ static class TracerBeacon
         if (s.TracerPingSeconds < 0) { s.TracerPingSeconds = now + PingSeconds; return; }
         if (now < s.TracerPingSeconds) return;
         s.TracerPingSeconds = now + PingSeconds;
-        float heat = run.T.Events.TracerHeatPerMinute * units;
-        run.AddHeat(heat, sim);
+        // Spec 922: the text shows the real gain, +0 during a network outage.
+        float heat = run.AddHeat(run.T.Events.TracerHeatPerMinute * units, sim);
         Log.Info($"tracer beacon: {units} aboard, heat +{heat:0.#}");
         // UI only.
         Ux.UxKit.ChatLine(run.Game, Strings.FormatText("HotCargoItems/TracerPingFmt", heat.ToString("0.#")));

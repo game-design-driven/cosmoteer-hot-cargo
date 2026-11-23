@@ -864,6 +864,14 @@ public static class EventsArea
         Autotest.Fields["ev_pending"] = () => RequireRun().State.Events.Pending is null ? 0 : 1;
         Autotest.Fields["ev_seen"] = () => RequireRun().State.Events.Seen.Values.Sum();
         Autotest.Fields["ev_result"] = () => RequireRun().State.Events.LastResult?.Serial ?? 0;
+        // expectresultline <0|1> <text>: whether an effect line of the last result holds the text (plain, without XML).
+        Autotest.Commands["expectresultline"] = arg =>
+        {
+            var parts = arg.Split(' ', 2, StringSplitOptions.TrimEntries);
+            var lines = RequireRun().State.Events.LastResult?.Lines ?? throw new InvalidOperationException("no event result");
+            bool has = lines.Any(l => EventView.Plain(l).Contains(parts[1], StringComparison.Ordinal));
+            Autotest.Check(has == (parts[0] == "1"), $"result lines {(parts[0] == "1" ? "hold" : "do not hold")} '{parts[1]}': {string.Join(" | ", lines.Select(EventView.Plain))}");
+        };
         // 1 when the page that was pending at the last ev_mark has a result.
         Autotest.Fields["ev_answered"] = () => MarkedSerial > 0 && RequireRun().State.Events.LastResult?.Serial >= MarkedSerial ? 1 : 0;
         Autotest.Fields["ev_signals"] = () => RequireSim().Doodads.Count(d => d.Tags?.Contains(EventRunner.SignalTag) == true);

@@ -31,6 +31,9 @@ public static class EventText
     public static string Heat(float amount) =>
         (amount > 0 ? W.BadTextColor : W.GoodTextColor).FormatWithXml($"Heat {Signed((int)MathF.Round(amount))}");
 
+    /// <summary>Spec 922: a heat gain that the network outage blocked.</summary>
+    public static string HeatBlocked() => W.GoodTextColor.FormatWithXml(Strings.GetText("HotCargoEvents/HeatBlocked"));
+
     public static string Crew(int amount) =>
         (amount > 0 ? W.GoodTextColor : W.BadTextColor).FormatWithXml($"{Signed(amount)} crew");
 

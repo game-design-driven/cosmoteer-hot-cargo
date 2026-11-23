@@ -105,9 +105,7 @@ public static class RescueBeacon
             var player = run.Game.GetPlayerState(playerIndex, deterministic: true);
             int paid = Math.Min(Fee(run), Math.Max(0, player.Money));
             player.AddMoney(-paid);
-            float heatBefore = run.State.Heat;
-            run.AddHeat(t.RescueHeat * t.HeatScale, sim);
-            string heat = (run.State.Heat - heatBefore).ToString("+0;-0;0");
+            string heat = run.AddHeat(t.RescueHeat * t.HeatScale, sim).ToString("+0;-0;0");
 
             var tugs = sim.Ships.Where(x => x.HasTag(TugTag)).Select(x => x.UniqueID).ToHashSet();
             EventLibrary.Spawn(TugSpawn).Generate(sim, new FastRand(sim.Rand.UInt64()), loadInstantly: true, rootLoc: ship.DetWorldCenter, addExistingSpawnTags: true);
