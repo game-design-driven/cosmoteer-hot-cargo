@@ -276,14 +276,9 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
             OnMinerKilled(null, EventArgs.Empty);
             return;
         }
+        // In stasis the miner does not move or mine, like every ship far from the players.
         if (Escort.TargetShip is not { } ship) return;
         var t = Settings(sim.RequireGame());
-        // Spec 1868: the miner has no stasis, so it holds still while no player ship is within WorkRange, like a ship in stasis.
-        if (!sim.Ships.HumanPlayerSignificantShips.Any(h => h.DetWorldCenter.DistanceTo(ship.DetWorldCenter) <= t.WorkRange))
-        {
-            if (ship.Commands.CurConfirmedCommand is not null) ship.Commands.Clear();
-            return;
-        }
         if (Goal == 0)
         {
             BaseOre = OreHeld(ship);

@@ -75,7 +75,6 @@ public sealed class MechanicsTunables
         Require(t.ScanRange > 0f && t.IntensivePayBonus >= 0f && t.IntensiveExtraShips >= 0f && t.MaxIntensivePerWave >= 0, "ScanRange must be above 0 and the intensive scan values must not be negative");
         Require(t.SurveyScanSeconds > 0f, "SurveyScanSeconds must be above 0");
         var m = t.MiningEscort;
-        Require(m.WorkRange > 0f, "MiningEscort.WorkRange must be above 0");
         Require(m.SpawnDistanceMin >= 0f && m.SpawnDistanceMax >= m.SpawnDistanceMin, "MiningEscort: SpawnDistanceMax must be at least SpawnDistanceMin");
         Require(m.OreGoal > 0 && m.FieldRadius > 0f && m.HostileRadius >= 0f && m.CollectRadius > 0f && m.StepSeconds > 0f && m.DockGap >= 0f && m.DockedGap > m.DockGap,
             "MiningEscort: OreGoal, FieldRadius, CollectRadius and StepSeconds must be above 0, and DockedGap above DockGap");
@@ -113,8 +112,6 @@ public sealed class HoldOutTunables
 [ReflectiveSerialization(Explicit = true)]
 public sealed class MiningEscortTunables
 {
-    /// <summary>The miner works only while a player ship is within this distance; else it holds still, like a ship in stasis (vanilla live range 2,500).</summary>
-    [Serialize(Optional = true)] public float WorkRange = 2500f;
     /// <summary>The miner waits this far from the station center, in a random direction.</summary>
     [Serialize(Optional = true)] public float SpawnDistanceMin = 500f;
     [Serialize(Optional = true)] public float SpawnDistanceMax = 800f;

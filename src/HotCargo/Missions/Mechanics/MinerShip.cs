@@ -107,7 +107,10 @@ internal static class MinerShip
         return Paints[faction.ID] = paint;
     }
 
-    /// <summary>Spec 1868: a full miner of the faction's civilians, with the miner AI, at the spot. It is not in stasis (no stasis handler).</summary>
+    /// <summary>
+    /// Spec 1868: a full miner of the faction's civilians, with the miner AI, at the spot. Far from the players the game puts it into stasis
+    /// like any other ship (vanilla SerializedStasisShip).
+    /// </summary>
     internal static Ship Spawn(SimRoot sim, Rand rand, FactionRules faction, Vector2 at, Direction facing)
     {
         var ship = ShipBuilder.Load(sim, rand, Design(), Strings.GetText("HotCargoMechanics/MinerName"), faction.CivilianPlayerIndex, at, facing);
