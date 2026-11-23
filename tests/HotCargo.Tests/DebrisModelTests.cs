@@ -5,6 +5,16 @@ namespace HotCargo.Tests;
 
 public class DebrisModelTests
 {
+    [Theory]
+    // Spec 1832, at the defaults: base cut 0.6, component cut 0.85 from a base price of 1,000. Vanilla prices: steel 25, gold 500, processor 2,500.
+    [InlineData(25, 0.6f)]
+    [InlineData(500, 0.6f)]
+    [InlineData(999, 0.6f)]
+    [InlineData(1000, 0.85f)]
+    [InlineData(2500, 0.85f)]
+    public void Cheap_resources_get_the_base_cut_and_components_the_mild_cut(int buyPrice, float expected) =>
+        Assert.Equal(expected, DebrisModel.SalvageFactor(buyPrice, 0.6f, 0.85f, 1000));
+
     [Fact]
     public void A_piece_waits_then_glows_for_the_last_glow_seconds_then_burns()
     {

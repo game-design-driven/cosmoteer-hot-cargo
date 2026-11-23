@@ -154,7 +154,7 @@ The co-op playtest of 14 and 15 November logged 20 Hot Cargo station offers in 1
 
 In the co-op playtest of 14 and 15 November, salvage and captures were 72 % of the players' wealth, and missions and tech sales 28 %. The players paid 84 % of their building from storage. Over systems 1 and 2 (both players, `wealth.py` of the playtest report): salvage builds about 528k, mission money 186k (25.0k + 24.0k + 72.4k + 64.4k).
 
-- **Salvage cut** (spec 1247): a part that breaks on a ship that the players did not build drops 40 % less loose salvage (`Debris.SalvageDropFactor` 0.6), in every tier. Deconstruction refunds, storage contents and parts that float free do not change.
+- **Salvage cut** (spec 1247): a part that breaks on a ship that the players did not build drops 40 % less loose salvage (`Debris.SalvageDropFactor` 0.6), in every tier. Expensive components (base price 1,000 or more: enriched uranium, processor, diamond) drop only 15 % less (`SalvageComponentDropFactor` 0.85, spec 1832). Deconstruction refunds, storage contents and parts that float free do not change.
 - **Mining** (spec 1248): asteroid ore +20 % for a break by weapons or a collision (`MiningYieldFactor` 1.2), +30 % in total for a mining laser (`LaserMiningYieldFactor` 1.3). The game tells the two apart: a laser drops ore at 100 %, a weapon at 10 %.
 - **Mission money** (spec 4): × `Journey.MissionMoneyScale` 1.5, for every mission (vanilla and Hot Cargo), on top of finding 10. Fame (heat), fees, event money, the Buyer and tech value do not change.
 - **Math.** After the cut, the same salvage pays 0.6 × 528k = 317k (211k less). The playtest players keep their total when f × 186k = 186k + 211k, so f = 1 + 0.4 × 528 / 186 = 2.14. Vanilla uses 2 when salvage is off (`SalvagingDisabledMoneyRewardFactor`). Chosen (Yarden): **1.5**. Then the playtest mix earns 317k + 279k = 596k, 83 % of 714k. A player who only salvages earns 60 %; a player who only follows missions earns 150 %.
@@ -196,6 +196,7 @@ In the co-op playtest of 14 and 15 November, salvage and captures were 72 % of t
 | `Mechanics.<Mission>Chance`, Escort, Fleet Assault, Discreet Bounty spawn chance | 15 to 60 % | 50 % | 131 |
 | `Stash.OfferChance` | 0.35 | 0.5 | 970 |
 | `Debris.SalvageDropFactor` (new) | 1 | 0.6 | 1247 |
+| `Debris.SalvageComponentDropFactor`, `SalvageComponentPrice` (new) | 1, — | 0.85, 1000 | 1832 |
 | `Debris.MiningYieldFactor`, `LaserMiningYieldFactor` (new) | 1, 1 | 1.2, 1.3 | 1248 |
 | `Journey.MissionMoneyScale` (new) | 1 | 1.5 | 4 |
 | Convoy reward sort value | int.MinValue (the sum wrapped) | 0 | — |
