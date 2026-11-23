@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Hot Cargo installer for Cosmoteer for macOS (the Mac app of the Windows game; see the cosmoteer-macos README).
 # - Source: the hot_cargo and HotCargoLoader folders next to this script (an unzipped release). Without them (run from the
-#   repo), it downloads the newest release zip of GitHub, dev prereleases included: the newest build of main.
+#   repo), it downloads the release zip of the given tag, for example v0.6.0-dev.233. There is no "newest": co-op players
+#   need the same build, so every player installs the same named release.
+# Usage: install-mac.sh            (from an unzipped release)
+#        install-mac.sh <tag>      (from the repo; tags: gh release list, or the GitHub releases page)
 # - Copies the hot_cargo mod folder into the Mods folder of your Steam save folder (your tunables.rules is kept).
 # - Copies HotCargo.Loader.dll into <game>/Bin/HotCargoLoader.
 # - Adds a .NET startup hook to <game>/Bin/Cosmoteer.runtimeconfig.json (backup: .hot_cargo_orig). The app runs it at start.
@@ -30,10 +33,14 @@ fi
 [[ -n "${SAVE:-}" && -d "$SAVE" ]] || fail "no Steam save folder in $SAVES: start the game once through Steam, close it, and run this again"
 
 SRC="$HERE"
-if [[ ! -d "$SRC/hot_cargo" || ! -d "$SRC/HotCargoLoader" ]]; then
+TAG="${1:-}"
+if [[ -d "$SRC/hot_cargo" && -d "$SRC/HotCargoLoader" ]]; then
+  [[ -z "$TAG" ]] || fail "this folder holds a release already; run it without a tag"
+else
+  [[ -n "$TAG" ]] || fail "give the release tag that every player installs, for example: install-mac.sh v0.6.0-dev.233"
   SRC="$(mktemp -d)"; trap 'rm -rf "$SRC"' EXIT
-  URL="$(curl -fsSL "https://api.github.com/repos/$REPO/releases?per_page=1" | plutil -extract 0.assets.0.browser_download_url raw -o - -)" \
-    || fail "cannot find the newest release of $REPO"
+  URL="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/tags/$TAG" | plutil -extract assets.0.browser_download_url raw -o - -)" \
+    || fail "no release $TAG in $REPO"
   echo "install-mac: downloading $URL"
   curl -fsSL "$URL" -o "$SRC/hot-cargo.zip" || fail "download failed: $URL"
   unzip -q "$SRC/hot-cargo.zip" -d "$SRC"
