@@ -36,10 +36,10 @@ The heat clock is the core resource. The heat stages still start the waves (sect
 
 920. **Natural outage.** On the first visit of a system with sector index `OutageMinSector` (2) or more and below the last sector (the Buyer), the system rolls `OutageChance` (0.5). The roll is seeded by the galaxy seed (`GameInit.RandSeed`) and the sector index, so every machine gets the same roll. On success an outage is due `OutageDelayMin` to `OutageDelayMax` (90 to 480) game seconds after arrival. When it is due, it starts if the pacer allows an `Outage`, else it drops. With the defaults a run has 6 rolls, at most 2 outages and 1.9 on average. A switch to another system drops an outage that did not start.
 921. **Effect.** For `OutageSeconds` (120) of game time every heat gain is blocked: time heat, fame heat (missions and kills), the contract trail, flat contract heat, informants, event outcomes and scout reports (`Run.AddHeat` drops every positive amount through `Run.Hooks.HeatGainsBlocked`). Losses still apply (jumps, hand-overs, event outcomes). The outage lasts across a jump. Debug keys and test commands are not blocked. Notoriety (requirement 19) does not grow, because it sums real heat gains.
-922. **"+0".** A blocked gain of 0.5 heat or more shows "+0 heat: network down" on the heat panel for a moment. A scout report says +0. Known limit: event outcome texts (`Events/`) still name their nominal heat change; revisit when the event dialog can read the outage.
+922. **"+0".** A blocked gain of 0.5 heat or more shows "+0 heat: network down" on the heat panel for a moment. A scout report, an informant chat line, a tracer beacon ping and a rescue beacon say +0. An event result shows "Heat +0 (network down)" for a blocked gain (`EventRunner.ChangeHeat`). `Run.AddHeat` returns the real change, and these texts show it.
 923. **Heat panel.** During an outage the heat bar is blue and the panel shows "NETWORK DOWN m:ss" with the time left and a heat rate of +0. A center text and a chat line say when it starts ("NETWORK DOWN for 2:00: no heat gains") and when it ends ("Corporate network back up").
 924. **Save.** The run state saves the outage end time and a due outage.
-925. **Tests.** `pursuit-outage`: blocked gains (time, fame, flat), losses, the end, a natural outage refused by the pacer.
+925. **Tests.** `pursuit-outage`: blocked gains (time, fame, flat), losses, an event result with +0, the end, a natural outage refused by the pacer.
 
 ### Hacker
 

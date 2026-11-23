@@ -259,17 +259,18 @@ public static class ContractBook
     {
         var t = run.T.Contracts;
         run.State.Contracts.SoldOut.Add(m.MissionID);
-        run.AddHeat(t.InformantHeat, sim);
+        // Spec 922: the chat line shows the real gain, +0 during a network outage.
+        float heat = run.AddHeat(t.InformantHeat, sim);
         if (t.InformantShips > 0)
             Errors.Guard("informant wave", () => HunterSpawner.SpawnWave(run, sim, t.InformantShips, run.CurrentTier, "Informant", firstOfStage: false));
         // Mission names are XML already (a chain stage name carries a color tag), so only the client name is escaped.
         string client = StringTools.EscapeForXml(ClientName(m)), contract = m.Name.Text;
         Log.Info($"contracts: informant sold out {m.MetatypeID} {m.MissionID} ({ClientName(m)})");
-        Onboarding.RunLog.SoldOut(run, ClientName(m), m.Name.Text, t.InformantHeat);
+        Onboarding.RunLog.SoldOut(run, ClientName(m), m.Name.Text, heat);
         InformantWarnings++;
         // UI only, after the wave alert so that this text replaces the generic one.
         Ux.UxKit.CenterText(run.Game, Strings.FormatText("HotCargoContracts/InformantBannerFmt", client, contract));
-        Ux.UxKit.ChatLine(run.Game, Strings.FormatText("HotCargoContracts/InformantChatFmt", client, contract, t.InformantHeat));
+        Ux.UxKit.ChatLine(run.Game, Strings.FormatText("HotCargoContracts/InformantChatFmt", client, contract, heat.ToString("0.#")));
     }
 
     /// <summary>Heat that the trail added since game start. For autotests only; not sim state.</summary>

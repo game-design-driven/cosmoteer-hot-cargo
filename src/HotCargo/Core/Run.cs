@@ -202,13 +202,14 @@ public sealed class Run
     /// <summary>
     /// Adds heat and starts any stages it crosses. Call only from simulation logic (or single-player debug keys).
     /// A gain is dropped while Hooks.HeatGainsBlocked is true (spec 921), except with ignoreBlock (debug keys and test commands).
+    /// Returns the real change: 0 for a blocked gain, less at the heat limits. Texts that report a change show this (spec 922).
     /// </summary>
-    public void AddHeat(float amount, SimRoot sim, bool ignoreBlock = false)
+    public float AddHeat(float amount, SimRoot sim, bool ignoreBlock = false)
     {
         if (amount > 0 && !ignoreBlock && Hooks.HeatGainsBlocked(this))
         {
             Hooks.RaiseHeatGainBlocked(this, amount);
-            return;
+            return 0f;
         }
         float before = State.Heat;
         State.Heat = HeatModel.Clamp(State.Heat + amount);
@@ -223,6 +224,7 @@ public sealed class Run
         }
         // Heat can drop below thresholds (debug keys). Stages then re-arm.
         if (State.StagesStarted > reached) State.StagesStarted = reached;
+        return State.Heat - before;
     }
 
     /// <summary>Starts the next stage at once, by raising heat to its threshold.</summary>
