@@ -141,3 +141,4 @@ The defaults are first guesses. Live tuning sets the real values.
 | `Storyteller.AdaptPerMinute`, `AdaptLossShip`, `AdaptLossCrew` | 1, 20, 1 | 1722, 1723 |
 | `Storyteller.Impact` | no_death 1, easy 1, normal 0.9, hard 0.7, very_hard 0.5 | 1725 |
 | `Storyteller.CombinedMin`, `CombinedMax` | 0.75, 1.4 | 1726 |
+| `Storyteller.AllFightsEnabled` | on | 1732 |

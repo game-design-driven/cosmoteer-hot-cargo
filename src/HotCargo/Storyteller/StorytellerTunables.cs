@@ -11,6 +11,8 @@ public sealed class StorytellerTunables
     /// story_set Enabled true.
     /// </summary>
     [Serialize(Optional = true)] public bool Enabled = !Dev.Autotest.IsActive;
+    /// <summary>Spec 1732: the pressure also scales the fights that are not hunter waves (rules spawns, mechanics waves, thieves, police).</summary>
+    [Serialize(Optional = true)] public bool AllFightsEnabled = true;
     /// <summary>Spec 1721, 1724: the lowest adapt minutes; the pressure there is PressureMin.</summary>
     [Serialize(Optional = true)] public float AdaptMin = -30f;
     /// <summary>Spec 1721, 1724: the highest adapt minutes; the pressure there is PressureMax.</summary>

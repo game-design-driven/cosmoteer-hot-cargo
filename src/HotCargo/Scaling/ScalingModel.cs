@@ -30,17 +30,19 @@ public static class ScalingModel
     }
 
     /// <summary>
-    /// Spec 333: count × factor. The whole part always spawns; the fractional part is the chance of one more ship.
+    /// Spec 333, 1733: count × factor. The whole part always spawns; the fractional part is the chance of one more ship.
     /// <paramref name="roll"/> returns a number in [0, 1). It runs only when there is a fractional part, so factor 1 uses no random.
+    /// A factor below 1 (a storyteller pressure below 1) never takes the last ship: a count of 1 or more stays 1 or more.
     /// </summary>
     public static int Scale(int count, double factor, Func<double> roll)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (!(factor >= 1)) throw new ArgumentOutOfRangeException(nameof(factor), factor, "enemy factor must be at least 1");
+        if (!(factor > 0) || double.IsInfinity(factor)) throw new ArgumentOutOfRangeException(nameof(factor), factor, "enemy factor must be above 0");
         double exact = count * factor;
         double whole = Math.Floor(exact + 1e-9);
         double fraction = exact - whole;
-        return (int)whole + (fraction > 1e-6 && roll() < fraction ? 1 : 0);
+        int scaled = (int)whole + (fraction > 1e-6 && roll() < fraction ? 1 : 0);
+        return count > 0 ? Math.Max(1, scaled) : 0;
     }
 
     /// <summary>
@@ -56,12 +58,14 @@ public static class ScalingModel
     }
 
     /// <summary>
-    /// Spec 335: a cap that the game checks again every tick (police) rounds half up, without a roll, so it stays the same between ticks.
+    /// Spec 335, 1733: a cap that the game checks again every tick (police) rounds half up, without a roll, so it stays the same
+    /// between ticks. A cap of 1 or more stays 1 or more.
     /// </summary>
     public static int Cap(int count, double factor)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (!(factor >= 1)) throw new ArgumentOutOfRangeException(nameof(factor), factor, "enemy factor must be at least 1");
-        return (int)Math.Floor(count * factor + 0.5 + 1e-9);
+        if (!(factor > 0) || double.IsInfinity(factor)) throw new ArgumentOutOfRangeException(nameof(factor), factor, "enemy factor must be above 0");
+        int capped = (int)Math.Floor(count * factor + 0.5 + 1e-9);
+        return count > 0 ? Math.Max(1, capped) : 0;
     }
 }

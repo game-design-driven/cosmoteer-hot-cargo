@@ -85,7 +85,7 @@ internal static class Thieves
             if (roll >= t.JoinChance) continue;
             var ai = ship.AI!.Rules.ID;
             var parameters = ship.AI?.Parameters ?? Parameters(ship.DetWorldCenter);
-            int count = EnemyScale.Count(1, sim);
+            int count = EnemyScale.FightCount(1, sim);
             var face = SimQueries.FirstHumanShip(sim)?.DetWorldCenter ?? ship.DetWorldCenter;
             for (int i = 0; i < count; i++)
             {
@@ -125,7 +125,7 @@ internal static class Thieves
     internal static List<Ship> Arrive(Run run, SimRoot sim, ThievesTunables t)
     {
         var first = sim.Ships.HumanPlayerShips.Where(x => !x.IsJunk).MinBy(x => x.UniqueID) ?? throw new InvalidOperationException("thieves: no player ship");
-        int count = EnemyScale.Count(sim.Rand.Int32(t.EncounterMin, Math.Max(t.EncounterMin, t.EncounterMax)), sim);
+        int count = EnemyScale.FightCount(sim.Rand.Int32(t.EncounterMin, Math.Max(t.EncounterMin, t.EncounterMax)), sim);
         int index = Situation.Career(sim).AllocUniquePlayerIndex();
         float angle = sim.Rand.Single(new Range<float>(0f, MathF.Tau));
         var center = HunterSpawner.SpawnLocation(sim, first.DetWorldCenter, angle, MathF.PI, new Range<float>(t.EncounterDistanceMin, t.EncounterDistanceMax));

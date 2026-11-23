@@ -18,6 +18,8 @@ public static class StorytellerArea
     {
         Run.Hooks.Tick += (run, sim, _) => Errors.Guard("storyteller tick", () => Update(run, sim));
         Run.Hooks.SystemEntered += OnSystemEntered;
+        // Spec 1732: the pressure scales the other fights too. By game, not by sim: a new system generates in a new sim.
+        Scaling.EnemyScale.FightPressure = sim => Run.Current is { } run && run.Game == sim.Game && run.T.Storyteller.AllFightsEnabled ? Pressure(run) : 1;
         AddAutotest();
     }
 
