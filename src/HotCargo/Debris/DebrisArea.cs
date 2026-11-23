@@ -26,6 +26,7 @@ public static class DebrisArea
 
     static void OnTick(Run run, SimRoot sim, double dt)
     {
+        SalvageDrops.RemoveLooseNonCargo(sim);
         var t = run.T.Debris;
         var state = run.State.Debris;
         if (!t.Enabled)

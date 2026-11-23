@@ -4,6 +4,7 @@ using Cosmoteer.Modes.Career;
 using Cosmoteer.Resources;
 using Cosmoteer.Ships;
 using Cosmoteer.Ships.Parts;
+using Cosmoteer.Simulation;
 using Halfling.Geometry;
 using HarmonyLib;
 using HotCargo.Core;
@@ -85,9 +86,34 @@ static class SalvageDrops
         // No Errors.Guard: the body has no call that can throw.
         static void Postfix(ResourceRules rr, NuggetDropSource dropSource, ref float __result)
         {
-            if (Run.Current is null || rr.ID == Tech.Vaults.TechId) return;
+            if (Run.Current is null || rr.ID == Tech.Vaults.TechId || !IsCargo(rr)) return;
             if (dropSource == NuggetDropSource.Crew || dropSource == NuggetDropSource.Storage && _bayBreaking) __result = 1f;
         }
+    }
+
+    /// <summary>
+    /// Spec 1833: a resource without a stack size (vanilla battery, fire extinguisher, heat, ion energy) is no cargo. Vanilla never drops
+    /// it loose: a loose one is invisible, and the vanilla collect tool divides by its stack size (ResourceManager.GetCapacityTotal),
+    /// which crashed a playtest host.
+    /// </summary>
+    internal static bool IsCargo(ResourceRules rr) => rr.MaxStackSize > 0;
+
+    /// <summary>
+    /// Spec 1833: removes loose resources that are no cargo, from saves of builds that dropped them. Sim tick, nugget order, so every
+    /// co-op machine removes the same ones. Returns the units removed.
+    /// </summary>
+    internal static int RemoveLooseNonCargo(SimRoot sim)
+    {
+        int units = 0;
+        for (int i = sim.Nuggets.Count - 1; i >= 0; i--)
+        {
+            var n = sim.Nuggets[i];
+            if (IsCargo(Cosmoteer.Extensions.GetResourceRules(n.ResourceType))) continue;
+            units += n.Quantity;
+            Log.Info($"debris: removed a loose {n.ResourceType} x{n.Quantity}: no cargo (spec 1833)");
+            sim.Nuggets.RemoveNugget(n);
+        }
+        return units;
     }
 
     /// <summary>
