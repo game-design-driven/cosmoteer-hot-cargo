@@ -97,9 +97,13 @@ internal sealed class TowObjective : Objective
         args["station"] = Station.GetXmlTargetName(game.Sim);
     }
 
-    public override bool CanFocusDisplayLine(GameRoot game) => Hulk.Live(game.Sim) is not null;
+    /// <summary>Spec 1873: a click shows the hulk or its place, also while it is in stasis or in another system.</summary>
+    /// <summary>Spec 1873: where the objective is, for the click on its line.</summary>
+    internal FocusTarget Where(GameRoot game) => new(Hulk.NodeId, Hulk.Live(game.Sim), null, Hulk.Location(game.Sim));
 
-    public override void OnDisplayLineFocused(GameRoot game) => Hulk.Live(game.Sim)?.FocusCamera();
+    public override bool CanFocusDisplayLine(GameRoot game) => MissionFocus.CanFocus(game, Where(game));
+
+    public override void OnDisplayLineFocused(GameRoot game) => MissionFocus.Focus(game, Where(game));
 
     public override void GetDisplayLinesImpl(List<DisplayLine> lines, GameRoot game, CompletionState parentState) =>
         lines.Add(new DisplayLine

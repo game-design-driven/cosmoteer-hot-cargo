@@ -123,6 +123,7 @@ public static class MechanicsArea
         Autotest.Fields["mech_hold_seconds"] = () => Hold().GuardedSeconds;
         Autotest.Fields["mech_hold_guarded"] = () => Hold().Guarded ? 1 : 0;
         Autotest.Fields["mech_hold_tier"] = () => Hold().Tier;
+        Autotest.Fields["mech_hold_focus"] = () => MissionFocus.CanFocus(RequireRun().Game, Hold().Target) ? 1 : 0;
         Autotest.Fields["mech_wave_ships"] = () => Hold() is var o && o.WaveAllegiance != 0
             ? SimQueries.TaggedShips(RequireSim(), o.WaveTag).Count(s => s.PlayerIndex == o.WaveAllegiance) : 0;
         // Spec 137: live wave ships whose attack command targets the hold-out target, and the target's health in percent.
@@ -265,12 +266,18 @@ public static class MechanicsArea
         Autotest.Commands["mech_capture_claim"] = _ => TestClaim();
         Autotest.Commands["mech_capture_remove"] = _ => RemoveShip(Capture().Target.Live(RequireSim()) ?? throw new InvalidOperationException("capture target is not live"));
         Autotest.Fields["mech_capture_hostile"] = () => Capture().Target.Live(RequireSim()) is { } s && RequireSim().Mode.AreEnemies(s.Metadata.PlayerIndex, RequireRun().Game.HumanPlayersIndexes[0]) ? 1 : 0;
+        // Spec 1873: what a click on the objective line shows (the FocusStep value), and the galaxy map and system map markers.
+        Autotest.Fields["mech_capture_focus"] = () => (int)MissionFocus.Step(RequireRun().Game, Capture().Where(RequireRun().Game));
+        Autotest.Fields["mech_capture_galaxy"] = () => Capture().GetFirstMapNode(RequireRun().Game) is { } n && Capture().IsMapNodeAssociated(n) ? 1 : 0;
+        Autotest.Fields["mech_capture_area"] = () => Capture().GetAreaLocation(RequireRun().Game) is null ? 0 : 1;
+        Autotest.Fields["mech_capture_here"] = () => RequireRun().Game.CurrentMapNode.UniqueID == Capture().Target.NodeId ? 1 : 0;
 
         // Survey (spec 136).
         Autotest.Commands["mech_survey_next"] = _ => MissionArea.TeleportPlayers(Survey().Markers.First(m => m.Seconds < TunablesFor(RequireRun().Game).SurveyScanSeconds).Location);
         Autotest.Fields["mech_survey_done"] = () => Survey().Done(RequireRun().Game);
         Autotest.Fields["mech_survey_markers"] = () => Survey().Markers.Count;
         Autotest.Fields["mech_survey_progress"] = () => Survey().Markers.Sum(m => m.Seconds);
+        Autotest.Fields["mech_survey_focus"] = () => (int)MissionFocus.Step(RequireRun().Game, Survey().Where(RequireRun().Game));
         Autotest.Fields["mech_sensor"] = () => SimQueries.FirstHumanShip(RequireSim()) is { } s && s.Parts.Any(p => p.Components.Any(c => c is Cosmoteer.Ships.Parts.Sensors.Sensor)) ? 1 : 0;
 
         // Sun mining (spec 138): helion ore deposits on live asteroids, and their distance to the nearest sun.

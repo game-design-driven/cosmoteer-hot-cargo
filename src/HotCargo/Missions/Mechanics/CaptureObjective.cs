@@ -99,9 +99,13 @@ internal sealed class CaptureObjective : Objective, IMissionMarkers
         args["target_ship"] = Target.XmlName(game);
     }
 
-    public override bool CanFocusDisplayLine(GameRoot game) => Target.Live(game.Sim) is not null;
+    /// <summary>Spec 1873: a click shows the target, its area marker or its place, also while it is in stasis or in another system.</summary>
+    /// <summary>Spec 1873: where the objective is, for the click on its line.</summary>
+    internal FocusTarget Where(GameRoot game) => new(Target.NodeId, Target.Live(game.Sim), AreaPoiId, Target.Location(game.Sim));
 
-    public override void OnDisplayLineFocused(GameRoot game) => Target.Live(game.Sim)?.FocusCamera();
+    public override bool CanFocusDisplayLine(GameRoot game) => MissionFocus.CanFocus(game, Where(game));
+
+    public override void OnDisplayLineFocused(GameRoot game) => MissionFocus.Focus(game, Where(game));
 
     public override void GetDisplayLinesImpl(List<DisplayLine> lines, GameRoot game, CompletionState parentState) =>
         lines.Add(new DisplayLine
