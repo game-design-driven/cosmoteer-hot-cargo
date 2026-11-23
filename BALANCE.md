@@ -43,7 +43,7 @@ Limit: the model is a single representative run. It does not model travel time, 
 
 - **Tech sale value** follows the spec targets with the new heat: 0.32 of a ship at the start, about 0.5 mid-run, 0.79 at the Buyer. One or two units still buy a ship of even power. The tech value does not use `RewardScale`, so a sale is now worth 1 to 2.4 typical missions (was 0.6 to 1.2). Selling is a real bail-out again.
 - **Contract fees** are 0.3 to 0.8 std, so they scale with `RewardScale` and keep their weight. Starting money after the starter ship is 10,000 = 2 std at tier 1: enough for 2 to 6 early fees, or 2 to 4 early blueprints. No change.
-- **The Buyer factor 4.** At the Buyer one unit is worth 4 × 0.79 × TVM(12) ≈ 2.5 million. Eight held units are 20 million, the bank about 6 million. So the score rewards the tech that the players bring, and money is the tie-breaker. A unit sold at sector 1 for 19,000 costs 2.5 million of score. That is the "hold or sell" pillar. No change.
+- **The Buyer factor 4.** At the Buyer one unit is worth 4 × 0.79 × TVM(12) ≈ 2.5 million. Eight held units are 20 million, the bank about 6 million. So the score rewards the tech that the players bring, and money is the tie-breaker. A unit sold at sector 1 for 19,000 costs 2.5 million of score. That is the "hold or sell" pillar. No change; the user confirmed the factor 4 on 2026-11-23.
 
 ### 3. Blueprint costs
 

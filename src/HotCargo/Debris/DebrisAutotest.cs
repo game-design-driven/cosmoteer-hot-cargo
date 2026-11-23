@@ -58,6 +58,26 @@ static class DebrisAutotest
             }
             Log.Info($"AUTOTEST debris_spawn: {count} pieces of {parts} parts, speed {speed}");
         };
+        // debris_cargo <units>: one junk piece (named like debris_spawn's) made of a storage bay that holds this much steel (spec 1814).
+        Autotest.Commands["debris_cargo"] = arg =>
+        {
+            int units = int.Parse(arg, CultureInfo.InvariantCulture);
+            var sim = R().Game.Sim;
+            var home = sim.Ships.HumanPlayerShips.OrderBy(s => s.UniqueID).FirstOrDefault() ?? throw new InvalidOperationException("no human ship");
+            var piece = new Ship(home.Rules, "Test debris", -3, randSeed: 7800UL);
+            using (var sui = ShipUpdateInfo.Alloc(piece))
+            {
+                if (!sui.TryAddBlueprintPart(home.Rules.PartsByID[new ID<PartRules>("cosmoteer.storage_2x2")], new IntVector2(0, 0), 0, flipX: false,
+                        mirrorPhysical: false, allowOverwrite: false, addDoors: false, hireCrew: false, out var reasons, force: true))
+                    throw new InvalidOperationException($"cannot add a storage bay: {reasons}");
+                sui.Apply();
+            }
+            piece.MatchPhysicalToBlueprints();
+            piece.WorldCenter = Autotest.ClearSpotNear(sim, home.DetWorldCenter, home.DetWorldBoundingCircle.Radius + 300f, 60f);
+            sim.Ships.Add(piece);
+            int added = piece.Resources.AddResources(new ID<Cosmoteer.Resources.ResourceRules>("steel"), units, excludeConstructionSinks: true);
+            Autotest.Check(added == units, $"{units} steel fit into the test storage bay (added {added})");
+        };
         // debris_focus [piece]: test only. The camera follows the acting player's ship and zooms out to the 3 nearest tracked junk pieces,
         // like "tech focus" (for screenshots). "piece": a close-up of the nearest tracked piece, where its part outline (the glow) shows.
         Autotest.Commands["debris_focus"] = arg =>
