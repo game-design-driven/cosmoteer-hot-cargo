@@ -254,5 +254,13 @@ expect tele_relay_copies >= 3
 expect tele_relay_bad == 0
 expect tele_relay_received > 0
 
+
+step telemetry.note
+# Spec 1986, 1988: the client's playtest note reaches the host's live notes file at once, and the game keeps running.
+on 1 telenote open
+on 1 telenote type the client saw this
+on 1 telenote save
+waitfor telenote_live_others >= 1 30
+on 1 waitfor telenote_open == 0 10
 end
 # tier: smoke

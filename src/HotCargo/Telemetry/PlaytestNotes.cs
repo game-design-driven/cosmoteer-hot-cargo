@@ -57,22 +57,55 @@ static class PlaytestNotes
             if (file is not null) File.Delete(Path.Combine(NotesFolder(), file));
             return;
         }
-        Tele.Emit(Cat.Run, "note", w =>
+        string player = PlayerName(game);
+        string wall = DateTime.UtcNow.ToString("O");
+        void Fields(System.Text.Json.Utf8JsonWriter w)
         {
             w.WriteString("text", note);
-            w.WriteString("player", PlayerName(game));
+            w.WriteString("player", player);
             w.WriteNumber("local_player", game.LocalPlayerIndex);
+            w.WriteString("wall_utc", wall);
             Tele.Num(w, "pressed_real_s", realSeconds);
             w.WriteStartObject("screen");
             foreach (var (k, v) in screen) w.WriteString(k, v);
             w.WriteEndObject();
             if (file is not null) w.WriteString("screenshot", file); else w.WriteNull("screenshot");
-        });
+        }
+        Tele.Emit(Cat.Run, "note", Fields);
+        // Spec 1988: the live notes file, one line per note at once; a co-op client also sends the line to the host at once.
+        if (Session.Current is { } s)
+        {
+            string line = Tele.Json(w =>
+            {
+                w.WriteStartObject();
+                w.WriteString("e", "note");
+                Tele.Num(w, "t", s.RealSeconds);
+                s.WriteContext(w);
+                Fields(w);
+                w.WriteEndObject();
+            });
+            AppendLive(line);
+            Relay.SendNote(line);
+        }
         Log.Info($"playtest note saved{(file is null ? "" : $" with {file}")}");
         Ux.UxKit.ChatLine(game, Halfling.StringTools.EscapeForXml(Text(file is null ? "NoteSaved" : "NoteSavedShot")));
     }
 
     static string NotesFolder() => Path.Combine(Path.GetDirectoryName(Session.Current!.FilePath)!, "notes");
+
+    static readonly Lock LiveGate = new();
+
+    /// <summary>Spec 1988: the live notes file of this machine: Mod.ModRoot/telemetry/notes.jsonl. Each line is written and closed at once.</summary>
+    internal static string LivePath => Path.Combine(Mod.ModRoot, "telemetry", "notes.jsonl");
+
+    internal static void AppendLive(string line)
+    {
+        lock (LiveGate)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(LivePath)!);
+            File.AppendAllText(LivePath, line.Replace('\n', ' ') + "\n");
+        }
+    }
 
     static string Text(string key) => Strings.GetText("HotCargoTelemetry/" + key);
 

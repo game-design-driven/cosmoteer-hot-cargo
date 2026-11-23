@@ -16,4 +16,6 @@ telenote cancel
 wait 1
 teleflush
 telecount note == 1
+# Spec 1988: the live notes file has the saved note at once.
+expect telenote_live_own == 1
 quit

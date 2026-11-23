@@ -192,6 +192,9 @@ public static class TelemetryArea
             }
         };
         Autotest.Fields["telenote_open"] = () => PlaytestNotes.OpenDialog is null ? 0 : 1;
+        // Lines of the live notes file from this player and from other players (spec 1988).
+        Autotest.Fields["telenote_live_own"] = () => LiveNotes(own: true);
+        Autotest.Fields["telenote_live_others"] = () => LiveNotes(own: false);
         // telestats: logs the overhead numbers of the session, for reports.
         Autotest.Commands["telestats"] = _ =>
             Log.Info($"TELEMETRY STATS events={Interlocked.Read(ref Stats.Events)} bytes={Interlocked.Read(ref Stats.Bytes)} dropped={Interlocked.Read(ref Stats.Dropped)} " +
@@ -199,6 +202,17 @@ public static class TelemetryArea
                      $"overhead_pct_wall={OverheadPct():0.000} real_s={Session.Current?.RealSeconds:0.0} ticks={Perf.SessionTicks} tick_ms={Perf.SessionTickMs:0} " +
                      $"writer_ms={Stats.Ms(Interlocked.Read(ref Stats.WriterTicks)):0.0} trace_patched={Stats.TracePatched} trace_missing={Stats.TraceMissing} " +
                      $"missing=[{string.Join(", ", Trace.MissingMethods)}] file={Session.Current?.FilePath}");
+    }
+
+    static int LiveNotes(bool own)
+    {
+        if (!File.Exists(PlaytestNotes.LivePath)) return 0;
+        int me = Autotest.RequireRun().Game.LocalPlayerIndex;
+        return File.ReadLines(PlaytestNotes.LivePath).Count(l =>
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(l);
+            return (doc.RootElement.GetProperty("local_player").GetInt32() == me) == own;
+        });
     }
 
     /// <summary>Counts lines with "e":"name" in the files of a run: every session and part file.</summary>
