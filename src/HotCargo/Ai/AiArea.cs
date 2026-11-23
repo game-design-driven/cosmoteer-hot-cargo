@@ -26,9 +26,11 @@ public static class AiArea
     public const string CallBlocked = "call_blocked", CallAssist = "call_assist", CallIntercept = "call_intercept";
     public const string Regroup = "regroup", RegroupEnd = "regroup_end";
     public const string PersonalityEvent = "personality";
+    public const string KiteRead = "kite_read", KiteEnd = "kite_end", Anvil = "anvil";
 
     static readonly string[] EventNames =
-        [Flee, FleeStay, FleeEnd, FleeJump, CallStart, CallComplete, CallInterrupt, CallBlocked, CallAssist, CallIntercept, Regroup, RegroupEnd, PersonalityEvent];
+        [Flee, FleeStay, FleeEnd, FleeJump, CallStart, CallComplete, CallInterrupt, CallBlocked, CallAssist, CallIntercept, Regroup, RegroupEnd, PersonalityEvent,
+         KiteRead, KiteEnd, Anvil];
 
     public static void Register()
     {

@@ -145,14 +145,18 @@ static class RepairAutotest
             float d = float.Parse(parts[1], CultureInfo.InvariantCulture);
             Autotest.Teleport(player, Autotest.ClearSpotNear(ship.Sim!, ship.DetWorldCenter, ship.WorldBoundingRadius + player.WorldBoundingRadius + d, player.WorldBoundingRadius));
         };
-        // playerweapons on|off: turns every weapon of the player ship on or off with its on/off part setting, like a click. For
-        // screenshots next to an enemy that must not be shot. Test only.
+        // playerweapons on|off [ship name]: turns every weapon of the player ship (or of the human ship with that name) on or off with
+        // its on/off part setting, like a click. For screenshots next to an enemy that must not be shot. Test only.
         Autotest.Commands["playerweapons"] = arg =>
         {
-            var player = Tech.TechAutotest.PlayerShip();
+            var words = arg.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0) throw new InvalidOperationException("playerweapons needs: on|off [ship name]");
+            var player = words.Length == 1 ? Tech.TechAutotest.PlayerShip()
+                : Autotest.RequireRun().Game.Sim.Ships.HumanPlayerSignificantShips.Where(s => s.Metadata.PlainShipName == words[1]).MinBy(s => s.UniqueID)
+                  ?? throw new InvalidOperationException($"playerweapons: no human ship named '{words[1]}'");
             var toggles = player.Weapons.Select(w => w.Part).OfType<Cosmoteer.Ships.Parts.Part>().Distinct()
                 .SelectMany(part => part.Components.OfType<PartUIToggle>()).Where(t => t.Rules.ToggleID.ToString() == "on_off")
-                .ToDictionary(t => t, _ => arg.Trim() == "on" ? 1 : 0);
+                .ToDictionary(t => t, _ => words[0] == "on" ? 1 : 0);
             if (toggles.Count == 0) throw new InvalidOperationException("the player ship has no weapon with an on/off setting");
             player.Sim!.RequireGame().NetManager.EnqueueInput(new MPSetUITogglesInput(toggles));
         };

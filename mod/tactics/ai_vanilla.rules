@@ -1,6 +1,6 @@
 // Hot Cargo modules for the vanilla combat AIs (spec 193-202, 360-369). mod/tactics/actions.rules appends them to the end of
 // each module list, so they run before the vanilla modules. Strategy priority, highest first: personality (measures the build,
-// never takes over), flee, call, fall back, bait, cover, regroup, team. Each module does nothing with no active Hot Cargo run,
+// never takes over), flee, call, fall back, counter kite, bait, cover, regroup, team. Each module does nothing with no active Hot Cargo run,
 // for a ship that is not hostile to the players, or when its switch in Tactics is off or the ship's personality lacks it.
 Strategy
 [
@@ -15,6 +15,10 @@ Strategy
 	}
 	{
 		Type = HcBait
+	}
+	// Spec 1900-1905: a kited ship closes in, calls, regroups or breaks off.
+	{
+		Type = HcCounterKite
 	}
 	{
 		Type = HcFallBack
@@ -50,6 +54,12 @@ Tactics
 	}
 	{
 		Type = HcRole
+	}
+	// Spec 1903, 1906: the close-in radius and the anvil angle on a kiter. Above every other tactic.
+	{
+		Type = HcAnvil
+		AttackRotationsToCheck = 8
+		AttackRotationSwitchThresholdFactor = 1.25
 	}
 ]
 

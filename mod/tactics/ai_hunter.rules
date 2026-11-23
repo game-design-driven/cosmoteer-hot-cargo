@@ -40,6 +40,11 @@ StrategyModules
 		Type = HcBait
 		MoveTolerance = 100
 	}
+	// A kited hunter closes in, calls, regroups or breaks off (spec 1900-1905).
+	{
+		Type = HcCounterKite
+		ForHunters = true
+	}
 	// Leave the fight for loose tech crates (spec 446). Fall back, call and flee still come first.
 	{
 		Type = HcGrabTech
@@ -99,6 +104,12 @@ TacticsModules
 	// Team roles and brawling (spec 365, 367).
 	{
 		Type = HcRole
+	}
+	// The close-in radius and the anvil angle on a kiter (spec 1903, 1906). Above every other tactic.
+	{
+		Type = HcAnvil
+		AttackRotationsToCheck = 8
+		AttackRotationSwitchThresholdFactor = 1.25
 	}
 ]
 

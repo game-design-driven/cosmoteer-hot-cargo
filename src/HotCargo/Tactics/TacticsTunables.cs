@@ -192,6 +192,32 @@ public sealed class TacticsTunables
     /// <summary>The ship attacks anyway after this long, and does not regroup again for the same time.</summary>
     [Serialize(Optional = true)] public float RegroupMaxSeconds = 25f;
 
+    // Counter kiting (spec 1900-1919).
+
+    [Serialize(Optional = true)] public bool CounterKiteEnabled = true;
+    [Serialize(Optional = true)] public bool CounterKiteOnVanilla = true;
+    /// <summary>A ship that stays outranged this long and loses KiteReadLoss of its health in that time is kited.</summary>
+    [Serialize(Optional = true)] public float KiteReadSeconds = 20f;
+    /// <summary>Health fraction (as in requirement 47) that a ship loses in KiteReadSeconds before it counts as kited.</summary>
+    [Serialize(Optional = true)] public float KiteReadLoss = 0.03f;
+    /// <summary>A kited ship with this agility score or more closes in (with the Brawl or Pincer trait, or without personalities).</summary>
+    [Serialize(Optional = true)] public float CloseInAgility = 0.5f;
+    /// <summary>A close in that did not shrink the gap by CloseInGain of its start within this long becomes a break off.</summary>
+    [Serialize(Optional = true)] public float CloseInSeconds = 15f;
+    [Serialize(Optional = true)] public float CloseInGain = 0.2f;
+    /// <summary>A ship that breaks off holds this far outside the kiter's longest weapon range, edge to edge.</summary>
+    [Serialize(Optional = true)] public float BreakOffMargin = 600f;
+    /// <summary>Nebula types that the attackers of a kiter push it into. Electron slows ships and blocks jumps; cloudy cuts sight.</summary>
+    [Serialize(Optional = true)] public string[] AnvilNebulas = ["electron", "cloudy"];
+    /// <summary>The attackers look for those nebulas up to this far from the kiter's center.</summary>
+    [Serialize(Optional = true)] public float AnvilNebulaRange = 4000f;
+    /// <summary>A point counts as inside a nebula at this strength or more (0 to 1).</summary>
+    [Serialize(Optional = true)] public float AnvilNebulaStrength = 0.5f;
+    /// <summary>Attackers on the far side from a nebula spread this many degrees apart.</summary>
+    [Serialize(Optional = true)] public float AnvilSpreadDegrees = 45f;
+    /// <summary>A target counts as a kiter for this long after an ally was last kited by it.</summary>
+    [Serialize(Optional = true)] public float AnvilMemorySeconds = 60f;
+
     // Steady states and firepower (spec 1531-1533).
 
     /// <summary>
@@ -214,6 +240,12 @@ public sealed class TacticsTunables
         require(CallSightMargin >= 0, "Tactics.CallSightMargin must be 0 or more");
         require(CallStormStrength is > 0 and <= 1, "Tactics.CallStormStrength must be above 0 and at most 1");
         require(RegroupMinGroup >= 1, "Tactics.RegroupMinGroup must be 1 or more");
+        require(KiteReadSeconds > 0 && KiteReadLoss is > 0 and <= 1, "Tactics.KiteReadSeconds must be above 0, KiteReadLoss above 0 and at most 1");
+        require(CloseInAgility is >= 0 and <= 1 && CloseInSeconds > 0 && CloseInGain is > 0 and <= 1,
+            "Tactics.CloseInAgility must be 0 to 1, CloseInSeconds above 0, CloseInGain above 0 and at most 1");
+        require(BreakOffMargin >= 0 && AnvilNebulaRange > 0 && AnvilNebulaStrength is > 0 and <= 1 && AnvilSpreadDegrees is >= 0 and <= 180
+                && AnvilMemorySeconds > 0,
+            "Tactics.BreakOffMargin must be 0 or more, AnvilNebulaRange above 0, AnvilNebulaStrength above 0 and at most 1, AnvilSpreadDegrees 0 to 180, AnvilMemorySeconds above 0");
         require(TraderFleeStopFactor >= 1 && FirepowerWeaponCap > 0, "Tactics.TraderFleeStopFactor must be 1 or more, FirepowerWeaponCap above 0");
         require(FallBackTripSeconds > 0 && FallBackArriveDistance > 0 && FallBackPoolRange >= 0,
             "Tactics.FallBackTripSeconds and FallBackArriveDistance must be above 0, FallBackPoolRange 0 or more");
