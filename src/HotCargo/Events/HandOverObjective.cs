@@ -237,7 +237,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
             foreach (var reward in mission.Rewards.OfType<Cosmoteer.Modes.Career.Missions.Rewards.MoneyReward>())
             {
                 int before = reward.Money;
-                reward.Money = Missions.MissionModel.ScaleReward(reward.Money, payFactor, 100);
+                reward.Money = Missions.MissionModel.ScaleReward(reward.Money, payFactor, EventModel.HandOverPayRoundTo);
                 Log.Info($"hand-over: pay {before} x {payFactor} = {reward.Money}");
             }
         if (o.DeliveredShipId is { } shipId && run.Game.Sim is { } sim)

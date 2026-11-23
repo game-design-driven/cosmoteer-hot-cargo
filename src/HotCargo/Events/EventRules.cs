@@ -295,6 +295,8 @@ public sealed class EventRules
     [Serialize(Optional = true)] public string Carrier = "";
     /// <summary>True: the carrier hails the players when the page opens. False: the players must hail it.</summary>
     [Serialize(Optional = true)] public bool CarrierHails = true;
+    /// <summary>Spec 1816: true keeps the sure effects off the choice buttons, where they would give the answer away (the riddles).</summary>
+    [Serialize(Optional = true)] public bool HideEffects;
     /// <summary>Hail events: the button text in the target's comms.</summary>
     [Serialize(Optional = true)] public string HailLine = "";
     [Serialize(Optional = true)] public HailTarget HailTarget;

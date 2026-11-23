@@ -295,4 +295,32 @@ public class EventModelOptionTests
         // Before: no Arrival roll in system 1, and the Station roll alone.
         Assert.Equal(0.5f, EventModel.AtLeastOne([0.5f]), 3);
     }
+
+    [Fact]
+    public void Hand_over_choice_shows_the_job_pay_and_fame()
+    {
+        // The Black Box broker: no money of its own, the job pays 25,500 credits and 27 fame.
+        var g = EventModel.Gain(0, 0, 0f, 0, handOver: true, [25_500], 27, handOverPay: 0f);
+        Assert.Equal(new ChoiceGain(25_500, 27, 0f, 0), g);
+    }
+
+    [Fact]
+    public void Hand_over_pay_factor_scales_the_money_rewards_only_and_rounds_like_the_delivery()
+    {
+        var g = EventModel.Gain(0, 0, 0f, 0, handOver: true, [25_500], 27, handOverPay: 0.8f);
+        Assert.Equal(20_400, g.Money);
+        Assert.Equal(27, g.Fame);
+    }
+
+    [Fact]
+    public void Outcome_effects_add_to_the_job_pay()
+    {
+        // "Ask for more": the outcome's own credits and heat on top of the job pay.
+        var g = EventModel.Gain(4_000, 0, 10f, 0, handOver: true, [12_000], 5, handOverPay: 0f);
+        Assert.Equal(new ChoiceGain(16_000, 5, 10f, 0), g);
+    }
+
+    [Fact]
+    public void No_hand_over_means_no_job_pay() =>
+        Assert.Equal(new ChoiceGain(0, 0, 20f, 0), EventModel.Gain(0, 0, 20f, 0, handOver: false, [25_500], 27, 0f));
 }
