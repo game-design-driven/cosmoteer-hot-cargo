@@ -1,18 +1,19 @@
-# Claim Jumpers without the player (spec 137, 1871): a small autonomous turret platform holds the barge alone. The player's ship leaves;
-# the platform keeps the area live and the clock running, the raider waves come, and the barge lasts the whole hold.
+# Drone Siege without the player (spec 132, 1871): a small autonomous turret platform holds the post alone. The player's ship leaves;
+# the platform keeps the area live and the clock running, the drone waves come, and the post lasts the whole hold.
+# Claim Jumpers raiders go for the barge (spec 137), so a one-gun platform is not enough there: mechanics-guard-hold.
 # missions: random
 # timeout: 900
 newgame run
 wait 8
 ev_set Enabled false
 godmode on
-mech_generate guard
-mech_accept guard
+mech_generate siege
+mech_accept siege
 mech_hold_goto
 pause off
 wait 3
 expect mech_hold_guarded == 1
-# Computer manning a small laser, a targeted reactor, no thrusters: the cheapest gun platform (spec 1050 to 1053), next to the barge.
+# Computer manning a small laser, a targeted reactor, no thrusters: the cheapest gun platform (spec 1050 to 1053), next to the post.
 auto_build Guard -400,0 yarden_zamir.computer@-1,1,1 cosmoteer.laser_blaster_small@0,0 yarden_zamir.targeted_reactor@-1,3
 wait 1
 waitfor auto_manned == 1 10
@@ -27,8 +28,8 @@ expect mech_hold_guarded == 1
 expect mech_hold_seconds >= 10
 waitfor mech_wave_ships >= 1 90
 expect mech_waves_vs_player >= 1
-# The platform engages the raiders (its target row matches) and draws their fire; it stands next to the barge, because its laser reaches 260.
+# The platform engages the drones (its target row matches) and draws their fire; it stands next to the post, because its laser reaches 260.
 waitfor tactics_target_row >= 1 150
-waitfor mech_goal_guard == 1 400
-expect mech_state_guard == 0
+waitfor mech_goal_siege == 1 450
+expect mech_state_siege == 0
 quit

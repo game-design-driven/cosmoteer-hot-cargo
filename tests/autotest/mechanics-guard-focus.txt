@@ -1,0 +1,17 @@
+# Claim Jumpers raiders go for the barge (spec 137): the first wave attacks the barge, not the players' ship beside it.
+# The Drone Siege drones keep vanilla targeting (Siege.TargetFocus 0).
+# missions: random
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+mech_hold_set Guard FirstWaveSeconds 3
+mech_generate guard
+mech_accept guard
+mech_hold_goto
+pause off
+waitfor mech_wave_ships >= 1 30
+# The first wave at tier 1 is one raider.
+expect mech_wave_ships == 1
+waitfor mech_wave_on_target == 1 60
+quit

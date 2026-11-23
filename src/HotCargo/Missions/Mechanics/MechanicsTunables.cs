@@ -34,7 +34,7 @@ public sealed class MechanicsTunables
     {
         Seconds = 240f, GuardRadius = 1500f, WaveSeconds = 60f, FirstWaveSeconds = 15f,
         ShipsBase = 1f, ShipsPerTier = 0.1f, MaxLiveShips = 4,
-        ShipTierBase = -1f, ShipTierPerTier = 1f, ShipTierMax = 99, ShipTags = ["combat"],
+        ShipTierBase = -1f, ShipTierPerTier = 1f, ShipTierMax = 99, ShipTags = ["combat"], TargetFocus = 20f,
     };
 
     /// <summary>Spec 140: Listening Post. Four waves, one tier below the sector, from the base side.</summary>
@@ -70,6 +70,7 @@ public sealed class MechanicsTunables
             Require(h.Seconds > 0f && h.GuardRadius > 0f && h.WaveSeconds > 0f && h.FirstWaveSeconds >= 0f, $"{name}: Seconds, GuardRadius and WaveSeconds must be above 0");
             Require(h.ShipsBase >= 0f && h.ShipsPerTier >= 0f && h.MaxLiveShips >= 0 && h.ShipTierMax >= 1, $"{name}: ship counts must not be negative and ShipTierMax must be 1 or more");
             Require(h.ShipTags.Length > 0, $"{name}.ShipTags must not be empty");
+            Require(h.TargetFocus >= 0f, $"{name}.TargetFocus must not be negative");
         }
         Require(t.DeliveryRadius > 0f, "DeliveryRadius must be above 0");
         Require(t.ScanRange > 0f && t.IntensivePayBonus >= 0f && t.IntensiveExtraShips >= 0f && t.MaxIntensivePerWave >= 0, "ScanRange must be above 0 and the intensive scan values must not be negative");
@@ -106,6 +107,11 @@ public sealed class HoldOutTunables
     [Serialize(Optional = true)] public int ShipTierMax = 99;
     /// <summary>Built-in ship tags of the wave pool.</summary>
     [Serialize(Optional = true)] public string[] ShipTags = ["combat"];
+    /// <summary>
+    /// Spec 137: wave ships value the target like a ship with this many times their own firepower, the convoy raider rule (spec 36,
+    /// Missions.EscortRaiderFocus). So they go for the target, not for the guards. 0: vanilla targeting.
+    /// </summary>
+    [Serialize(Optional = true)] public float TargetFocus;
 }
 
 /// <summary>Mining Escort (spec 1860 to 1867): a miner fills its hold in an asteroid field while raiders come in waves.</summary>
