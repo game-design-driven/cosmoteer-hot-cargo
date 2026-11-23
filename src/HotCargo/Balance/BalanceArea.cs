@@ -15,6 +15,7 @@ public static class BalanceArea
 {
     public static void Register()
     {
+        FuelRules.Register();
         Run.Hooks.NewRunStarted += StationFuelFloor.OnNewRun;
         Run.Hooks.SystemEntered += StationFuelFloor.OnSystemEntered;
         // A new fuel floor tops up the live stations at once (TUNABLES.md). A lower floor takes no fuel away.

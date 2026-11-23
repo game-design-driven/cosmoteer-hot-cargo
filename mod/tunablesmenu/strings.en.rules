@@ -23,4 +23,5 @@ HotCargoTunablesMenu
 	AppliesNextOffer = "[next mission offers]"
 	AppliesNextSystem = "[next new system]"
 	AppliesNewRun = "[new runs only]"
+	AppliesNextGame = "[next new or loaded game]"
 }

@@ -166,6 +166,12 @@ public static class JourneyArea
             return buyer.AI?.WillTradeWith(human) == true ? 1 : 0;
         };
         Autotest.Fields["nodes"] = () => Autotest.RequireRun().Game.Map.Nodes.NodeCount;
+        // Spec 1983: sector types on the run map that are not basic (the starting system is always basic).
+        Autotest.Fields["mapnonbasic"] = () =>
+        {
+            var run = Autotest.RequireRun();
+            return run.Game.Map.Nodes.Count(n => run.Mode.GetMapNodeData(n).SectorType.ID.ToString() != "basic");
+        };
         Autotest.Fields["runmap"] = () => Autotest.RequireRun().Mode.Init is Cosmoteer.Modes.Career.CareerInit init && init.MapSizeIndex == RunMapSizeIndex() ? 1 : 0;
         // Highest low tier among systems that are RunSectorCount - 1 jumps from the start: the last sector of a direct route.
         Autotest.Fields["finaltier"] = () =>

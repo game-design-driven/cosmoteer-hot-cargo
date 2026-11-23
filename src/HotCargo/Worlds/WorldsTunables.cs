@@ -3,8 +3,8 @@ using Halfling.Serialization;
 namespace HotCargo.Worlds;
 
 /// <summary>
-/// Numbers of the system archetypes (WORLDS.md, spec 220 to 229). The archetype weights are rules values in
-/// mod/worlds/archetypes.rules, because the galaxy map is made once per career.
+/// Numbers of the system archetypes (WORLDS.md, spec 220 to 229). The archetype weights apply when the galaxy is made, once
+/// per run (Journey/MapRules.cs writes them into the rules spawner of mod/worlds/archetypes.rules, spec 1983).
 /// </summary>
 [ReflectiveSerialization(Explicit = true)]
 public sealed class WorldsTunables
@@ -44,4 +44,30 @@ public sealed class WorldsTunables
     [Serialize(Optional = true)] public bool ArrivalLine = true;
     /// <summary>Spec 225: seconds after the jump before the arrival line shows. The jump shows the system name first.</summary>
     [Serialize(Optional = true)] public float ArrivalLineDelaySeconds = 4f;
+    /// <summary>
+    /// Spec 220, 1983: the chance of each system type when the galaxy is made: its weight ÷ the sum of the weights that the system's
+    /// tier allows (MinTier in mod/worlds/archetypes.rules). A type that this list leaves out does not appear. New runs only; in
+    /// co-op the galaxy uses the defaults. With the defaults, about 3 of 4 systems are archetypes.
+    /// </summary>
+    [Serialize(Optional = true)] public SystemTypeWeight[] SystemTypeWeights =
+    [
+        new() { Type = "hc_trade_hub", Weight = 1f },
+        new() { Type = "hc_mining_belt", Weight = 1f },
+        new() { Type = "hc_solar_zone", Weight = 0.8f },
+        new() { Type = "hc_deep_space", Weight = 0.8f },
+        new() { Type = "basic", Weight = 0.5f },
+        new() { Type = "binary", Weight = 0.25f },
+        new() { Type = "high_density_nebula", Weight = 0.2f },
+        new() { Type = "supernova", Weight = 0.1f },
+        new() { Type = "electron", Weight = 0.15f },
+    ];
+}
+
+[ReflectiveSerialization(Explicit = true)]
+public sealed class SystemTypeWeight
+{
+    /// <summary>A sector type ID of mod/worlds/archetypes.rules, for example hc_trade_hub or basic.</summary>
+    [Serialize] public string Type = "";
+    /// <summary>The weight of the type. 0: it does not appear.</summary>
+    [Serialize(Optional = true)] public float Weight = 1f;
 }

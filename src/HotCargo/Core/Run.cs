@@ -28,6 +28,8 @@ public sealed class Run
         public static event Action<Run, bool>? SystemEntered;
         /// <summary>Runs once per new career, after the starting ship exists.</summary>
         public static event Action<Run>? NewRunStarted;
+        /// <summary>Runs at every game start: a new career, a load, a co-op join or resync. Before the run's first tick.</summary>
+        public static event Action<Run>? GameStarted;
         /// <summary>Runs inside each sim tick while the run is Running, after FleetTech is updated. Arguments: run, sim, tick seconds.</summary>
         public static event Action<Run, SimRoot, double>? Tick;
         /// <summary>Runs once when the run is won or lost, after State.Result and State.EndReason are set. Sim logic.</summary>
@@ -54,6 +56,7 @@ public sealed class Run
 
         internal static void RaiseFrame(Run r) => Each(Frame, h => h(r));
         internal static void RaiseTunablesApplied(Run r) => Each(TunablesApplied, h => h(r));
+        internal static void RaiseGameStarted(Run r) => Each(GameStarted, h => h(r));
         internal static void RaiseRunEnded(Run r) => Each(RunEnded, h => h(r));
         internal static void RaiseStageStarted(Run r, SimRoot s, int i) => Each(StageStarted, h => h(r, s, i));
         internal static void RaiseStrikeWave(Run r, SimRoot s) => Each(StrikeWave, h => h(r, s));
@@ -138,6 +141,7 @@ public sealed class Run
         mode.Game.EventHub.PlayerFameChanged += run.OnFameChanged;
         mode.Game.Popping += (_, _) => Stop(mode.Game);
         Log.Info($"run active: loaded={loaded} sector={state.SectorIndex} heat={state.Heat:0.0} tunables={state.TunablesHash} mp={run.IsMultiplayer}");
+        Hooks.RaiseGameStarted(run);
         if (newRun) Hooks.RaiseNewRunStarted(run);
     }
 
