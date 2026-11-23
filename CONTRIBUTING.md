@@ -8,7 +8,7 @@ Read SPEC.md and the section files in `spec/` first. They hold the design, the n
 
 - `src/HotCargo/Core`, `Ui`, `Dev`: shared core. Change it only when an area cannot work through the hooks in `Core/Run.cs` (`Run.Hooks`), `Core/DebugKeys.cs` (`DebugKeys.Extra`) and `Dev/Autotest.cs` (`Autotest.Commands`, `Autotest.Fields`).
 - `src/HotCargo/<Area>`: one folder for each area. Each area has `<Area>Area.Register()`, its tunables section class and its patches. Ship comms options go through `Ui/CommsHail.cs` (one provider per area); dialog sliders use `Ui/SliderRow.cs`, option rows `Ui/OptionRows.cs`, and multiselect pages `MultiChoice/` (register an `IMultiChoiceDomain`).
-- Shared helpers in Core: `Errors.Guard` / `Errors.Report` for any failure in a patch, sim tick or UI frame (log once, show in the overlay, never crash the game), and `SimQueries` for tagged ships, human ships and sim lookups. Use them before you write a new one.
+- Shared helpers in Core: `Errors.Guard` / `Errors.Report` for any failure in a patch, sim tick or UI frame (log once, show in the overlay, never crash the game), `SimQueries` for tagged ships, human ships and sim lookups, and `ShipBuilder` for ships that Hot Cargo designs from vanilla parts. Use them before you write a new one.
 - `mod/mod.header.rules`: the mod header. `scripts/assemble-mod.sh` builds `mod.rules` from it and from every `mod/<area>/actions.rules`.
 - `mod/<area>/actions.rules`: only Action objects `{ ... }`, without an outer list.
 - `mod/<area>/strings.en.rules`: string sections for the area. Two areas must not define the same top-level section.

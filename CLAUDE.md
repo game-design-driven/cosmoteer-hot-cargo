@@ -50,7 +50,7 @@ Procedures are skills in `.claude/skills/`:
 
 ## Rules for code
 
-- Simplest code that works. Look for an existing helper (ours or the game's) first. Shared helpers: `Core/SimQueries.cs`, `Core/Errors.cs`, `Autotest.Teleport`, `Autotest.ClearSpotNear`, `Scaling.EnemyScale.Count`.
+- Simplest code that works. Look for an existing helper (ours or the game's) first. Shared helpers: `Core/SimQueries.cs`, `Core/Errors.cs`, `Core/ShipBuilder.cs` (ships designed from vanilla parts), `Autotest.Teleport`, `Autotest.ClearSpotNear`, `Scaling.EnemyScale.Count`.
 - Defensive code: null checks and guards. Unexpected input crashes, except a failing Harmony patch: it logs through `Core/Errors.cs` and shows in the overlay, and the game keeps running.
 - Every hostile spawn count goes through `Scaling.EnemyScale.Count` (C#) or a hostile rules spawner (scaled by the scaling patch).
 - Every designer number is a tunable with `[Serialize(Optional = true)]`, a default and a doc comment. The doc comment is the description in the in-game settings window. A tunable that does not apply at once gets an entry in `TunablesMenu/TunableTiming.cs` and in `TUNABLES.md`.

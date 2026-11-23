@@ -14,7 +14,7 @@ src/HotCargo.Loader/       startup hook entry point, assembly resolve
 src/HotCargo/
   Mod.cs                   Harmony setup, area registration
   Core/                    Run, RunState (save), Tunables, TunablesFile (live reload, validation), HeatModel,
-                           CareerPatches (lifecycle), Activation (requirement 63), Errors, SimQueries, DebugKeys
+                           CareerPatches (lifecycle), Activation (requirement 63), Errors, SimQueries, ShipBuilder, DebugKeys
   <Area>/                  one folder for each area: <Area>Area.Register, <Area>Hub.cs (its Tunables and RunState fields), tunables, patches
   Ai/                      enemy AI behaviors (flee, call, regroup, focus) and personalities; TacticsArea registers it, Tactics tunables
   ShipAi/                  player ship tactics: model (ShipAiModel), per-ship state and save hooks (ShipTactics), sim controller, MP input, editor
