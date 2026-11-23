@@ -1,0 +1,35 @@
+# Counter kiting (spec 1900 to 1907): an enemy that a player ship outranges and hits stops feeding it. It closes in hard; when the
+# kiter keeps the gap, it breaks off and holds out of reach.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+shieldplayers on
+tacticlog on
+# Without personalities the build decides (spec 1902). Every ship counts as fast, so the first answer is a close in.
+aiset PersonalitiesEnabled false
+aiset CloseInAgility 0
+# A short close in: the Helioblade would destroy a tier 1 pirate before the default time runs out.
+aiset CloseInSeconds 5
+aiset FleeOnVanilla false
+aiset CallOnVanilla false
+aispawn pirates 1 1
+# Tier 1 pirates reach 260; a Helioblade reaches 700, so it outranges them.
+aiplayership hull=Helioblade
+wait 2
+# The player guns stay off (they would strip the pirate's weapons), and test damage stands in for the hits. A weapon that is off still
+# counts for the kiter's range: its player can turn it on at any time.
+playerweapons off
+playerweapons off Helioblade
+# Away from the start system's station: its guards fight pirates too.
+kiteplayer 0 away 8000
+wait 5
+aidamage new 0.9
+waitfor ai_kite_answer == 1 60
+# The kite keeps the gap, so the close in fails and the ship breaks off (spec 1903).
+waitfor ai_kite_answer == 4 40
+# The kite stops: the ship holds outside the player ship's reach (spec 1904).
+kiteplayer off
+waitfor ai_kite_out_of_reach == 1 40
+expect ai_kite_answer == 4
+quit

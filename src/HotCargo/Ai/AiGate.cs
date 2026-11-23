@@ -10,7 +10,7 @@ using HotCargo.Tactics;
 
 namespace HotCargo.Ai;
 
-public enum Behavior { Flee, Call, Focus, Regroup }
+public enum Behavior { Flee, Call, Focus, Regroup, CounterKite }
 
 /// <summary>
 /// Decides if an enemy AI behavior is on (spec 202), and holds the shared lookups of the behaviors.
@@ -31,6 +31,7 @@ public static class AiGate
             Behavior.Call => hunter ? t.CallEnabled : t.CallOnVanilla,
             Behavior.Focus => hunter ? t.FocusEnabled : t.FocusOnVanilla,
             Behavior.Regroup => hunter ? t.RegroupEnabled : t.RegroupOnVanilla,
+            Behavior.CounterKite => hunter ? t.CounterKiteEnabled : t.CounterKiteOnVanilla,
             _ => throw new ArgumentOutOfRangeException(nameof(behavior), behavior, null),
         };
         return on ? t : null;

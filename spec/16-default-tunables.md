@@ -82,6 +82,9 @@
 | `FocusWeakFactor` | 1.5 | 200 |
 | `RegroupFirepowerRatio`, `RegroupRadius`, `RegroupMinGroup`, `RegroupMaxSeconds` | 0.75, 1200, 2, 25 s | 201 |
 | `TraderFleeStopFactor`, `FirepowerWeaponCap` | 1.75, 8000 | 1531, 1533 |
+| `CounterKiteEnabled`, `CounterKiteOnVanilla`, `KiteReadSeconds`, `KiteReadLoss` | on, on, 20 s, 0.03 | 1900 to 1902, 1907 |
+| `CloseInAgility`, `CloseInSeconds`, `CloseInGain`, `BreakOffMargin` | 0.5, 15 s, 0.2, 600 | 1902 to 1904 |
+| `AnvilNebulas`, `AnvilNebulaRange`, `AnvilNebulaStrength`, `AnvilSpreadDegrees`, `AnvilMemorySeconds` | [electron, cloudy], 4000, 0.5, 45°, 60 s | 1906 |
 | `PersonalitiesEnabled`, `PersonalityThreshold`, `ProfileRefreshSeconds` | on, 0.45, 10 s | 360, 362, 363 |
 | `Personalities` | see section 31 | 361 |
 | `Profile` (build score ends) | see `ProfileScaleTunables` | 362 |

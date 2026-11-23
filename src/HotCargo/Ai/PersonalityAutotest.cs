@@ -2,6 +2,7 @@ using System.Globalization;
 using Cosmoteer;
 using Cosmoteer.Data;
 using Cosmoteer.Factions;
+using Cosmoteer.Game;
 using Cosmoteer.Generators.Simulation;
 using Cosmoteer.Modes.Career;
 using Cosmoteer.Ships;
@@ -24,8 +25,61 @@ internal static class PersonalityAutotest
 {
     static readonly ID<BuiltinShipTag> Combat = new("combat");
 
+    /// <summary>The hostile ship that kiteplayer kites, and whether the kite runs now (counter kiting, spec 1907).</summary>
+    static ObjectID _kitee;
+    static bool _kiting, _kiteHooked;
+
+    static Ship Kitee() => Sim().Ships[_kitee] ?? throw new InvalidOperationException("kiteplayer: the kited ship is gone");
+
+    /// <summary>The human ship with the longest weapon range (ties: the lowest ID): the kiter of kiteplayer.</summary>
+    static Ship? Kiter(SimRoot sim) => sim.Ships.HumanPlayerSignificantShips.OrderByDescending(s => HunterOrders.MaxWeaponRange(s, onlyActive: false))
+        .ThenBy(s => s.UniqueID).FirstOrDefault();
+
+    /// <summary>Each sim tick while the kite runs: the kiter keeps halfway between the two weapon ranges, edge to edge.</summary>
+    static void KiteTick(Run run, SimRoot sim)
+    {
+        if (!_kiting || sim != run.Game.Sim || Kiter(sim) is not { } player || sim.Ships[_kitee] is not { IsJunk: false } enemy) return;
+        float edge = (HunterOrders.MaxWeaponRange(enemy, onlyActive: true) + CounterKiteStrategy.Reach(player)) * 0.5f;
+        float center = edge + enemy.WorldBoundingRadius + player.WorldBoundingRadius;
+        Autotest.Teleport(player, enemy.DetWorldCenter + Vector2.FromAngle(enemy.DetWorldCenter.DirectionTo(player.DetWorldCenter)) * center);
+    }
+
     public static void Register()
     {
+        // kiteplayer <index> [away <distance>]|off: from now on the human ship with the longest range keeps halfway between the longest
+        // weapon range of hostile ship <index> (Hostile order) and its own, edge to edge, each sim tick: a perfect kite. away: first moves
+        // the hostile ship this far from the first human ship, out of reach of the start system's guards. off stops the kite, the ship
+        // stays. Test only, single player.
+        Autotest.Commands["kiteplayer"] = arg =>
+        {
+            if (Autotest.RequireRun().IsMultiplayer) throw new InvalidOperationException("kiteplayer is single player only");
+            if (!_kiteHooked) Run.Hooks.Tick += (run, sim, _) => KiteTick(run, sim);
+            _kiteHooked = true;
+            if (arg.Trim() == "off")
+            {
+                _kiting = false;
+                return;
+            }
+            var words = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length is not (1 or 3) || words.Length == 3 && words[1] != "away") throw new InvalidOperationException("kiteplayer needs: <index> [away <distance>] | off");
+            var enemy = Hostile()[int.Parse(words[0], CultureInfo.InvariantCulture)];
+            var player = Kiter(Sim()) ?? throw new InvalidOperationException("no human ship");
+            if (words.Length == 3)
+            {
+                var first = SimQueries.FirstHumanShip(Sim()) ?? throw new InvalidOperationException("no human ship");
+                float away = float.Parse(words[2], CultureInfo.InvariantCulture);
+                Autotest.Teleport(enemy, Autotest.ClearSpotNear(Sim(), first.DetWorldCenter + new Vector2(away, 0f), enemy.WorldBoundingRadius, enemy.WorldBoundingRadius));
+            }
+            float own = HunterOrders.MaxWeaponRange(enemy, onlyActive: true), theirs = CounterKiteStrategy.Reach(player);
+            Log.Info($"AUTOTEST kiteplayer: {player.Metadata.PlainShipName} (range {theirs:0}) kites {enemy.Metadata.PlainShipName} id={enemy.UniqueID} (range {own:0})");
+            if (theirs <= own + 200f) throw new InvalidOperationException($"kiteplayer: the player range {theirs:0} must be 200 more than the enemy range {own:0}");
+            (_kitee, _kiting) = (enemy.UniqueID, true);
+        };
+        // The answer of the kited ship (KiteAnswer: 0 none, 1 close in, 2 call, 3 team, 4 break off), and 1 when it is out of the
+        // player ship's reach.
+        Autotest.Fields["ai_kite_answer"] = () => (int)(Kitee().AI?.GetStrategyModule<CounterKiteStrategy>()?.Answer ?? KiteAnswer.None);
+        Autotest.Fields["ai_kite_out_of_reach"] = () => Kiter(Sim()) is { } p
+            && HunterOrders.EdgeDistance(Kitee(), p) > CounterKiteStrategy.Reach(p) ? 1 : 0;
         Autotest.Fields["ai_hostile"] = () => Hostile().Count;
         foreach (var trait in Enum.GetValues<Trait>())
             Autotest.Fields[$"ai_has_{trait.ToString().ToLowerInvariant()}"] = () => Hostile().Count(s => PersonalityStrategy.Traits(s, T()).Has(trait));
@@ -157,18 +211,23 @@ internal static class PersonalityAutotest
                 rock.SpawnAt(sim, center + Vector2.FromAngle(i * MathF.Tau / count) * distance, Direction.Zero, sim.Rand, null, null, null, loadInstantly: true);
             Log.Info($"AUTOTEST {count} rocks at {distance:0} from the player");
         };
-        // aiplayership [distance]: one more human ship next to the player ship, so a team has two targets to choose from. With a
-        // distance: at least that far (center to center) from the first live ship of the last aispawn instead. Test only.
+        // aiplayership [distance] [hull=<ship name>]: one more human ship next to the player ship, so a team has two targets to choose
+        // from. With a distance: at least that far (center to center) from the first live ship of the last aispawn instead. With a hull:
+        // that built-in combat ship of any tier, else a random tier 1-2 combat ship. Test only.
         Autotest.Commands["aiplayership"] = arg =>
         {
             var sim = Sim();
             var player = SimQueries.FirstHumanShip(sim) ?? throw new InvalidOperationException("no human ship");
-            var pick = GameApp.Rules.BuiltinShips.GetRandomMatchingShip(sim.Rand, null, new Range<int>(1, 2), null, [Combat])
-                       ?? throw new InvalidOperationException("no tier 1-2 combat ship");
-            var loc = arg.Trim().Length == 0 ? Autotest.ClearSpotNear(sim, player.DetWorldCenter, 300f, 100f)
+            var words = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string? hull = words.FirstOrDefault(w => w.StartsWith("hull=", StringComparison.Ordinal))?["hull=".Length..];
+            string? distance = words.FirstOrDefault(w => !w.StartsWith("hull=", StringComparison.Ordinal));
+            var pick = hull is not null
+                ? GameApp.Rules.BuiltinShips.FirstOrDefault(b => b.File.ShipName == hull && b.Tags.Contains(Combat)) ?? throw new InvalidOperationException($"no built-in combat ship '{hull}'")
+                : GameApp.Rules.BuiltinShips.GetRandomMatchingShip(sim.Rand, null, new Range<int>(1, 2), null, [Combat]) ?? throw new InvalidOperationException("no tier 1-2 combat ship");
+            var loc = distance is null ? Autotest.ClearSpotNear(sim, player.DetWorldCenter, 300f, 100f)
                 : Autotest.ClearSpotNear(sim, (LastSpawned.Select(id => sim.Ships[id]).OfType<Ship>().FirstOrDefault(s => !s.IsJunk)
                     ?? throw new InvalidOperationException("no live ship of the last aispawn")).DetWorldCenter,
-                    float.Parse(arg.Trim(), CultureInfo.InvariantCulture), 100f);
+                    float.Parse(distance, CultureInfo.InvariantCulture), 100f);
             var spawner = new StasisShipSpawner(sim, pick.ID, loc, SpawnedShipFeatures.None, sim.Rand.UInt64())
                 { ObjectAllegiance = player.Metadata.PlayerIndex };
             spawner.Spawn(sim);

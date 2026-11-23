@@ -96,7 +96,8 @@ internal sealed class CallStrategy(CallStrategyRules rules) : AIStrategyModule
         // Spec 361: with personalities on, only ships with the Call trait call. Every ship can still answer.
         // Spec 196: the ship calls when the players first see it (not when it first shows as a radar blip), or on damage.
         bool seen = spotted is not null && AiGate.SeenByPlayers(ship, t);
-        bool triggered = spotted is not null && ((seen && !_seen) || damaged) && AiGate.PersonalityAllows(ship, Trait.Call, t);
+        // Spec 1902: a kited ship with the Call trait calls at once.
+        bool triggered = spotted is not null && ((seen && !_seen) || damaged || CounterKiteStrategy.WantsCall(ship)) && AiGate.PersonalityAllows(ship, Trait.Call, t);
         _seen = seen;
 
         bool inStorm = AiGate.InStorm(ship, t);
