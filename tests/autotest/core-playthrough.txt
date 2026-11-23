@@ -45,8 +45,10 @@ waitfor pt_drives == 1 240
 # The jump to sector 2 uses 3 hyperium (to Negero, playthrough log). 5 leaves room; a station can hold less than 20 (one CI run had 17).
 # Revisit if a jump of the starter ship costs more than 5.
 pt_buy 300 hyperium 5
-# The move order of the drive's parts panel: after a fire the crew did not refuel the new drive by themselves.
-pt_fuel
+# A part that burned long enough stays scorched and off until crew repair it to full health (vanilla). A drive that is off counts
+# no fuel, so repair again before the wait. With nothing hurt, pt_repair returns at once.
+pt_repair 300
+# The crew carry the bought hyperium into the drive by themselves. pt_fuel counts only working drives (FtlManager.GetTotalFuel).
 waitfor pt_fuel >= 3 60
 pt_status drive
 # The relay toward an unvisited system with the fewest enemies near the route (the log line "relays" shows the choice): fly
