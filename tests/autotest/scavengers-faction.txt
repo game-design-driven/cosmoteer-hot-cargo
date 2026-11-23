@@ -46,7 +46,9 @@ expect scav_enemy_player == 0
 # Spec 1340, 1344: pirates are enemies; a pirate that comes its way makes the weak scavenger flee.
 # A fresh scavenger next to the player: on Linux CI the provoked one was gone (a wreck or out of the live range) by now (#188).
 scav_new player
-aispawn pirates 1
+# A pinned hull: the random pick uses the sim random stream, and after #227 it gave Pinion, a pirate that the scavenger outguns, so it
+# rightly stayed (spec 1344: it runs unless it is clearly stronger). Ejecta is a threat that it must run from.
+aispawn pirates 1 1 hull=Ejecta
 waitfor scav_enemy_pirate == 1 30
 # The pirate comes to the scavenger and attacks it.
 scav_threat 800
