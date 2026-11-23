@@ -1,0 +1,34 @@
+# Pages from ships (spec 1815): Distress Beacon comes from the tender that hails, A Lab That Won't Take No from the lab's ship.
+# Windowed test slot or RUNNER=mac (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+closepanel
+wait 1
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+ev_set CooldownSeconds 0
+godmode on
+event distress_beacon
+ev_carrier_goto
+pause off
+waitfor ev_hailing == 1 20
+wait 1
+screenshot shiphail-distress-hail
+ev_open carrier
+ev_dialogue carrier
+wait 1
+screenshot shiphail-distress-comms
+ev_comms carrier Ignore it
+dip_close
+wait 1
+event research_shakedown
+ev_carrier_goto
+pause off
+waitfor ev_hailing == 1 20
+ev_open carrier
+ev_dialogue carrier
+wait 1
+screenshot shiphail-lab-comms
+quit

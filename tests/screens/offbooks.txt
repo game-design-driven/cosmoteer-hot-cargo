@@ -12,6 +12,7 @@ godmode on
 ev_tostation
 heat 30
 ev_open station
+ev_dialogue station
 ev_click station Sell crates off the books
 wait 1
 screenshot offbooks-quote
@@ -25,6 +26,6 @@ waitfor ob_fence == 1 20
 ev_open contact
 ev_click contact Hand over the crates
 pick 1
-wait 1
+wait 2
 screenshot offbooks-fence
 quit

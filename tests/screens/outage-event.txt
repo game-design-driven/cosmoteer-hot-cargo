@@ -1,0 +1,23 @@
+# Network outage (spec 922): an event heat gain that the outage blocks shows "Heat +0 (network down)" on the result page.
+# Windowed test slot or RUNNER=mac (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+closepanel
+wait 1
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+# Autotests start with the Pursuit off (spec 943).
+pu_set Enabled true
+pu_set ScoutChance 0
+pu_set BlockadeChance 0
+godmode on
+pu_outage 120 natural
+wait 3
+# Corporate Checkpoint, "Run the checkpoint" (choice 3, outcome 1): heat +15, blocked.
+event corporate_checkpoint
+choose 3 1
+wait 1
+screenshot outage-event-result
+quit
