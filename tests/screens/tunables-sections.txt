@@ -1,0 +1,24 @@
+# Settings menu section headers: long section descriptions (Worlds, Tactics, Ux) wrap at full size. Also the galaxy size row
+# (Journey.MapSystems, spec 1981). Windowed test slot or RUNNER=mac (needs graphics). The script changes no value.
+render on
+newgame run
+wait 10
+closepanel
+wait 1
+menu open
+wait 1.5
+menu search systemtypeweights
+wait 1.5
+screenshot menu-section-worlds
+menu search fallbackrecoverfraction
+wait 1.5
+screenshot menu-section-tactics
+menu search paymenthint
+wait 1.5
+screenshot menu-section-ux
+menu search mapsystems
+wait 1.5
+screenshot menu-mapsystems
+menu search
+menu close
+quit
