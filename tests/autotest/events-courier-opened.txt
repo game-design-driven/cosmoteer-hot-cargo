@@ -6,6 +6,8 @@ godmode on
 ev_set CourierChance 0
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0
+# No station attack: its roll uses the sim random stream, and raiders at the station left the contact without comms buttons.
+ev_set StationAttackChance 0
 worlds jumpto hc_trade_hub
 # Job 1: the contact notices the seal and pays 20 % less.
 ev_tostation
