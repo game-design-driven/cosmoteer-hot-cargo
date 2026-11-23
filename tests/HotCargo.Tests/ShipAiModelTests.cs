@@ -441,4 +441,27 @@ public class ShipAiModelTests
         Assert.Throws<ArgumentOutOfRangeException>(() => ShipAiModel.CardStateOf(0, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => ShipAiModel.CardStateOf(4, 3));
     }
+
+    [Fact]
+    public void A_target_row_picks_within_its_enemy_within_range()
+    {
+        Assert.Equal(1545f, ShipAiModel.EngageRange(new TacticRow([new Term(Cond.EnemyWithin, 1500)], Act.TargetWeakest, 0), 0.03f)!.Value, 2);
+        // The smallest range of an AND chain counts.
+        Assert.Equal(800f, ShipAiModel.EngageRange(new TacticRow([new Term(Cond.EnemyWithin, 1500), new Term(Cond.EnemyWithin, 800)], Act.TargetNearest, 0), 0f)!.Value);
+        // No limit: no "enemy within" term, only a NOT one, or an OR chain (one side can hold without the range).
+        Assert.Null(ShipAiModel.EngageRange(new TacticRow([new Term(Cond.Always, 0)], Act.TargetNearest, 0), 0.03f));
+        Assert.Null(ShipAiModel.EngageRange(new TacticRow([new Term(Cond.EnemyWithin, 1500, Not: true)], Act.TargetNearest, 0), 0.03f));
+        Assert.Null(ShipAiModel.EngageRange(new TacticRow([new Term(Cond.EnemyWithin, 1500), new Term(Cond.HealthBelow, 50, Or: true)], Act.TargetNearest, 0), 0.03f));
+    }
+
+    [Fact]
+    public void No_built_in_preset_hunts_an_enemy_anywhere_on_radar()
+    {
+        // Spec 406: a row that targets by distance, health or value must carry an engage range. Rows that target an attacker of this
+        // ship or of an ally answer a fight next to the fleet (the ally help radius limits them in the controller).
+        var anywhere = new[] { Act.TargetNearest, Act.TargetWeakest, Act.TargetStrongest };
+        foreach (var preset in Enum.GetValues<Preset>())
+            foreach (var row in ShipAiModel.PresetRows(preset).Where(r => anywhere.Contains(r.Act)))
+                Assert.True(ShipAiModel.EngageRange(row, 0f) is not null, $"{preset}: {row.Act} has no engage range");
+    }
 }

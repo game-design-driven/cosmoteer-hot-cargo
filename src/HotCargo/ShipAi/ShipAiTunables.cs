@@ -16,6 +16,12 @@ public sealed class ShipAiTunables
     [Serialize(Optional = true)] public float CloseInDistance = 100f;
     /// <summary>Retreat and repair, flee: the edge distance from the nearest enemy that the ship runs to. Retreat stops there.</summary>
     [Serialize(Optional = true)] public float RetreatDistance = 2000f;
+    /// <summary>
+    /// Spec 401, 402: "an ally under attack", "the enemy that attacks an ally" and the ally part of "the enemy that attacks a ship
+    /// with a Tech Vault" count only allies within this edge distance of the ship, or of its guard target when it has a Guard row.
+    /// A large value (20000) gives the old reach: any ally in the system.
+    /// </summary>
+    [Serialize(Optional = true)] public float AllyHelpRadius = 2000f;
     /// <summary>Hold position: the ship goes back to its spot when it drifts further than this.</summary>
     [Serialize(Optional = true)] public float HoldTolerance = 150f;
     /// <summary>

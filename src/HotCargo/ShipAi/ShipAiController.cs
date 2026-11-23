@@ -103,7 +103,7 @@ internal static class ShipAiController
         var view = new View(run, ship, t);
         var d = ShipAiModel.Evaluate(rows, view.Facts(), view.CanRun, t.Memory, HunterOrders.Sim(ship).LogicalTime.Seconds,
             new Hysteresis(tun.HysteresisMargin, tun.MinHoldSeconds));
-        Ship? target = d.TargetRow >= 0 ? view.TargetFor(rows[d.TargetRow].Act) : null;
+        Ship? target = d.TargetRow >= 0 ? view.TargetFor(rows[d.TargetRow]) : null;
         // Spec 1064: "return to me" replaces the move rows.
         Act? move = t.Recall ? Act.ReturnToFleet : d.MoveRow >= 0 ? rows[d.MoveRow].Act : null;
         Ship? guarded = move == Act.Guard ? view.GuardTarget((GuardWho)rows[d.MoveRow].ActParam) : null;
@@ -658,12 +658,13 @@ internal static class ShipAiController
     {
         readonly Run _run;
         readonly Ship _self;
+        readonly ShipTactics _tactics;
         readonly List<Ship> _enemies = [];
         readonly List<Ship> _attackers = [];
         public readonly List<Ship> Allies = [];
         /// <summary>Tech crates that this ship's team sees, in nugget order.</summary>
         public readonly List<Nugget> Crates = [];
-        readonly Dictionary<Act, Ship?> _targets = [];
+        readonly Dictionary<(Act, float?), Ship?> _targets = [];
         /// <summary>The conditions that the rows use: costly facts (loot, stations, asteroids, wrecks) are only read for them.</summary>
         readonly HashSet<Cond> _uses;
         public readonly Autonomy.CargoSettings Cargo;
@@ -673,6 +674,7 @@ internal static class ShipAiController
         {
             _run = run;
             _self = self;
+            _tactics = t;
             Cargo = t.Cargo;
             _uses = t.Rows.SelectMany(r => r.Terms).Select(term => term.Cond).ToHashSet();
             var sim = HunterOrders.Sim(self);
@@ -696,6 +698,18 @@ internal static class ShipAiController
         }
 
         float Distance(Ship other) => HunterOrders.EdgeDistance(_self, other);
+
+        Ship? _anchor;
+
+        /// <summary>
+        /// Spec 401: where the ally help radius is measured from: the guard target of the first Guard row that has one, else this ship.
+        /// A ship that guards a far ally helps around that ally, not around itself.
+        /// </summary>
+        Ship Anchor => _anchor ??= _tactics.Rows.Where(r => r.Act == Act.Guard).Select(r => GuardTarget((GuardWho)r.ActParam)).FirstOrDefault(g => g is not null) ?? _self;
+
+        /// <summary>Spec 401, 402: an ally (not this ship) within AllyHelpRadius of the anchor, edge to edge.</summary>
+        bool HelpsAlly(Ship ally) =>
+            ally != _self && Allies.Contains(ally) && (ally == Anchor || HunterOrders.EdgeDistance(Anchor, ally) <= _run.T.ShipAi.AllyHelpRadius);
 
         public Ship? NearestEnemy => _enemies.MinBy(Distance);
 
@@ -766,7 +780,7 @@ internal static class ShipAiController
                 LostParts: lost,
                 NearestEnemy: NearestEnemy is { } n ? Distance(n) : float.PositiveInfinity,
                 TargetedByEnemy: _attackers.Any(a => AttackTarget(a) == _self),
-                AllyUnderAttack: _attackers.Any(a => AttackTarget(a) is { } v && v != _self && Allies.Contains(v)),
+                AllyUnderAttack: _attackers.Any(a => AttackTarget(a) is { } v && HelpsAlly(v)),
                 Ammo: Fraction(_self, AmmoIds(_self.Rules)),
                 Battery: Fraction(_self, [Battery]),
                 EnemyClasses: classes,
@@ -851,7 +865,7 @@ internal static class ShipAiController
 
         public bool CanRun(TacticRow row) => ShipAiModel.KindOf(row.Act) switch
         {
-            ActKind.Target => TargetFor(row.Act) is not null,
+            ActKind.Target => TargetFor(row) is not null,
             // A facing row turns an attack: it needs an enemy.
             ActKind.Facing => _enemies.Count > 0,
             ActKind.Move => row.Act switch
@@ -879,23 +893,30 @@ internal static class ShipAiController
             _ => true,
         };
 
-        public Ship? TargetFor(Act act)
+        /// <summary>
+        /// Spec 402: the target of a target row. A row with an engage range (ShipAiModel.EngageRange) picks only among the enemies
+        /// within it, so "enemy within R → target weakest" never picks a weak ship far away.
+        /// </summary>
+        public Ship? TargetFor(TacticRow row)
         {
-            if (_targets.TryGetValue(act, out var cached)) return cached;
+            var act = row.Act;
+            float? range = ShipAiModel.EngageRange(row, _run.T.ShipAi.HysteresisMargin);
+            if (_targets.TryGetValue((act, range), out var cached)) return cached;
+            var enemies = range is { } r ? _enemies.Where(e => Distance(e) <= r).ToList() : _enemies;
             // OrderBy is stable, so ties keep the sim order and every machine picks the same ship.
             Ship? pick = act switch
             {
-                Act.TargetNearest => NearestEnemy,
-                Act.TargetWeakest => _enemies.OrderBy(HunterOrders.HealthFraction).ThenBy(Distance).FirstOrDefault(),
-                Act.TargetStrongest => _enemies.OrderByDescending(e => e.BaseBlueprintCost).ThenBy(Distance).FirstOrDefault(),
-                Act.TargetAllyAttacker => _enemies.Where(e => AttackTarget(e) is { } v && v != _self && Allies.Contains(v)).MinBy(Distance),
-                Act.TargetVaultAttacker => _enemies.Where(e => AttackTarget(e) is { } v && (v == _self || Allies.Contains(v)) && HasVault(v)).MinBy(Distance),
-                Act.TargetTechHolder => _enemies.Where(HoldsTech).MinBy(Distance),
-                Act.TargetCaller => Caller,
-                Act.TargetMyAttacker => _enemies.Where(e => AttackTarget(e) == _self).MinBy(Distance),
+                Act.TargetNearest => enemies.MinBy(Distance),
+                Act.TargetWeakest => enemies.OrderBy(HunterOrders.HealthFraction).ThenBy(Distance).FirstOrDefault(),
+                Act.TargetStrongest => enemies.OrderByDescending(e => e.BaseBlueprintCost).ThenBy(Distance).FirstOrDefault(),
+                Act.TargetAllyAttacker => enemies.Where(e => AttackTarget(e) is { } v && HelpsAlly(v)).MinBy(Distance),
+                Act.TargetVaultAttacker => enemies.Where(e => AttackTarget(e) is { } v && (v == _self || HelpsAlly(v)) && HasVault(v)).MinBy(Distance),
+                Act.TargetTechHolder => enemies.Where(HoldsTech).MinBy(Distance),
+                Act.TargetCaller => enemies.Where(Calls).MinBy(Distance),
+                Act.TargetMyAttacker => enemies.Where(e => AttackTarget(e) == _self).MinBy(Distance),
                 _ => throw new ArgumentOutOfRangeException(nameof(act), act, "not a target action"),
             };
-            _targets[act] = pick;
+            _targets[(act, range)] = pick;
             return pick;
         }
 
