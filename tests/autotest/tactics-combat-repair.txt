@@ -24,7 +24,8 @@ aiset FallBackMaxSeconds 600
 aiset FallBackResupplyEnabled false
 openspace 6000
 fr_kill_enemies
-aispawn pirates 1 3 trade
+# A fixed hull: the random pick depends on the sim random stream (#209 moved it; the other pick, Erato, never came into combat with the player ship).
+aispawn pirates 1 3 trade hull=Chalcis
 wait 3
 aistrip 0 resources
 aidamage 0 0.3

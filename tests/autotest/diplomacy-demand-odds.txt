@@ -25,6 +25,8 @@ aiplayership 1800
 wait 3
 expect ai_humanships >= 6
 # The fault: the vanilla rule alone demands (it ignores part damage, the player ships beyond 1,500 and all but one player ship's cost).
+# The ship's vanilla roll to consider the players' surrender is set, so the check does not depend on the ship ID.
+dip_ai_accepts
 dip_set RiskEnabled false
 expect dip_demands == 1
 # The risk model: the damaged ship against the players' whole fleet does not demand.
