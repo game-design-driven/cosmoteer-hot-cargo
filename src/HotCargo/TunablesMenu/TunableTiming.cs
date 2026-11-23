@@ -18,6 +18,8 @@ public enum Applies
     NextSystem,
     /// <summary>New runs only.</summary>
     NewRun,
+    /// <summary>The next new or loaded game (spec 1981): a value that must not change while ships exist, such as a storage size.</summary>
+    NextGame,
 }
 
 /// <summary>
@@ -145,6 +147,17 @@ public static class TunableTiming
         ["PursuitTunables.FleetFactorMax"] = Applies.NextSpawn,
         ["PursuitTunables.OutageSeconds"] = Applies.NextUse,
         ["PursuitTunables.HackerOutageSeconds"] = Applies.NextUse,
+        // Spec 1980 to 1983: values of the vanilla rules files.
+        ["BalanceTunables.FuelStackSize"] = Applies.NextGame,
+        ["BalanceTunables.StationFuelTypedMin"] = Applies.NextSystem,
+        ["BalanceTunables.StationFuelTypedMax"] = Applies.NextSystem,
+        ["BalanceTunables.StationFuelUntypedMin"] = Applies.NextSystem,
+        ["BalanceTunables.StationFuelUntypedMax"] = Applies.NextSystem,
+        ["JourneyTunables.FinalSectorTier"] = Applies.NewRun,
+        ["JourneyTunables.MapSystems"] = Applies.NewRun,
+        ["WorldsTunables.SystemTypeWeights"] = Applies.NewRun,
+        ["SystemTypeWeight.Type"] = Applies.NewRun,
+        ["SystemTypeWeight.Weight"] = Applies.NewRun,
     };
 
     public static Applies Of(FieldInfo field) =>

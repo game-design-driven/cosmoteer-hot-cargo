@@ -18,6 +18,14 @@ public static class TunablesFile
     /// <summary>Error text of the last failed read, or null after a good read.</summary>
     public static string? LastError { get; private set; }
 
+    /// <summary>
+    /// The tunables of a new game before its run starts (the galaxy and the first system generate before Run.Start): this
+    /// machine's file in single player, the defaults in co-op, like Run.Start. Each co-op machine builds the new game itself,
+    /// and the host's file arrives only after the start (TunablesInput), so every machine must use the same values here.
+    /// </summary>
+    public static Tunables ForNewGame(Cosmoteer.Game.GameRoot game) =>
+        game.NetManager.IsMultiplayer ? new Tunables() : Read()?.Values ?? new Tunables();
+
     /// <summary>Valid tunables, their short hash and the file bytes that they come from (the multiplayer input sends the bytes).</summary>
     public sealed record Loaded(Tunables Values, string Hash, byte[] Bytes);
 
@@ -111,6 +119,16 @@ public static class TunablesFile
         Require(t.Journey.RewardScale > 0 && t.Journey.TechCostScale >= 0, "Journey.RewardScale must be above 0 and Journey.TechCostScale must not be negative");
         Require(t.Journey.MissionMoneyScale > 0, "Journey.MissionMoneyScale must be above 0");
         Require(t.Balance.StationFuelPerMillion >= 0 && t.Balance.StationFuelMinimum >= 0, "Balance.StationFuelPerMillion and StationFuelMinimum must not be negative");
+        var b = t.Balance;
+        Require(b.FuelPrice >= 1 && b.FuelStackSize >= 1, "Balance.FuelPrice and FuelStackSize must be 1 or more");
+        Require(b.MapJumpFuelCostPerMassDistance >= 0 && b.LocalJumpFuelCostPerMassDistance >= 0, "Balance jump fuel costs must not be negative");
+        Require(b.StationFuelTypedMin is >= 0 and <= 1 && b.StationFuelTypedMax >= b.StationFuelTypedMin && b.StationFuelTypedMax <= 1
+            && b.StationFuelUntypedMin is >= 0 and <= 1 && b.StationFuelUntypedMax >= b.StationFuelUntypedMin && b.StationFuelUntypedMax <= 1,
+            "Balance.StationFuel shares must be 0 to 1, min at most max");
+        Require(t.Journey.FinalSectorTier is >= 2 and <= 15, "Journey.FinalSectorTier must be 2 to 15 (faction home systems sit 3 tiers higher; the tier tables end at 18)");
+        Require(t.Journey.MapSystems is >= 10 and <= 200, "Journey.MapSystems must be 10 to 200");
+        Require(t.Worlds.SystemTypeWeights.All(w => w.Type.Length > 0 && w.Weight >= 0) && t.Worlds.SystemTypeWeights.Any(w => w.Weight > 0),
+            "Worlds.SystemTypeWeights entries need a Type and a weight of 0 or more, and one weight above 0");
         Require(t.Chains.MaxNewChainsPerSystem >= 0, "Chains.MaxNewChainsPerSystem must not be negative");
         Missions.Mechanics.MechanicsTunables.Validate(t.Mechanics);
         // Level IDs are checked once the game rules exist; the boot-time check of the defaults runs before that.

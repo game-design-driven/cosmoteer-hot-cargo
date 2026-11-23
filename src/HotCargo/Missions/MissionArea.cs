@@ -190,7 +190,7 @@ public static class MissionArea
     /// </summary>
     internal static MissionTunables TunablesFor(GameRoot game) =>
         Run.Current is { } run && run.Game == game ? run.T.Missions
-        : (game.NetManager.IsMultiplayer ? new Tunables() : TunablesFile.Read()?.Values ?? new Tunables()).Missions;
+        : TunablesFile.ForNewGame(game).Missions;
 
     static int _markedMoney;
     static float _markedEscortDist;
