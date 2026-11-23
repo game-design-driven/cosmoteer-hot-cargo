@@ -82,15 +82,10 @@ public static class ShipAiArea
 
         static Button NewButton(string tipKey)
         {
-            var b = new Button();
-            b.CopySettingsFrom(WidgetRules.Instance.FlatButton);
+            var b = Ui.FlatButton.New("", Click);
             b.Width = 72f;
             b.Height = 34f;
-            b.StateNormalTextRenderer.XmlFormatting = true;
-            b.StateHighlightedTextRenderer.XmlFormatting = true;
-            b.StatePressedTextRenderer.XmlFormatting = true;
             b.ToolTips.TextProvider = new Ux.LiveText(() => Strings.GetText(tipKey));
-            b.Clicked += (_, _) => Errors.Guard("tactics card click", Click);
             return b;
         }
 

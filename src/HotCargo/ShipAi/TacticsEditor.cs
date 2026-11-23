@@ -272,12 +272,12 @@ internal sealed class TacticsEditor : WindowBox
         _presets.ToolTips.TextProvider = new Ux.LiveText(() => Text("PresetTip"));
         _presets.ListBox.SelectionManager.WidgetSelected += (_, _) => UpdatePresetButtons();
         Place(bar, _presets, 26f, 22f);
-        Place(bar, NewButton("Apply", ApplyPreset), 48f, 9f);
-        _deletePreset = NewButton("DeletePreset", DeletePreset);
+        Place(bar, Ui.FlatButton.New(Text("Apply"), ApplyPreset), 48f, 9f);
+        _deletePreset = Ui.FlatButton.New(Text("DeletePreset"), DeletePreset);
         Place(bar, _deletePreset, 57f, 9f);
-        Place(bar, NewButton("Copy", Copy), 66f, 11f);
-        Place(bar, NewButton("Paste", Paste), 77f, 11f);
-        Place(bar, NewButton("Clear", () => { _rows.Clear(); SendRows(); }), 88f, 12f);
+        Place(bar, Ui.FlatButton.New(Text("Copy"), Copy), 66f, 11f);
+        Place(bar, Ui.FlatButton.New(Text("Paste"), Paste), 77f, 11f);
+        Place(bar, Ui.FlatButton.New(Text("Clear"), () => { _rows.Clear(); SendRows(); }), 88f, 12f);
         page.Children.Add(bar);
 
         var bar2 = Strip(36f);
@@ -287,8 +287,8 @@ internal sealed class TacticsEditor : WindowBox
         _presetName = new TextEditField(TextEditField.Style.SingleLine) { MaxTextLength = ShipAiModel.MaxPresetName };
         _presetName.ToolTips.TextProvider = new Ux.LiveText(() => Text("PresetNameTip"));
         Place(bar2, _presetName, 26f, 22f);
-        Place(bar2, NewButton("SavePreset", SavePreset), 48f, 18f);
-        _toSelected = NewButton("ToSelected", ApplyToSelected);
+        Place(bar2, Ui.FlatButton.New(Text("SavePreset"), SavePreset), 48f, 18f);
+        _toSelected = Ui.FlatButton.New(Text("ToSelected"), ApplyToSelected);
         _toSelected.ToolTips.TextProvider = new Ux.LiveText(() => Text("ToSelectedTip"));
         Place(bar2, _toSelected, 66f, 34f);
         page.Children.Add(bar2);
@@ -309,7 +309,7 @@ internal sealed class TacticsEditor : WindowBox
         _list.Children.WidgetPadding = new Vector2(8f);
         page.Children.Add(_list);
 
-        _add = NewButton("AddRow", AddRow);
+        _add = Ui.FlatButton.New(Text("AddRow"), AddRow);
         _add.Height = 34f;
         _add.PercentileWidth = 30f;
         page.Children.Add(_add);
@@ -358,15 +358,6 @@ internal sealed class TacticsEditor : WindowBox
         label.TextRenderer.FontSize = fontSize;
         label.TextRenderer.HAlignment = HAlignment.Left;
         return label;
-    }
-
-    static Button NewButton(string key, Action click)
-    {
-        var b = new Button();
-        b.CopySettingsFrom(WidgetRules.Instance.FlatButton);
-        b.Text = Text(key);
-        b.Clicked += (_, _) => Errors.Guard("tactics editor " + key, click);
-        return b;
     }
 
     /// <summary>A drop list of values with display texts. The current value is selected; a value outside the list is added first.</summary>
@@ -439,14 +430,14 @@ internal sealed class TacticsEditor : WindowBox
         loot.ToolTips.TextProvider = new Ux.LiveText(() => AText("LootTip"));
         Place(_cargoBar, loot, 6f, 16f);
         if (_cargo.LootTypes.Length > 0)
-            Place(_cargoBar, NewTextButton(AFormat("LootTypesFmt", Count(_cargo.LootTypes, "ListNone")),
+            Place(_cargoBar, Ui.FlatButton.New(AFormat("LootTypesFmt", Count(_cargo.LootTypes, "ListNone")),
                 () => Pick(AText("LootTypes"), false, _cargo.LootTypes, l => _cargo with { LootTypes = l.Length > 0 ? l : _cargo.LootTypes })), 22f, 14f);
-        Place(_cargoBar, NewTextButton(AFormat("SellFmt", Count(_cargo.Sell, "ListAll")), () => Pick(AFormat("SellFmt", ""), false, _cargo.Sell, l => _cargo with { Sell = l })), 36f, 14f);
-        Place(_cargoBar, NewTextButton(AFormat("MineFmt", Count(_cargo.Mine, "ListAny")), () => Pick(AFormat("MineFmt", ""), true, _cargo.Mine, l => _cargo with { Mine = l })), 50f, 14f);
-        Place(_cargoBar, NewTextButton(AFormat("BuyFmt", Count(_cargo.Buy, "ListNone")), () => Pick(AFormat("BuyFmt", ""), false, _cargo.Buy, l => _cargo with { Buy = l })), 64f, 14f);
+        Place(_cargoBar, Ui.FlatButton.New(AFormat("SellFmt", Count(_cargo.Sell, "ListAll")), () => Pick(AFormat("SellFmt", ""), false, _cargo.Sell, l => _cargo with { Sell = l })), 36f, 14f);
+        Place(_cargoBar, Ui.FlatButton.New(AFormat("MineFmt", Count(_cargo.Mine, "ListAny")), () => Pick(AFormat("MineFmt", ""), true, _cargo.Mine, l => _cargo with { Mine = l })), 50f, 14f);
+        Place(_cargoBar, Ui.FlatButton.New(AFormat("BuyFmt", Count(_cargo.Buy, "ListNone")), () => Pick(AFormat("BuyFmt", ""), false, _cargo.Buy, l => _cargo with { Buy = l })), 64f, 14f);
         // Spec 1064: only an autonomous ship needs a recall switch; the player gives a crewed ship orders.
         if (!Autonomy.Autonomous.IsAutonomous(_ship)) return;
-        var recall = XmlButton(AText(_recall ? "ReturnOn" : "ReturnOff"), AText("ReturnTip"), () => { _recall = !_recall; Send(); _dirty = true; });
+        var recall = Ui.FlatButton.New(AText(_recall ? "ReturnOn" : "ReturnOff"), () => { _recall = !_recall; Send(); _dirty = true; }, AText("ReturnTip"));
         Place(_cargoBar, recall, 78f, 22f);
     }
 
@@ -465,15 +456,6 @@ internal sealed class TacticsEditor : WindowBox
         _picker?.Unparent();
         _picker = new CargoPicker(AFormat("PickTitleFmt", title), mine, current, list => EditCargo(change(list)));
         _run.Game.Gui.FloatingWindows.AddChild(_picker);
-    }
-
-    static Button NewTextButton(string text, Action click)
-    {
-        var b = new Button();
-        b.CopySettingsFrom(WidgetRules.Instance.FlatButton);
-        b.Text = text;
-        b.Clicked += (_, _) => Errors.Guard("tactics editor cargo", click);
-        return b;
     }
 
     void EditCargo(Autonomy.CargoSettings cargo)
@@ -537,10 +519,10 @@ internal sealed class TacticsEditor : WindowBox
             when.TextRenderer.HAlignment = HAlignment.Center;
             Place(line, when, ColJoin, ColNot - ColJoin);
         }
-        else Place(line, XmlButton(Text(term.Or ? "Or" : "And"), Text("ConnectorTip"), () => EditTerm(i, j, t => t with { Or = !t.Or })), ColJoin + indent, ColNot - ColJoin);
+        else Place(line, Ui.FlatButton.New(Text(term.Or ? "Or" : "And"), () => EditTerm(i, j, t => t with { Or = !t.Or }), Text("ConnectorTip")), ColJoin + indent, ColNot - ColJoin);
         // The opening brackets stand before NOT, as in the text form: a NOT belongs to its term, never to the bracket.
         if (term.Open > 0) Place(line, Bracket(new string('(', term.Open)), ColNot + indent, BracketWidth);
-        Place(line, XmlButton(Text(term.Not ? "NotOn" : "NotOff"), Text("NotTip"), () => EditTerm(i, j, t => t with { Not = !t.Not })), ColNot + indent + BracketWidth, ColChoice - ColNot - BracketWidth);
+        Place(line, Ui.FlatButton.New(Text(term.Not ? "NotOn" : "NotOff"), () => EditTerm(i, j, t => t with { Not = !t.Not }), Text("NotTip")), ColNot + indent + BracketWidth, ColChoice - ColNot - BracketWidth);
         var cond = Choices(Enum.GetValues<Cond>().Select(c => (int)c), (int)term.Cond, v => Text("Cond_" + (Cond)v),
             v => EditTerm(i, j, t => ShipAiModel.WithCond(t, (Cond)v)));
         _choiceLists.Add(cond);
@@ -556,7 +538,7 @@ internal sealed class TacticsEditor : WindowBox
         Place(line, TipButton("InsertTerm", "InsertTermTip", () => Edit(i, ShipAiModel.InsertTerm(_rows[i], j))), 80f, 4f);
         Place(line, TipButton("BracketTerm", "BracketTermTip", () => Edit(i, ShipAiModel.Bracket(_rows[i], j))), 84f, 5f);
         if (term.Open > 0) Place(line, TipButton("Unbracket", "UnbracketTip", () => Edit(i, ShipAiModel.Unbracket(_rows[i], j))), 89f, 6f);
-        if (row.Terms.Length > 1) Place(line, NewButton("RemoveTerm", () => Edit(i, ShipAiModel.RemoveTerm(_rows[i], j))), 95f, 5f);
+        if (row.Terms.Length > 1) Place(line, Ui.FlatButton.New(Text("RemoveTerm"), () => Edit(i, ShipAiModel.RemoveTerm(_rows[i], j))), 95f, 5f);
     }
 
     /// <summary>The brackets of a term line, in the size of the AND/OR text.</summary>
@@ -570,7 +552,7 @@ internal sealed class TacticsEditor : WindowBox
 
     static Button TipButton(string key, string tipKey, Action click)
     {
-        var b = NewButton(key, click);
+        var b = Ui.FlatButton.New(Text(key), click);
         b.ToolTips.TextProvider = new Ux.LiveText(() => Text(tipKey));
         return b;
     }
@@ -594,27 +576,13 @@ internal sealed class TacticsEditor : WindowBox
             Place(line, param, ColParam, ParamWidth);
         }
         Place(line, TipButton("AddTerm", "AddTermTip", () => Edit(i, ShipAiModel.AddTerm(_rows[i]))), ColEnd, 7f);
-        var up = NewButton("Up", () => Swap(i, i - 1));
+        var up = Ui.FlatButton.New(Text("Up"), () => Swap(i, i - 1));
         up.SelfInputActive = i > 0;
         Place(line, up, 84f, 5f);
-        var down = NewButton("Down", () => Swap(i, i + 1));
+        var down = Ui.FlatButton.New(Text("Down"), () => Swap(i, i + 1));
         down.SelfInputActive = i < _rows.Count - 1;
         Place(line, down, 89f, 6f);
-        Place(line, NewButton("Remove", () => { _rows.RemoveAt(i); SendRows(); }), 95f, 5f);
-    }
-
-    /// <summary>A flat button whose text uses markup (the NOT and AND/OR toggles).</summary>
-    static Button XmlButton(string text, string tip, Action click)
-    {
-        var b = new Button();
-        b.CopySettingsFrom(WidgetRules.Instance.FlatButton);
-        b.StateNormalTextRenderer.XmlFormatting = true;
-        b.StateHighlightedTextRenderer.XmlFormatting = true;
-        b.StatePressedTextRenderer.XmlFormatting = true;
-        b.Text = text;
-        b.ToolTips.TextProvider = new Ux.LiveText(() => tip);
-        b.Clicked += (_, _) => Errors.Guard("tactics editor toggle", click);
-        return b;
+        Place(line, Ui.FlatButton.New(Text("Remove"), () => { _rows.RemoveAt(i); SendRows(); }), 95f, 5f);
     }
 
     // ---- Edits

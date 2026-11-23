@@ -4,6 +4,7 @@ using Cosmoteer.Game;
 using Cosmoteer.Game.Gui;
 using Cosmoteer.Modes.Career;
 using Cosmoteer.Modes.Creative.MPInputs;
+using Halfling.Graphics.Text;
 using Halfling.Gui;
 using Halfling.Network;
 using HarmonyLib;
@@ -33,7 +34,7 @@ static class ReadyBlockPatch
 /// <summary>Spec 954: the spin-up window greys out ENGAGE while the relays block relay jumps, and a line under it says why and how out.</summary>
 static class JumpWindowPatches
 {
-    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FtlJumpGui, Button> Lines = new();
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FtlJumpGui, Label> Lines = new();
 
     [HarmonyPatch(typeof(FtlJumpGui), MethodType.Constructor, typeof(GameRoot), typeof(GameGui))]
     static class Build
@@ -41,8 +42,12 @@ static class JumpWindowPatches
         static void Postfix(FtlJumpGui __instance) => UxKit.Guard("relay jump line", () =>
         {
             if (__instance._jumpBtn.Parent is not LayoutBox column) return;
-            var line = new Button { Height = 30f, SelfInputActive = false, SelfActive = false };
-            foreach (var r in new[] { line.StateNormalTextRenderer, line.StateDisabledTextRenderer }) r.XmlFormatting = true;
+            // A text line like the window's own waiting line (centered, wrapped), not a greyed-out button.
+            var line = new Label { SelfActive = false };
+            line.TextRenderer.XmlFormatting = true;
+            line.TextRenderer.HAlignment = HAlignment.Center;
+            line.TextRenderer.OversizeMode = OversizeMode.Wrap;
+            line.AutoSize.AutoHeightMode = AutoSizeMode.Enable;
             column.AddChild(line);
             Lines.Add(__instance, line);
         });
