@@ -17,6 +17,16 @@ You stole corporate tech. The corporation wants it back. Get it to the Buyer bef
 
 After a Cosmoteer update or a Steam "verify files", run `install.bat` again.
 
+## macOS
+
+Hot Cargo also runs in Cosmoteer for macOS, the Mac app of the Windows game.
+
+1. Install the app and start it once through Steam (see the app's own install steps). Close it.
+2. Open Terminal and run: `bash <unzipped folder>/install-mac.sh`
+3. Start the game. Hot Cargo is turned on already.
+
+After a Cosmoteer update, run `install-mac.sh` again. Without the `hot_cargo` folder next to it (for example in the repo), the script downloads the newest release.
+
 ## What the installer changes
 
 - It copies the mod to `Saved Games\Cosmoteer\<your id>\Mods\hot_cargo`.

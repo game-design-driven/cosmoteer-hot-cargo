@@ -17,7 +17,7 @@ sed "s/^Version = .*/Version = $VERSION/" "$OUT/hot_cargo/mod.rules" > "$STAGE/m
 mkdir -p "$OUT/hot_cargo/csharp" "$OUT/HotCargoLoader"
 cp "$BUILD/HotCargo.dll" "$BUILD/HotCargo.pdb" "$BUILD/HotCargo.xml" "$BUILD/0Harmony.dll" "$OUT/hot_cargo/csharp/"
 cp src/HotCargo.Loader/bin/Release/net10.0/HotCargo.Loader.dll src/HotCargo.Loader/VERSION "$OUT/HotCargoLoader/"
-cp release/install.ps1 release/install-paths.ps1 release/uninstall.ps1 release/install.bat release/uninstall.bat release/INSTALL.md "$OUT/"
+cp release/install.ps1 release/install-paths.ps1 release/uninstall.ps1 release/install.bat release/uninstall.bat release/install-mac.sh release/INSTALL.md "$OUT/"
 mkdir -p "$DEST"
 ZIP="$(cd "$DEST" && pwd)/hot-cargo-$VERSION.zip"
 rm -f "$ZIP"
