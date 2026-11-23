@@ -538,8 +538,9 @@ internal sealed class TacticsEditor : WindowBox
             Place(line, when, ColJoin, ColNot - ColJoin);
         }
         else Place(line, XmlButton(Text(term.Or ? "Or" : "And"), Text("ConnectorTip"), () => EditTerm(i, j, t => t with { Or = !t.Or })), ColJoin + indent, ColNot - ColJoin);
-        Place(line, XmlButton(Text(term.Not ? "NotOn" : "NotOff"), Text("NotTip"), () => EditTerm(i, j, t => t with { Not = !t.Not })), ColNot + indent, ColChoice - ColNot - BracketWidth);
-        if (term.Open > 0) Place(line, Bracket(new string('(', term.Open)), ColChoice + indent - BracketWidth, BracketWidth);
+        // The opening brackets stand before NOT, as in the text form: a NOT belongs to its term, never to the bracket.
+        if (term.Open > 0) Place(line, Bracket(new string('(', term.Open)), ColNot + indent, BracketWidth);
+        Place(line, XmlButton(Text(term.Not ? "NotOn" : "NotOff"), Text("NotTip"), () => EditTerm(i, j, t => t with { Not = !t.Not })), ColNot + indent + BracketWidth, ColChoice - ColNot - BracketWidth);
         var cond = Choices(Enum.GetValues<Cond>().Select(c => (int)c), (int)term.Cond, v => Text("Cond_" + (Cond)v),
             v => EditTerm(i, j, t => ShipAiModel.WithCond(t, (Cond)v)));
         _choiceLists.Add(cond);
