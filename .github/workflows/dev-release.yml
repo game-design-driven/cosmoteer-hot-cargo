@@ -34,6 +34,13 @@ jobs:
         run: |
           base="$(git describe --tags --abbrev=0 --exclude '*-dev.*')"
           version="${base#v}-dev.${{ github.run_number }}"
+          # One dev number names one commit. A re-run keeps its run number: it may only find its own tag on the same commit.
+          # gh release create reuses an existing tag and ignores --target, so a tag on another commit fails the run here.
+          existing="$(git ls-remote --tags origin "refs/tags/v$version" | cut -f1)"
+          if [[ -n "$existing" ]]; then
+            echo "::error::tag v$version already exists on $existing; this run builds $GITHUB_SHA. Delete the stale tag or run the workflow again."
+            exit 1
+          fi
           prev="$(git describe --tags --abbrev=0 --match 'v*-dev.*' 2>/dev/null || echo "$base")"
           game_version="$(scripts/game-version.sh)"
           zip="$(scripts/package.sh "$version" "$RUNNER_TEMP")"
@@ -47,4 +54,9 @@ jobs:
             git log --no-merges --format='- %s' "$prev..HEAD"
           } > "$RUNNER_TEMP/notes.md"
           gh release create "v$version" "$zip" --target "$GITHUB_SHA" --prerelease \
-            --title "Hot Cargo $version (dev)" --notes-file "$RUNNER_TEMP/notes.md"
+            --title "Hot Cargo $version (${GITHUB_SHA::7}, dev)" --notes-file "$RUNNER_TEMP/notes.md"
+          tagged="$(git ls-remote --tags origin "refs/tags/v$version" | cut -f1)"
+          if [[ "$tagged" != "$GITHUB_SHA" ]]; then
+            echo "::error::tag v$version points at $tagged, not at the built commit $GITHUB_SHA"
+            exit 1
+          fi
