@@ -71,6 +71,8 @@ public static class ScalingArea
 
         Autotest.Fields["enemysetting"] = () => EnemyScale.Setting(Game());
         Autotest.Fields["enemyfactor"] = () => EnemyScale.Factor(Game().Sim);
+        // Spec 1732: the co-op factor × the storyteller pressure of fights that are not hunter waves, × 1000 and rounded.
+        Autotest.Fields["fightfactor"] = () => Math.Round(EnemyScale.FightFactor(Game().Sim) * 1000);
         Autotest.Fields["fleetships"] = () => _fleetShips;
         Autotest.Fields["fleettargets"] = () => _fleetTargets;
         Autotest.Fields["tagcount"] = () => _tagCount;

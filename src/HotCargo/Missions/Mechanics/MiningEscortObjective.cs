@@ -402,8 +402,8 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
         if (WaveAllegiance == 0) WaveAllegiance = career.AllocUniquePlayerIndex();
         int live = SimQueries.TaggedShips(sim, WaveTag).Count(s => s.PlayerIndex == WaveAllegiance);
         // Spec 334: co-op scales the wave and the live cap.
-        int wanted = Scaling.EnemyScale.Count(MechanicsModel.WaveShipCount(t.ShipsBase, t.ShipsPerTier, Tier, 0, int.MaxValue), sim);
-        int count = Math.Clamp(wanted, 0, Math.Max(0, Scaling.EnemyScale.Cap(t.MaxLiveShips, sim) - live));
+        int wanted = Scaling.EnemyScale.FightCount(MechanicsModel.WaveShipCount(t.ShipsBase, t.ShipsPerTier, Tier, 0, int.MaxValue), sim);
+        int count = Math.Clamp(wanted, 0, Math.Max(0, Scaling.EnemyScale.FightCap(t.MaxLiveShips, sim) - live));
         int shipTier = MechanicsModel.WaveShipTier(t.ShipTierBase, t.ShipTierPerTier, Tier, t.ShipTierMax);
         WaveSpawns.Spawn(sim, miner.DetWorldCenter, sim.Rand.Direction(), count, shipTier, t.ShipTags, WaveAllegiance, WaveTag);
         WavesSent++;

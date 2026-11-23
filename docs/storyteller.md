@@ -1,6 +1,6 @@
 # Adaptive enemy AI: the storyteller (draft)
 
-Status: step 1 is built and its requirements are in `spec/62-storyteller.md` (1720 to 1731): the adaptation dial of section 2, approach A. **Step 2 is parked**: the plan of beats, Intel, the faction sweep, presets and a name for the storyteller. Do not build it. This doc keeps its background, its draft requirements (ST numbers) and its open questions. Yarden's decisions on 2026-11-17: step 1 only; the band is 0.85 to 1.25 (sector 1 at most 1.0); default on (off in autotests); long stays: measure first (option L0), no L1 or L2 now.
+Status: step 1 is built and its requirements are in `spec/62-storyteller.md` (1720 to 1734): the adaptation dial of section 2, approach A, on hunter waves and, since 2026-11-23, on every other fight (requirement 1732). **Step 2 is parked**: the plan of beats, Intel, the faction sweep, presets and a name for the storyteller. Do not build it. This doc keeps its background, its draft requirements (ST numbers) and its open questions. Yarden's decisions on 2026-11-17: step 1 only; the band is 0.85 to 1.25 (sector 1 at most 1.0); default on (off in autotests); long stays: measure first (option L0), no L1 or L2 now.
 
 The idea: a hidden storyteller watches how the players play and changes the enemy pressure: what spawns, when, and how hard. Intel gives the players part of its plan.
 

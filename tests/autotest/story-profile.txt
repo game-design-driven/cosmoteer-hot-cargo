@@ -38,7 +38,13 @@ story_adapt 60
 spawnstage Hunt
 wait 2
 expect story_last_mix > 1000
+# The other fights take the pressure too (spec 1732): solo the co-op factor is 1, so the fight factor is the pressure.
+expect fightfactor > 1000
+story_set AllFightsEnabled false
+expect fightfactor == 1000
+story_set AllFightsEnabled true
 # Off: the pressure is 1.
 story_set Enabled false
 expect story_pressure == 1000
+expect fightfactor == 1000
 quit

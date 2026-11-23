@@ -31,7 +31,11 @@ public class ScalingModelTests
         Assert.Equal(11, ScalingModel.Scale(10, ScalingModel.Factor(1.1f, 2), noRoll)); // no float noise roll
         Assert.Equal(2, ScalingModel.Scale(1, 1.5, () => 0.49));
         Assert.Equal(1, ScalingModel.Scale(1, 1.5, () => 0.5));
-        Assert.Throws<ArgumentOutOfRangeException>(() => ScalingModel.Scale(2, 0.9, noRoll));
+        // A factor below 1 (spec 1733): 2 × 0.9 = 1.8, so one ship and a chance of a second, but never none.
+        Assert.Equal(2, ScalingModel.Scale(2, 0.9, () => 0.79));
+        Assert.Equal(1, ScalingModel.Scale(2, 0.9, () => 0.8));
+        Assert.Equal(1, ScalingModel.Scale(1, 0.85, () => 0.99));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ScalingModel.Scale(2, 0, noRoll));
         Assert.Throws<ArgumentOutOfRangeException>(() => ScalingModel.Scale(-1, 1.5, noRoll));
     }
 
@@ -53,6 +57,8 @@ public class ScalingModelTests
         Assert.Equal(18, ScalingModel.Cap(12, 1.5));
         Assert.Equal(1, ScalingModel.Cap(1, 1.4));
         Assert.Equal(0, ScalingModel.Cap(0, 2));
+        Assert.Equal(3, ScalingModel.Cap(4, 0.85));
+        Assert.Equal(1, ScalingModel.Cap(1, 0.85));
     }
 
     [Fact]

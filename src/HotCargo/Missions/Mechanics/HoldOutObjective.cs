@@ -364,8 +364,8 @@ internal sealed class HoldOutObjective : Objective
         int boost = PendingIntensive;
         PendingIntensive = 0;
         // Spec 334: co-op scales the wave and the live cap.
-        int wanted = Scaling.EnemyScale.Count(MechanicsModel.WaveShipCount(t.ShipsBase + boost * mt.IntensiveExtraShips, t.ShipsPerTier, Tier, 0, int.MaxValue), sim);
-        int maxLive = Scaling.EnemyScale.Cap(t.MaxLiveShips + (int)MathF.Ceiling(boost * mt.IntensiveExtraShips), sim);
+        int wanted = Scaling.EnemyScale.FightCount(MechanicsModel.WaveShipCount(t.ShipsBase + boost * mt.IntensiveExtraShips, t.ShipsPerTier, Tier, 0, int.MaxValue), sim);
+        int maxLive = Scaling.EnemyScale.FightCap(t.MaxLiveShips + (int)MathF.Ceiling(boost * mt.IntensiveExtraShips), sim);
         int count = Math.Clamp(wanted, 0, Math.Max(0, maxLive - live));
         int shipTier = MechanicsModel.WaveShipTier(t.ShipTierBase + boost * mt.IntensiveExtraTier, t.ShipTierPerTier, Tier, t.ShipTierMax);
         Vector2 center = target.DetWorldCenter;

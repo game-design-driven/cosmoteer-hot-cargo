@@ -45,7 +45,7 @@ static class SpawnScalePatches
         int raw = __result;
         try
         {
-            if (IsGroup(s) && Scales(s)) __result = EnemyScale.Count(raw, sim, rand);
+            if (IsGroup(s) && Scales(s)) __result = EnemyScale.FightCount(raw, sim, rand);
         }
         catch (Exception ex)
         {
@@ -73,7 +73,8 @@ static class SpawnScalePatches
             try
             {
                 if (!IsGroup(s) || !Scales(s)) return;
-                double factor = EnemyScale.Factor(sim);
+                // A fight factor below 1 places fewer ships, so the spacing stays.
+                double factor = EnemyScale.FightFactor(sim);
                 if (factor <= 1 || !spacing.Any(t => tags.Contains(t.Tag))) return;
                 s.MinDistanceFromTags = spacing.Select(t => tags.Contains(t.Tag) ? (t.Tag, ScalingModel.Spacing(t.Distance, factor)) : t).ToList();
                 __state = spacing;
@@ -100,7 +101,7 @@ static class SpawnScalePatches
         {
             bool fleetSpawn = fleet >= 2 || __instance.Tags?.Contains(ScaleFleetTag) == true;
             if (fleet == 0 || !fleetSpawn || IsGroup(__instance) || !Scales(__instance)) return;
-            int wanted = EnemyScale.Count(fleet, sim, rand);
+            int wanted = EnemyScale.FightCount(fleet, sim, rand);
             for (int i = fleet; i < wanted; i++) toSpawn.Add(toSpawn[rand.Int32(0, fleet - 1)]);
         }
         catch (Exception ex)
@@ -133,7 +134,7 @@ static class SpawnScalePatches
 
     static int PoliceCap(int count, WantedManager wanted)
     {
-        try { return EnemyScale.Cap(count, wanted.Sim); }
+        try { return EnemyScale.FightCap(count, wanted.Sim); }
         catch (Exception ex)
         {
             Errors.Report("enemy scaling (police)", ex.Message, ex);

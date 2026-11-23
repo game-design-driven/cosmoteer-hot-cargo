@@ -36,4 +36,21 @@ public static class EnemyScale
 
     /// <summary>A hostile ship cap that the game checks again every tick. Rounds half up, without a roll.</summary>
     public static int Cap(int count, SimRoot sim) => ScalingModel.Cap(count, Factor(sim));
+
+    /// <summary>
+    /// Spec 1732: the storyteller pressure on fights other than hunter waves. 1 unless an area sets it (the Storyteller area does).
+    /// Hunter stage responses and Strike waves take the pressure in the Pursuit director (spec 1726), so they use Factor, Count and Cap.
+    /// </summary>
+    public static Func<SimRoot, double> FightPressure = _ => 1;
+
+    /// <summary>Spec 1732: the co-op factor × the fight pressure.</summary>
+    public static double FightFactor(SimRoot sim) => Factor(sim) * FightPressure(sim);
+
+    /// <summary>Spec 1732: a hostile ship count of a fight that is not a hunter wave. Sim logic only: it rolls sim.Rand for a fraction.</summary>
+    public static int FightCount(int count, SimRoot sim) => FightCount(count, sim, sim.Rand);
+
+    internal static int FightCount(int count, SimRoot sim, Rand rand) => ScalingModel.Scale(count, FightFactor(sim), rand.Double);
+
+    /// <summary>Spec 1732: a cap of a fight that is not a hunter wave. Rounds half up, without a roll.</summary>
+    public static int FightCap(int count, SimRoot sim) => ScalingModel.Cap(count, FightFactor(sim));
 }
