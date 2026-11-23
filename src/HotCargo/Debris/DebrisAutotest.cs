@@ -30,6 +30,59 @@ static class DebrisAutotest
     internal static void Register()
     {
         Autotest.Commands["debris_set"] = arg => Autotest.SetField(R().T.Debris, arg);
+        // debris_collect_check: spec 1833. For each resource that can lie loose (a mod item, or a chance above 0 to drop from crew or a
+        // part), one loose unit and one steel next to the selected player ship, then the vanilla collect tool's plan over both
+        // (SalvageCollectState.GetNuggetsToCollect, which draws its overlay). It must not throw. A resource without a stack size must
+        // never drop. Logs each checked resource.
+        Autotest.Commands["debris_collect_check"] = _ =>
+        {
+            var game = R().Game;
+            var sim = game.Sim;
+            var ship = sim.Ships.LocalPlayerShips.FirstOrDefault() ?? throw new InvalidOperationException("no own ship");
+            sim.PlayerInput.SelectSingleShip(ship);
+            var steel = new ID<Cosmoteer.Resources.ResourceRules>("steel");
+            var tool = new Cosmoteer.Game.SelectionStates.SalvageCollectState(game);
+            int checkedCount = 0;
+            foreach (var rr in Cosmoteer.GameApp.Rules.Resources.OrderBy(r => r.ID.ToString(), StringComparer.Ordinal))
+            {
+                bool drops = new[] { Cosmoteer.Modes.NuggetDropSource.Crew, Cosmoteer.Modes.NuggetDropSource.Part }
+                    .Any(src => sim.Mode.GetNuggetDropChance(rr, src, 0f, isPlayer: false, null) > 0f || sim.Mode.GetNuggetDropChance(rr, src, 0f, isPlayer: true, null) > 0f);
+                if (!SalvageDrops.IsCargo(rr))
+                {
+                    Autotest.Check(!drops, $"{rr.ID} has no stack size, so it must never drop loose");
+                    continue;
+                }
+                bool modItem = rr.ID.ToString().StartsWith("yarden_zamir.", StringComparison.Ordinal);
+                if (!(modItem || drops) || rr.MaxPerNugget <= 0) continue;
+                var at = ship.DetWorldCenter + new Vector2(ship.WorldBoundingRadius + 80f, 0f);
+                var rect = new RotRect(at, new Vector2(40f, 40f), default);
+                int before = sim.Nuggets.Count;
+                sim.Nuggets.DropNuggets(rr.ID, 1, rect, Vector2.Zero, randomVelocity: false);
+                sim.Nuggets.DropNuggets(steel, 1, rect, Vector2.Zero, randomVelocity: false);
+                var added = Enumerable.Range(before, sim.Nuggets.Count - before).Select(i => sim.Nuggets[i]).ToList();
+                Autotest.Check(added.Count == 2, $"{rr.ID} and steel lie loose ({added.Count} crates)");
+                var plan = new Dictionary<Cosmoteer.Resources.Nugget, Halfling.Pooling.TempList<(Ship Ship, int Amount, float Dist)>>();
+                try { tool.GetNuggetsToCollect(plan, new Dictionary<ID<Cosmoteer.Resources.ResourceRules>, int>(), new RotRect(at, new Vector2(400f, 400f), default)); }
+                finally
+                {
+                    foreach (var list in plan.Values) list.Dispose();
+                    foreach (var n in added) sim.Nuggets.RemoveNugget(n);
+                }
+                checkedCount++;
+                Log.Info($"AUTOTEST debris_collect_check {rr.ID}: planned {plan.Count} crates");
+            }
+            Log.Info($"AUTOTEST debris_collect_check: {checkedCount} resources");
+        };
+        // debris_loose <resource> <units>: loose units of a resource next to the first own ship, with no drop roll. Test only.
+        Autotest.Commands["debris_loose"] = arg =>
+        {
+            var p = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var sim = R().Game.Sim;
+            var ship = sim.Ships.LocalPlayerShips.FirstOrDefault() ?? throw new InvalidOperationException("no own ship");
+            sim.Nuggets.DropNuggets(new ID<Cosmoteer.Resources.ResourceRules>(p[0]), int.Parse(p[1], CultureInfo.InvariantCulture),
+                new RotRect(ship.DetWorldCenter + new Vector2(ship.WorldBoundingRadius + 80f, 0f), new Vector2(40f, 40f), default), Vector2.Zero, randomVelocity: false);
+        };
+        Autotest.Fields["debris_loose_battery"] = () => R().Game.Sim.Nuggets.Where(n => n.ResourceType == new ID<Cosmoteer.Resources.ResourceRules>("battery")).Sum(n => n.Quantity);
         // debris_split: logs the salvage cut of every resource in the loaded rules (spec 1832): its base price and its factor.
         Autotest.Commands["debris_split"] = _ =>
         {
