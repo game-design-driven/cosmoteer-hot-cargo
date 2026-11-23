@@ -99,7 +99,10 @@ public static class MissionArea
             int player = Autotest.ActingPlayerIndex;
             var own = sim.Ships.HumanPlayerSignificantShips.Where(s => s.Commands.CanExecuteCrewCommandsFrom(player))
                 .OrderBy(s => s.DetWorldCenter.DistanceSquaredTo(escort.DetWorldCenter)).ThenBy(s => s.UniqueID).FirstOrDefault()
-                ?? throw new InvalidOperationException("no own ship");
+                // A ship takes crew orders only while it has crew (vanilla CanExecuteCrewCommandsFrom), so the message names the crew.
+                ?? throw new InvalidOperationException("no own ship that takes crew orders; own ships: " + string.Join(", ",
+                    sim.Ships.HumanPlayerSignificantShips.Where(s => s.Commands.IsCommandableBy(player))
+                        .Select(s => $"{s.Metadata.PlainShipName} crew {s.Crew.Assigned.Count}")) + ".");
             Autotest.Teleport(own, Autotest.ClearSpotNear(sim, escort.DetWorldCenter, escort.DetWorldBoundingCircle.Radius + own.DetWorldBoundingCircle.Radius + 150f, own.DetWorldBoundingCircle.Radius));
         };
         // 1 while the escort waits for the answer; 1 once it hailed; the hull gap from the escort to the nearest player ship.

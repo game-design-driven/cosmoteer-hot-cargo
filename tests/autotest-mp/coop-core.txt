@@ -9,6 +9,11 @@ tunablesfile Heat { HeatPerGameMinute = 30; HeatCarryOverFraction = 0.5 }  Event
 mphost {PORT}
 mpstart {PLAYERS}
 mp godmode on
+# From here to the end of missions.escort-ambush the player ships take no damage and lose no crew: the steps test the tunables,
+# the hunters, the tactics, the resync and the escort, not who wins a fight. CI 2026-11-17: random fights took the client's only
+# ship. Queue run 45239133782: the fights before shipai.fight killed the client's crew, and a ship without crew takes no crew
+# orders, so hc_escort_bring found no own ship.
+mp shieldplayers on
 mp maxhunters 4
 mp tacticlog on
 # Small telemetry relay chunks on the client, so the session sends many of them (step telemetry.relay).
@@ -132,10 +137,6 @@ expecttacticsany Defensive
 step shipai.fight
 # Both machines run the same tactics decisions in a fight.
 # Two ships of the sector tier: the Warning response of the last sector (#19 removed the Patrol stage).
-# From here to the end of missions.escort-ambush the player ships take no damage and lose no crew: the steps test the
-# tactics, the resync and the escort, not who wins a fight. CI 2026-11-17: a random Iota group and a Strike wave took the
-# client's only ship in this step, and the shady ambushers of core.resync took it in missions.escort-ambush.
-mp shieldplayers on
 mp stageset Warning EarlyScale 1
 mp spawnstage Warning
 wait 30
@@ -171,6 +172,10 @@ on 1 expectevent smuggler_den
 on 1 expect hc_trap_state == 2
 on 1 expect tactics_snapshot_kept >= 1
 on 1 expect tactics_snapshot_changed == 0
+# The sprung trap's ambushers stay in the system. They held up the escort freighter of the next step (CI 2026-11-17), so they go
+# now, and nothing else: a kill of every enemy also took the freighter and stations of a faction that the players were wanted by
+# (queue run 45231373438).
+mp hc_kill_ambush
 
 step missions.escort-ambush
 # Playtest 2026-11-15: after a resync, the convoy freighter reached the ambush point at a different tick on each machine,
@@ -197,9 +202,7 @@ on 1 waitfor hc_escort_waiting == 0 15
 # Just before the ambush point (EscortAmbushAt 0.3). The freighter flies on and springs the ambush itself. From 0.25 the
 # flight took 11 to 60+ s in CI queue runs (the hunters of the steps before fight it), too close to the 60 s limit.
 mp hc_escort_advance 0.29
-# No enemy of the steps before holds the freighter up at its new place (CI 2026-11-17: the shady ambushers of core.resync,
-# and the raiders never came). The ambush raiders spawn later, when the freighter reaches 0.3.
-mp debt_kill_enemies
+# The ambush raiders spawn when the freighter reaches 0.3.
 pause off
 waitfor hc_escort_raiders >= 2 60
 on 1 waitfor hc_escort_raiders >= 2 60
