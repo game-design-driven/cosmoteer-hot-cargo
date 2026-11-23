@@ -241,6 +241,18 @@ public static class ShipAiModel
     /// <summary>Whether a term's condition holds, without Not and without hysteresis.</summary>
     public static bool Holds(Term term, ShipFacts f) => Holds(term, f, wasOn: false, margin: 0f);
 
+    /// <summary>
+    /// Spec 402: the engage range of a target row: the smallest "enemy within R" of its terms, when every term must hold (no OR) and
+    /// that term has no NOT. The target pick takes only enemies within R × (1 + margin), the margin of the anti-flicker rule
+    /// (requirement 418), so a target that the condition keeps also stays pickable. Null: the row picks among every enemy on radar.
+    /// </summary>
+    public static float? EngageRange(TacticRow row, float margin)
+    {
+        if (row.Terms.Any(t => t.Or)) return null;
+        var within = row.Terms.Where(t => t.Cond == Cond.EnemyWithin && !t.Not).ToList();
+        return within.Count == 0 ? null : within.Min(t => t.Param) * (1f + margin);
+    }
+
     /// <summary>The condition of a term, without Not. A threshold term that was on gets the margin in its favor (spec 418).</summary>
     static bool Holds(Term term, ShipFacts f, bool wasOn, float margin)
     {
@@ -501,14 +513,23 @@ public static class ShipAiModel
         return (value, param);
     }
 
+    /// <summary>
+    /// Spec 406: the engage range of the combat presets, edge to edge. About twice the longest weapon range (missile launcher 700,
+    /// railgun 444, most guns 150 to 380), so a sniper still opens fire at its full range, and below the start ship's radar (1807).
+    /// The same range as the "enemy within 1500" rows of Defensive, Formation and Escort Drone.
+    /// </summary>
+    public const int EngageRangeDefault = 1500;
+
     /// <summary>Spec 406. Starting points for the editor. Each one is a plain list of rows that the player can change.</summary>
     public static IReadOnlyList<TacticRow> PresetRows(Preset preset) => preset switch
     {
+        // Spec 406: combat presets engage only enemies within EngageRange of the ship, so a far enemy on the team radar does not
+        // pull the ship across the system.
         Preset.Aggressive =>
         [
             new(Cond.HealthBelow, 20, Act.RetreatRepair, 0),
-            new(Cond.Always, 0, Act.TargetWeakest, 0),
-            new(Cond.Always, 0, Act.CloseIn, 0),
+            new(Cond.EnemyWithin, EngageRangeDefault, Act.TargetWeakest, 0),
+            new(Cond.EnemyWithin, EngageRangeDefault, Act.CloseIn, 0),
             new(Cond.Always, 0, Act.FocusTarget, 0),
             // Without an enemy, a second ship stays with the fleet. The first ship has no leader, so the row never runs there.
             new(Cond.Always, 0, Act.FollowLeader, 0),
@@ -517,14 +538,14 @@ public static class ShipAiModel
         [
             new(Cond.HealthBelow, 40, Act.RetreatToAlly, 0),
             new(Cond.AllyUnderAttack, 0, Act.TargetAllyAttacker, 0),
-            new(Cond.EnemyWithin, 1500, Act.TargetNearest, 0),
-            new(Cond.EnemyBeyond, 1500, Act.FollowLeader, 0),
+            new(Cond.EnemyWithin, EngageRangeDefault, Act.TargetNearest, 0),
+            new(Cond.EnemyBeyond, EngageRangeDefault, Act.FollowLeader, 0),
         ],
         Preset.Sniper =>
         [
             new(Cond.HealthBelow, 30, Act.RetreatRepair, 0),
-            new(Cond.Always, 0, Act.TargetNearest, 0),
-            new(Cond.Always, 0, Act.Kite, 0),
+            new(Cond.EnemyWithin, EngageRangeDefault, Act.TargetNearest, 0),
+            new(Cond.EnemyWithin, EngageRangeDefault, Act.Kite, 0),
             new(Cond.Always, 0, Act.TargetWeapons, 0),
             new(Cond.Always, 0, Act.FollowLeader, 0),
         ],
@@ -578,7 +599,7 @@ public static class ShipAiModel
         [
             new(Cond.HealthBelow, 40, Act.ReturnToFleet, 0),
             new(Cond.AllyUnderAttack, 0, Act.TargetAllyAttacker, 0),
-            new(Cond.EnemyWithin, 1500, Act.TargetNearest, 0),
+            new(Cond.EnemyWithin, EngageRangeDefault, Act.TargetNearest, 0),
             new(Cond.Always, 0, Act.Guard, (int)GuardWho.Flagship),
         ],
         // Spec 427: no friendly fire, no ramming, a V behind the first ship.
@@ -586,7 +607,7 @@ public static class ShipAiModel
         [
             new(Cond.AllyInLineOfFire, 0, Act.HoldFire, 0),
             new(Cond.HealthBelow, 25, Act.RetreatToAlly, 0),
-            new(Cond.EnemyWithin, 1500, Act.TargetNearest, 0),
+            new(Cond.EnemyWithin, EngageRangeDefault, Act.TargetNearest, 0),
             new(Cond.Always, 0, Act.KeepSpacing, 150),
             new(Cond.Always, 0, Act.HoldFormation, 300),
         ],

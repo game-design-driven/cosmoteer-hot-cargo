@@ -113,6 +113,7 @@
 | `Diplomacy.RiskDemandAt`, `RiskFleeAt`, `RiskSurrenderAt` | 2, 0.6, 0.3 | 1524 to 1527 |
 | `ShipAi.Enabled`, `TickSeconds` | on, 1 s | 403 |
 | `ShipAi.KiteRangeFraction`, `CloseInDistance`, `RetreatDistance`, `HoldTolerance` | 0.9, 100, 2000, 150 | 402 |
+| `ShipAi.AllyHelpRadius` | 2000 | 401, 402 |
 | `RunModes.Combat`, `Economy`, `Crew` | see section 34 | 680 |
 | `Hunters.RouteTierFloor` | on | 305 |
 | `RunModes.StrikeMusic` | on | 688 |

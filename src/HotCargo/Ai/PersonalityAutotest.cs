@@ -91,6 +91,20 @@ internal static class PersonalityAutotest
         Autotest.Fields["ai_report_cloud"] = () => Autotest.RequireRun().State.AiReports.For(_group)?.Cloud == true ? 1 : 0;
         Autotest.Fields["ai_report_focus"] = () => Autotest.RequireRun().State.AiReports.For(_group)?.Focus ?? -1;
         Autotest.Fields["ai_reports"] = () => Autotest.RequireRun().State.AiReports.Groups.Count;
+        // aiaway <distance>: moves the live ships of the aispawn spawns to this center distance from the first human ship, along +X
+        // (a negative distance: along -X),
+        // 300 apart. Test only.
+        Autotest.Commands["aiaway"] = arg =>
+        {
+            var sim = Sim();
+            var first = SimQueries.FirstHumanShip(sim) ?? throw new InvalidOperationException("no human ship");
+            float d = float.Parse(arg, CultureInfo.InvariantCulture);
+            var ships = LastSpawned.Select(id => sim.Ships[id]).OfType<Ship>().Where(s => !s.IsJunk).ToList();
+            if (ships.Count == 0) throw new InvalidOperationException("aiaway: no live ship that aispawn spawned");
+            for (int i = 0; i < ships.Count; i++)
+                Autotest.Teleport(ships[i], first.DetWorldCenter + new Vector2(d + i * 300f, 0f));
+            Log.Info($"AUTOTEST aiaway {d:0}: {ships.Count} ships, nearest edge {ships.Min(s => HunterOrders.EdgeDistance(first, s)):0}");
+        };
         Autotest.Fields["ai_hostile"] = () => Hostile().Count;
         foreach (var trait in Enum.GetValues<Trait>())
             Autotest.Fields[$"ai_has_{trait.ToString().ToLowerInvariant()}"] = () => Hostile().Count(s => PersonalityStrategy.Traits(s, T()).Has(trait));

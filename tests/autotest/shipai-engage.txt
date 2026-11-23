@@ -1,0 +1,36 @@
+# Engage range (spec 401, 402, 406): an Aggressive ship does not chase an enemy far away on the team radar, and a Defensive ship
+# does not leave to help an ally that is far away. A near enemy still pulls the ship, and a large AllyHelpRadius gives the old reach.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+shieldplayers on
+shipai Log on
+aiset FleeOnVanilla false
+aiset CallOnVanilla false
+aiset CounterKiteOnVanilla false
+tactics_ship Model-L
+# A pirate without thrusters stays where the test puts it. 1700 from the player: on the radar (1807), beyond the engage range (1500).
+aispawn pirates 1 1
+aiheavy
+aiaway 1700
+tactics Aggressive
+tacticsauto on
+wait 8
+expect tactics_target_row == -1
+# Within the engage range the ship engages.
+aiaway 1200
+waitfor tactics_target_row >= 0 15
+# Defensive: the pirate attacks a second player ship 3000 away (west, clear of the sun). The ally help radius (2000) keeps this
+# ship with the fleet.
+tacticsauto off
+aiaway -3000
+aiplayership 150
+tactics Defensive
+tacticsauto on
+wait 8
+expect tactics_target_row == -1
+# A large radius gives the old reach: the ship goes to help.
+shipai AllyHelpRadius 20000
+waitfor tactics_target_row == 1 15
+quit
