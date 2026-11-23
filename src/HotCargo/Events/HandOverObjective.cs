@@ -80,17 +80,22 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
             if (invalid) return null;
             ObjectID id = contact!.UniqueID ?? throw new InvalidOperationException($"contact tag {ContactShipTag} found an object without an ID");
             ObjectiveTargetShip? source = null;
+            string? sourceName = null;
             if (SourceShipTag is not null)
             {
                 if (ResourceType is null || GiveOnAccept) throw new InvalidDataException("a SourceShipTag needs a ResourceType and GiveOnAccept = false");
                 var found = objects.FindObject(SourceShipTag, loc, rand);
-                source = new ObjectiveTargetShip(sim.RequireGame(), sim.NodeId(), found.UniqueID ?? throw new InvalidOperationException($"source tag {SourceShipTag} found an object without an ID"));
+                var sourceId = found.UniqueID ?? throw new InvalidOperationException($"source tag {SourceShipTag} found an object without an ID");
+                source = new ObjectiveTargetShip(sim.RequireGame(), sim.NodeId(), sourceId);
+                sourceName = sim.Ships[sourceId]?.Metadata.PlainShipName ?? sim.Stasis[sourceId]?.ObjectName
+                    ?? throw new InvalidOperationException($"source tag {SourceShipTag} found no ship {sourceId} in this system");
             }
             return new HandOverObjective(ResourceType, new ObjectiveTargetShip(sim.RequireGame(), sim.NodeId(), id), Page)
             {
                 LineKey = LineKey,
                 GiveOnAccept = GiveOnAccept,
                 Source = source,
+                SourceName = sourceName,
                 DeliveredShipId = ShipTag is null ? null : objects.FindObject(ShipTag, loc, rand).UniqueID
                     ?? throw new InvalidOperationException($"ship tag {ShipTag} found an object without an ID"),
                 DeliveryRadius = DeliveryRadius,
@@ -110,6 +115,35 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     [Serialize(Optional = true)] public ObjectiveTargetShip? Source { get; private set; }
     /// <summary>The source ship got its one unit.</summary>
     [Serialize(Optional = true)] public bool Seeded { get; private set; }
+    /// <summary>Spec 1874: the source ship's name at creation, for the objective line. Null in saves from before.</summary>
+    [Serialize(Optional = true)] public string? SourceName { get; private set; }
+
+    /// <summary>Spec 1874: the step reads "Recover": the players must still get the unit out of the source ship.</summary>
+    internal bool Recovering => Completion == CompletionState.InProgress && !Held && Source is not null && ResourceType is not null;
+
+    /// <summary>The source ship when it is live in this sim, else null.</summary>
+    internal Ship? LiveSource(SimRoot sim) => Source is { } src && sim.NodeId() == src.MapNodeID ? sim.Ships[src.ShipID] : null;
+
+    /// <summary>Spec 1874: loose units of the item in this sim (the source broke and spilled it), lowest ID first.</summary>
+    internal IEnumerable<Nugget> LooseUnits(SimRoot sim)
+    {
+        if (ResourceType is not { } item) return [];
+        var forms = Forms(item);
+        return sim.Nuggets.Where(n => forms.Contains(n.ResourceType)).OrderBy(n => n.UniqueID);
+    }
+
+    /// <summary>
+    /// Spec 1874: where the unit to recover is. A loose unit first (the players must pick it up), else the source ship, live or in stasis.
+    /// Only while <see cref="Recovering"/>.
+    /// </summary>
+    internal Missions.FocusTarget RecoverWhere(GameRoot game)
+    {
+        var src = Source ?? throw new InvalidOperationException("a hand-over without a source has nothing to recover");
+        if (game.Sim is not { } sim || sim.NodeId() != src.MapNodeID) return new(src.MapNodeID, null, null, null);
+        if (LooseUnits(sim).FirstOrDefault() is { } loose) return new(src.MapNodeID, null, null, loose.DetWorldLocation);
+        var live = LiveSource(sim);
+        return new(src.MapNodeID, live, null, live?.DetWorldCenter ?? sim.Stasis[src.ShipID]?.Location);
+    }
     [Serialize(Optional = true)] public ObjectID? DeliveredShipId { get; private set; }
     [Serialize(Optional = true)] public float DeliveryRadius { get; private set; } = 800f;
 
@@ -297,12 +331,20 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
 
     public override Range<int>? GetTierRange(SimRoot curSim) => Tier;
 
-    public override MapNode? GetFirstMapNode(GameRoot game) => Contact.MapNode;
+    public override MapNode? GetFirstMapNode(GameRoot game) => Recovering ? Source!.MapNode : Contact.MapNode;
 
     /// <summary>The contact when it is on radar, else its area POI once explored. Same rule as vanilla GotoShipObjective.GetAreaLocation.</summary>
     public override Circle? GetAreaLocation(GameRoot game)
     {
         if (Completion != CompletionState.InProgress) return null;
+        // Spec 1874: the unit to recover. Radius 0 for a point, as vanilla MetaShip gives a ship in stasis.
+        if (Recovering)
+            return RecoverWhere(game) switch
+            {
+                { Live: { } source } => source.DetWorldBoundingCircle,
+                { Location: { } at } => new Circle(at, 0f),
+                _ => null,
+            };
         if (Contact.TargetShip is { IsWithinRadarOfLocalPlayer: true } ship) return ship.WorldBoundingCircle;
         return Area(game) is { IsExplored: true } poi ? new Circle(poi.WorldLocation, poi.WorldUniformScale) : null;
     }
@@ -315,7 +357,8 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     public override bool IsPOIAssociated(POIDoodad poi) =>
         Completion == CompletionState.InProgress && poi.UniqueID == AreaDoodadID && Contact.TargetShip is not { IsWithinRadarOfLocalPlayer: true };
 
-    public override bool IsShipAssociated(MetaShip ship) => Completion == CompletionState.InProgress && Contact.TargetMetaShip == ship;
+    public override bool IsShipAssociated(MetaShip ship) =>
+        Recovering ? ship.UniqueID == Source!.ShipID : Completion == CompletionState.InProgress && Contact.TargetMetaShip == ship;
 
     /// <summary>
     /// Only a running step expires; an offer stays even when its contact died, and fails at once when accepted (RegisterEvents).
@@ -328,16 +371,24 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     bool ContactGone(SimRoot sim) =>
         sim.NodeId() == Contact.MapNodeID && sim.Ships[Contact.ShipID] is null && !sim.Stasis.Any(st => st.ReservedObjectID == Contact.ShipID);
 
-    public override bool CanFocusDisplayLine(GameRoot game) => Contact.CanFocus();
+    /// <summary>Spec 1873, 1874: the click shows the unit to recover while the step reads "Recover", else the contact.</summary>
+    public override bool CanFocusDisplayLine(GameRoot game) =>
+        Recovering ? Missions.MissionFocus.CanFocus(game, RecoverWhere(game)) : Missions.MissionFocus.CanFocus(game, Contact);
 
-    public override void OnDisplayLineFocused(GameRoot game) => Contact.OnFocused();
+    public override void OnDisplayLineFocused(GameRoot game)
+    {
+        if (Recovering) Missions.MissionFocus.Focus(game, RecoverWhere(game));
+        else Missions.MissionFocus.Focus(game, Contact);
+    }
 
     public override void GetDisplayLinesImpl(List<DisplayLine> lines, GameRoot game, CompletionState parentState)
     {
         string contact = Contact.GetXmlTargetName(game.Sim);
         var text = ResourceType?.GetResourceRules() is { } r
             ? Held ? Strings.KeyStringFmt("HotCargoEventMissions/HandOverFmt", r.TextIconXml, r.NameKey, contact)
-                : Strings.KeyStringFmt("HotCargoEventMissions/RecoverFmt", r.TextIconXml, r.NameKey)
+                : SourceName is { } from
+                    ? Strings.KeyStringFmt("HotCargoEventMissions/RecoverFromFmt", r.TextIconXml, r.NameKey, Halfling.StringTools.EscapeForXml(from))
+                    : Strings.KeyStringFmt("HotCargoEventMissions/RecoverFmt", r.TextIconXml, r.NameKey)
             : Strings.KeyStringFmt(LineKey ?? throw new InvalidOperationException("a hand-over without an item has no LineKey"), contact);
         lines.Add(new DisplayLine
         {
@@ -476,6 +527,7 @@ public static class MissionCargo
         foreach (var o in found.Where(o => o.Completion == CompletionState.InProgress))
         {
             if (o.Source is not null && !o.Seeded) o.SeedSource(sim);
+            if (o.Recovering) RecoverMarkers.Mark(sim, o);
             o.SteerSurrendered(sim);
         }
     });

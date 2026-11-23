@@ -1,0 +1,35 @@
+# Spec 1874: the recover step of a hand-over shows where the item is. Playtest 2026-11-23: "we killed a ship and not sure where
+# flight recorder". The Black Box recorder is in a junk storage pod beside the wreck (spec 1107).
+# The focus field gives the FocusStep value: 0 none, 1 galaxy map, 2 the pod, 3 area marker, 4 the item's place (a loose crate or the pod in stasis).
+newgame run
+wait 8
+ev_set Enabled false
+# The chain station's faction must not be the corporation's ally, which never shelters (spec 643, 665).
+fa_roles other -
+chain_force black_box
+chain_tostation
+chain_accept
+chain_goto
+chain_kill
+wait 2
+expectstage recorder
+expect ev_recovering == 1
+expect ev_recover_named == 1
+expect ev_recover_focus >= 2
+# Beside the pod: the click shows the pod, and the pod has a marker.
+ev_goto hc_ch_recorder
+pause off
+wait 3
+expect ev_recover_focus == 2
+expect ev_recover_ship_marks == 1
+# The pod breaks: the recorder drifts as a crate. The crate has the marker and the click shows it.
+ev_spill hc_ch_recorder yarden_zamir.flight_recorder
+expect ev_recover_ship_marks == 0
+expect ev_recover_crate_marks == 1
+expect ev_recover_focus == 4
+# Picked up: the step reads "Hand over", and the markers go.
+ev_collect yarden_zamir.flight_recorder
+expect ev_recovering == 0
+expect ev_recover_crate_marks == 0
+expect ev_handover == 0
+quit
