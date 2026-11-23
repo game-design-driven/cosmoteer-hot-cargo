@@ -20,7 +20,8 @@ namespace HotCargo.Ux;
 /// <summary>
 /// The Hot Cargo title on the main menu, only when the mod is on in the game's mod list.
 /// A second logo ship spells "HOT CARGO" out of ship parts under the COSMOTEER logo ship, in the menu background's own sim.
-/// A quiet "Hot Cargo vX.Y.Z" line sits above the game's version line.
+/// A quiet "Hot Cargo vX.Y.Z (abc1234)" line sits above the game's version line: the release version and the commit of this DLL,
+/// so two players can check that they run the same build.
 /// </summary>
 [HarmonyPatch(typeof(TitleScreen), MethodType.Constructor)]
 static class TitleBrand
@@ -120,7 +121,7 @@ static class TitleBrand
         var box = screen.RootWidget.Children.OfType<LayoutBox>().FirstOrDefault()
             ?? throw new InvalidOperationException("the title screen has no layout box");
         const int fontSize = 16;
-        var label = new Label { Text = $"Hot Cargo {ModVersion()}", AnchorRect = AnchorPresets.Fill };
+        var label = new Label { Text = $"Hot Cargo {ModVersion()}{Commit()}", AnchorRect = AnchorPresets.Fill };
         label.TextRenderer.Font = WidgetRules.Instance.ShadowFont;
         label.TextRenderer.HAlignment = HAlignment.Left;
         label.TextRenderer.VAlignment = VAlignment.Bottom;
@@ -130,6 +131,16 @@ static class TitleBrand
         label.TextRenderer.FontSize = fontSize;
         label.ComponentToggles[label] = screen._uiToggle;
         box.AddChild(label);
+    }
+
+    /// <summary>
+    /// " (abc1234)": the short commit that the SDK puts into the DLL's informational version ("1.0.0+&lt;sha&gt;"), or nothing without one.
+    /// </summary>
+    static string Commit()
+    {
+        string? v = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(typeof(TitleBrand).Assembly)?.InformationalVersion;
+        int plus = v?.IndexOf('+') ?? -1;
+        return plus >= 0 && v!.Length > plus + 1 ? $" ({v[(plus + 1)..Math.Min(v.Length, plus + 8)]})" : "";
     }
 
     /// <summary>The Version line of the installed mod.rules, or "dev" when it has none.</summary>
