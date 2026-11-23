@@ -106,7 +106,12 @@ public static class Quotes
             t.HireChanceBase, t.HirePerOffer, t.HirePerReputation, t.HirePerHeat);
     }
 
-    public static int MercPrice(Run run, int minutes) => Money(run, T(run).MercRateUnits * minutes);
+    /// <summary>Spec 583: MercPriceShare of the hire rate (HireFairUnits per HireSeconds), per minute.</summary>
+    public static int MercPrice(Run run, int minutes)
+    {
+        var t = T(run);
+        return Money(run, t.MercPriceShare * t.HireFairUnits * 60f / t.HireSeconds * minutes);
+    }
 
     // ---- Pay them off (spec 594 to 597)
 
