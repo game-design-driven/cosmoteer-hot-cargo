@@ -148,6 +148,8 @@ static class DiplomacyAutotest
         };
         // dip_open <target>: opens the comms window to the target (for screenshots). dip_close closes every comms window.
         Autotest.Commands["dip_open"] = arg => R().Game.Gui.FloatingWindows.AddChild(new CommWindow(R().Game, Me(), Target(arg.Trim())));
+        // comms_rows_overflow: option rows of open comms pages whose text is taller than their box (a layout check, also headless).
+        Autotest.Fields["comms_rows_overflow"] = () => CommsHail.OverflowingRows();
         // dip_pick <target> <option> [value] | dip_unpick <target> <option>: changes a hunter's pay-off draft through its MP input, like a click on a row.
         Autotest.Commands["dip_pick"] = arg =>
         {

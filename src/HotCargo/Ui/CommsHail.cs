@@ -105,6 +105,9 @@ public static class CommsHail
     /// <summary>Slider values by callee and slider key. Local UI state, never saved and never sent except inside an input.</summary>
     static readonly Dictionary<(ObjectID, string), int> Values = new();
     static readonly ConditionalWeakTable<CommDialogueTab, OptionRows> Rows = new();
+
+    /// <summary>Layout check (autotests): option rows of open comms pages whose text spills out of its box (OptionRows.Overflowing).</summary>
+    internal static int OverflowingRows() => Rows.Sum(kv => kv.Value.Overflowing());
     static readonly ConditionalWeakTable<CommDialogueTab, SharedState> Panels = new();
 
     /// <summary>
