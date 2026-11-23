@@ -283,9 +283,13 @@ test_timeout() {
   if (( x > $2 )); then echo "$x"; else echo "$2"; fi
 }
 # The game speed line of a test script (the game's own clock scale; waits count game seconds, so a script means the same
-# at every speed): the test's "# speed: <x>" line, else HOT_CARGO_TEST_SPEED. Prints nothing at speed 1 or with neither.
+# at every speed): the test's "# speed: <x>" line, else HOT_CARGO_TEST_SPEED, else HOT_CARGO_DEFAULT_TEST_SPEED. Prints
+# nothing at speed 1. A value must be a step of the game's speed bar (0.125 to 8, cosmoteer.rules GameSpeeds).
+# The default stays 1 (spec 1970): in the headless sim a higher speed made the full suite slower and broke tests (measured in CI
+# on 2026-11-23). Revisit for runs on the PC, which play in real time.
+HOT_CARGO_DEFAULT_TEST_SPEED=1
 speed_line() {
-  local x; x="$(sed -n 's/^# speed: *\([0-9.]*\)$/\1/p' "$1" | head -1)"; x="${x:-${HOT_CARGO_TEST_SPEED:-1}}"
+  local x; x="$(sed -n 's/^# speed: *\([0-9.]*\)$/\1/p' "$1" | head -1)"; x="${x:-${HOT_CARGO_TEST_SPEED:-$HOT_CARGO_DEFAULT_TEST_SPEED}}"
   if [[ "$x" != 1 ]]; then echo "defaultspeed $x"; fi
 }
 # Every client runs the same client script. The first line names the run (telename <session>.host / .client); a pass needs it in the log.
