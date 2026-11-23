@@ -113,12 +113,16 @@ internal sealed class HoldOutObjective : Objective
 
     public override string ScriptTypeName => "HotCargoHoldOut";
 
-    public ID<SimObjectSpawner> WaveTag => new(Profile switch
+    public ID<SimObjectSpawner> WaveTag => WaveTagOf(Profile);
+
+    static ID<SimObjectSpawner> WaveTagOf(HoldOutProfile profile) => new(profile switch
     {
         HoldOutProfile.Siege => "hc_siege_drone",
         HoldOutProfile.Guard => "hc_guard_raider",
         _ => "hc_scan_raider",
     });
+
+    static readonly ID<SimObjectSpawner>[] WaveTags = [.. Enum.GetValues<HoldOutProfile>().Select(WaveTagOf)];
 
     public HoldOutObjective(ObjectiveTargetShip target, HoldOutProfile profile, int tier)
     {
@@ -132,6 +136,26 @@ internal sealed class HoldOutObjective : Objective
     {
         Target = null!;
         reader.ReflectiveRead(this);
+    }
+
+    /// <summary>
+    /// Spec 137: the TargetFocus of the hold-out whose wave ship this is, when the target is that hold-out's target, else 0.
+    /// Read by the convoy raider rule (Missions/ConvoyTargetPatch.cs) in the AI target choice. Sim state only.
+    /// </summary>
+    internal static float FocusOn(Run run, Ship wave, Ship target)
+    {
+        if (!WaveTags.Any(wave.HasTag)) return 0f;
+        foreach (Mission m in run.Mode.Missions)
+        {
+            if (m.Completion != CompletionState.InProgress) continue;
+            var found = new List<HoldOutObjective>();
+            foreach (var o in m.Objectives) o.GetObjectives(found);
+            foreach (var o in found)
+                if (o.Completion == CompletionState.InProgress && o.WaveAllegiance != 0 && o.WaveAllegiance == wave.Metadata.PlayerIndex
+                    && o.Target.ShipID == target.UniqueID && wave.HasTag(o.WaveTag))
+                    return o.Settings(run.Game).TargetFocus;
+        }
+        return 0f;
     }
 
     public HoldOutTunables Settings(GameRoot game)

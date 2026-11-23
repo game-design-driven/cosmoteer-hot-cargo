@@ -61,6 +61,21 @@ public static class MechanicsArea
         Autotest.Commands["mech_generate"] = TestGenerate;
         // mech_set <MechanicsTunables field> <value>: changes a live tunable for this run (spawn chances apply from the next system). Test only.
         Autotest.Commands["mech_set"] = arg => Autotest.SetField(RequireRun().T.Mechanics, arg);
+        // mech_hold_set <Siege|Guard|Scan> <HoldOutTunables field> <value>: changes a hold-out profile tunable for this run. Test only.
+        Autotest.Commands["mech_hold_set"] = arg =>
+        {
+            var parts = arg.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length != 2) throw new InvalidOperationException("mech_hold_set needs: profile field value");
+            var t = RequireRun().T.Mechanics;
+            var profile = Enum.Parse<HoldOutProfile>(parts[0], ignoreCase: true) switch
+            {
+                HoldOutProfile.Siege => t.Siege,
+                HoldOutProfile.Guard => t.Guard,
+                HoldOutProfile.Scan => t.Scan,
+                var other => throw new InvalidOperationException($"unknown hold-out profile {other}"),
+            };
+            Autotest.SetField(profile, parts[1]);
+        };
         // Placement census (spec 105 smaller systems): asteroid fields that Claim Jumpers can use, mission objects outside the
         // gate ring, and a log line per kind with its offers and object distances.
         Autotest.Fields["mech_asteroid_fields"] = () => Tagged(MissionArea.ExistingSpawnTags(RequireSim()), "asteroid_field_poi").Count;
@@ -110,6 +125,16 @@ public static class MechanicsArea
         Autotest.Fields["mech_hold_tier"] = () => Hold().Tier;
         Autotest.Fields["mech_wave_ships"] = () => Hold() is var o && o.WaveAllegiance != 0
             ? SimQueries.TaggedShips(RequireSim(), o.WaveTag).Count(s => s.PlayerIndex == o.WaveAllegiance) : 0;
+        // Spec 137: live wave ships whose attack command targets the hold-out target, and the target's health in percent.
+        Autotest.Fields["mech_wave_on_target"] = () =>
+        {
+            var o = Hold();
+            Ship? target = o.Target.TargetShip;
+            return target is null ? 0 : SimQueries.TaggedShips(RequireSim(), o.WaveTag)
+                .Count(t => t.Live?.Commands.CurConfirmedCommand is Cosmoteer.Ships.Commands.AttackCommand a && a.Target == target);
+        };
+        Autotest.Fields["mech_hold_health"] = () =>
+            100f * Hunters.HunterOrders.HealthFraction(Hold().Target.TargetShip ?? throw new InvalidOperationException("hold-out target is not live"));
         Autotest.Fields["mech_waves_vs_player"] = () =>
         {
             var o = Hold();
