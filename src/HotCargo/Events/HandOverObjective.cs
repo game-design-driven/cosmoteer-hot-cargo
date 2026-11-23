@@ -301,13 +301,16 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     /// <summary>False while no human ship is in this system, for example during a jump. Item counts then read 0 without a loss.</summary>
     public static bool FleetHere(SimRoot sim) => Tech.Vaults.HumanShips(sim).Any();
 
-    /// <summary>Units in the players' ships, stored or carried by crew.</summary>
-    public static int FleetUnits(SimRoot sim, ID<ResourceRules> resource) =>
-        Tech.Vaults.HumanShips(sim).Sum(s => s.Resources.GetResourceTotal(resource, includeStored: true, includeCarried: true, includeOffShipCarried: true));
+    /// <summary>Units that the players hold: stored in their ships or carried by their crew (<see cref="FleetHold"/>, spec 1875).</summary>
+    public static int FleetUnits(SimRoot sim, ID<ResourceRules> resource) => FleetHold.Units(sim, resource);
 
-    /// <summary>Units in the players' ships and loose in this system.</summary>
+    /// <summary>
+    /// Units that the players hold, loose in this system, or in the storage of a derelict (junk) ship: a player ship without control or a
+    /// piece of one keeps its storage, and the crew can salvage it back (spec 1103).
+    /// </summary>
     public static int UnitsLeft(SimRoot sim, ID<ResourceRules> resource) =>
-        FleetUnits(sim, resource) + sim.Nuggets.Where(n => n.ResourceType == resource).Sum(n => n.Quantity);
+        FleetUnits(sim, resource) + sim.Nuggets.Where(n => n.ResourceType == resource).Sum(n => n.Quantity)
+        + sim.Ships.AllShips.Where(s => s.IsJunk).Sum(s => s.Resources.GetResourceTotal(resource, includeStored: true, includeCarried: true));
 
     internal void MarkHeld() => Held = true;
 
@@ -397,6 +400,27 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
             CanFocus = CanFocusDisplayLine,
             OnFocused = OnDisplayLineFocused,
         });
+        if (Completion == CompletionState.InProgress && _lineBlock is { } why)
+            lines.Add(new DisplayLine { Text = new Halfling.Gui.Components.Text.SimpleTextProvider(Halfling.StringTools.EscapeForXml(why), null), State = CompletionState.InProgress });
+    }
+
+    /// <summary>Why the contact's comms do not show this exchange's line, as of the last tick, or null (spec 1875).</summary>
+    string? _lineBlock;
+
+    /// <summary>
+    /// Spec 1875: why the contact's comms do not show this exchange's line now, or null when they show it (or the step still reads
+    /// "Recover"). One event page at a time: while another page waits for an answer, no hail line shows (EventHail.Lines).
+    /// A page that waits in the contact's own comms shows there, so it is no block. Sim state only.
+    /// </summary>
+    internal string? LineBlock(Run run, SimRoot sim)
+    {
+        if (ResourceType is not null && !Held) return null;
+        if (run.State.Events.Pending is not { } p || p.Carrier == Contact.ShipID) return null;
+        string title = EventLibrary.Get(p.EventId).Title;
+        string? carrier = p.Carrier is { } c ? sim.Ships[c]?.Metadata.PlainShipName ?? sim.Stasis[c]?.ObjectName : null;
+        return carrier is null
+            ? Strings.FormatText("HotCargoEventMissions/HandOverWaitFmt", title)
+            : Strings.FormatText("HotCargoEventMissions/HandOverWaitAtFmt", title, carrier);
     }
 
     /// <summary>
@@ -434,6 +458,12 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
             Log.Info("hand-over: the ship to deliver is gone; the job fails");
             Fail();
             return;
+        }
+        if (Run.Current is { } run && run.Game == game && LineBlock(run, sim) is var block && block != _lineBlock)
+        {
+            _lineBlock = block;
+            Log.Info($"hand-over: {Page} line {(block is null ? "shows" : $"blocked: {block}")}");
+            OnDisplayLinesChanged();
         }
         if (ResourceType is not { } item) return;
         // During a jump the ships are in limbo: no human ship is in any system, so the fleet holds 0 units. Not a loss (spec 1103).
@@ -552,7 +582,7 @@ public static class MissionCargo
         foreach (var forms in found.Cast<IMissionCargo>().Select(o => o.CargoToTakeBack).Where(f => f.Count > 0))
         {
             // The first form that a ship holds: sealed, or opened (spec 1117).
-            int removed = forms.SelectMany(f => Tech.Vaults.HumanShips(sim).OrderBy(s => s.UniqueID).Select(s => s.Resources.RemoveResources(f, 1))).FirstOrDefault(n => n > 0);
+            int removed = forms.Select(f => FleetHold.Take(sim, f, 1)).FirstOrDefault(n => n > 0);
             Log.Info($"mission cargo: {m.MetatypeID} {m.MissionID} left the log; took back {removed} {forms[0]}");
         }
     });
