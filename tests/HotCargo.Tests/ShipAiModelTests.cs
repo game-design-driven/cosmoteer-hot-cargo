@@ -239,16 +239,82 @@ public class ShipAiModelTests
     [InlineData("HC1:Always>Face=4")]
     public void Bad_chain_text_throws(string text) => Assert.Throws<FormatException>(() => ShipAiModel.Decode(text));
 
+    /// <summary>Whether the conditions in text form hold (spec 1830), for example "Always&(HealthBelow=40|CarryingTech)".</summary>
+    static bool Holds(ShipFacts f, string conditions) =>
+        ShipAiModel.Evaluate(ShipAiModel.Decode($"HC1:{conditions}>Kite"), f, _ => true).Matched[0];
+
     [Fact]
-    public void Too_many_terms_throw_and_add_term_stops_at_the_limit()
+    public void A_row_takes_any_number_of_terms()
     {
         var row = new TacticRow(Cond.Always, 0, Act.Kite, 0);
-        for (int i = 0; i < 20; i++) row = ShipAiModel.AddTerm(row);
-        Assert.Equal(ShipAiModel.MaxTerms, row.Terms.Length);
-        string text = ShipAiModel.Encode([row]).Replace(">Kite", "&Always>Kite");
-        Assert.Throws<FormatException>(() => ShipAiModel.Decode(text));
+        for (int i = 0; i < 99; i++) row = ShipAiModel.AddTerm(row);
+        Assert.Equal(100, row.Terms.Length);
+        Assert.Equal(row, ShipAiModel.Decode(ShipAiModel.Encode([row]))[0]);
         Assert.Single(ShipAiModel.RemoveTerm(new TacticRow(Cond.Always, 0, Act.Kite, 0), 0).Terms);
     }
+
+    [Theory]
+    // Health 0.3, tech carried, no enemy targets us. Without brackets AND binds tighter: (false & true) | true.
+    [InlineData("TargetedByEnemy&CarryingTech|HealthBelow=40", true)]
+    [InlineData("TargetedByEnemy&(CarryingTech|HealthBelow=40)", false)]
+    [InlineData("(TargetedByEnemy|CarryingTech)&HealthBelow=40", true)]
+    [InlineData("((TargetedByEnemy|CarryingTech)&!HealthBelow=40)|TargetedByEnemy", false)]
+    [InlineData("!TargetedByEnemy&((HealthBelow=20|CarryingTech)&(VaultDamaged|HealthBelow=40))", true)]
+    [InlineData("(CarryingTech)", true)]
+    public void Brackets_group_terms(string conditions, bool expected) =>
+        Assert.Equal(expected, Holds(Facts(health: 0.3f, tech: true), conditions));
+
+    [Theory]
+    [InlineData("HC1:(Always>Kite")]
+    [InlineData("HC1:Always)>Kite")]
+    [InlineData("HC1:(Always))&(Always>Kite")]
+    [InlineData("HC1:!(Always)>Kite")]
+    [InlineData("HC1:()Always>Kite")]
+    public void Unbalanced_or_misplaced_brackets_throw(string text) => Assert.Throws<FormatException>(() => ShipAiModel.Decode(text));
+
+    [Fact]
+    public void Bracketed_text_round_trips()
+    {
+        const string text = "HC1:!TargetedByEnemy&((HealthBelow=20|!CarryingTech)&(VaultDamaged|EnemyWithin=800))|Always>CollectTech";
+        Assert.Equal(text, ShipAiModel.Encode(ShipAiModel.Decode(text)));
+    }
+
+    /// <summary>The condition side of a row in text form.</summary>
+    static string Text(TacticRow row)
+    {
+        string text = ShipAiModel.Encode([row]);
+        return text[ShipAiModel.Prefix.Length..text.LastIndexOf('>')];
+    }
+
+    static TacticRow Parse(string conditions) => ShipAiModel.Decode($"HC1:{conditions}>Kite")[0];
+
+    [Theory]
+    [InlineData("HealthBelow=20&CarryingTech", 1, "HealthBelow=20&(CarryingTech)")]
+    [InlineData("HealthBelow=20&(CarryingTech)", 1, "HealthBelow=20&((CarryingTech))")]
+    public void Bracket_wraps_one_term(string before, int j, string after) => Assert.Equal(after, Text(ShipAiModel.Bracket(Parse(before), j)));
+
+    [Theory]
+    // "+" on a term adds an Always term after it, inside the same brackets.
+    [InlineData("HealthBelow=20&(CarryingTech)", 1, "HealthBelow=20&(CarryingTech&Always)")]
+    [InlineData("(HealthBelow=20|(CarryingTech))&VaultDamaged", 1, "(HealthBelow=20|(CarryingTech&Always))&VaultDamaged")]
+    [InlineData("HealthBelow=20", 0, "HealthBelow=20&Always")]
+    public void Insert_term_stays_in_the_brackets(string before, int j, string after) => Assert.Equal(after, Text(ShipAiModel.InsertTerm(Parse(before), j)));
+
+    [Theory]
+    [InlineData("(HealthBelow=20|CarryingTech)&VaultDamaged", 0, "HealthBelow=20|CarryingTech&VaultDamaged")]
+    [InlineData("((HealthBelow=20|CarryingTech)&VaultDamaged)|Always", 0, "(HealthBelow=20|CarryingTech&VaultDamaged)|Always")]
+    [InlineData("(HealthBelow=20|(CarryingTech&VaultDamaged))", 1, "(HealthBelow=20|CarryingTech&VaultDamaged)")]
+    public void Unbracket_removes_the_innermost_bracket_and_its_match(string before, int j, string after) =>
+        Assert.Equal(after, Text(ShipAiModel.Unbracket(Parse(before), j)));
+
+    [Theory]
+    // A term alone in brackets takes them with it; other brackets move to its neighbours.
+    [InlineData("HealthBelow=20&(CarryingTech)|Always", 1, "HealthBelow=20|Always")]
+    [InlineData("(HealthBelow=20|CarryingTech)&Always", 0, "(CarryingTech)&Always")]
+    [InlineData("(HealthBelow=20|CarryingTech)&Always", 1, "(HealthBelow=20)&Always")]
+    [InlineData("((HealthBelow=20)|CarryingTech)&Always", 0, "(CarryingTech)&Always")]
+    public void Remove_term_keeps_the_brackets_balanced(string before, int j, string after) =>
+        Assert.Equal(after, Text(ShipAiModel.RemoveTerm(Parse(before), j)));
 
     [Fact]
     public void Removing_a_middle_term_keeps_the_or_with_its_own_term()
