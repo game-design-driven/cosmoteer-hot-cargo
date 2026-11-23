@@ -20,9 +20,9 @@ HotCargoContracts
 	OpenTrailFmt = "Open contracts: {1}, trail heat +{2}/min"
 	TrailTipFmt = "Open contracts leave a trail. Up to {0} stay quiet. Each one above that adds {1} heat/min until you finish or drop it."
 
-	RivalFmt = "Rival: taking this cancels \"{0}\""
-	RivalAtFmt = "Rival: taking this cancels \"{0}\" at {1}"
-	RivalTip = "Rival clients. Take one job and the other offers are gone."
+	RivalFmt = "Rival: taking this withdraws \"{0}\""
+	RivalAtFmt = "Rival: taking this withdraws \"{0}\" at {1}"
+	RivalTip = "Rival clients. Take one job and the other offers are withdrawn. A withdrawn offer is no failure."
 
 	InformantFmt = "Informant risk {0}%: the client may sell you out"
 	InformantTip = "Some clients sell your position to the corporation. If this one does, heat jumps and hunters come for you."
@@ -32,12 +32,16 @@ HotCargoContracts
 	InformantBannerFmt = "SOLD OUT by {0}. Hunters inbound!"
 	InformantChatFmt = "<bad>INFORMANT</bad>  {0} sold your position over \"{1}\". Heat +{2}."
 
-	RivalDismissedChatFmt = "<gray>Rival offer \"{0}\" withdrawn.</gray>"
+	RivalDismissedChatFmt = "<gray>\"{0}\" withdrawn: you took \"{1}\", its rival.</gray>"
+	RivalDismissedBannerFmt = "{0} withdrawn: you took {1}, its rival"
+	RivalsDismissedBannerFmt = "{0} rival offers withdrawn: you took {1}"
 
 	AcceptPayFmt = "Accept (pay {0:N0})"
 	AcceptCannotPayFmt = "Fee {0:N0}: not enough money"
 	CannotPayFmt = "Not enough money for the contract fee ({0:N0})"
 	AcceptNoRoomFmt = "No free storage for the {0}"
+	AcceptRivalFmt = "{0}: withdraws {1}"
+	AcceptRivalsFmt = "{0}: withdraws {1} offers"
 	NoRoomFmt = "No free storage slot for the {0}. Make room, then accept."
 
 	PanelTrailFmt = "{0} open contracts   trail +{1}/min"

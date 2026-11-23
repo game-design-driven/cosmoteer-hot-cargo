@@ -36,9 +36,12 @@ contract_make_rival
 expect contract_rival_offered == 1
 contract_terms informant 0
 contract_terms fee 0
+# Spec 103: the accept button names the offer that the accept withdraws. The withdrawal shows a neutral notice, not a failure.
+expect contract_accept_rival == 1
 contract_accept
 expect contract_accepted == 1
 expect contract_rival_offered == 0
+expect contract_rival_notices == 1
 contract_stats end
 quit
 # tier: smoke
