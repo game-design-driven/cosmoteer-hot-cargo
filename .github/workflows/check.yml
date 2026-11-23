@@ -18,6 +18,11 @@ on:
   # A full run of a branch on request (gh workflow run check.yml --ref <branch>), for example before a risky pull request
   # enters the queue.
   workflow_dispatch:
+    inputs:
+      test_speed:
+        description: "Game speed of the tests (a speed bar step: 0.125 to 8). Empty: the default of scripts/autotest-lib.sh."
+        required: false
+        default: ""
   # The safety net: every game test on main, so that a break that the smaller queue sets skip stays short. It skips a main
   # commit that already has a green full-suite check. Revisit the interval if main moves much faster or slower.
   schedule:
@@ -131,6 +136,7 @@ jobs:
         working-directory: repo
         env:
           HOT_CARGO_SIM_JOBS: "4"
+          HOT_CARGO_TEST_SPEED: ${{ inputs.test_speed }}
           CI_TESTS: ${{ needs.build.outputs.tests }}
         run: scripts/ci-sim-tests.sh ${{ matrix.shard }} ${{ strategy.job-total }}
       # Only text logs, checked for game data (scripts/ci-check-logs.sh); never the game files or the staged mod.
