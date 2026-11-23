@@ -29,7 +29,10 @@ public sealed class OptionRows
     }
 
     readonly List<Row> _rows = [];
+    /// <summary>The smallest row: two lines of option text.</summary>
     const float RowHeight = 72f;
+    /// <summary>The tallest row: a safety cap; a longer text still wraps, and the page scrolls.</summary>
+    const float MaxRowHeight = 200f;
 
     public LayoutBox Box { get; }
     public event Action<OptionRowView>? Clicked;
@@ -68,6 +71,7 @@ public sealed class OptionRows
                 r.Check = check;
             }
             r.Button.Text = v.Text;
+            FitHeight(r);
             r.Button.ToolTips.Text = v.Tooltip;
             r.Button.SelfInputActive = v.Active;
             r.Button.PercentileWidth = v.Slider is null ? 100f : 62f;
@@ -78,6 +82,37 @@ public sealed class OptionRows
                 r.Slider.Show(spec, v.Value);
             }
         }
+    }
+
+    /// <summary>
+    /// The row grows with its wrapped option text, from RowHeight up to MaxRowHeight (playtest 2026-11-23: a friendly ship's help
+    /// row spilled out of its box at a small window). Only once the button has a width: text wrapped at width 0 would ask for a huge
+    /// height. Safe every frame: it changes the height only when it differs.
+    /// </summary>
+    static void FitHeight(Row r)
+    {
+        if (r.Button.ScreenRect.Width <= 0f || r.Box.Height <= 0f || r.Box.ScreenRect.Height <= 0f) return;
+        float scale = r.Box.ScreenRect.Height / r.Box.Height;
+        float text = ((Halfling.Gui.Components.AutoSizing.IDesiredSizeProvider)r.Button.StateNormalTextRenderer).DesiredScreenHeight / scale;
+        float height = Math.Clamp(MathF.Ceiling(text), RowHeight, MaxRowHeight);
+        if (MathF.Abs(height - r.Box.Height) >= 1f) r.Box.Height = height;
+    }
+
+    /// <summary>
+    /// Layout check (autotests): the shown rows whose wrapped option text is taller than their button, so it spills out of its box.
+    /// Logs each one. Rows without a width yet are skipped.
+    /// </summary>
+    public int Overflowing()
+    {
+        int n = 0;
+        foreach (var r in _rows.Where(r => r.View is not null && r.Box.SelfActive && r.Button.ScreenRect.Width > 0f))
+        {
+            float text = ((Halfling.Gui.Components.AutoSizing.IDesiredSizeProvider)r.Button.StateNormalTextRenderer).DesiredScreenHeight;
+            if (text <= r.Button.ScreenRect.Height + 0.5f) continue;
+            n++;
+            Log.Info($"ux: option row text {text:0} high in a {r.Button.ScreenRect.Height:0} high button ({r.Button.ScreenRect.Width:0} wide): {r.View!.Text}");
+        }
+        return n;
     }
 
     /// <summary>Clicks shown row <paramref name="index"/> (0-based) as a player would. False when there is no such row or it takes no input.</summary>
@@ -94,14 +129,14 @@ public sealed class OptionRows
 
     Row NewRow()
     {
-        // Fixed row height: two lines of option text fit. An auto height grew without limit when a row first showed before the
-        // window had its width (the text wrapped at width 0).
+        // The height follows the wrapped text (FitHeight), not the auto size: an auto height grew without limit when a row first
+        // showed before the window had its width (the text wrapped at width 0).
         var box = new LayoutBox { PercentileWidth = 100f, Height = RowHeight };
         box.NineSlice.Flags = NineSliceFlags.None;
         box.Children.LayoutAlgorithm = LayoutAlgorithms.StretchLeftToRight;
         box.Children.WidgetPadding = new Halfling.Geometry.Vector2(10f);
         var button = ChoiceButton.New();
-        // The row has a fixed height (above), so the button fills it instead of sizing to its text.
+        // The row sets its height (FitHeight), so the button fills it instead of sizing to its text.
         button.AutoSize.AutoHeightMode = AutoSizeMode.Disable;
         var slider = new SliderRow(labelPercent: 0f) { };
         slider.Row.PercentileWidth = 38f;

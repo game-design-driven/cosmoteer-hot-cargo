@@ -1,0 +1,25 @@
+# Option rows wrap inside their box (spec 591): playtest 2026-11-23, a friendly ship's help row spilled out of its box. The hire row
+# is long and shares its row with a slider, so it wraps the most. Headless layout check at the sizes and UI scales of the readability pass.
+newgame run
+wait 8
+ev_set Enabled false
+dip_set DemandHailChance 0
+dip_set MercChance 0
+dip_spawn friend 250
+wait 2
+expect dip_answers == 1
+dip_open friend
+wait 2
+window 1280 720
+uiscale max
+wait 1
+expect comms_rows_overflow == 0
+window 1920 1080
+uiscale max
+wait 1
+expect comms_rows_overflow == 0
+window 2560 1440
+uiscale max
+wait 1
+expect comms_rows_overflow == 0
+quit
