@@ -1,7 +1,7 @@
 HotCargoMechanics
 {
 	DroneSiege = "Drone Siege"
-	DroneSiegeDesc = "Hold the listening post <b>{target_ship}</b> against drones for {hold_minutes} min.\nThe clock stops when no ship is near. Leave early to keep partial pay."
+	DroneSiegeDesc = "Hold the listening post <b>{target_ship}</b> against drones for {hold_minutes} min.\nAny ship of yours near the post keeps the clock running: build a gun platform there and fly on. Leave early to keep partial pay."
 	Prototype = "Prototype Retrieval"
 	PrototypeDesc = "Disable <b>{target_ship}</b> or make it surrender, then lift the core into your hold.\nHand it to the broker. If it breaks, no pay."
 	SunMining = "Sunside Ore"
@@ -13,7 +13,7 @@ HotCargoMechanics
 	Survey = "Storm Survey"
 	SurveyDesc = "Hold a ship with a sensor array at each of {marker_count} storm markers for {scan_seconds} s.\nStorms hit hard: send a scout or bring shields."
 	ClaimJumpers = "Claim Jumpers"
-	ClaimJumpersDesc = "Guard the mining barge <b>{target_ship}</b> from raiders for {hold_minutes} min.\nThe clock stops when no ship is near. Leave early to keep partial pay."
+	ClaimJumpersDesc = "Guard the mining barge <b>{target_ship}</b> from raiders for {hold_minutes} min.\nAny ship of yours near the barge keeps the clock running, also a drone or a gun platform that you leave there. Leave early to keep partial pay."
 	MiningEscort = "Mining Escort"
 	MiningEscortDesc = "Escort the miner <b>{target_ship}</b> to the asteroid field. It mines {resource_icon} {resource_type_plural} while raiders come in two waves.\nDrop {resource_type_plural} near it to help. You get paid when it docks back here."
 	MiningToFieldFmt = "Escort {0} to the asteroid field"
@@ -24,7 +24,7 @@ HotCargoMechanics
 	ListeningPostDesc = "Take the scout <b>{target_ship}</b> within {scan_km} km of the hostile base, then start the scan.\nThe base sends {wave_count} waves. Each wave pays its share; leave early to keep it."
 
 	HoldFmt = "Defend {0}: {1}:{2} left"
-	HoldPaused = "No ship on station: the clock is stopped"
+	HoldPaused = "No ship or drone near: clock stopped"
 	CoreFmt = "Recover the prototype core from {0} intact"
 	CoreLost = "The prototype core was destroyed"
 	TowFmt = "Bring {0} in to {1}"

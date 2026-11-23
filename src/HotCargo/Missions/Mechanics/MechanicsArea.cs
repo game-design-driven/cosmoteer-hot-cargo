@@ -68,6 +68,16 @@ public static class MechanicsArea
         Autotest.Commands["mech_census"] = _ => Census(log: true);
         Autotest.Commands["mech_accept"] = arg => _accepted.Add((Find(arg), MissionArea.AcceptOffer(Find(arg).Metatype)));
         Autotest.Commands["mech_expire"] = TestExpire;
+        // mech_offer_goto <kind>: the players next to the station that offers that kind (then "comms open" opens it). Screenshots.
+        Autotest.Commands["mech_offer_goto"] = arg =>
+        {
+            var id = new ID<MissionMetatype>(Find(arg.Trim()).Metatype);
+            var sim = RequireSim();
+            var station = Cosmoteer.Ships.Special.SpaceStation.GetStations(sim, onlyOperating: false)
+                .Where(st => (st.GetProvidedMissions() ?? []).Any(m => m.MetatypeID.Equals(id))).Select(st => (Cosmoteer.Ships.Special.MetaSpaceStation?)st).FirstOrDefault()
+                ?? throw new InvalidOperationException($"no station offers {arg.Trim()}");
+            MissionArea.TeleportPlayers(Autotest.ClearSpotNear(sim, station.DetWorldCenter, 1000f, 200f));
+        };
         Autotest.Fields["mech_chance_siege"] = () => MissionArea.FindGroup(RequireSim(), Find("siege").GroupTag).SpawnChance;
 
         // Hold-outs (spec 132, 137).
