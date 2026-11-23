@@ -251,9 +251,21 @@ internal sealed class TunablesDialog : DialogBase
             var section = new Section(field, outer, toggle, box, keys);
             toggle.SelectionChanged += (_, _) => { if (toggle.IsSelected) BuildRows(section); };
 
+            // The description wraps at its full size, like a row's description; a fixed one-line box shrank long ones to a tiny font.
+            // A section without a doc comment gets no empty line.
+            string description = TunableDocs.Describe(field.FieldType);
+            if (description.Length > 0)
+            {
+                var about = new Label { PercentileWidth = 100f };
+                about.TextRenderer.FontSize = 14;
+                about.TextRenderer.HAlignment = HAlignment.Left;
+                about.TextRenderer.OversizeMode = OversizeMode.Wrap;
+                about.AutoSize.AutoHeightMode = AutoSizeMode.Enable;
+                about.Text = description;
+                box.AddChild(about);
+            }
             var header = new SimpleBox { Height = 32f };
             header.NineSlice.Flags = NineSliceFlags.None;
-            header.AddChild(SmallLabel(TunableDocs.Describe(field.FieldType), new Rect(0f, 0f, 80f, 100f)));
             var reset = SmallButton(Text("ResetSection"), new Rect(82f, 0f, 18f, 100f));
             reset.Clicked += (_, _) => ResetSection(field.Name);
             header.AddChild(reset);
@@ -552,16 +564,6 @@ internal sealed class TunablesDialog : DialogBase
         group.AddChild(title);
         parent.AddChild(group);
         return group;
-    }
-
-    static Label SmallLabel(string text, Rect percent)
-    {
-        var label = new Label { PercentileRect = percent };
-        label.TextRenderer.FontSize = 14;
-        label.TextRenderer.HAlignment = HAlignment.Left;
-        label.TextRenderer.OversizeMode = OversizeMode.Shrink;
-        label.Text = text;
-        return label;
     }
 
     static Button SmallButton(string text, Rect percent)
