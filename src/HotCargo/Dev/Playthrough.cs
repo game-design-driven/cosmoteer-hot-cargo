@@ -181,25 +181,6 @@ public static class Playthrough
             Log.Info($"AUTOTEST playthrough: hire {input.Crew.Count} crew for {spent} (crew {ship.Crew.Assigned.Count}, free beds {ship.Crew.RemainingCrewCapacity}, offered {offered.Count})");
             if (input.Crew.Count > 0) game.NetManager.EnqueueInput(input);
         };
-        // pt_fuel: the move order of the hyperdrive's parts panel: the crew carry the ship's hyperium into the drive. After a fight
-        // with a fire, crew did not refuel the new drive by themselves (no delivery job; cause not found), so the drives never got
-        // ready at the relay (#184). Revisit when vanilla refuels a drive in that state.
-        Autotest.Commands["pt_fuel"] = _ =>
-        {
-            var game = Game();
-            var ship = TechAutotest.PlayerShip();
-            var hyperium = new ID<ResourceRules>("hyperium");
-            var drive = ship.Parts.SelectMany(p => p.Components.OfType<Cosmoteer.Ships.Parts.Resources.ResourceStorage>()).First(st => st.Part.Components.OfType<Cosmoteer.Ships.Parts.Ftl.FtlDrive>().Any() && st.Rules.ResourceType == hyperium);
-            var src = new List<(IResourceSource Source, int AnticipatedResources, float Distance)>();
-            ship.Resources.SearchAllAvailableResourceSources(ship, hyperium, MPValueType.Displayed, src);
-            foreach (var (source, n, _) in src)
-            {
-                if (source is Cosmoteer.Ships.Parts.Resources.ResourceStorage rs && rs == drive) continue;
-                var id = MPMoveResourcesInput.GetJobOwner(source, drive, game.LocalPlayerIndex).Jobs.AllocLocalJobID();
-                game.NetManager.EnqueueInput(new MPMoveResourcesInput(source, drive, n, id));
-                Log.Info($"AUTOTEST playthrough: fuel: move {n} hyperium into the drive");
-            }
-        };
         Autotest.Fields["pt_crew"] = () => TechAutotest.PlayerShip().Crew.Assigned.Count;
         // pt_build <part id>: a blueprint part on a free spot next to the hull, confirmed like the build tool's button. Crew build it.
         Autotest.Commands["pt_build"] = arg =>
