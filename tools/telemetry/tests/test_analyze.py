@@ -103,3 +103,23 @@ def test_time_use_splits_each_visit_and_adds_session_parts(tmp_path: Path) -> No
     assert sectors.columns[-6:] == ["fight %", "build %", "trade %", "travel %", "repair %", "idle %"]
     assert sectors.rows[0][-6:] == ["20", "0", "0", "30", "50", "0"]
     assert any(f.startswith("Time in systems by activity: repair 38 %") for f in rep.findings)
+
+
+def test_notes_list_in_play_order_with_nearby_events(tmp_path: Path) -> None:
+    write(tmp_path / "r__s.jsonl", [
+        ev("session.start", 0, run="r", session="s", wall_utc="x"),
+        ev("heat.stage", 95, stage=1, name="Warning"),
+        ev("note", 100, text="hunters came from the sun", player="Tom", screen={"event": "defector"}, screenshot=None),
+        ev("trace", 101, method="X.Y"),
+        ev("combat.destroyed", 130, ship="h1", name="Corporate Arche", side="hunter"),
+        ev("heat.stage", 500, stage=2, name="Hunt"),
+        ev("note", 600, text="second", player="Yarden", screen={}, screenshot="r__x.png"),
+    ])
+    rep = analyze(load(tmp_path)[0])
+    notes = rep.tables[0]
+    assert notes.title == "Playtest notes"
+    assert [r[7] for r in notes.rows] == ["hunters came from the sun", "second"]
+    assert notes.rows[0][5] == "event defector"
+    around = [r for r in rep.tables[1].rows if r[0] == 1]
+    assert [r[3] for r in around] == ["heat.stage", "combat.destroyed"]
+    assert rep.findings[0] == "2 playtest notes (see 'Playtest notes')."

@@ -1,0 +1,10 @@
+
+// Playtest notes (spec 1984 to 1986).
+HotCargoTelemetry
+{
+	NotePrompt = "Playtest note: what happened?"
+	NoteSave = "Save"
+	NoteCancel = "Cancel"
+	NoteSaved = "Note saved."
+	NoteSavedShot = "Note saved, with a screenshot."
+}

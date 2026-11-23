@@ -1,0 +1,19 @@
+# Telemetry: playtest notes (spec 1984 to 1986). The note key opens a text dialog, Enter saves a "note" event, Escape saves
+# nothing. Headless games have no graphics device, so the note has no screenshot here.
+newgame run
+wait 8
+telenote open
+waitreal 1
+expect telenote_open == 1
+telenote type The hunters came from the sun side
+telenote save
+wait 1
+expect telenote_open == 0
+telenote open
+waitreal 1
+telenote type not this one
+telenote cancel
+wait 1
+teleflush
+telecount note == 1
+quit

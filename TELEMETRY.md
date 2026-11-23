@@ -90,6 +90,7 @@ Category switches are in the `Telemetry` tunables section. The table names the s
 | `mp.players` | Coop | `from`, `to` |
 | `mp.desync` | Coop | `input_tick`, `host`, `expected` (a test resync) |
 | `mp.game_loaded` | Coop | `host`, `players`. A co-op game that the host's state rebuilt: a join or a resync. |
+| `note` | Run | A playtest note (spec 1984 to 1987): `text`, `player` (the player's name), `local_player`, `pressed_real_s` (real seconds at the key press), `screen` (what the player saw: `event`, `comms`, `build`, `dialog`), `screenshot` (the file in `notes/`, or null). |
 | `log` | Log | `level`, `msg`: every `hot_cargo_log.txt` line, with user folder names and Steam IDs replaced by `<user>` and `<steam id>` (spec 1585) |
 | `trace` | Trace | `method`, `args`, `result`, `ms`, `ctx` |
 
@@ -148,6 +149,7 @@ Section `Telemetry` in `tunables.rules`. Defaults:
 | `AiSwitchMinSeconds`, `AiEventsPerMinute` | 3, 600 | Limits of `ai.switch` events. |
 | `CallerLookupsPerSecond` | 50 | Limit of stack walks for `src`. |
 | `MaxFileMegabytes`, `MaxFolderMegabytes` | 32, 1024 | File rotation and folder size. |
+| `NoteKey` | `BackslashPipe` (`\`) | The key of a playtest note. Vanilla binds nothing to it. |
 | `RelayToHost` | true | Co-op: a client sends its files to the host (`players/<name>/`). Each machine follows its own switch. |
 | `TraceMethods` | see `TelemetryTunables.cs` | Methods for `trace` events, as `Namespace.Type:Method`. Read at the first game start; a change needs a restart. A missing method is skipped with a log line. |
 
@@ -159,6 +161,14 @@ Telemetry is not sim state. Each co-op machine writes its own file with its own 
 - Telemetry measures its own time on game threads (every patch, handler and event build) and reports it in `perf` (`tele_ms`, `tele_pct_wall`) and `session.end` (`overhead_pct_wall`). At a steady frame rate the share of real time is the share of frame time. Target: well below 1 %.
 - Headless test games run at about 400 frames per second without drawing, so their frame times are no measure of play frame times. The share of real time is.
 - Limit: a hard kill of the game loses the lines of the last second.
+
+## Playtest notes
+
+During play, press `\` (`Telemetry.NoteKey`), type a short note and press Enter; Escape cancels. The note goes into the session file as a `note` event, with what was on screen at the key press, and a chat line says "Note saved." A co-op client's note travels to the host with the client's file (`players/<name>/`). In co-op the game keeps running while a player types; in single player it pauses, like every vanilla dialog.
+
+The game also saves a screenshot through its own capture path (`App.Graphics.GetEndOfFrameScreenShot`, the path of the vanilla screenshot key) into `telemetry/notes/<run>__<time>.png` on that machine. The Mac app has the same capture (the Metal graphics manager); a headless game has no graphics device and saves the note without a screenshot. Screenshots do not travel to the host.
+
+The report lists the notes first, in play order, with the events within 60 game seconds of each.
 
 ## Pull and analyze
 

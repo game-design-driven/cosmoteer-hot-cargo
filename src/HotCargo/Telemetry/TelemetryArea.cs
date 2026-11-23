@@ -7,6 +7,7 @@ using Halfling;
 using HarmonyLib;
 using HotCargo.Core;
 using HotCargo.Dev;
+using Halfling.Gui.Dialogs;
 
 namespace HotCargo.Telemetry;
 
@@ -29,6 +30,7 @@ public static class TelemetryArea
         Run.Hooks.SystemEntered += Session.OnSystemEntered;
         Events.EventRunner.OutcomeChosen += Session.OnOutcomeChosen;
         DiplomacyTelemetry.Register();
+        PlaytestNotes.Register();
         Log.Written += OnLogWritten;
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Session.End("process_exit");
         AddAutotest();
@@ -172,6 +174,24 @@ public static class TelemetryArea
             var move = new Cosmoteer.Ships.Commands.MoveCommand(ship, ship.Commands.AllocLocalCommandID(), to, null, Cosmoteer.Ships.Commands.CollisionAvoidanceFlags.All, isTentative: false);
             game.NetManager.EnqueueInput(new Cosmoteer.Game.Multiplayer.MPInputs.MPEnqueueCommandsInput(move, append: false, playLocalSound: false));
         };
+        // telenote open | type <text> | save | cancel: the note key, the text field, Enter and Escape (spec 1986). Test only.
+        Autotest.Commands["telenote"] = arg =>
+        {
+            var parts = arg.Split(' ', 2);
+            var d = PlaytestNotes.OpenDialog;
+            switch (parts[0])
+            {
+                case "open": PlaytestNotes.Open(Autotest.RequireRun()); break;
+                case "type": (d ?? throw new InvalidOperationException("no note dialog")).TextEditField.Text = parts.Length > 1 ? parts[1] : ""; break;
+                case "save" or "cancel":
+                    var dialog = d ?? throw new InvalidOperationException("no note dialog");
+                    dialog.Response = parts[0] == "save" ? TwoButtonTextEntryDialog.DialogResponse.Option1 : TwoButtonTextEntryDialog.DialogResponse.Option2;
+                    App.Director.PopState(dialog);
+                    break;
+                default: throw new InvalidOperationException("telenote needs: open | type <text> | save | cancel");
+            }
+        };
+        Autotest.Fields["telenote_open"] = () => PlaytestNotes.OpenDialog is null ? 0 : 1;
         // telestats: logs the overhead numbers of the session, for reports.
         Autotest.Commands["telestats"] = _ =>
             Log.Info($"TELEMETRY STATS events={Interlocked.Read(ref Stats.Events)} bytes={Interlocked.Read(ref Stats.Bytes)} dropped={Interlocked.Read(ref Stats.Dropped)} " +
