@@ -18,6 +18,7 @@ namespace HotCargo.Telemetry;
 public static class TelemetryArea
 {
     static bool _frameHooked, _traceInstalled;
+    static Halfling.Gui.TextEditField? _textBox;
 
     /// <summary>A name for the sessions of this process, for example the autotest script. In the session.start header.</summary>
     internal static string Label = "";
@@ -192,6 +193,24 @@ public static class TelemetryArea
             }
         };
         Autotest.Fields["telenote_open"] = () => PlaytestNotes.OpenDialog is null ? 0 : 1;
+        // 1 when the note key would open a note now (spec 1984).
+        Autotest.Fields["telenote_can_open"] = () => PlaytestNotes.CanOpen(Autotest.RequireRun()) ? 1 : 0;
+        // telenote_textbox on|off: a text box like the co-op chat (BlockOtherInputWhileFocused) takes or gives up the focus. Test only.
+        Autotest.Commands["telenote_textbox"] = arg =>
+        {
+            var gui = Autotest.RequireRun().Game.Gui;
+            if (arg == "on")
+            {
+                _textBox ??= new Halfling.Gui.TextEditField(Halfling.Gui.TextEditField.Style.SingleLine) { BlockOtherInputWhileFocused = true };
+                if (_textBox.Parent is null) gui.RootWidget.AddChild(_textBox);
+                _textBox.FocusController.RequestFocus();
+            }
+            else if (_textBox is not null)
+            {
+                _textBox.FocusController.RelinquishFocus();
+                gui.RootWidget.Children.Remove(_textBox);
+            }
+        };
         // Lines of the live notes file from this player and from other players (spec 1988).
         Autotest.Fields["telenote_live_own"] = () => LiveNotes(own: true);
         Autotest.Fields["telenote_live_others"] = () => LiveNotes(own: false);

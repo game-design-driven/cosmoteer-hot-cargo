@@ -164,7 +164,7 @@ Telemetry is not sim state. Each co-op machine writes its own file with its own 
 
 ## Playtest notes
 
-During play, press `\` (`Telemetry.NoteKey`), type a short note and press Enter; Escape cancels. The note goes into the session file as a `note` event, with what was on screen at the key press, and a chat line says "Note saved." A co-op client's note travels to the host with the client's file (`players/<name>/`). In co-op the game keeps running while a player types; in single player it pauses, like every vanilla dialog.
+During play, press `\` (`Telemetry.NoteKey`), type a short note and press Enter; Escape cancels. The key does nothing while a menu or dialog is open, or while a text box such as the co-op chat has the focus. The note goes into the session file as a `note` event, with what was on screen at the key press, and a chat line says "Note saved." A co-op client's note travels to the host with the client's file (`players/<name>/`). In co-op the game keeps running while a player types; in single player it pauses, like every vanilla dialog.
 
 The game also saves a screenshot through its own capture path (`App.Graphics.GetEndOfFrameScreenShot`, the path of the vanilla screenshot key) into `telemetry/notes/<run>__<time>.png` on that machine. The Mac app has the same capture (the Metal graphics manager); a headless game has no graphics device and saves the note without a screenshot. Screenshots do not travel to the host.
 
