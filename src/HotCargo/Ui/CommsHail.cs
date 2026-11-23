@@ -228,7 +228,7 @@ public static class CommsHail
                 pageBox.ScrollBarController.ShowVertical = Halfling.Gui.ScrollBarShowMode.WhenNeeded;
                 pageBox.Children.LayoutAlgorithm = Halfling.Gui.LayoutAlgorithms.StretchTopToBottom;
                 pageBox.Children.BorderPadding = new Halfling.Gui.Borders(40f, 30f, 40f, 30f);
-                pageBox.Children.WidgetPadding = new Halfling.Geometry.Vector2(12f);
+                pageBox.Children.WidgetPadding = new Halfling.Geometry.Vector2(ChoiceButton.Gap);
             }
             Panels.AddOrUpdate(__instance, new SharedState(pageBox));
             ShowRows(__instance, rows);
