@@ -1,3 +1,5 @@
+using Cosmoteer.Data;
+using Cosmoteer.Resources;
 using Cosmoteer.Simulation;
 using HotCargo.Core;
 
@@ -48,7 +50,7 @@ public static class EventView
             var c = e.Choices[i];
             var unmet = EventRunner.ChoiceUnmet(run, c, p, c.IsSubmit ? picks : [], snapshot);
             if (unmet is not null && c.HideIfUnmet) continue;
-            choices.Add(new ChoiceView(i, ChoiceText(run, c, p, unmet), unmet is null, c.IsSubmit));
+            choices.Add(new ChoiceView(i, ChoiceText(run, e, c, p, unmet), unmet is null, c.IsSubmit));
         }
         string body = EventText.Fill(p.Lead.Length > 0 ? $"{p.Lead}\n\n{e.Text}" : e.Text, run.State.FleetTech, p);
         if (e.OfferLine.Length > 0 && e.Choices.FirstOrDefault(c => c.IsSubmit) is { } submit)
@@ -97,7 +99,7 @@ public static class EventView
     /// "[Sensor Array] Scan it first. (-5,000 credits)" with the requirement tag in FTL blue, or grey text with the reason in red.
     /// No number prefix: the UX area draws the key numbers next to the buttons (Ux/DialogueKeys).
     /// </summary>
-    static string ChoiceText(Run run, ChoiceRules c, PendingEvent p, Unmet? unmet)
+    static string ChoiceText(Run run, EventRules e, ChoiceRules c, PendingEvent p, Unmet? unmet)
     {
         string tag = RequirementTag(c.Need);
         string cost = CostText(run, c.Cost, p);
@@ -106,7 +108,36 @@ public static class EventView
             return $"<gray>{EventText.Fill(c.Text, run.State.FleetTech, p)}{(cost.Length > 0 ? $" ({cost})" : "")}</gray>   <bad>{EventText.Reason(unmet)}</bad>";
         string tagXml = tag.Length > 0 ? EventText.Unlocked.FormatWithXml($"[{tag}]") + " " : "";
         string costXml = cost.Length > 0 ? $" <gray>({cost})</gray>" : "";
-        return $"{tagXml}{EventText.Fill(c.Text, run.State.FleetTech, p)}{costXml}";
+        string gain = e.HideEffects || c.Outcomes.Length != 1 ? "" : GainText(run, c.Outcomes[0], p);
+        return $"{tagXml}{EventText.Fill(c.Text, run.State.FleetTech, p)}{costXml}{(gain.Length > 0 ? "   " + gain : "")}";
+    }
+
+    /// <summary>
+    /// Spec 1816: the sure effects of a choice with one outcome, in the words of its result lines (EventText): the money (with a
+    /// hand-over's job pay), fame, heat, crew and resources. A choice with several outcomes is a gamble and shows none. An offer price
+    /// is in the choice text already.
+    /// </summary>
+    static string GainText(Run run, OutcomeRules o, PendingEvent p)
+    {
+        var job = o.HandOver && p.Carrier is { } contact ? HandOverObjective.ForContact(run, contact)?.Mission : null;
+        var rewards = job?.Rewards ?? [];
+        var g = EventModel.Gain(
+            EventRunner.Credits(run, o.Money, o.MoneyTech, p.Tier, p.TechValue),
+            o.Fame != 0 ? EventRunner.FameAmount(run, o.Fame, p.Tier) : 0,
+            o.Heat * run.T.Events.HeatScale,
+            o.Crew - o.CrewLeaves,
+            o.HandOver,
+            rewards.OfType<Cosmoteer.Modes.Career.Missions.Rewards.MoneyReward>().Select(r => r.Money),
+            rewards.OfType<Cosmoteer.Modes.Career.Missions.Rewards.FameReward>().Sum(r => r.Fame),
+            o.HandOverPay);
+        var parts = new List<string>();
+        if (g.Money != 0) parts.Add(EventText.Money(g.Money));
+        if (g.Fame != 0) parts.Add(EventText.Fame(g.Fame));
+        if (MathF.Abs(g.Heat) >= 0.5f) parts.Add(EventText.Heat(g.Heat));
+        if (g.Crew != 0) parts.Add(EventText.Crew(g.Crew));
+        parts.AddRange(o.Resources.Select(r => r.At(p.Tier)).Zip(o.Resources).Where(x => x.First != 0)
+            .Select(x => EventText.Resource(new ID<ResourceRules>(x.Second.ID), x.First)));
+        return string.Join("  ", parts);
     }
 
     /// <summary>

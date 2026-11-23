@@ -66,8 +66,24 @@ public enum UnmetKind { Money, Tech, VaultSpace, Crew, Bunks, HandOver, MinHeat,
 public sealed record Unmet(UnmetKind Kind, string Id = "", float Amount = 0);
 
 /// <summary>Pure event math on plain numbers. No game types, so unit tests run on the Mac without the game.</summary>
+/// <summary>Spec 1816: the sure money, fame, heat and crew of a one-outcome choice.</summary>
+public readonly record struct ChoiceGain(int Money, int Fame, float Heat, int Crew);
+
 public static class EventModel
 {
+    /// <summary>A scaled hand-over job pay is a multiple of this many credits (spec 1118).</summary>
+    public const int HandOverPayRoundTo = 100;
+
+    /// <summary>
+    /// Spec 1816: what a choice with one outcome surely gives, for its button. A hand-over adds the job's pay: each money reward
+    /// × <paramref name="handOverPay"/> when it is above 0 (rounded like the delivery), and the fame rewards.
+    /// </summary>
+    public static ChoiceGain Gain(int credits, int fame, float heat, int crew, bool handOver, IEnumerable<int> jobMoney, int jobFame, float handOverPay)
+    {
+        int pay = handOver ? jobMoney.Sum(m => handOverPay > 0f ? Missions.MissionModel.ScaleReward(m, handOverPay, HandOverPayRoundTo) : m) : 0;
+        return new ChoiceGain(credits + pay, fame + (handOver ? jobFame : 0), heat, crew);
+    }
+
     /// <summary>The first need that the snapshot does not meet, or null when all are met. Checks run in a fixed order.</summary>
     public static Unmet? FirstUnmet(Need need, Snapshot s)
     {
