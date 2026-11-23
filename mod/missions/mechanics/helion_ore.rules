@@ -1,5 +1,5 @@
 // Helion Ore (spec 138): a mineral that forms only on asteroids inside a sun's heat zone. Sun Mining missions ask for it.
-// Vanilla gold sprites with a tint. Stations do not stock it (it is in no StationResourceTradeDeltas list), but they buy it.
+// Stations do not stock it (it is in no StationResourceTradeDeltas list), but they buy it.
 ID = yarden_zamir.helion_ore
 NameKey = "HotCargoMechanics/HelionOre"
 PluralNameKey = "HotCargoMechanics/HelionOrePlural"
@@ -12,49 +12,11 @@ FlexGridDefaultPriority = 1
 DropRates = &<./Data/resources/resources.rules>/ElementDropRates
 Rarity = RawRare
 
-TINT = [255, 150, 80]
-
-Icon
-{
-	Texture
-	{
-		File = "./Data/resources/gold/icon.png"
-		MipLevels = max
-	}
-	Size = [64, 64]
-	VertexColor = &~/TINT
-}
-
-Overlay
-{
-	Texture
-	{
-		File = "./Data/resources/gold/overlay.png"
-		SampleMode = Linear
-		MipLevels = max
-	}
-	Size = [1, 1]
-	VertexColor = &~/TINT
-}
-
-NuggetSprite
-{
-	File = "./Data/resources/gold/gold.png"
-	NormalsFile = "./Data/resources/gold/gold_normals.png"
-	Size = [1, 1]
-	Offset = [.25+4/64, 0]
-	UVRotation = 1
-	VertexColor = &~/TINT
-}
-
-StackSprites
-[
-	{ File = "./Data/resources/gold/gold_stack_1.png"; Size = [1, 1]; VertexColor = &~/TINT; }
-	{ File = "./Data/resources/gold/gold_stack_2.png"; Size = [1, 1]; VertexColor = &~/TINT; }
-	{ File = "./Data/resources/gold/gold_stack_3.png"; Size = [1, 1]; VertexColor = &~/TINT; }
-	{ File = "./Data/resources/gold/gold_stack_4.png"; Size = [1, 1]; VertexColor = &~/TINT; }
-	{ File = "./Data/resources/gold/gold_stack_5.png"; Size = [1, 1]; VertexColor = &~/TINT; }
-]
+// Own art, drawn by tools/sprites/make_items.py.
+Icon = &<sprites/helion_ore/sprites.rules>/Icon
+Overlay = &<sprites/helion_ore/sprites.rules>/Overlay
+NuggetSprite = &<sprites/helion_ore/sprites.rules>/NuggetSprite
+StackSprites = &<sprites/helion_ore/sprites.rules>/StackSprites
 
 StackReceiveMediaEffects = &/COMMON_EFFECTS/MetalDeliver
 StackPickupMediaEffects = &/COMMON_EFFECTS/MetalPickup

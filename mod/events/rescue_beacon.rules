@@ -1,6 +1,5 @@
 // Rescue Beacon (spec 1147): fire it to call a tug that tows the ship to the nearest friendly station, for a fee and some heat.
-// Trade stations stock it and sell it in their trade window (events/actions.rules); RescueBeacon.cs sets its price. Sprites are the
-// vanilla processor sprites with a tint.
+// Trade stations stock it and sell it in their trade window (events/actions.rules); RescueBeacon.cs sets its price.
 ID = yarden_zamir.rescue_beacon
 NameKey = "HotCargoItems/RescueBeacon"
 PluralNameKey = "HotCargoItems/RescueBeaconPlural"
@@ -20,49 +19,11 @@ DropRates
 }
 Rarity = Unique
 
-TINT = [255, 170, 40]
-
-Icon
-{
-	Texture
-	{
-		File = "./Data/resources/processor/icon.png"
-		MipLevels = max
-	}
-	Size = [64, 64]
-	VertexColor = &~/TINT
-}
-
-Overlay
-{
-	Texture
-	{
-		File = "./Data/resources/processor/overlay.png"
-		SampleMode = Linear
-		MipLevels = max
-	}
-	Size = [1, 1]
-	VertexColor = &~/TINT
-}
-
-NuggetSprite
-{
-	File = "./Data/resources/processor/processor.png"
-	NormalsFile = "./Data/resources/processor/processor_normals.png"
-	Size = [1, 1]
-	Offset = [.25+6/64, 0]
-	UVRotation = 1
-	VertexColor = &~/TINT
-}
-
-StackSprites
-[
-	{
-		File = "./Data/resources/processor/processor_stack_1.png"
-		Size = [1, 1]
-		VertexColor = &~/TINT
-	}
-]
+// Own art, drawn by tools/sprites/make_items.py.
+Icon = &<sprites/rescue_beacon/sprites.rules>/Icon
+Overlay = &<sprites/rescue_beacon/sprites.rules>/Overlay
+NuggetSprite = &<sprites/rescue_beacon/sprites.rules>/NuggetSprite
+StackSprites = &<sprites/rescue_beacon/sprites.rules>/StackSprites
 
 StackReceiveMediaEffects = &/COMMON_EFFECTS/ProcessorDeliver
 StackPickupMediaEffects = &/COMMON_EFFECTS/ProcessorPickup

@@ -1,0 +1,60 @@
+// Written by tools/sprites/make_items.py. Do not edit: change the script and run it again.
+Icon
+{
+	Texture
+	{
+		File = "icon.png"
+		MipLevels = max
+	}
+	Size = [64, 64]
+}
+
+Overlay
+{
+	Texture
+	{
+		File = "overlay.png"
+		SampleMode = Linear
+		MipLevels = max
+	}
+	Size = [1, 1]
+}
+
+NuggetSprite
+{
+	AnimationFiles
+	[
+		"nugget_1.png"
+		"nugget_2.png"
+		"nugget_2.png"
+		"nugget_2.png"
+	]
+	AnimationInterval = 0.25
+	AnimationStartTime = Random
+	NormalsAnimationFiles
+	[
+		"nugget_normals.png"
+		"nugget_normals.png"
+		"nugget_normals.png"
+		"nugget_normals.png"
+	]
+	Size = [1, 1]
+	Offset = [.25+6/64, 0]
+	UVRotation = 1
+}
+
+StackSprites
+[
+	{
+		AnimationFiles
+		[
+			"stack_1_1.png"
+			"stack_1_2.png"
+			"stack_1_2.png"
+			"stack_1_2.png"
+		]
+		AnimationInterval = 0.25
+		AnimationStartTime = Random
+		Size = [1, 1]
+	}
+]

@@ -1,6 +1,6 @@
 ---
 name: hot-cargo-part-art
-description: Draw or change the art of a Hot Cargo ship part so it fits the vanilla terran look. Vanilla deck and walls by reference from the rules, own layers from tools/sprites/make_sprites.py, a quick preview and in-game screenshots. Use for a new part, an art change, or a part that looks out of place.
+description: Draw or change the art of a Hot Cargo ship part or item so it fits the vanilla terran look. Vanilla deck and walls by reference from the rules, own layers from tools/sprites/make_sprites.py, a quick preview and in-game screenshots. Use for a new part, an art change, or a part that looks out of place.
 ---
 
 # Part art
@@ -15,3 +15,5 @@ The rules and the reasons are in `docs/part-art.md`. This skill gives the order.
 6. In-game: `RUNNER=mac scripts/screens.sh tests/screens/part-art.txt <scratch folder>` (`hot-cargo-screenshots`). Look at the roofs, build mode, the part list and both damage levels.
 7. After a rules change, run the smoke test of the part's area (`scripts/autotest-affected.sh`): a broken path stops the game while it loads data.
 8. In the PR: before and after images (`gh-pr-images`), and one line on how each committed PNG was made.
+
+Items (resources such as Stolen Tech or the Flight Recorder) use `tools/sprites/make_items.py` and `tools/sprites/item_sheet.py`. Steps: `docs/part-art.md`, Items.

@@ -1,6 +1,5 @@
 // Prototype Core as cargo: Prototype Retrieval's item once the crew lift the part off the carrier (spec 1100, 1108). Normal storage
 // holds it, one to a storage slot. Stations do not trade it.
-// Sprites are the vanilla processor sprites with a tint.
 ID = yarden_zamir.prototype_core_cargo
 NameKey = "HotCargoMechanics/PrototypeCore"
 PluralNameKey = "HotCargoMechanics/PrototypeCorePlural"
@@ -21,49 +20,11 @@ DropRates
 }
 Rarity = Unique
 
-TINT = [150, 180, 255]
-
-Icon
-{
-	Texture
-	{
-		File = "./Data/resources/processor/icon.png"
-		MipLevels = max
-	}
-	Size = [64, 64]
-	VertexColor = &~/TINT
-}
-
-Overlay
-{
-	Texture
-	{
-		File = "./Data/resources/processor/overlay.png"
-		SampleMode = Linear
-		MipLevels = max
-	}
-	Size = [1, 1]
-	VertexColor = &~/TINT
-}
-
-NuggetSprite
-{
-	File = "./Data/resources/processor/processor.png"
-	NormalsFile = "./Data/resources/processor/processor_normals.png"
-	Size = [1, 1]
-	Offset = [.25+6/64, 0]
-	UVRotation = 1
-	VertexColor = &~/TINT
-}
-
-StackSprites
-[
-	{
-		File = "./Data/resources/processor/processor_stack_1.png"
-		Size = [1, 1]
-		VertexColor = &~/TINT
-	}
-]
+// Own art, drawn by tools/sprites/make_items.py.
+Icon = &<sprites/prototype_core_cargo/sprites.rules>/Icon
+Overlay = &<sprites/prototype_core_cargo/sprites.rules>/Overlay
+NuggetSprite = &<sprites/prototype_core_cargo/sprites.rules>/NuggetSprite
+StackSprites = &<sprites/prototype_core_cargo/sprites.rules>/StackSprites
 
 StackReceiveMediaEffects = &/COMMON_EFFECTS/ProcessorDeliver
 StackPickupMediaEffects = &/COMMON_EFFECTS/ProcessorPickup

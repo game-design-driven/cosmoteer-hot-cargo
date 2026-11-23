@@ -7,7 +7,7 @@ The whole workflow (agents, PRs, tests, the PC, releases) and which parts are ge
 Procedures are skills in `.claude/skills/`:
 - `hot-cargo-testing`: build, unit tests, headless game tests, co-op tests, infrastructure failures.
 - `hot-cargo-screenshots`: screenshots in a windowed test slot (never the player's game slot).
-- `hot-cargo-part-art`: draw or change the art of a part (vanilla layers by reference, own layers from `tools/sprites/`).
+- `hot-cargo-part-art`: draw or change the art of a part or an item (vanilla layers by reference, own layers from `tools/sprites/`).
 - `hot-cargo-install`: install a build into the player's own game.
 - `hot-cargo-release`: publish a GitHub release.
 - `hot-cargo-new-area`: add a feature area (entry point, tunables, rules, strings).

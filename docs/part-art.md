@@ -50,6 +50,16 @@ Other helpers: `glow` (roof glows around the roof holes), `lights` (dim light on
 - Lights (`lights_add`) are dim. A bright light washes out the part.
 - Damage cuts jagged holes with a soft dark scorch. In a machine, the holes are dark, because a clear hole shows the light deck below.
 
+## Items
+
+Items (resources) follow the same rule: the script is the source. Spec: 2000 to 2004.
+
+1. Add a design function to `tools/sprites/make_items.py` and add it to `ITEMS`. The function name is the item ID without `yarden_zamir.`. The script finds the rules file by its `ID` line.
+2. In the item rules, reference `Icon`, `Overlay`, `NuggetSprite` and `StackSprites` from `sprites/<item>/sprites.rules`. Copy the four lines from an existing item.
+3. Run `uv run tools/sprites/make_items.py`. It writes the PNG files and `sprites.rules` next to the item rules.
+4. Run `uv run tools/sprites/item_sheet.py <scratch>/items.png`. Compare each item with the vanilla rows at the top and at game size in the last row.
+5. For a blinking light, add the design to `ANIM` and draw the light off when the frame is not lit.
+
 ## Limits
 
 - The kit draws geometric machines: plates, rings, pipes, grilles. Organic or hand-painted detail (cables in loops, worn paint) needs hand work. If a part needs that, draw it by hand as a PNG and say so in the PR.

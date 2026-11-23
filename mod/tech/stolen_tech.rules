@@ -1,4 +1,4 @@
-// Stolen Tech (spec section 7). Sprites are the vanilla processor sprites with a tint.
+// Stolen Tech (spec section 7).
 // The C# code (src/HotCargo/Tech) replaces the trade price and decays tech outside a vault (spec 1547).
 ID = yarden_zamir.stolen_tech
 NameKey = "HotCargoTech/StolenTech"
@@ -25,66 +25,13 @@ DropRates
 }
 Rarity = Unique
 
-TINT = [140, 255, 200]
-
-Icon
-{
-	Texture
-	{
-		File = "./Data/resources/processor/icon.png"
-		MipLevels = max
-	}
-	Size = [64, 64]
-	VertexColor = &~/TINT
-}
-
-Overlay
-{
-	Texture
-	{
-		File = "./Data/resources/processor/overlay.png"
-		SampleMode = Linear
-		MipLevels = max
-	}
-	Size = [1, 1]
-	VertexColor = &~/TINT
-}
-
-NuggetSprite
-{
-	File = "./Data/resources/processor/processor.png"
-	NormalsFile = "./Data/resources/processor/processor_normals.png"
-	Size = [1, 1]
-	Offset = [.25+6/64, 0]
-	UVRotation = 1
-	VertexColor = &~/TINT
-}
+// Own art, drawn by tools/sprites/make_items.py.
+Icon = &<sprites/stolen_tech/sprites.rules>/Icon
+Overlay = &<sprites/stolen_tech/sprites.rules>/Overlay
+NuggetSprite = &<sprites/stolen_tech/sprites.rules>/NuggetSprite
+StackSprites = &<sprites/stolen_tech/sprites.rules>/StackSprites
 
 // One item per unit (spec 442): 1 unit shows one item, 4 units show four, like vanilla processors. Vanilla picks sprite (units - 1).
-StackSprites
-[
-	{
-		File = "./Data/resources/processor/processor_stack_1.png"
-		Size = [1, 1]
-		VertexColor = &~/TINT
-	}
-	{
-		File = "./Data/resources/processor/processor_stack_2.png"
-		Size = [1, 1]
-		VertexColor = &~/TINT
-	}
-	{
-		File = "./Data/resources/processor/processor_stack_3.png"
-		Size = [1, 1]
-		VertexColor = &~/TINT
-	}
-	{
-		File = "./Data/resources/processor/processor_stack_4.png"
-		Size = [1, 1]
-		VertexColor = &~/TINT
-	}
-]
-
 StackReceiveMediaEffects = &/COMMON_EFFECTS/ProcessorDeliver
 StackPickupMediaEffects = &/COMMON_EFFECTS/ProcessorPickup
 NuggetPickupMediaEffects = &/COMMON_EFFECTS/NuggetPickup
