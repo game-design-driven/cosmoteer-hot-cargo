@@ -128,16 +128,15 @@ static class UxAutotest
             } ?? throw new InvalidOperationException($"the station has no {arg} tab");
             window._tabs.TabsListBox.SelectedWidget = tab;
         };
-        // commsmission: shows the Missions tab of the open comms window and selects the offer that contract_pick chose
-        // (or the first offer), so a screenshot shows its info panel with the contract terms. Test only.
+        // commsmission: shows the Missions tab of the open comms window. commsselect then picks the offer. Test only.
         Autotest.Commands["commsmission"] = _ =>
         {
             var window = UxArea.OpenComms;
             window._tabs.TabsListBox.SelectedWidget = window._missionsTab ?? throw new InvalidOperationException(
                 $"the station has no missions tab: answers={window.SimMode.WillShipAnswerCall(window.Caller, window.Callee)} missions={window.Callee.AI?.WillProvideMissions(window.Caller)} window active={window.SelfActive}");
         };
-        // commsselect [text]: selects the offer whose name contains text, else the offer that contract_pick chose, else the first.
-        Autotest.Commands["commsselect"] = arg => SelectMission(UxArea.OpenComms, arg, Contracts.ContractsArea.PickedForTests);
+        // commsselect [text]: selects the offer whose name contains text; without text, the offer that contract_pick chose. Fails when that offer is not listed.
+        Autotest.Commands["commsselect"] = arg => SelectMission(UxArea.OpenComms, arg);
         // infoscroll comms|log: scrolls the mission info panel of the comms window or the mission log to the bottom (the contract terms).
         Autotest.Commands["infoscroll"] = arg =>
         {
@@ -158,9 +157,10 @@ static class UxAutotest
             bool open = mode._missionLog is { SelfActive: true, Parent: not null };
             if ((arg == "open") != open) mode.OnMissionLogClicked(null, EventArgs.Empty);
         };
-        // logselect [text]: selects the mission in the open mission log whose name contains text, else the first.
+        // logselect [text]: selects the mission in the open mission log whose name contains text; without text, the mission that contract_pick
+        // chose (contract_accept puts it in the log). Fails when that mission is not listed.
         Autotest.Commands["logselect"] = arg =>
-            SelectMission(Autotest.RequireRun().Mode._missionLog ?? throw new InvalidOperationException("no mission log; run missionlog open first"), arg, null);
+            SelectMission(Autotest.RequireRun().Mode._missionLog ?? throw new InvalidOperationException("no mission log; run missionlog open first"), arg);
         // tipshow map|mapcur|station|fame|money|item|text <xml>: shows that tooltip (item: the shown item action button, spec 1111) at a fixed spot, for screenshots. The capture hides hover
         // tooltips, because the real cursor rests somewhere over the hidden window. tipclear removes it.
         Autotest.Commands["tipshow"] = arg =>
@@ -272,13 +272,21 @@ static class UxAutotest
             ?? throw new InvalidOperationException("the map has one node");
     }
 
-    static void SelectMission(Halfling.Gui.Widget window, string text, Cosmoteer.Modes.Career.Missions.Mission? fallback)
+    /// <summary>
+    /// Selects the listed mission whose name contains the text, or with no text the mission that contract_pick chose. Throws when it is not
+    /// listed: a screenshot of another mission would pass silently.
+    /// </summary>
+    static void SelectMission(Halfling.Gui.Widget window, string text)
     {
         var panel = Walk(window).OfType<Cosmoteer.Modes.Career.Missions.MissionsPanel>().FirstOrDefault()
             ?? throw new InvalidOperationException("no missions panel in the window");
-        var item = (text.Length > 0 ? panel.FirstOrDefault(i => i.Mission.Name.Text.Contains(text, StringComparison.OrdinalIgnoreCase)) : null)
-            ?? panel.FirstOrDefault(i => i.Mission == fallback) ?? panel.FirstOrDefault()
-            ?? throw new InvalidOperationException("the missions panel lists no missions");
+        string listed = string.Join(" | ", panel.Select(i => i.Mission.Name.Text));
+        text = text.Trim();
+        var item = text.Length > 0
+            ? panel.FirstOrDefault(i => i.Mission.Name.Text.Contains(text, StringComparison.OrdinalIgnoreCase))
+                ?? throw new InvalidOperationException($"no listed mission named '{text}'; listed: {listed}")
+            : panel.FirstOrDefault(i => i.Mission == (Contracts.ContractsArea.PickedForTests ?? throw new InvalidOperationException("no mission name given and no contract_pick before")))
+                ?? throw new InvalidOperationException($"the mission that contract_pick chose is not listed; listed: {listed}");
         item.IsSelected = true;
         Log.Info($"ux: selected mission {item.Mission.Name.Text}");
     }

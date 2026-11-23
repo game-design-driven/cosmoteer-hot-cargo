@@ -1,13 +1,10 @@
-# Mission descriptions: a story chain stage, a Hot Cargo escort, a mechanics mission and a shady offer in the comms list.
+# Mission descriptions: a story chain stage in the comms list, then a Hot Cargo escort, a mechanics mission and a shady offer in the mission log.
 # Windowed test slot (needs graphics): scripts/screens.sh tests/screens/descs.txt <out-dir>
 render on
 newgame run
 wait 8
 closepanel
 wait 1
-uxpick 3
-wait 1
-uxpick 1
 ev_set Enabled false
 godmode on
 chain_force fence_ledger
@@ -24,14 +21,22 @@ wait 1
 commsselect Chain
 wait 1
 screenshot desc-01-chain
-commsselect Convoy
+comms close
+# The other offers spawn at their own stations, often not this one, so they show in the mission log after the accept.
+hc_accept escort
+mech_accept siege
+hc_accept shady
+wait 2
+missionlog open
+wait 1
+logselect Convoy
 wait 1
 screenshot desc-02-convoy
-commsselect Drone Siege
+logselect Drone Siege
 wait 1
 screenshot desc-03-siege
-commsselect Discreet
+logselect Discreet
 wait 1
 screenshot desc-04-shady
-comms close
+missionlog close
 quit
