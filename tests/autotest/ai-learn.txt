@@ -1,0 +1,43 @@
+# Enemies learn tactics (spec 1920 to 1927): a kited pirate reports the kite, the next pirate of its group reads a kite sooner, and
+# the report fades after two jumps. Same setup as ai-counterkite.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+shieldplayers on
+tacticlog on
+aiset PersonalitiesEnabled false
+aiset CloseInAgility 0
+aiset CloseInSeconds 5
+aiset FleeOnVanilla false
+aiset CallOnVanilla false
+# A long read for a group without a report, so the prepared read (PreparedKiteReadSeconds 8) shows the difference.
+aiset KiteReadSeconds 40
+aispawn pirates 1 1
+aiplayership hull=Helioblade
+wait 2
+playerweapons off
+playerweapons off Helioblade
+kiteplayer 0 away 8000
+wait 5
+aidamage new 0.9
+wait 15
+expect ai_kite_answer == 0
+waitfor ai_kite_answer == 1 60
+# The kited ship reports, as on a completed call or a flight (spec 1922).
+ai_report_now kitee
+aigroup pirates
+expect ai_report_kite == 1
+kiteplayer off
+# A new pirate of the group comes prepared (spec 1924): it reads the kite after 8 s, not 40 s.
+aispawn pirates 1 1
+kiteplayer last away 12000
+wait 3
+aidamage new 0.9
+waitfor ai_kite_answer == 1 25
+# The report fades when it is two jumps old (spec 1923).
+ai_reports_jump
+expect ai_report_kite == 1
+ai_reports_jump
+expect ai_report_kite == 0
+quit

@@ -11,6 +11,7 @@ using Halfling.Geometry;
 using Halfling.PortableHashing;
 using Halfling.Serialization;
 using Halfling.Timing;
+using HotCargo.Core;
 using HotCargo.Hunters;
 using HotCargo.Tactics;
 
@@ -45,6 +46,14 @@ internal sealed class CounterKiteStrategy(CounterKiteStrategyRules rules) : AISt
     /// <summary>The last read, kept after the answer ends: the anvil of the ship's allies uses it (spec 1906).</summary>
     [Serialize(Optional = true)] Time _readAt;
     [Serialize(Optional = true)] ObjectID _readKiter;
+    /// <summary>Spec 1920: what the ship saw of the players: a kite read, a player ship that fights from a nebula, and its part
+    /// health lost by kind (FocusKind order) since the first sample, with the last sums. A negative last sum: no sample yet.</summary>
+    [Serialize(Optional = true)] bool _sawKite, _sawCloud;
+    [Serialize(Optional = true)] float _lossWeapons, _lossThrusters, _lossCore, _fullHealth;
+    [Serialize(Optional = true)] float _lastWeapons = -1f, _lastThrusters, _lastCore;
+    [Serialize(Optional = true)] Time _lastSample;
+    // Log only, not sim state.
+    bool _holdLogged;
 
     public KiteAnswer Answer => (KiteAnswer)_answer;
     public ObjectID Kiter => _kiter;
@@ -66,7 +75,21 @@ internal sealed class CounterKiteStrategy(CounterKiteStrategyRules rules) : AISt
         _startGap.GetIntegrityHash(iHash);
         _readAt.GetIntegrityHash(iHash);
         _readKiter.GetIntegrityHash(iHash);
+        _sawKite.GetIntegrityHash(iHash);
+        _sawCloud.GetIntegrityHash(iHash);
+        _lossWeapons.GetIntegrityHash(iHash);
+        _lossThrusters.GetIntegrityHash(iHash);
+        _lossCore.GetIntegrityHash(iHash);
+        _fullHealth.GetIntegrityHash(iHash);
+        _lastWeapons.GetIntegrityHash(iHash);
+        _lastThrusters.GetIntegrityHash(iHash);
+        _lastCore.GetIntegrityHash(iHash);
+        _lastSample.GetIntegrityHash(iHash);
     }
+
+    /// <summary>Spec 1920: the habits that the ship saw so far.</summary>
+    public Habits Observed(TacticsTunables t) =>
+        new(_sawKite, _sawCloud, LearnModel.Focus([_lossWeapons, _lossThrusters, _lossCore], _fullHealth, t.FocusShare, t.FocusMinLoss));
 
     public override void OnEnteringStasis(Ship ship)
     {
@@ -76,13 +99,22 @@ internal sealed class CounterKiteStrategy(CounterKiteStrategyRules rules) : AISt
 
     public override bool OnAITick(Ship ship, ShipAI ai)
     {
-        if (AiGate.Active(Behavior.CounterKite, rules.ForHunters) is not { } t || AiGate.Surrendered(ship) || !AiGate.HostileToPlayers(ship))
+        if (Run.Current is not { } run || AiGate.Surrendered(ship) || !AiGate.HostileToPlayers(ship))
         {
             _windowHealth = -1f;
             return End(ship, null);
         }
         Time now = HunterOrders.Sim(ship).LogicalTime;
+        // Spec 1920, 1925: watching the players does not need the counter kiting switch.
+        if (run.T.Tactics.LearnEnabled) Observe(ship, now, run.T.Tactics);
+        if (AiGate.Active(Behavior.CounterKite, rules.ForHunters) is not { } t)
+        {
+            _windowHealth = -1f;
+            return End(ship, null);
+        }
         float own = HunterOrders.MaxWeaponRange(ship, onlyActive: true);
+        if (Answer == KiteAnswer.None && AiLearn.Prepared(ship).Cloud && CloudHold(ship, t)) return true;
+        _holdLogged = false;
         if (Answer == KiteAnswer.None)
         {
             Read(ship, now, own, t);
@@ -94,8 +126,75 @@ internal sealed class CounterKiteStrategy(CounterKiteStrategyRules rules) : AISt
     public override AIStrategyModule Clone(AIParameters? parameters) => new CounterKiteStrategy(rules)
     {
         _windowStart = _windowStart, _windowHealth = _windowHealth, _answer = _answer, _kiter = _kiter, _since = _since, _startGap = _startGap,
-        _readAt = _readAt, _readKiter = _readKiter,
+        _readAt = _readAt, _readKiter = _readKiter, _sawKite = _sawKite, _sawCloud = _sawCloud, _lossWeapons = _lossWeapons,
+        _lossThrusters = _lossThrusters, _lossCore = _lossCore, _fullHealth = _fullHealth, _lastWeapons = _lastWeapons,
+        _lastThrusters = _lastThrusters, _lastCore = _lastCore, _lastSample = _lastSample,
     };
+
+    /// <summary>
+    /// Spec 1920, 1921, 1925: every HabitSampleSeconds while a player ship is on the team radar, sums the part health by kind and adds
+    /// what was lost since the last sample, and notes a player ship that fights from a nebula (inside one at AnvilNebulaStrength or
+    /// more, with this ship in its reach). Repairs do not take a loss back.
+    /// </summary>
+    void Observe(Ship ship, Time now, TacticsTunables t)
+    {
+        if (AiGate.NearestHumanEnemy(ship) is null) return;
+        AiLearn.Notice(ship);
+        if (_lastWeapons >= 0f && (now - _lastSample).Seconds < t.HabitSampleSeconds) return;
+        var categories = t.VulnerableParts.Select(c => new ID<Cosmoteer.Ships.Parts.PartCategory>(c)).ToList();
+        float weapons = 0f, thrusters = 0f, core = 0f, full = 0f;
+        foreach (var part in ship.Parts)
+        {
+            full += part.Rules.MaxHealth;
+            var kinds = ShipAi.ShipAiController.KindsOf(part.Rules);
+            if (kinds.Contains(ShipAi.PartKind.Weapon)) weapons += part.Health;
+            if (kinds.Contains(ShipAi.PartKind.Thruster)) thrusters += part.Health;
+            if (categories.Any(part.Rules.TypeCategories.Contains)) core += part.Health;
+        }
+        if (_lastWeapons >= 0f)
+        {
+            _lossWeapons += Math.Max(0f, _lastWeapons - weapons);
+            _lossThrusters += Math.Max(0f, _lastThrusters - thrusters);
+            _lossCore += Math.Max(0f, _lastCore - core);
+        }
+        (_lastWeapons, _lastThrusters, _lastCore, _fullHealth, _lastSample) = (weapons, thrusters, core, Math.Max(_fullHealth, full), now);
+        if (_sawCloud) return;
+        foreach (var human in HunterOrders.Sim(ship).Ships.HumanPlayerSignificantShips)
+            if (ship.IsEnemiesWith(human) && InNebula(human, t) && HunterOrders.EdgeDistance(ship, human) <= Reach(human))
+                _sawCloud = true;
+    }
+
+    /// <summary>Spec 1921: the ship is inside a nebula of any type at AnvilNebulaStrength or more.</summary>
+    static bool InNebula(Ship ship, TacticsTunables t)
+    {
+        for (int i = 0; i < ship.Nebulas.Count; i++)
+            if (ship.Nebulas[i].Strength >= t.AnvilNebulaStrength) return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Spec 1926: a ship of a group with a cloud report does not follow a player ship into a nebula. While its target is inside one
+    /// and the ship is not, it holds CloudEdgeMargin outside the nebula edge, on the line from the target. True: this module drives the ship.
+    /// </summary>
+    bool CloudHold(Ship ship, TacticsTunables t)
+    {
+        var target = (ship.Commands.CurConfirmedCommand as AttackCommand)?.Target ?? AiGate.NearestHumanEnemy(ship);
+        if (target is null || !target.IsHumanPlayerShip || !InNebula(target, t) || InNebula(ship, t)) return false;
+        var sim = HunterOrders.Sim(ship);
+        var types = new List<ID<NebulaTypeRules>>();
+        for (int i = 0; i < target.Nebulas.Count; i++)
+            if (target.Nebulas[i].Strength >= t.AnvilNebulaStrength) types.Add(target.Nebulas[i].Type.ID);
+        Vector2 from = target.DetWorldCenter;
+        float distance = from.DistanceTo(ship.DetWorldCenter);
+        var dir = Vector2.FromAngle(from.DirectionTo(ship.DetWorldCenter));
+        if (LearnModel.EdgeDistance(d => types.Any(type => sim.Nebulas.GetInsideStrength(from + dir * d, type) >= t.AnvilNebulaStrength), distance, t.CloudEdgeStep)
+            is not { } edge) return false;
+        var spot = from + dir * (edge + t.CloudEdgeMargin + ship.WorldBoundingRadius);
+        PersonalityStrategy.MoveGuarded(ship, spot, Math.Max(t.CloudEdgeMargin * 0.5f, 50f), target, t);
+        if (!_holdLogged) TacticsLog.Event(ship, AiArea.CloudHold, $"holds at the nebula edge {edge:0} from {target.Metadata.PlainShipName}");
+        _holdLogged = true;
+        return true;
+    }
 
     /// <summary>Spec 1900, 1901: keeps the read window while a player ship outranges the ship, and starts an answer when it is kited.</summary>
     void Read(Ship ship, Time now, float own, TacticsTunables t)
@@ -108,8 +207,10 @@ internal sealed class CounterKiteStrategy(CounterKiteStrategyRules rules) : AISt
             return;
         }
         double seconds = (now - _windowStart).Seconds;
-        if (seconds < t.KiteReadSeconds) return;
-        if (CounterKiteModel.Kited(seconds, _windowHealth - health, t.KiteReadSeconds, t.KiteReadLoss)) Start(ship, kiter, now, t);
+        // Spec 1924: a group with a kite report reads a kite sooner.
+        float readSeconds = AiLearn.Prepared(ship).Kite ? t.PreparedKiteReadSeconds : t.KiteReadSeconds;
+        if (seconds < readSeconds) return;
+        if (CounterKiteModel.Kited(seconds, _windowHealth - health, readSeconds, t.KiteReadLoss)) Start(ship, kiter, now, t);
         (_windowStart, _windowHealth) = (now, health);
     }
 
@@ -119,6 +220,7 @@ internal sealed class CounterKiteStrategy(CounterKiteStrategyRules rules) : AISt
         // A call needs the call behavior; without it the ship breaks off.
         if (answer == KiteAnswer.Call && AiGate.Active(Behavior.Call, AiGate.IsHunterAi(ship)) is null) answer = KiteAnswer.BreakOff;
         (_answer, _kiter, _since, _startGap, _readAt, _readKiter) = ((int)answer, kiter.UniqueID, now, HunterOrders.EdgeDistance(ship, kiter), now, kiter.UniqueID);
+        _sawKite = true;
         TacticsLog.Event(ship, AiArea.KiteRead, $"kited by {kiter.Metadata.PlainShipName}: {answer} (gap {_startGap:0}, range {HunterOrders.MaxWeaponRange(ship, true):0} vs reach {Reach(kiter):0})");
     }
 
@@ -235,8 +337,10 @@ internal sealed class CounterKiteTactic(CounterKiteTacticRules rules) : AITactic
             .ToList();
         group.Sort((a, b) => a.UniqueID.CompareTo(b.UniqueID));
         int slot = group.IndexOf(ac.Ship);
+        // Spec 1924: a group with a kite report takes the anvil on any target that outranges it, from first contact.
+        bool prepared = AiLearn.Prepared(ac.Ship).Kite && CounterKiteStrategy.Reach(ac.Target) > HunterOrders.MaxWeaponRange(ac.Ship, onlyActive: true);
         if (group.Count < 2 || slot < 0
-            || !group.Any(s => s.AI?.GetStrategyModule<CounterKiteStrategy>()?.ReadRecently(ac.Target.UniqueID, sim.LogicalTime, t.AnvilMemorySeconds) == true))
+            || !prepared && !group.Any(s => s.AI?.GetStrategyModule<CounterKiteStrategy>()?.ReadRecently(ac.Target.UniqueID, sim.LogicalTime, t.AnvilMemorySeconds) == true))
         {
             _lastSlot = -1;
             return false;

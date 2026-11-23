@@ -218,6 +218,23 @@ public sealed class TacticsTunables
     /// <summary>A target counts as a kiter for this long after an ally was last kited by it.</summary>
     [Serialize(Optional = true)] public float AnvilMemorySeconds = 60f;
 
+    // Enemies learn tactics (spec 1920-1939).
+
+    [Serialize(Optional = true)] public bool LearnEnabled = true;
+    /// <summary>A ship samples its part health by kind this often while a player ship is on its radar.</summary>
+    [Serialize(Optional = true)] public float HabitSampleSeconds = 2f;
+    /// <summary>A part focus needs this share of the lost part health in one kind, and FocusMinLoss of the full part health in all.</summary>
+    [Serialize(Optional = true)] public float FocusShare = 0.5f;
+    [Serialize(Optional = true)] public float FocusMinLoss = 0.05f;
+    /// <summary>A report of a group fades when it is this many jumps old.</summary>
+    [Serialize(Optional = true)] public int ReportJumps = 2;
+    /// <summary>Ships of a group with a kite report read a kite after this long instead of KiteReadSeconds.</summary>
+    [Serialize(Optional = true)] public float PreparedKiteReadSeconds = 8f;
+    /// <summary>Ships of a group with a cloud report hold this far outside the nebula of their target, on the line to it.</summary>
+    [Serialize(Optional = true)] public float CloudEdgeMargin = 300f;
+    /// <summary>The nebula edge search steps this far along the line from the target.</summary>
+    [Serialize(Optional = true)] public float CloudEdgeStep = 200f;
+
     // Steady states and firepower (spec 1531-1533).
 
     /// <summary>
@@ -246,6 +263,10 @@ public sealed class TacticsTunables
         require(BreakOffMargin >= 0 && AnvilNebulaRange > 0 && AnvilNebulaStrength is > 0 and <= 1 && AnvilSpreadDegrees is >= 0 and <= 180
                 && AnvilMemorySeconds > 0,
             "Tactics.BreakOffMargin must be 0 or more, AnvilNebulaRange above 0, AnvilNebulaStrength above 0 and at most 1, AnvilSpreadDegrees 0 to 180, AnvilMemorySeconds above 0");
+        require(HabitSampleSeconds > 0 && FocusShare is > 0 and <= 1 && FocusMinLoss is >= 0 and <= 1 && ReportJumps >= 1,
+            "Tactics.HabitSampleSeconds must be above 0, FocusShare above 0 and at most 1, FocusMinLoss 0 to 1, ReportJumps 1 or more");
+        require(PreparedKiteReadSeconds > 0 && CloudEdgeMargin >= 0 && CloudEdgeStep > 0,
+            "Tactics.PreparedKiteReadSeconds must be above 0, CloudEdgeMargin 0 or more, CloudEdgeStep above 0");
         require(TraderFleeStopFactor >= 1 && FirepowerWeaponCap > 0, "Tactics.TraderFleeStopFactor must be 1 or more, FirepowerWeaponCap above 0");
         require(FallBackTripSeconds > 0 && FallBackArriveDistance > 0 && FallBackPoolRange >= 0,
             "Tactics.FallBackTripSeconds and FallBackArriveDistance must be above 0, FallBackPoolRange 0 or more");

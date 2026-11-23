@@ -230,6 +230,8 @@ internal sealed class PersonalityStrategy(PersonalityStrategyRules rules) : AISt
         var cover = new float[maxX - minX, maxY - minY];
         var vulnerable = new List<CellRect>();
         var categories = t.VulnerableParts.Select(c => new ID<PartCategory>(c)).ToList();
+        // Spec 1924: the part kind that the ship's group reported as the players' focus counts as protected too.
+        var focus = AiLearn.FocusPartKind(ship);
         foreach (var part in ship.Parts)
         {
             var r = part.Rect;
@@ -238,7 +240,8 @@ internal sealed class PersonalityStrategy(PersonalityStrategyRules rules) : AISt
             for (int x = r.X; x < r.X + r.Width; x++)
                 for (int y = r.Y; y < r.Y + r.Height; y++)
                     cover[x - minX, y - minY] = weight;
-            if (categories.Any(part.Rules.TypeCategories.Contains)) vulnerable.Add(new CellRect(r.X, r.Y, r.Width, r.Height));
+            if (categories.Any(part.Rules.TypeCategories.Contains) || focus is { } kind && ShipAi.ShipAiController.KindsOf(part.Rules).Contains(kind))
+                vulnerable.Add(new CellRect(r.X, r.Y, r.Width, r.Height));
         }
         var weapons = new int[SideProfile.Directions];
         float scale = Math.Max(1e-3f, ship.WorldUniformScale);

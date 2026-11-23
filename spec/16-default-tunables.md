@@ -85,6 +85,8 @@
 | `CounterKiteEnabled`, `CounterKiteOnVanilla`, `KiteReadSeconds`, `KiteReadLoss` | on, on, 20 s, 0.03 | 1900 to 1902, 1907 |
 | `CloseInAgility`, `CloseInSeconds`, `CloseInGain`, `BreakOffMargin` | 0.5, 15 s, 0.2, 600 | 1902 to 1904 |
 | `AnvilNebulas`, `AnvilNebulaRange`, `AnvilNebulaStrength`, `AnvilSpreadDegrees`, `AnvilMemorySeconds` | [electron, cloudy], 4000, 0.5, 45°, 60 s | 1906 |
+| `LearnEnabled`, `HabitSampleSeconds`, `FocusShare`, `FocusMinLoss`, `ReportJumps` | on, 2 s, 0.5, 0.05, 2 | 1920 to 1923, 1927 |
+| `PreparedKiteReadSeconds`, `CloudEdgeMargin`, `CloudEdgeStep` | 8 s, 300, 200 | 1924, 1926 |
 | `PersonalitiesEnabled`, `PersonalityThreshold`, `ProfileRefreshSeconds` | on, 0.45, 10 s | 360, 362, 363 |
 | `Personalities` | see section 31 | 361 |
 | `Profile` (build score ends) | see `ProfileScaleTunables` | 362 |
