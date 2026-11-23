@@ -106,6 +106,7 @@ def analyze(run: Run) -> RunReport:
     ai_section(rep)
     perf_section(rep)
     errors_section(rep)
+    notes_section(rep)
     return rep
 
 
@@ -590,3 +591,37 @@ def diplomacy_section(rep: RunReport) -> None:
                      fmt(e.get("price")) if e.get("price") else "-", fmt(e.get("chance"), 2), {True: "yes", False: "no"}.get(e.get("accepted"), "-")])
     rep.tables.append(Table("Diplomacy", ["game time", "event", "what", "ship", "side", "odds", "stance", "price", "chance", "accepted"], rows,
                             "Odds and stance come from the risk model (spec 1520 to 1524) at the moment of the event."))
+
+
+# ---- Playtest notes (spec 1987)
+
+NOTE_QUIET = {"perf", "trace", "ai.switch", "combat.damage", "heat.accrual", "snap", "mission.offered", "combat.spawn", "tech.value"}
+NOTE_WINDOW_S = 60
+
+
+def note_summary(e: dict) -> str:
+    """One short line for an event near a note."""
+    for key in ("msg", "src", "name", "event", "kind", "reason", "result", "stage", "text"):
+        if e.get(key) not in (None, ""):
+            return str(e[key])[:120]
+    return ""
+
+
+def notes_section(rep: RunReport) -> None:
+    """Every playtest note in play order, then the events within NOTE_WINDOW_S game seconds of each, in the same session."""
+    notes = [(s, e) for s in rep.run.sessions for e in s.events if e["e"] == "note"]
+    if not notes:
+        return
+    rows, around = [], []
+    for i, (s, n) in enumerate(notes, 1):
+        screen = ", ".join(f"{k} {v}" for k, v in (n.get("screen") or {}).items()) or "-"
+        rows.append([i, mmss(n["gs"]), mmss(n["t"]), n.get("player", ""), n.get("sys", ""), screen, n.get("screenshot") or "-", n.get("text", "")])
+        for e in s.events:
+            if e["e"] in NOTE_QUIET or e is n or abs(e["gs"] - n["gs"]) > NOTE_WINDOW_S:
+                continue
+            around.append([i, mmss(e["gs"]), f"{e['gs'] - n['gs']:+.0f} s", e["e"], note_summary(e)])
+    # First in the run's report: the notes are what the players asked to look at.
+    rep.tables.insert(0, Table("Playtest notes", ["#", "game time", "real time", "player", "system", "screen", "screenshot", "note"], rows,
+                               "Notes from the note key (Telemetry.NoteKey). Screenshots are in the telemetry folder's notes/ of the machine that took them."))
+    rep.tables.insert(1, Table(f"Events around each note (within {NOTE_WINDOW_S} game seconds)", ["#", "game time", "from the note", "event", "detail"], around))
+    rep.findings.insert(0, f"{len(notes)} playtest notes (see 'Playtest notes').")

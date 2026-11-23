@@ -133,6 +133,7 @@
 | `Telemetry.TravelMinDistance` | 1500 | 1761 |
 | `Telemetry.AiSwitchMinSeconds`, `AiEventsPerMinute`, `CallerLookupsPerSecond` | 3 s, 600, 50 | 534, 537 |
 | `Telemetry.MaxFileMegabytes`, `MaxFolderMegabytes` | 32, 1024 | 541 |
+| `Telemetry.NoteKey` | backslash | 1984 |
 | `Telemetry.RelayToHost` | on | 1592 |
 | `Debt.OverdraftLimitTier1` | 20,000 credits; other tiers × the vanilla standard mission pay of the tier ÷ tier 1 (tier 2: 27,000, tier 8: 106,000) | 1417 |
 | `Debt.OverdraftHailSeconds` | 60 game seconds | 1418 |

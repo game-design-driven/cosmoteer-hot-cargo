@@ -11,6 +11,11 @@ public sealed class TelemetryTunables
 {
     /// <summary>Master switch. Off: no file, no events.</summary>
     [Serialize(Optional = true)] public bool Enabled = true;
+    /// <summary>
+    /// Spec 1984: the key that opens a playtest note: type a short note, Enter saves it (with a screenshot where the platform can),
+    /// Escape cancels. The default, backslash, has no vanilla binding.
+    /// </summary>
+    [Serialize(Optional = true)] public Halfling.Input.ViKey NoteKey = Halfling.Input.ViKey.BackslashPipe;
 
     // ---- Categories (event name prefixes in TELEMETRY.md)
     /// <summary>run.*, system.*: session, new run, load, save, jump, system entry, win, loss, quit.</summary>

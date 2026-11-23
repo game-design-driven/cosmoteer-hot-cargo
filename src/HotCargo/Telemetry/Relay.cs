@@ -38,6 +38,7 @@ static class Relay
     static bool Connected => _channel is { IsOpen: true };
     static RpcActionInvoker<string, long, byte[]>? _chunk;
     static RpcActionInvoker<string, long>? _answer;
+    static RpcActionInvoker<string>? _note;
 
     // ---- Client state, reset with each connection
     static readonly Dictionary<string, long> Confirmed = [];
@@ -65,7 +66,9 @@ static class Relay
 
     static void Frame()
     {
-        if (Run.Current is not { } run || !On(run) || !Attach(run) || _mp!.IsHost || !Connected || Session.Current is not { } s) return;
+        // The channel also carries playtest notes (spec 1988), so it opens in every co-op game with telemetry, relay on or off.
+        if (Run.Current is not { IsMultiplayer: true } run || !run.T.Telemetry.Enabled || !Attach(run)) return;
+        if (!On(run) || _mp!.IsHost || !Connected || Session.Current is not { } s) return;
         long t0 = Stats.Enter();
         try { SendNext(s, App.Clock.Time.Seconds); }
         catch (InvalidOperationException) when (!Connected) { }
@@ -87,6 +90,7 @@ static class Relay
         _rpc = new RpcManager(GameApp.Messenger, channel, mp._serializer, mp.IsHost);
         _chunk = _rpc.RegisterRpc(new RpcAction<string, long, byte[]>(OnChunk), "HotCargoTeleChunk", TransmitMode.Reliable);
         _answer = _rpc.RegisterRpc(new RpcAction<string, long>(OnAnswer), "HotCargoTeleLength", TransmitMode.Reliable);
+        _note = _rpc.RegisterRpc(new RpcAction<string>(OnNote), "HotCargoTeleNote", TransmitMode.Reliable);
         _mp = mp;
         return true;
     }
@@ -189,6 +193,20 @@ static class Relay
             if (ok) good++; else bad++;
         }
         return (good, bad);
+    }
+
+    /// <summary>Spec 1988: a co-op client sends a playtest note line to the host at once, outside the file relay.</summary>
+    internal static void SendNote(string line)
+    {
+        if (_mp is not { IsHost: false } || _note is null || !Connected) return;
+        try { _note(line, RpcReceivers.Server); }
+        catch (InvalidOperationException) when (!Connected) { }
+    }
+
+    static void OnNote(string line, RpcInfo info)
+    {
+        if (_mp is not { IsHost: true } || string.IsNullOrWhiteSpace(line) || line.Length > 20_000) return;
+        Errors.Guard("telemetry note relay", () => PlaytestNotes.AppendLive(line));
     }
 
     // ---- Host
