@@ -2,6 +2,14 @@
 # nothing. Headless games have no graphics device, so the note has no screenshot here.
 newgame run
 wait 8
+# A focused text box that blocks other input (like the co-op chat) keeps the key from opening a note.
+expect telenote_can_open == 1
+telenote_textbox on
+wait 1
+expect telenote_can_open == 0
+telenote_textbox off
+wait 1
+expect telenote_can_open == 1
 telenote open
 waitreal 1
 expect telenote_open == 1

@@ -15,7 +15,6 @@ namespace HotCargo.Telemetry;
 /// The note becomes a "note" event with what the screen showed at the key press, and a screenshot when the platform has one.
 /// Local UI only: no MP input, no sim state. In co-op the game keeps running under the dialog (GameRoot.AlwaysUpdate: the MP
 /// manager updates always); in single player it pauses while the dialog is open, like every vanilla dialog. A co-op client's note reaches the host with its telemetry file (spec 1592).
-/// Limit: the key also fires while a vanilla text field (the co-op chat) has the focus, which opens a note. Revisit if that bothers.
 /// </summary>
 static class PlaytestNotes
 {
@@ -28,11 +27,16 @@ static class PlaytestNotes
 
     static void Frame(Run run)
     {
-        if (_open is not null || Session.Current is null || !App.Keyboard.HotkeyPressed(run.T.Telemetry.NoteKey)) return;
-        // Only over the game itself: not over the escape menu or another dialog.
-        if (App.Director.PeekState() != run.Game) return;
+        if (_open is not null || Session.Current is null || !CanOpen(run) || !App.Keyboard.HotkeyPressed(run.T.Telemetry.NoteKey)) return;
         Open(run);
     }
+
+    /// <summary>
+    /// Only over the game itself (not over the escape menu or another dialog), and not while a text box has the focus. A focused
+    /// text box that blocks other input (the co-op chat, GameChatBox) puts its filter into App.Input.InputFilter: the game's own sign
+    /// that keys go to the text box.
+    /// </summary>
+    internal static bool CanOpen(Run run) => App.Director.PeekState() == run.Game && App.Input.InputFilter is null;
 
     /// <summary>Takes the screen state and a screenshot now, then asks for the text.</summary>
     internal static async void Open(Run run)
