@@ -106,18 +106,22 @@ internal static class PersonalityAutotest
             }
         };
 
-        // aispawn <group> <count> [tier] [tag]: hostile AI ships near the player. group: a faction ID (military ships with the Normal AI;
+        // aispawn <group> <count> [tier] [tag] [hull=<ship name>]: hostile AI ships near the player. group: a faction ID (military ships with the Normal AI;
         // the players become wanted by it) or "pirates" (one unique hostile index for the run). tier: default the sector tier.
         // tag: a builtin ship tag, default "combat" ("trade": ships with cargo bays, on the faction's civilian player). Test only.
         Autotest.Commands["aispawn"] = arg =>
         {
             var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length is < 2 or > 4) throw new InvalidOperationException("aispawn needs: group count [tier] [tag | hull=<ship name>]");
+            if (parts.Length is < 2 or > 5) throw new InvalidOperationException("aispawn needs: group count [tier] [tag] [hull=<ship name>]");
             var run = Autotest.RequireRun();
             int tier = parts.Length >= 3 ? int.Parse(parts[2], CultureInfo.InvariantCulture) : run.CurrentTier;
-            // hull=<ship name>: that built-in combat ship of the group, so a test does not depend on the random hull pick.
-            string? hull = parts.Length == 4 && parts[3].StartsWith("hull=", StringComparison.Ordinal) ? parts[3]["hull=".Length..] : null;
-            var tag = parts.Length == 4 && hull is null ? new ID<BuiltinShipTag>(parts[3]) : Combat;
+            // hull=<ship name>: that built-in ship of the group with the tag, so a test does not depend on the random hull pick (the pick
+            // uses the sim random stream).
+            var options = parts.Skip(3).ToList();
+            string? hull = options.FirstOrDefault(o => o.StartsWith("hull=", StringComparison.Ordinal))?["hull=".Length..];
+            string? tagName = options.FirstOrDefault(o => !o.StartsWith("hull=", StringComparison.Ordinal));
+            if (options.Count == 2 && (hull is null || tagName is null)) throw new InvalidOperationException("aispawn: give one tag and one hull=<ship name>");
+            var tag = tagName is null ? Combat : new ID<BuiltinShipTag>(tagName);
             Spawn(run, parts[0], int.Parse(parts[1], CultureInfo.InvariantCulture), tier, tag, hull);
         };
         // aitrait <personality name> <trait> <weight>: sets one trait weight of a personality for this run. Test only.

@@ -7,6 +7,7 @@ using Cosmoteer.Generators.Simulation;
 using Cosmoteer.Modes.Career.Comms;
 using Cosmoteer.Ships;
 using Cosmoteer.Ships.AI;
+using Cosmoteer.Ships.AI.CommsModules;
 using Cosmoteer.Simulation;
 using Cosmoteer.Simulation.Stasis;
 using Halfling;
@@ -37,7 +38,9 @@ static class DiplomacyAutotest
     static double DemandCheck(bool surrender)
     {
         var ai = FirstSpawned();
-        var player = Tech.TechAutotest.PlayerShip();
+        // The player ship nearest to the enemy, not the acting ship (lowest ID): ships that aiplayership adds get random IDs, so one of
+        // them far away could become the acting ship (#209 moved the sim random stream).
+        var player = Sim().Ships.HumanPlayerShips.MinBy(s => s.DetWorldCenter.DistanceTo(ai.DetWorldCenter)) ?? throw new InvalidOperationException("no player ship");
         var career = Situation.Career(Sim());
         if (surrender) return career.GetSurrenderForPrice(ai, player).HasValue ? 1 : 0;
         return career.GetSurrenderForPrice(player, ai, out bool aiDefaulting).HasValue && !aiDefaulting ? 1 : 0;
@@ -240,6 +243,13 @@ static class DiplomacyAutotest
         // player's ship now (the vanilla rule CareerSimModeManager.GetSurrenderForPrice, with this mod's patches). dip_offers: 1 when it
         // would offer its own surrender.
         Autotest.Fields["dip_demands"] = () => DemandCheck(surrender: false);
+        // dip_ai_accepts: the first aispawn ship considers the players' surrender. Vanilla rolls this once from the ship ID, and the ID
+        // comes from the sim random stream, so a test that checks the vanilla demand rule sets it.
+        Autotest.Commands["dip_ai_accepts"] = _ =>
+        {
+            var module = FirstSpawned().AI?.GetCommsModule<AIDialogueModule>() ?? throw new InvalidOperationException("the aispawn ship has no dialogue module");
+            module.WouldConsiderAcceptingSurrenderFromPlayer = true;
+        };
         Autotest.Fields["dip_offers"] = () => DemandCheck(surrender: true);
         // The risk view of the first aispawn ship (spec 1520-1524): stance (0 surrender, 1 flee, 2 fight, 3 demand), confidence, allies.
         Autotest.Fields["dip_stance"] = () => (int)Risk.Read(R(), Sim(), FirstSpawned()).Stance;

@@ -923,6 +923,10 @@ public static class EventsArea
         finally { spawner.Distance = saved; }
         _hulk = sim.Ships.Where(s => s.HasLabel(Abandoned.Label) && !s.HasTag(Abandoned.RelicTag) && !old.Contains(s.UniqueID)).MaxBy(s => s.UniqueID)?.UniqueID
             ?? throw new InvalidOperationException($"the abandoned-ship spawner made no live ship (in stasis: {sim.Stasis.Count(st => !old.Contains(st.ReservedObjectID))})");
+        // Vanilla picks the spot with the sim random stream, so any change to that stream (more nuggets, #209) moved it, once into a
+        // sun's heat zone where the hold burned. A clear spot (no ship, no heat zone) depends only on the sim state.
+        var hulk = TestHulk();
+        Autotest.Teleport(hulk, Autotest.ClearSpotNear(sim, at, 1500f, hulk.WorldBoundingRadius));
         foreach (var res in GameApp.Rules.Resources)
         {
             var rid = res.ID;

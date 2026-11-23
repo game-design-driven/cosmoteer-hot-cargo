@@ -358,11 +358,12 @@ wait 2
 expect storagetech == 1
 on 1 expect storagetech == 1
 on 1 expect decaypanel == 1
-waitfor storagetech == 0 60
-on 1 waitfor storagetech == 0 30
-# Destroyed by decay, not moved into a vault: the fill toggle kept the crew out.
-expect decayed >= 1
-on 1 expect decayed >= 1
+# Destroyed by decay, not moved into a vault: the fill toggle kept the crew out. The step waits for the decay, not for empty storage:
+# crew that carry the stack between storage tiles empty the storage for a moment (most likely why a CI full suite after #209 failed here).
+waitfor decayed >= 1 60
+on 1 waitfor decayed >= 1 30
+expect storagetech == 0
+on 1 expect storagetech == 0
 expect decaystacks == 0
 on 1 expect decaystacks == 0
 mp tech_set DecaySeconds 360
