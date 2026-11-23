@@ -86,8 +86,8 @@ public sealed class DiplomacyTunables
     [Serialize(Optional = true)] public float SurrenderPayoutScale = 1f;
     /// <summary>Extra payout share per point of positive leverage. A stronger fleet gets more.</summary>
     [Serialize(Optional = true)] public float SurrenderPayoutPerLeverage = 0.5f;
-    /// <summary>Share of the payout that a surrendering corporate hunter pays. 0: a hunter gives only its fuel and the chance at cargo.</summary>
-    [Serialize(Optional = true)] public float HunterSurrenderMoneyShare = 0f;
+    /// <summary>Share of the payout that a surrendering corporate hunter pays, on top of all its fuel and the chance at cargo. 1: the usual payout.</summary>
+    [Serialize(Optional = true)] public float HunterSurrenderMoneyShare = 1f;
     /// <summary>Chance that a surrendering ship also gives one other resource that it carries (only what fits).</summary>
     [Serialize(Optional = true)] public float ExtraLootChance = 0.5f;
     /// <summary>Share of that other resource that the ship gives.</summary>
@@ -170,8 +170,8 @@ public sealed class DiplomacyTunables
     [Serialize(Optional = true)] public float MercStationRadius = 3000f;
     /// <summary>Chance, rolled once per mercenary, that it hails the players to offer its services when they come into comms range.</summary>
     [Serialize(Optional = true)] public float MercHailChance = 0.5f;
-    /// <summary>Mercenary price per minute, in event money units.</summary>
-    [Serialize(Optional = true)] public float MercRateUnits = 0.2f;
+    /// <summary>Mercenary price per minute as a share of the hire rate (HireFairUnits for HireSeconds). Below 1: mercenaries sell their time cheaper.</summary>
+    [Serialize(Optional = true)] public float MercPriceShare = 0.7f;
     /// <summary>Most minutes that the slider offers for a mercenary contract.</summary>
     [Serialize(Optional = true)] public int MercMaxMinutes = 10;
     /// <summary>A mercenary below this health stops helping and runs. Lower than HiredFleeHealth: they are braver.</summary>

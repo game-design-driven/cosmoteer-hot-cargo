@@ -108,6 +108,7 @@ dip merc friend 2
 wait 1
 expect dip_friendhired == 1
 expect dip_moneyspent > 0
+expect dip_merc_cheaper == 1
 dip_log merc
 # A military ship of the corporation's ally faction never holds tech (spec 574). A friendly military ship answers only while it has
 # a real option: after its help offer is used, it keeps the vanilla behavior (spec 560).

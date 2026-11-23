@@ -268,6 +268,12 @@ static class DiplomacyAutotest
         Autotest.Fields["dip_surrendered"] = () => Situation.Career(Sim()).SurrenderedAIs.Count;
         Autotest.Fields["dip_fuelgain"] = () => HumanFuel() - _fuelMark;
         Autotest.Fields["dip_moneyspent"] = () => _moneyMark - Money();
+        // 1 when a full mercenary contract costs less than hired help for the same time (spec 583).
+        Autotest.Fields["dip_merc_cheaper"] = () =>
+        {
+            var t = R().T.Diplomacy;
+            return Quotes.MercPrice(R(), t.MercMaxMinutes) < Quotes.HireFair(R()) * t.MercMaxMinutes * 60f / t.HireSeconds ? 1 : 0;
+        };
         Autotest.Fields["dip_enemyhostile"] = () => _enemy is { } e && Sim().Ships[e] is { } s && Me().IsEnemiesWith(s) ? 1 : 0;
         Autotest.Fields["dip_technuggets"] = () => Sim().Nuggets.Where(n => n.ResourceType == Tech.Vaults.TechId).Sum(n => n.Quantity);
         Autotest.Fields["dip_friendlive"] = () => _friend is { } f && Sim().Ships[f] is { } s && s.ExistsInSim(Sim()) ? 1 : 0;
