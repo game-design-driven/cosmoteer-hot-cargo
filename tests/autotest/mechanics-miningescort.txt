@@ -12,25 +12,23 @@ mech_accept miningescort
 expect mech_active_miningescort == 1
 mech_mine_goto
 pause off
-# Spec 1850: it hails and waits. The goal is its hold room for the ore, up to MiningEscort.OreGoal (30).
+# Spec 1850: it hails and waits. The goal is its hold room for the ore, up to MiningEscort.OreGoal (35).
 waitfor mech_mine_hailed == 1 60
 expect mech_mine_phase == 0
 expect mech_mine_goal > 0
-expect mech_mine_goal <= 30
+expect mech_mine_goal <= 35
 mech_mine_ready
 expect mech_mine_phase == 1
+# Spec 1864: ore that a player drops next to the miner counts, also on its way to the field, where it does not mine yet.
+mech_mine_mark
+mech_mine_drop 6
+waitfor mech_mine_gain >= 6 60
 mech_mine_field
 pause off
 waitfor mech_mine_phase == 2 60
 # Spec 1862: real mining: salvage orders for the laser, and ore in the hold.
 waitfor mech_mine_salvage > 0 60
 waitfor mech_mine_ore > 0 120
-# Spec 1864: ore that a player drops near the miner counts.
-mech_mine_mark
-mech_mine_drop 6
-expect mech_mine_dropped_left == 6
-waitfor mech_mine_dropped_left == 0 90
-expect mech_mine_gain >= 6
 # Spec 1863: the first wave at a quarter of the goal, hostile raiders around the miner.
 waitfor mech_mine_waves >= 1 120
 expect mech_mine_raiders >= 1

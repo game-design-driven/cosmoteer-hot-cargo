@@ -13,23 +13,12 @@
 		&<missions/mechanics/prototype_core.rules>/Part
 	]
 }
-// Mining Escort (spec 1862): the miner's AI, and the vanilla career starter Model-M (one mining laser, two storage bays) as an NPC
-// ship. Vanilla lists Model-M only as a starter, not as a built-in ship. The tag hc_miner keeps every other spawner away from it.
+// Mining Escort (spec 1862): the miner's AI. The miner itself is built from vanilla parts in C# (Missions/Mechanics/MinerShip.cs).
 {
 	Action = Add
 	AddTo = "<ai/ai.rules>"
 	Name = HotCargoMiner
 	ToAdd = &<missions/mechanics/ai_miner.rules>
-}
-{
-	Action = Add
-	AddTo = "<builtin_ships/builtins.rules>/Ships"
-	ToAdd
-	{
-		ID = "yarden_zamir.miner"
-		File = "./Data/builtin_ships/Starter/Model-M.ship.png"
-		Tags = [hc_miner]
-	}
 }
 // Helion Ore, its deposits and its asteroids (spec 138).
 {

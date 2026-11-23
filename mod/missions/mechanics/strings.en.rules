@@ -20,6 +20,7 @@ HotCargoMechanics
 	MiningFmt = "{0} mines {1}: {2}/{3}. Drop yours near it to help"
 	MiningReturnFmt = "Escort {0} back to {1}"
 	MiningGoalPending = "?"
+	MinerName = "Ore Tender"
 	ListeningPost = "Listening Post"
 	ListeningPostDesc = "Take the scout <b>{target_ship}</b> within {scan_km} km of the hostile base, then start the scan.\nThe base sends {wave_count} waves. Each wave pays its share; leave early to keep it."
 

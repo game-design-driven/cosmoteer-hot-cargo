@@ -128,17 +128,29 @@ public static class MechanicsArea
         {
             var o = Miner();
             Ship miner = o.Escort.TargetShip ?? throw new InvalidOperationException("miner is not live");
-            var sim = RequireSim();
-            var before = Nuggets(sim).ToHashSet();
-            SimQueries.DropLoose(sim, miner.DetWorldCenter, miner.WorldBoundingRadius + 100f, o.Ore, int.Parse(arg, CultureInfo.InvariantCulture));
-            _dropped = [.. Nuggets(sim).Where(n => !before.Contains(n))];
+            SimQueries.DropLoose(RequireSim(), miner.DetWorldCenter, miner.WorldBoundingRadius + 100f, o.Ore, int.Parse(arg, CultureInfo.InvariantCulture));
         };
-        // Units of the last mech_mine_drop that are still loose: 0 once the miner took them all in.
-        Autotest.Fields["mech_mine_dropped_left"] = () =>
+        // mech_mine_diag <label>: one log line with the miner's order, rock, salvage jobs, weapons (target, toggles), pickup jobs, crew jobs and loose ore near.
+        Autotest.Commands["mech_mine_diag"] = label =>
         {
-            var now = Nuggets(RequireSim()).ToHashSet();
-            return _dropped.Where(now.Contains).Sum(n => n.Quantity);
+            var o = Miner();
+            Ship ship = o.Escort.TargetShip ?? throw new InvalidOperationException("miner is not live");
+            var sim = RequireSim();
+            string cmd = ship.Commands.CurConfirmedCommand is Cosmoteer.Ships.Commands.MoveCommand { Location: { } to } ? $"move {to.DistanceTo(ship.DetWorldCenter):0} away" : ship.Commands.CurConfirmedCommand?.GetType().Name ?? "none";
+            var mine = new Autonomy.CargoSettings(0, [], [], [o.Ore.ToString()], []);
+            string rock = Autonomy.AutonomyWorld.NearestAsteroid(ship, mine) is { } a ? $"{a.Id} live={a.Live is not null} edge={Math.Max(0f, Autonomy.AutonomyWorld.EdgeDistance(ship, a.Center) - a.Radius):0}" : "none";
+            string weapons = string.Join("; ", ship.Weapons.Where(w => w.Part.Rules.ID.ToString().Contains("mining")).Select(w =>
+                $"{w.Part.Rules.ID.ToString().Replace("cosmoteer.", "")} target={(w is Cosmoteer.Ships.Parts.Weapons.TurretWeapon { Target: { } t } ? t.GetType().Name : "none")} " +
+                $"on={string.Join(",", w.Part.Components.OfType<Cosmoteer.Ships.Parts.Logic.IPartComponentToggle>().Where(c => ((Cosmoteer.Ships.Parts.PartComponent)c).Rules.ID.ToString() is "IsOperational" or "PowerToggle" or "AutoTargetToggle").Select(c => (c.IsToggleOn ? 1 : 0)))}"));
+            string jobs = string.Join(",", ship.Crew.Assigned.GroupBy(c => c.Job?.GetType().Name ?? "none").OrderBy(g => g.Key).Select(g => $"{g.Key}:{g.Count()}"));
+            int loose = 0;
+            for (int i = 0; i < sim.Nuggets.Count; i++)
+                if (sim.Nuggets[i].DetWorldLocation.DistanceTo(ship.DetWorldCenter) <= 1500f) loose += sim.Nuggets[i].Quantity;
+            Log.Info($"AUTOTEST MINERDIAG {label}: ore {o.Mined}/{o.Goal} cmd={cmd} rock={rock} salvage={ship.Resources.GetSalvageJobs(Cosmoteer.Game.Multiplayer.MPValueType.Confirmed).Count()} " +
+                     $"speed={(ship.Physics.Body?.LinearVelocity.Length() ?? 0f):0} pickups={ship.Resources.ManualTransferJobs.Count} loose1500={loose} crew=[{jobs}] weapons=[{weapons}]");
         };
+        // mech_mine_set <MiningEscortTunables field> <value>: changes a Mining Escort tunable for this run. Test only.
+        Autotest.Commands["mech_mine_set"] = arg => Autotest.SetField(RequireRun().T.Mechanics.MiningEscort, arg);
         Autotest.Commands["mech_mine_dock"] = _ =>
         {
             var o = Miner();
@@ -161,11 +173,10 @@ public static class MechanicsArea
         Autotest.Commands["mech_mine_camera"] = arg =>
         {
             Ship miner = Miner().Escort.TargetShip ?? throw new InvalidOperationException("miner is not live");
-            float size = float.Parse(arg, CultureInfo.InvariantCulture);
             var view = RequireRun().Game.Sim.Camera.ViewController;
             view.ClearFocus(clearFramesOfReferenceAndRotation: true);
-            view.FRLocation = miner.DetWorldCenter;
-            view.ZoomToFit(new Vector2(size, size), instant: true);
+            view.FRLocation = miner.WorldCenter;
+            Autotest.FitCamera(RequireSim(), float.Parse(arg, CultureInfo.InvariantCulture));
         };
         Autotest.Commands["mech_mine_kill"] = _ => RemoveShip(Miner().Escort.TargetShip ?? throw new InvalidOperationException("miner is not live"));
         // mech_mine_mark: remembers the ore count; mech_mine_gain is the ore counted since.
@@ -350,12 +361,6 @@ public static class MechanicsArea
     static TowObjective Tow() => Require<TowObjective>();
     static MiningEscortObjective Miner() => Require<MiningEscortObjective>();
     static int _markedOre;
-    static List<Cosmoteer.Resources.Nugget> _dropped = [];
-
-    static IEnumerable<Cosmoteer.Resources.Nugget> Nuggets(SimRoot sim)
-    {
-        for (int i = 0; i < sim.Nuggets.Count; i++) yield return sim.Nuggets[i];
-    }
     static CaptureObjective Capture() => Require<CaptureObjective>();
     static SurveyObjective Survey() => Require<SurveyObjective>();
     static DeliverResourcesObjective Deliver() => Require<DeliverResourcesObjective>();

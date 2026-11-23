@@ -808,8 +808,7 @@ MiningEscort
 					SubObjectives
 					[
 						{
-							// Spawns the miner (yarden_zamir.miner) next to the station as a civilian of the mission's faction.
-							// A built-in ship takes its faction from its rules entry, so a rules ship spawner would need one entry per faction.
+							// Spawns the miner (Missions/Mechanics/MinerShip.cs) next to the station as a civilian of the station's faction.
 							Type = HotCargoMiningEscort
 							FieldTag = asteroid_field_poi
 							StationTag = { Mode=Nearest; Tag=trade_station; }

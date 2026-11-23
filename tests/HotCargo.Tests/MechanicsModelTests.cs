@@ -63,13 +63,13 @@ public class MechanicsModelTests
     }
 
     [Fact]
-    public void Mining_waves_come_once_at_each_share_even_when_the_ore_jumps()
+    public void Mining_waves_reached_count_each_share_at_or_below_the_ore()
     {
         float[] shares = [0.25f, 0.65f];
-        Assert.Equal(0, MechanicsModel.MiningWavesDue(0, 9, 40, shares));
-        Assert.Equal(1, MechanicsModel.MiningWavesDue(9, 10, 40, shares));
-        Assert.Equal(0, MechanicsModel.MiningWavesDue(10, 12, 40, shares));
-        // A player drops a big stack: both waves are due at once.
-        Assert.Equal(2, MechanicsModel.MiningWavesDue(5, 30, 40, shares));
+        Assert.Equal(0, MechanicsModel.WavesReached(9, 40, shares));
+        Assert.Equal(1, MechanicsModel.WavesReached(10, 40, shares));
+        Assert.Equal(1, MechanicsModel.WavesReached(25, 40, shares));
+        // A player drops a big stack: both waves are reached at once.
+        Assert.Equal(2, MechanicsModel.WavesReached(30, 40, shares));
     }
 }

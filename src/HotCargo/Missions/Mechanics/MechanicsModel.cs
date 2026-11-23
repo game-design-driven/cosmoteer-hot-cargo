@@ -52,13 +52,13 @@ public static class MechanicsModel
     }
 
     /// <summary>
-    /// Spec 1863: mining waves that are due when the ore moves from before to after, out of goal. A wave comes when the ore first
-    /// reaches each share of the goal, so every wave comes once, also when players' ore makes the count jump.
+    /// Spec 1863: the mining waves that the ore has reached: one for each share of the goal at or below it. The objective sends the ones
+    /// it has not sent yet, so every wave comes once, also when players' ore makes the count jump or comes before the mining starts.
     /// </summary>
-    public static int MiningWavesDue(int before, int after, int goal, IReadOnlyList<float> shares)
+    public static int WavesReached(int ore, int goal, IReadOnlyList<float> shares)
     {
         if (goal <= 0) throw new ArgumentOutOfRangeException(nameof(goal), goal, "must be above 0");
-        return shares.Count(s => before < s * goal && after >= s * goal);
+        return shares.Count(s => ore >= s * goal);
     }
 
     /// <summary>Whole seconds left on a countdown, rounded up, never below 0.</summary>
