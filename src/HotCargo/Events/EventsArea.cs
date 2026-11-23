@@ -432,6 +432,44 @@ public static class EventsArea
             if (left > 0) throw new InvalidOperationException($"no fleet storage for {left} {rid}");
             Autotest.Wait(1);
         }
+        // Spec 1874: the recovering hand-over (the latest in the log): what a click on its line shows (the FocusStep value), and how many
+        // recover markers show on ships and on loose crates.
+        Autotest.Fields["ev_recover_focus"] = () => (int)MissionFocus.Step(RequireRun().Game, Recovering().RecoverWhere(RequireRun().Game));
+        Autotest.Fields["ev_recover_named"] = () => Recovering().SourceName is null ? 0 : 1;
+        Autotest.Fields["ev_recover_ship_marks"] = () => RecoverMarks().Count(i => i.Node is Ship);
+        Autotest.Fields["ev_recover_crate_marks"] = () => RecoverMarks().Count(i => i.Node is Cosmoteer.Resources.Nugget);
+        Autotest.Fields["ev_recovering"] = () => OpenHandOvers().Count(o => o.Recovering);
+        // ev_spill <tag> <resource>: the live tagged ship breaks open: one unit leaves its storage and drifts as a crate beside it. Test only.
+        Autotest.Commands["ev_spill"] = arg =>
+        {
+            var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var tag = new ID<SimObjectSpawner>(parts[0]);
+            var rid = new ID<Cosmoteer.Resources.ResourceRules>(parts[1]);
+            Ship? Live() => RequireSim().Ships.Where(sh => sh.HasTag(tag)).OrderBy(sh => sh.UniqueID).FirstOrDefault();
+            Autotest.WaitFor(() => Live() is not null, 15, $"a live ship tagged {parts[0]}", () =>
+            {
+                var ship = Live()!;
+                if (ship.Resources.RemoveResources(rid, 1) != 1) throw new InvalidOperationException($"{ship.Metadata.PlainShipName} holds no {rid}");
+                RequireSim().Nuggets.AddNugget(new Cosmoteer.Resources.Nugget(rid, 1, ship.WorldCenter + new Vector2(ship.WorldBoundingRadius + 50f, 0), Direction.Zero));
+                Autotest.Wait(2);
+            });
+        };
+        // ev_collect <resource>: every loose crate of the resource goes into the fleet, as crew carrying it home would. Test only.
+        Autotest.Commands["ev_collect"] = arg =>
+        {
+            var sim = RequireSim();
+            var rid = new ID<Cosmoteer.Resources.ResourceRules>(arg.Trim());
+            var crates = sim.Nuggets.Where(n => n.ResourceType == rid).ToList();
+            if (crates.Count == 0) throw new InvalidOperationException($"no loose {rid}");
+            foreach (var crate in crates)
+            {
+                int left = crate.Quantity;
+                sim.Nuggets.RemoveNugget(crate);
+                foreach (var ship in Tech.Vaults.HumanShips(sim).OrderBy(sh => sh.UniqueID)) left -= ship.Resources.AddResources(rid, left, excludeConstructionSinks: true);
+                if (left > 0) throw new InvalidOperationException($"no fleet storage for {left} {rid}");
+            }
+            Autotest.Wait(2);
+        };
         // ev_storage_fill <resource>: fills every human ship's storage with the resource. ev_storage_clear <resource>: takes all of it out. Test only.
         Autotest.Commands["ev_storage_fill"] = arg =>
         {
@@ -988,6 +1026,13 @@ public static class EventsArea
         int i = contacts.FindIndex(c => c.Id == id);
         return i >= 0 ? contacts[i] : throw new InvalidOperationException($"the accepted job's contact {id} is not in this system");
     }
+
+    static HandOverObjective Recovering() =>
+        OpenHandOvers().LastOrDefault(o => o.Recovering) ?? throw new InvalidOperationException("no hand-over waits for its item to be recovered");
+
+    /// <summary>Recover markers that show now.</summary>
+    static List<RecoverMarkers.ItemIndicator> RecoverMarks() =>
+        [.. Cosmoteer.Simulation.ObjectIndicatorSource.GetAllInScene(RequireSim()).OfType<RecoverMarkers.ItemIndicator>().Where(i => i.ShouldShowA(out _, out _) == true)];
 
     static IEnumerable<HandOverObjective> OpenHandOvers()
     {

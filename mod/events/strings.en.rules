@@ -22,6 +22,7 @@ HotCargoEventMissions
 	FlightRecorderPlural = "Flight Recorders"
 	FlightRecorderDesc = "A corporate hunter's flight recorder, still sending. A station broker wants it."
 	RecoverFmt = "Recover the {0} {1}"
+	RecoverFromFmt = "Recover the {0} {1} from the {2}"
 	Courier = "Courier Job"
 	OffBooks = "Off the Books"
 	OffBooksDesc = "Fly your tech crates to the fence and hand them over in its comms. He does not wait long."
