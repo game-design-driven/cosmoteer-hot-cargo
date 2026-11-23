@@ -116,7 +116,7 @@ public sealed class MiningEscortTunables
     [Serialize(Optional = true)] public float SpawnDistanceMin = 500f;
     [Serialize(Optional = true)] public float SpawnDistanceMax = 800f;
     /// <summary>The most ore the miner must bring back. A smaller hold sets a smaller goal. About 2.5 min of mining for the miner alone.</summary>
-    [Serialize(Optional = true)] public int OreGoal = 30;
+    [Serialize(Optional = true)] public int OreGoal = 35;
     /// <summary>The miner works on asteroids within this distance of the field center. Its ore type is the most common ore there.</summary>
     [Serialize(Optional = true)] public float FieldRadius = 3000f;
     /// <summary>

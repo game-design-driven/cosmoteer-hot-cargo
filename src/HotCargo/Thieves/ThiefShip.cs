@@ -8,6 +8,7 @@ using Cosmoteer.Ships.Parts;
 using Cosmoteer.Simulation;
 using Halfling.Geometry;
 using HotCargo.Core;
+using PartAt = HotCargo.Core.ShipBuilder.PartAt;
 
 namespace HotCargo.Thieves;
 
@@ -42,8 +43,6 @@ internal static class ThiefShip
         new(3, "cosmoteer.storage_3x3", "cosmoteer.laser_blaster_large", 5, 2, "cosmoteer.reactor_med", "cosmoteer.crew_quarters_med", 2, 2),
         new(4, "cosmoteer.storage_4x4", "cosmoteer.ion_beam_emitter", 5, 2, "cosmoteer.reactor_large", "cosmoteer.crew_quarters_large", 3, 4),
     ];
-
-    internal readonly record struct PartAt(string Part, int X, int Y, int Rot);
 
     /// <summary>The number of tiers: the length of the vanilla tier value table.</summary>
     internal static int TierCount => GameData.TierCount;
@@ -111,35 +110,15 @@ internal static class ThiefShip
         return parts;
     }
 
-    /// <summary>The ship rules that hold every part of both kits (the terran rules in 0.30.5a), found from the rules, not named.</summary>
-    static ShipRules Rules()
-    {
-        var ids = Kits.SelectMany(k => Layout(k, 3)).Select(p => new ID<PartRules>(p.Part)).Distinct().ToList();
-        return GameApp.Rules.Ships.FirstOrDefault(r => !r.IsAsteroid && ids.All(r.PartsByID.ContainsKey))
-            ?? throw new InvalidOperationException("thief design: no ship rules hold all its parts");
-    }
-
-    /// <summary>Builds a ship from a layout. Throws when a part does not fit, so a rules change shows at once.</summary>
-    static Ship Build(List<PartAt> layout, string name)
-    {
-        var rules = Rules();
-        var ship = new Ship(rules, name, 0, randSeed: 1UL);
-        // One update per part: the automatic door rule adds doors only toward parts that the ship already has.
-        foreach (var (part, x, y, rot) in layout)
-        {
-            using var sui = ShipUpdateInfo.Alloc(ship);
-            var partRules = rules.PartsByID[new ID<PartRules>(part)];
-            if (!sui.TryAddBlueprintPart(partRules, new IntVector2(x, y), rot, flipX: false, mirrorPhysical: false, allowOverwrite: false, addDoors: true,
-                    hireCrew: false, out var reasons, force: false))
-                throw new InvalidOperationException($"thief design: cannot add {part} at {x},{y} rot {rot}: {reasons}");
-            sui.Apply();
-        }
-        ship.MatchPhysicalToBlueprints();
-        return ship;
-    }
+    /// <summary>The ship rules that hold every part of all kits (the terran rules in 0.30.5a).</summary>
+    static ShipRules Rules() => ShipBuilder.RulesFor(Kits.SelectMany(k => Layout(k, 3)), "thief");
 
     /// <summary>The value of a layout: the vanilla cost of its parts.</summary>
-    static int Value(List<PartAt> layout) => Build(layout, "value").Parts.TotalMoneyValue;
+    static int Value(List<PartAt> layout)
+    {
+        using var ship = ShipBuilder.Build(Rules(), layout, "value", "thief");
+        return ship.Parts.TotalMoneyValue;
+    }
 
     /// <summary>
     /// Spec 1772: the design of a tier: the first kit (smallest first) that reaches ValueShare × the tier's value maximum within MaxSegments
@@ -166,10 +145,7 @@ internal static class ThiefShip
     {
         tier = Math.Clamp(tier, 1, TierCount);
         if (DesignBytes.TryGetValue(tier, out var cached)) return cached;
-        var ship = Build(Design(tier), $"Thief {tier}");
-        using var stream = new MemoryStream();
-        ship.SaveDesign(stream);
-        return DesignBytes[tier] = stream.ToArray();
+        return DesignBytes[tier] = ShipBuilder.DesignBytes(Design(tier), $"Thief {tier}", "thief");
     }
 
     /// <summary>
@@ -179,12 +155,7 @@ internal static class ThiefShip
     /// </summary>
     internal static Ship Spawn(SimRoot sim, int tier, int playerIndex, ID<ShipAIRules> ai, AIParameters parameters, Vector2 at, Direction facing)
     {
-        ObjectID id;
-        do id = ObjectID.NewRandom(sim.Rand); while (!sim.IsObjectIDAvailable(id));
-        ulong seed = sim.Rand.UInt64();
-        var ship = Ship.Load(Bytes(tier), Name(sim), playerIndex, spawnWithCrew: true, initializeToMax: true, randSeed: seed, id: id);
-        ship.WorldCenter = at;
-        ship.WorldRotation = facing - (float)ship.FlightDirection;
+        var ship = ShipBuilder.Load(sim, sim.Rand, Bytes(tier), Name(sim), playerIndex, at, facing);
         ship.AI = new ShipAI(GameApp.Rules.ShipAIs[ai], parameters);
         sim.Ships.Add(ship);
         Log.Info($"thieves: {ship.Metadata.PlainShipName} id={ship.UniqueID} tier {tier} player {playerIndex} ai {ai} arrives at " +

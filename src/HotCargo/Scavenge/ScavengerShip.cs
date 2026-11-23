@@ -58,31 +58,8 @@ internal static class ScavengerShip
 
     static byte[]? _designBytes;
 
-    /// <summary>The ship rules that hold every part of the design (the terran rules in 0.30.5a), found from the rules, not named.</summary>
-    static ShipRules Rules() => GameApp.Rules.Ships.FirstOrDefault(r => !r.IsAsteroid && Design.All(d => r.PartsByID.ContainsKey(new ID<PartRules>(d.Part))))
-        ?? throw new InvalidOperationException("scavenger design: no ship rules hold all its parts");
-
-    /// <summary>The saved design, built once per process from the rules. Throws when a part does not fit, so a rules change shows at once.</summary>
-    static byte[] DesignBytes()
-    {
-        if (_designBytes is { } cached) return cached;
-        var rules = Rules();
-        var ship = new Ship(rules, "Scavenger", 0, randSeed: 1UL);
-        // One update per part: the automatic door rule adds doors only toward parts that the ship already has.
-        foreach (var (part, x, y, rot) in Design)
-        {
-            using var sui = ShipUpdateInfo.Alloc(ship);
-            var partRules = rules.PartsByID[new ID<PartRules>(part)];
-            if (!sui.TryAddBlueprintPart(partRules, new IntVector2(x, y), rot, flipX: false, mirrorPhysical: false, allowOverwrite: false, addDoors: true,
-                    hireCrew: false, out var reasons, force: false))
-                throw new InvalidOperationException($"scavenger design: cannot add {part} at {x},{y} rot {rot}: {reasons}");
-            sui.Apply();
-        }
-        ship.MatchPhysicalToBlueprints();
-        using var stream = new MemoryStream();
-        ship.SaveDesign(stream);
-        return _designBytes = stream.ToArray();
-    }
+    /// <summary>The saved design, built once per process from the rules.</summary>
+    static byte[] DesignBytes() => _designBytes ??= ShipBuilder.DesignBytes([.. Design.Select(d => new ShipBuilder.PartAt(d.Part, d.X, d.Y, d.Rot))], "Scavenger", "scavenger");
 
     /// <summary>
     /// Spec 1342, 1343: a full scavenger with crew, power and empty storage bays, the scavenger AI and the faction's player index, at the
@@ -90,12 +67,7 @@ internal static class ScavengerShip
     /// </summary>
     internal static Ship Spawn(SimRoot sim, Vector2 at, Direction facing)
     {
-        ObjectID id;
-        do id = ObjectID.NewRandom(sim.Rand); while (!sim.IsObjectIDAvailable(id));
-        ulong seed = sim.Rand.UInt64();
-        var ship = Ship.Load(DesignBytes(), Name(sim), Scavengers.PlayerIndex, spawnWithCrew: true, initializeToMax: true, randSeed: seed, id: id);
-        ship.WorldCenter = at;
-        ship.WorldRotation = facing - (float)ship.FlightDirection;
+        var ship = ShipBuilder.Load(sim, sim.Rand, DesignBytes(), Name(sim), Scavengers.PlayerIndex, at, facing);
         ship.AI = new ShipAI(GameApp.Rules.ShipAIs[AiId], null);
         sim.Ships.Add(ship);
         Log.Info($"scavengers: {ship.Metadata.PlainShipName} id={ship.UniqueID} arrives at {at.X.ToString("0", CultureInfo.InvariantCulture)},{at.Y.ToString("0", CultureInfo.InvariantCulture)} " +

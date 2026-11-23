@@ -82,16 +82,9 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
                 return null;
             }
             Vector2 start = station.Location.Center + Vector2.FromAngle(rand.Direction()) * rand.Single(new Range<float>(t.SpawnDistanceMin, t.SpawnDistanceMax));
-            var spawner = new StasisShipSpawner(sim, MinerShip, start, SpawnedShipFeatures.None, rand.UInt64(), [MinerTag])
-            {
-                AI = new ID<Cosmoteer.Ships.AI.ShipAIRules>("HotCargoMiner"),
-                AIParameters = new Cosmoteer.Ships.AI.AIParameters { ChanceToConsiderSurrenderingToPlayer = 0f },
-                Direction = rand.Direction(),
-                ObjectAllegiance = faction.CivilianPlayerIndex,
-            };
-            spawner.Spawn(sim);
+            var miner = MinerShip.Spawn(sim, rand, faction, start, rand.Direction());
             var game = sim.RequireGame();
-            return new MiningEscortObjective(new ObjectiveTargetShip(game, sim.NodeId(), spawner.ReservedObjectID), new ObjectiveTargetShip(game, sim.NodeId(), stationId), center, ore)
+            return new MiningEscortObjective(new ObjectiveTargetShip(game, miner), new ObjectiveTargetShip(game, sim.NodeId(), stationId), center, ore)
             {
                 Start = start,
                 Tier = Math.Max(1, ((CareerSimModeManager)sim.Mode).TierFields.GetTier(center) + TierOffset),
@@ -154,9 +147,6 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
     public bool Waiting => Completion == CompletionState.InProgress && Phase == MiningEscortPhase.Meet;
 
     public static readonly ID<SimObjectSpawner> WaveTag = new("hc_mining_raider");
-    public static readonly ID<SimObjectSpawner> MinerTag = new("hc_escort_miner");
-    /// <summary>The vanilla Model-M starter design, listed as a built-in ship by mod/missions/mechanics/actions.rules.</summary>
-    static readonly ID<BuiltinShipRules> MinerShip = new("yarden_zamir.miner");
 
     public override string ScriptTypeName => "HotCargoMiningEscort";
 
@@ -305,9 +295,16 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
         StepIn -= sim.FixedUpdater.Interval.Seconds;
         if (StepIn > 0) return;
         StepIn = t.StepSeconds;
+        Count(ship);
         switch (Phase)
         {
             case MiningEscortPhase.ToField:
+                // Spec 1864: on the way it stops for matching loose ore within reach, so ore that players drop counts here too.
+                if (CollectLoose(sim, ship, t) > 0)
+                {
+                    if (ship.Commands.CurConfirmedCommand is not null) ship.Commands.Clear();
+                    break;
+                }
                 MoveTo(ship, Field, null, t.FieldRadius * 0.25f);
                 if (ship.DetWorldCenter.DistanceTo(Field) <= t.FieldRadius * 0.5f) SetPhase(MiningEscortPhase.Mining, "at the field");
                 break;
@@ -322,22 +319,17 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
 
     int OreHeld(Ship ship) => ship.Resources.GetResourceTotal(Ore, includeStored: true, includeCarried: true);
 
-    /// <summary>
-    /// Spec 1862 to 1864: counts the ore, sends the waves that are due, orders loose ore of its type collected, and mines the nearest
-    /// asteroid with that ore. A full goal, or a system without such an asteroid, sends the miner home.
-    /// </summary>
-    void Mine(SimRoot sim, Ship ship, MiningEscortTunables t)
+    /// <summary>The counted ore: what the miner holds above BaseOre. The HUD line follows it.</summary>
+    void Count(Ship ship)
     {
         int before = Mined;
         Mined = Math.Max(0, OreHeld(ship) - BaseOre);
         if (Mined != before) OnDisplayLinesChanged();
-        int due = MechanicsModel.MiningWavesDue(before, Mined, Goal, t.WaveShares);
-        for (int i = 0; i < due; i++) SpawnWave(sim, ship, t);
-        if (Mined >= Goal)
-        {
-            SetPhase(MiningEscortPhase.Return, "hold full");
-            return;
-        }
+    }
+
+    /// <summary>Spec 1864: collect orders for loose ore of the miner's type within CollectRadius of its hull. Returns how many nuggets got one.</summary>
+    int CollectLoose(SimRoot sim, Ship ship, MiningEscortTunables t)
+    {
         var loose = new List<Nugget>();
         for (int i = 0; i < sim.Nuggets.Count; i++)
         {
@@ -345,11 +337,28 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
             if (n.ResourceType == Ore && AutonomyWorld.EdgeDistance(ship, n.DetWorldLocation) <= t.CollectRadius) loose.Add(n);
         }
         AutonomyWorld.OrderCollect(ship, loose);
+        return loose.Count;
+    }
+
+    /// <summary>
+    /// Spec 1862 to 1864: sends the waves that are due, orders loose ore of its type collected, and mines the nearest asteroid with that ore.
+    /// A full goal, or a system without such an asteroid, sends the miner home.
+    /// </summary>
+    void Mine(SimRoot sim, Ship ship, MiningEscortTunables t)
+    {
+        int due = MechanicsModel.WavesReached(Mined, Goal, t.WaveShares) - WavesSent;
+        for (int i = 0; i < due; i++) SpawnWave(sim, ship, t);
+        if (Mined >= Goal)
+        {
+            SetPhase(MiningEscortPhase.Return, "hold full");
+            return;
+        }
+        int loose = CollectLoose(sim, ship, t);
         var mine = new CargoSettings(0, [], [], [Ore.ToString()], []);
         var a = Run.Current?.T.Autonomy ?? throw new InvalidOperationException("no run for the autonomy tunables");
         if (AutonomyWorld.NearestAsteroid(ship, mine) is not { } rock)
         {
-            if (loose.Count == 0) SetPhase(MiningEscortPhase.Return, "no asteroid with the ore is left");
+            if (loose == 0) SetPhase(MiningEscortPhase.Return, "no asteroid with the ore is left");
             return;
         }
         if (rock.Live is not { } live)

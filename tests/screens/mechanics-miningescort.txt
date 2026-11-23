@@ -1,8 +1,9 @@
-# Mining Escort (spec 1860 to 1866): the miner mines in the field, and the mission line counts its ore; then a raider wave.
-# Windowed test slot or RUNNER=mac (needs graphics): see the hot-cargo-screenshots skill.
+# Mining Escort (spec 1860 to 1870): the Ore Tender close up in its faction's paint, then at work in the field with the mission line
+# counting its ore. Windowed test slot or RUNNER=mac (needs graphics): see the hot-cargo-screenshots skill.
 render on
 newgame run 0
 wait 10
+reveal on
 closepanel
 wait 1
 ev_set Enabled false
@@ -12,21 +13,20 @@ mech_accept miningescort
 mech_mine_goto
 pause off
 waitfor mech_mine_hailed == 1 60
+wait 2
+pause on
+wait 1
+mech_mine_camera 45
+wait 1
+screenshot mining-escort-ship
+pause off
 mech_mine_ready
 mech_mine_field
 pause off
-waitfor mech_mine_ore >= 3 120
-mech_mine_camera 2500
-wait 1
+waitfor mech_mine_ore >= 5 120
 pause on
+wait 1
+mech_mine_camera 120
 wait 1
 screenshot mining-escort-mining
-pause off
-waitfor mech_mine_waves >= 1 180
-wait 6
-mech_mine_camera 4000
-wait 1
-pause on
-wait 1
-screenshot mining-escort-wave
 quit
