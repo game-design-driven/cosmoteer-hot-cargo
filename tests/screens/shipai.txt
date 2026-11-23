@@ -47,6 +47,20 @@ tactics_editor actparam 7 1
 tactics_editor savepreset Tech runner
 wait 2
 screenshot shipai-editor-chains
+# Spec 1831: brackets. Row 1 becomes: IF Always AND (NOT CarryingTech OR HealthBelow 30) OR EnemiesAtLeast 4.
+tactics_editor bracket 1 2
+tactics_editor insertterm 1 2
+tactics_editor cond 1 HealthBelow 3
+tactics_editor or 1 3
+tactics_editor bracket 6 1
+tactics_editor insertterm 6 1
+tactics_editor cond 6 EnemyWithin 2
+tactics_editor bracket 6 2
+tactics_editor insertterm 6 2
+tactics_editor cond 6 AllyUnderAttack 3
+tactics_editor or 6 3
+wait 2
+screenshot shipai-editor-brackets
 # Spec 419: the smallest window; every condition, action and parameter text fits its list.
 tactics_editor minsize
 wait 1

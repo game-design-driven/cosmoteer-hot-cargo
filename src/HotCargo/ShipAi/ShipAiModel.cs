@@ -58,10 +58,11 @@ public enum CardState { Off, Mixed, On }
 public enum Preset { Aggressive, Defensive, Sniper, Escort, VaultGuard, Looter, Miner, SupplyRunner, Salvager, EscortDrone, Formation }
 
 /// <summary>
-/// One condition term of a row (spec 416). Not inverts it. Or joins it to the previous term with OR, else with AND.
-/// Or of the first term means nothing.
+/// One condition term of a row (spec 416). Not inverts it. Or joins it (with the brackets that it opens) to the item before it
+/// with OR, else with AND; Or of the first item in a bracket means nothing. Open: brackets that open before the term; Close:
+/// brackets that close after it (spec 1830). The brackets of a row are balanced (ShipAiModel.BracketError).
 /// </summary>
-public readonly record struct Term(Cond Cond, int Param, bool Not = false, bool Or = false);
+public readonly record struct Term(Cond Cond, int Param, bool Not = false, bool Or = false, int Open = 0, int Close = 0);
 
 /// <summary>One "conditions → action" row. Params mean what ShipAiModel.ParamOf says. Terms is never empty; nobody changes it.</summary>
 public sealed record TacticRow(Term[] Terms, Act Act, int ActParam)
@@ -140,7 +141,6 @@ public sealed record Decision(int TargetRow, int MoveRow, int FacingRow, bool[] 
 public static class ShipAiModel
 {
     public const int MaxRows = 16;
-    public const int MaxTerms = 8;
     public const int MaxGroup = 10;
     /// <summary>
     /// The highest stage that stored tactics text may name. The real limit is the number of heat stages (Heat.Stages), which the
@@ -285,12 +285,14 @@ public static class ShipAiModel
     }
 
     /// <summary>
-    /// Spec 416: the terms of a row joined by AND and OR, AND first: "A AND B OR C AND D" = (A and B) or (C and D).
-    /// Every term is evaluated, so each one updates its memory. memory: the terms' old memory (or null), start: its first index.
-    /// The new memory goes to output from start on.
+    /// Spec 416, 1830: the terms of a row joined by AND and OR, AND first: "A AND B OR C AND D" = (A and B) or (C and D).
+    /// A bracket is evaluated the same way and counts as one item. Every term is evaluated, so each one updates its memory.
+    /// memory: the terms' old memory (or null), start: its first index. The new memory goes to output from start on.
     /// </summary>
     static bool RowHolds(TacticRow row, ShipFacts f, IReadOnlyList<TermMemory>? memory, int start, double now, Hysteresis h, TermMemory[] output)
     {
+        // One (any, group) pair per open bracket level: any = an OR part before held, group = the AND part so far holds.
+        var levels = new Stack<(bool Any, bool Group)>();
         bool any = false, group = true;
         for (int j = 0; j < row.Terms.Length; j++)
         {
@@ -310,9 +312,49 @@ public static class ShipAiModel
                 any |= group;
                 group = true;
             }
+            for (int k = 0; k < term.Open; k++)
+            {
+                levels.Push((any, group));
+                (any, group) = (false, true);
+            }
             group &= next.On != term.Not;
+            for (int k = 0; k < term.Close; k++)
+            {
+                bool inner = any | group;
+                (any, group) = levels.Pop();
+                group &= inner;
+            }
         }
+        if (levels.Count != 0) throw new InvalidOperationException($"row has {levels.Count} unclosed brackets");
         return any | group;
+    }
+
+    /// <summary>Spec 1830: why the brackets of the terms do not balance, or null when they do.</summary>
+    public static string? BracketError(IReadOnlyList<Term> terms)
+    {
+        int depth = 0;
+        for (int j = 0; j < terms.Count; j++)
+        {
+            var t = terms[j];
+            if (t.Open < 0 || t.Close < 0) return $"term {j + 1} has a negative bracket count";
+            depth += t.Open - t.Close;
+            if (depth < 0) return $"term {j + 1} closes a bracket that is not open";
+        }
+        return depth == 0 ? null : $"{depth} brackets are not closed";
+    }
+
+    /// <summary>Spec 1830: the bracket depth of each term, counting the brackets that it opens. Top level is 0.</summary>
+    public static int[] Depths(IReadOnlyList<Term> terms)
+    {
+        var depths = new int[terms.Count];
+        int depth = 0;
+        for (int j = 0; j < terms.Count; j++)
+        {
+            depth += terms[j].Open;
+            depths[j] = depth;
+            depth -= terms[j].Close;
+        }
+        return depths;
     }
 
     /// <summary>Evaluation without term memory and without hysteresis.</summary>
@@ -370,8 +412,8 @@ public static class ShipAiModel
     public static bool AimsAtParts(Act act) => act is Act.FocusTarget or Act.TargetWeapons or Act.TargetEngines or Act.FireDisruptors;
 
     /// <summary>
-    /// Spec 405, 417. Text form: "HC1:" then rows joined by ';', each "terms>Act[=n]". Terms: "[!]Cond[=n]" joined by '&amp;' (AND)
-    /// or '|' (OR). A row with one plain term is the old form, so old text reads and writes the same. Empty text = no tactics.
+    /// Spec 405, 417, 1830. Text form: "HC1:" then rows joined by ';', each "terms>Act[=n]". Terms: "[(...][!]Cond[=n][)...]" joined
+    /// by '&amp;' (AND) or '|' (OR). Text without brackets is the old form, so old text reads and writes the same. Empty text = no tactics.
     /// </summary>
     public static string Encode(IReadOnlyList<TacticRow> rows)
     {
@@ -385,9 +427,11 @@ public static class ShipAiModel
             {
                 var t = r.Terms[j];
                 if (j > 0) sb.Append(t.Or ? '|' : '&');
+                sb.Append('(', t.Open);
                 if (t.Not) sb.Append('!');
                 sb.Append(t.Cond);
                 if (ParamOf(t.Cond) != ParamKind.None) sb.Append('=').Append(t.Param.ToString(CultureInfo.InvariantCulture));
+                sb.Append(')', t.Close);
             }
             sb.Append('>').Append(r.Act);
             if (ParamOf(r.Act) != ParamKind.None) sb.Append('=').Append(r.ActParam.ToString(CultureInfo.InvariantCulture));
@@ -395,7 +439,7 @@ public static class ShipAiModel
         return sb.ToString();
     }
 
-    /// <summary>Parses Encode text. Throws FormatException on any unknown name, missing or out-of-range parameter, or too many rows or terms.</summary>
+    /// <summary>Parses Encode text. Throws FormatException on any unknown name, missing or out-of-range parameter, unbalanced brackets or too many rows.</summary>
     public static List<TacticRow> Decode(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
@@ -422,14 +466,18 @@ public static class ShipAiModel
         {
             int end = side.IndexOfAny(['&', '|'], pos);
             string s = end < 0 ? side[pos..] : side[pos..end];
-            bool not = s.StartsWith('!');
-            var (cond, param) = ParseSide<Cond>(not ? s[1..] : s, ParamOf);
-            terms.Add(new Term(cond, param, not, or));
+            string inner = s.TrimStart('(');
+            int open = s.Length - inner.Length;
+            string body = inner.TrimEnd(')');
+            int close = inner.Length - body.Length;
+            bool not = body.StartsWith('!');
+            var (cond, param) = ParseSide<Cond>(not ? body[1..] : body, ParamOf);
+            terms.Add(new Term(cond, param, not, or, open, close));
             if (end < 0) break;
             or = side[end] == '|';
             pos = end + 1;
         }
-        if (terms.Count > MaxTerms) throw new FormatException($"a row has {terms.Count} conditions; at most {MaxTerms}");
+        if (BracketError(terms) is { } error) throw new FormatException($"conditions '{side}': {error}");
         return terms.ToArray();
     }
 
@@ -567,13 +615,54 @@ public static class ShipAiModel
         return row with { Terms = terms };
     }
 
-    /// <summary>Spec 419: "+ condition" adds an Always term joined by AND. A row holds at most MaxTerms.</summary>
-    public static TacticRow AddTerm(TacticRow row) =>
-        row.Terms.Length >= MaxTerms ? row : row with { Terms = [.. row.Terms, new Term(Cond.Always, 0)] };
+    /// <summary>Spec 419: "+ AND" on the THEN line adds an Always term joined by AND at the end, outside every bracket.</summary>
+    public static TacticRow AddTerm(TacticRow row) => row with { Terms = [.. row.Terms, new Term(Cond.Always, 0)] };
 
-    /// <summary>Removes term j. The last term stays, so a row always has a condition.</summary>
-    public static TacticRow RemoveTerm(TacticRow row, int j) =>
-        row.Terms.Length <= 1 ? row : row with { Terms = row.Terms.Where((_, k) => k != j).ToArray() };
+    /// <summary>Spec 1831: a new Always term joined by AND right after term j, inside the same brackets as j.</summary>
+    public static TacticRow InsertTerm(TacticRow row, int j)
+    {
+        var terms = row.Terms.ToList();
+        terms.Insert(j + 1, new Term(Cond.Always, 0, Close: terms[j].Close));
+        terms[j] = terms[j] with { Close = 0 };
+        return row with { Terms = [.. terms] };
+    }
+
+    /// <summary>Spec 1831: a new bracket around term j alone. "+" on that term then adds terms inside it.</summary>
+    public static TacticRow Bracket(TacticRow row, int j) =>
+        WithTerm(row, j, row.Terms[j] with { Open = row.Terms[j].Open + 1, Close = row.Terms[j].Close + 1 });
+
+    /// <summary>
+    /// Spec 1831: removes the innermost bracket that opens at term j, and its closing bracket. The terms stay. Brackets of one kind
+    /// next to each other are the same text, so any one of the closing brackets at the matching term can go.
+    /// </summary>
+    public static TacticRow Unbracket(TacticRow row, int j)
+    {
+        if (row.Terms[j].Open == 0) throw new ArgumentException($"term {j + 1} opens no bracket", nameof(j));
+        var depths = Depths(row.Terms);
+        int level = depths[j];
+        int k = j;
+        while (depths[k] - row.Terms[k].Close >= level) k++;
+        var terms = (Term[])row.Terms.Clone();
+        terms[j] = terms[j] with { Open = terms[j].Open - 1 };
+        terms[k] = terms[k] with { Close = terms[k].Close - 1 };
+        return row with { Terms = terms };
+    }
+
+    /// <summary>
+    /// Removes term j. The last term stays, so a row always has a condition. Brackets around only this term go with it; its other
+    /// opening brackets move to the next term and its other closing brackets to the term before it.
+    /// </summary>
+    public static TacticRow RemoveTerm(TacticRow row, int j)
+    {
+        if (row.Terms.Length <= 1) return row;
+        var t = row.Terms[j];
+        int alone = Math.Min(t.Open, t.Close);
+        var terms = row.Terms.ToList();
+        if (t.Open > alone) terms[j + 1] = terms[j + 1] with { Open = terms[j + 1].Open + t.Open - alone };
+        if (t.Close > alone) terms[j - 1] = terms[j - 1] with { Close = terms[j - 1].Close + t.Close - alone };
+        terms.RemoveAt(j);
+        return row with { Terms = [.. terms] };
+    }
 
     // ---- Personal presets (spec 422): a local file, one "name TAB text" line per preset.
 

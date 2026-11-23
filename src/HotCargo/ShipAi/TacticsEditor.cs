@@ -116,7 +116,7 @@ internal sealed class TacticsEditor : WindowBox
     /// <summary>
     /// Autotest: does what a click does. open | close | auto on|off | apply &lt;preset or personal name&gt; | add | remove &lt;row&gt; |
     /// up &lt;row&gt; | cond &lt;row&gt; &lt;Cond&gt; [term] | param &lt;row&gt; &lt;n&gt; [term] | act &lt;row&gt; &lt;Act&gt; | actparam &lt;row&gt; &lt;n&gt; |
-    /// addterm &lt;row&gt; | removeterm &lt;row&gt; &lt;term&gt; | not &lt;row&gt; &lt;term&gt; | or &lt;row&gt; &lt;term&gt; | copy | paste [text] |
+    /// addterm &lt;row&gt; | removeterm|insertterm|bracket|unbracket &lt;row&gt; &lt;term&gt; | not &lt;row&gt; &lt;term&gt; | or &lt;row&gt; &lt;term&gt; | copy | paste [text] |
     /// savepreset &lt;name&gt; | deletepreset &lt;name&gt; | toselected | loot v&lt;n&gt;|&lt;id,id&gt; | sell|mine|buy &lt;id,id&gt;|none |
     /// recall on|off. Rows and terms count from 1, like the window shows them.
     /// </summary>
@@ -149,6 +149,9 @@ internal sealed class TacticsEditor : WindowBox
             case "or": e.EditTerm(Row(), TermAt(2), t => t with { Or = !t.Or }); break;
             case "addterm": e.Edit(Row(), ShipAiModel.AddTerm(e._rows[Row()])); break;
             case "removeterm": e.Edit(Row(), ShipAiModel.RemoveTerm(e._rows[Row()], TermAt(2))); break;
+            case "insertterm": e.Edit(Row(), ShipAiModel.InsertTerm(e._rows[Row()], TermAt(2))); break;
+            case "bracket": e.Edit(Row(), ShipAiModel.Bracket(e._rows[Row()], TermAt(2))); break;
+            case "unbracket": e.Edit(Row(), ShipAiModel.Unbracket(e._rows[Row()], TermAt(2))); break;
             case "act": e.Edit(Row(), ShipAiModel.WithAct(e._rows[Row()], Enum.Parse<Act>(a[2]))); break;
             case "actparam": e.Edit(Row(), e._rows[Row()] with { ActParam = Num(2) }); break;
             case "copy": e.Copy(); break;
@@ -493,10 +496,11 @@ internal sealed class TacticsEditor : WindowBox
         block.Children.LayoutAlgorithm = LayoutAlgorithms.StretchTopToBottom;
         block.Children.BorderPadding = new Borders(6f);
         block.Children.WidgetPadding = new Vector2(2f);
+        var depths = ShipAiModel.Depths(row.Terms);
         for (int j = 0; j < row.Terms.Length; j++)
         {
             var line = Strip(34f);
-            BuildTerm(line, i, j);
+            BuildTerm(line, i, j, depths[j] - row.Terms[j].Open);
             block.Children.Add(line);
         }
         var then = Strip(34f);
@@ -510,10 +514,17 @@ internal sealed class TacticsEditor : WindowBox
     // smallest window (1100) the lists then keep about a third of spare room. "tactics_editor fit" checks it in a game with graphics.
     const float ColMarker = 0f, ColJoin = 3f, ColNot = 9f, ColChoice = 15f, ChoiceWidth = 40f, ColParam = 55f, ParamWidth = 22f, ColEnd = 77f;
 
-    void BuildTerm(SimpleBox line, int i, int j)
+    // Spec 1831: each bracket level indents the term line by IndentStep. Limit: the indent stops at MaxIndent levels, so the
+    // condition list keeps room for the longest name; deeper levels show only their brackets. Revisit if players nest deeper.
+    const float IndentStep = 2.5f, BracketWidth = 2f;
+    const int MaxIndent = 4;
+
+    /// <summary>Spec 419, 1831. outer: the bracket depth before the brackets that this term opens.</summary>
+    void BuildTerm(SimpleBox line, int i, int j, int outer)
     {
         var row = _rows[i];
         var term = row.Terms[j];
+        float indent = Math.Min(outer, MaxIndent) * IndentStep;
         if (j == 0)
         {
             var marker = new Label();
@@ -526,12 +537,14 @@ internal sealed class TacticsEditor : WindowBox
             when.TextRenderer.HAlignment = HAlignment.Center;
             Place(line, when, ColJoin, ColNot - ColJoin);
         }
-        else Place(line, XmlButton(Text(term.Or ? "Or" : "And"), Text("ConnectorTip"), () => EditTerm(i, j, t => t with { Or = !t.Or })), ColJoin, ColNot - ColJoin);
-        Place(line, XmlButton(Text(term.Not ? "NotOn" : "NotOff"), Text("NotTip"), () => EditTerm(i, j, t => t with { Not = !t.Not })), ColNot, ColChoice - ColNot);
+        else Place(line, XmlButton(Text(term.Or ? "Or" : "And"), Text("ConnectorTip"), () => EditTerm(i, j, t => t with { Or = !t.Or })), ColJoin + indent, ColNot - ColJoin);
+        // The opening brackets stand before NOT, as in the text form: a NOT belongs to its term, never to the bracket.
+        if (term.Open > 0) Place(line, Bracket(new string('(', term.Open)), ColNot + indent, BracketWidth);
+        Place(line, XmlButton(Text(term.Not ? "NotOn" : "NotOff"), Text("NotTip"), () => EditTerm(i, j, t => t with { Not = !t.Not })), ColNot + indent + BracketWidth, ColChoice - ColNot - BracketWidth);
         var cond = Choices(Enum.GetValues<Cond>().Select(c => (int)c), (int)term.Cond, v => Text("Cond_" + (Cond)v),
             v => EditTerm(i, j, t => ShipAiModel.WithCond(t, (Cond)v)));
         _choiceLists.Add(cond);
-        Place(line, cond, ColChoice, ChoiceWidth);
+        Place(line, cond, ColChoice + indent, ChoiceWidth - indent);
         var kind = ShipAiModel.ParamOf(term.Cond);
         if (kind != ParamKind.None)
         {
@@ -539,7 +552,27 @@ internal sealed class TacticsEditor : WindowBox
             _paramLists.Add(param);
             Place(line, param, ColParam, ParamWidth);
         }
-        if (row.Terms.Length > 1) Place(line, NewButton("RemoveTerm", () => Edit(i, ShipAiModel.RemoveTerm(_rows[i], j))), ColEnd, 4f);
+        if (term.Close > 0) Place(line, Bracket(new string(')', term.Close)), ColEnd, BracketWidth);
+        Place(line, TipButton("InsertTerm", "InsertTermTip", () => Edit(i, ShipAiModel.InsertTerm(_rows[i], j))), 80f, 4f);
+        Place(line, TipButton("BracketTerm", "BracketTermTip", () => Edit(i, ShipAiModel.Bracket(_rows[i], j))), 84f, 5f);
+        if (term.Open > 0) Place(line, TipButton("Unbracket", "UnbracketTip", () => Edit(i, ShipAiModel.Unbracket(_rows[i], j))), 89f, 6f);
+        if (row.Terms.Length > 1) Place(line, NewButton("RemoveTerm", () => Edit(i, ShipAiModel.RemoveTerm(_rows[i], j))), 95f, 5f);
+    }
+
+    /// <summary>The brackets of a term line, in the size of the AND/OR text.</summary>
+    static Label Bracket(string text)
+    {
+        var label = new Label { Text = text };
+        label.TextRenderer.FontSize = 22;
+        label.TextRenderer.HAlignment = HAlignment.Center;
+        return label;
+    }
+
+    static Button TipButton(string key, string tipKey, Action click)
+    {
+        var b = NewButton(key, click);
+        b.ToolTips.TextProvider = new Ux.LiveText(() => Text(tipKey));
+        return b;
     }
 
     void BuildAction(SimpleBox line, int i)
@@ -560,10 +593,7 @@ internal sealed class TacticsEditor : WindowBox
             _paramLists.Add(param);
             Place(line, param, ColParam, ParamWidth);
         }
-        var addTerm = NewButton("AddTerm", () => Edit(i, ShipAiModel.AddTerm(_rows[i])));
-        addTerm.ToolTips.TextProvider = new Ux.LiveText(() => Text("AddTermTip"));
-        addTerm.SelfInputActive = row.Terms.Length < ShipAiModel.MaxTerms;
-        Place(line, addTerm, ColEnd, 7f);
+        Place(line, TipButton("AddTerm", "AddTermTip", () => Edit(i, ShipAiModel.AddTerm(_rows[i]))), ColEnd, 7f);
         var up = NewButton("Up", () => Swap(i, i - 1));
         up.SelfInputActive = i > 0;
         Place(line, up, 84f, 5f);
