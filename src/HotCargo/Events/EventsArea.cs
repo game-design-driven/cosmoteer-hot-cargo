@@ -470,23 +470,30 @@ public static class EventsArea
             }
             Autotest.Wait(2);
         };
-        // Spec 1875: ev_carry <resource>: one unit leaves storage and a crew member of the first human ship carries it. Then every storage
-        // slot fills with steel, so the crew cannot put it back: the playtest case of no free slot. Test only.
-        Autotest.Commands["ev_carry"] = arg =>
+        // Spec 1875: ev_carry_check <resource>: a crew member of the first human ship takes the one stored unit in hand. In the same tick (an
+        // idle crew member puts a carried unit back within a second): the fleet still holds it, the event needs and the open hand-over's
+        // hail line count it, and a cost takes it from the crew. Then the unit goes back to storage. Test only.
+        Autotest.Commands["ev_carry_check"] = arg =>
         {
+            var run = RequireRun();
             var sim = RequireSim();
             var rid = new ID<Cosmoteer.Resources.ResourceRules>(arg.Trim());
             var ships = Tech.Vaults.HumanShips(sim).OrderBy(sh => sh.UniqueID).ToList();
-            if (!ships.Any(sh => sh.Resources.RemoveResources(rid, 1) == 1)) throw new InvalidOperationException($"no stored {rid}");
-            var soul = ships.SelectMany(sh => sh.Crew.Assigned).Where(c => c.CarriedResource.Quantity == 0).OrderBy(c => c.UniqueID).FirstOrDefault()
+            int held = FleetHold.Units(sim, rid);
+            Autotest.Check(held == 1, $"the fleet holds one {rid} (actual {held})");
+            var ship = ships.FirstOrDefault(sh => sh.Resources.RemoveResources(rid, 1) == 1) ?? throw new InvalidOperationException($"no stored {rid}");
+            var soul = ship.Crew.Assigned.Where(c => c.CarriedResource.Quantity == 0).OrderBy(c => c.UniqueID).FirstOrDefault()
                 ?? throw new InvalidOperationException("no crew member with free hands");
             soul.CarriedResource = new Cosmoteer.Crew.CarriedResource(1, rid);
-            var steel = new ID<Cosmoteer.Resources.ResourceRules>("steel");
-            foreach (var ship in ships)
-                while (ship.Resources.AddResources(steel, 100, excludeConstructionSinks: true) > 0) { }
-            Autotest.Wait(1);
+            Autotest.Check(FleetHold.Carried(sim, rid) == 1 && FleetHold.Units(sim, rid) == 1, "a carried unit still counts as held");
+            var snap = EventRunner.Snap(run, sim, 0, run.CurrentTier, EventRunner.CurrentTechValue(run));
+            Autotest.Check(snap.Resources[rid.ToString()] == 1, "event needs count the carried unit");
+            var h = OpenHandOvers().FirstOrDefault(o => o.ResourceType == rid) ?? throw new InvalidOperationException($"no open hand-over of {rid}");
+            var contact = h.Contact.TargetShip ?? throw new InvalidOperationException("the hand-over contact is not live");
+            Autotest.Check(EventHail.Lines(run, sim, ships[0], contact).Any(e => e.ID == h.Page), "the hand-over line shows with the unit carried");
+            Autotest.Check(FleetHold.Take(sim, rid, 1) == 1 && FleetHold.Units(sim, rid) == 0, "a cost takes the carried unit");
+            if (ship.Resources.AddResources(rid, 1, excludeConstructionSinks: true) != 1) throw new InvalidOperationException($"no storage to put {rid} back");
         };
-        Autotest.Fields["ev_carried_case"] = () => FleetHold.Carried(RequireSim(), new ID<Cosmoteer.Resources.ResourceRules>("yarden_zamir.sealed_case"));
         // 1 while an open hand-over's line cannot show and its objective line says why (spec 1875).
         Autotest.Fields["ev_handover_block"] = () => OpenHandOvers().Any(o => o.LineBlock(RequireRun(), RequireSim()) is not null) ? 1 : 0;
         // ev_storage_fill <resource>: fills every human ship's storage with the resource. ev_storage_clear <resource>: takes all of it out. Test only.

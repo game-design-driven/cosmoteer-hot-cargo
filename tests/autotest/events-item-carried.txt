@@ -18,10 +18,8 @@ pause off
 ev_courier_goto
 pause off
 waitfor ev_courier_seen == 1 20
-# No free storage slot: a crew member carries the case. It still counts as held: no loss, and the line shows.
-ev_carry yarden_zamir.sealed_case
-wait 3
-expect ev_carried_case == 1
+# A crew member carries the case: it still counts as held, for the line, the needs and the cost (checked in one tick).
+ev_carry_check yarden_zamir.sealed_case
 expect ev_courier_handover == 0
 expectcomms contact Hand over the case. 1
 # Another page waits for an answer: no hail line shows, and the objective line says why.
@@ -32,9 +30,7 @@ expectcomms contact Hand over the case. 0
 choose 2 1
 wait 1
 expect ev_handover_block == 0
-# The cost takes the carried case.
 ev_comms contact Hand over the case.
 ev_comms carrier Hand over the sealed case.
 expect ev_courier_handover == 1
-expect ev_carried_case == 0
 quit
