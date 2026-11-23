@@ -56,6 +56,40 @@ static class SalvageDrops
     }
 
     /// <summary>
+    /// Spec 1814: cargo comes back in full. While a storage bay tile (vanilla FlexResourceGrid) breaks, its contents drop 1:1, on every
+    /// ship (thieves, pirates, hunters, scavengers, players). Resources that killed crew carry drop 1:1 too. Vanilla drops half
+    /// (StorageDestroyed 50 %). Tech keeps its own rules (spec 65, 1549): it is left out. Part internals (batteries, ammo, factory buffers,
+    /// typed grids) stay vanilla: they are not cargo. True while a bay tile drops its contents. Sim thread only.
+    /// </summary>
+    [ThreadStatic] static bool _bayBreaking;
+
+    [HarmonyPatch]
+    static class BayPatch
+    {
+        static System.Reflection.MethodBase TargetMethod() =>
+            AccessTools.GetDeclaredMethods(typeof(Cosmoteer.Ships.Parts.Resources.FlexResourceGrid.ResourceTile)).Single(m => m.Name.EndsWith("OnDestroying", StringComparison.Ordinal));
+
+        static void Prefix(out bool __state)
+        {
+            __state = _bayBreaking;
+            _bayBreaking = true;
+        }
+
+        static void Finalizer(bool __state) => _bayBreaking = __state;
+    }
+
+    [HarmonyPatch(typeof(CareerSimModeManager), nameof(CareerSimModeManager.GetNuggetDropChance))]
+    static class CargoPatch
+    {
+        // No Errors.Guard: the body has no call that can throw.
+        static void Postfix(ResourceRules rr, NuggetDropSource dropSource, ref float __result)
+        {
+            if (Run.Current is null || rr.ID == Tech.Vaults.TechId) return;
+            if (dropSource == NuggetDropSource.Crew || dropSource == NuggetDropSource.Storage && _bayBreaking) __result = 1f;
+        }
+    }
+
+    /// <summary>
     /// Spec 1248: the ore bonus scales the quantity, not the chance: a mining laser already drops ore at 100 %. The extra fraction is
     /// rolled from a hash of the asteroid and the part's place, so the sim's own random rolls do not move.
     /// </summary>
