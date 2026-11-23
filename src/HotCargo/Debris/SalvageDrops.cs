@@ -41,17 +41,18 @@ static class SalvageDrops
     }
 
     /// <summary>
-    /// Spec 1247: the chance cut. Vanilla rolls each unit against the chance, so a lower chance keeps the same number of sim rolls.
+    /// Spec 1247, 1832: the chance cut, by the resource's base price: cheap resources × SalvageDropFactor, expensive components a mild cut.
+    /// Vanilla rolls each unit against the chance, so a lower chance keeps the same number of sim rolls.
     /// Asteroids are mining (spec 1248), and parts that the players built are their own losses: both stay out.
     /// </summary>
     [HarmonyPatch(typeof(CareerSimModeManager), nameof(CareerSimModeManager.GetNuggetDropChance))]
     static class SalvagePatch
     {
         // No Errors.Guard: the body has no call that can throw.
-        static void Postfix(NuggetDropSource dropSource, bool isPlayer, ref float __result)
+        static void Postfix(ResourceRules rr, NuggetDropSource dropSource, bool isPlayer, ref float __result)
         {
             if (_breaking is not { } ship || dropSource != NuggetDropSource.Part || isPlayer || ship.Rules.IsAsteroid) return;
-            if (Tunables(ship) is { } t) __result *= t.SalvageDropFactor;
+            if (Tunables(ship) is { } t) __result *= DebrisModel.SalvageFactor(rr.BuyPrice, t.SalvageDropFactor, t.SalvageComponentDropFactor, t.SalvageComponentPrice);
         }
     }
 

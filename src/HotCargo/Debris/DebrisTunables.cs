@@ -18,8 +18,12 @@ public sealed class DebrisTunables
     [Serialize(Optional = true)] public float CheckSeconds = 2f;
     /// <summary>Spec 1241: junk this far beyond the reach of a player's tractor beam also stays, so a pull that starts never loses its target.</summary>
     [Serialize(Optional = true)] public float TractorMargin = 100f;
-    /// <summary>Spec 1247: the loose-resource drop chance of a part that breaks on a ship that the players did not build × this.</summary>
+    /// <summary>Spec 1247: the loose-resource drop chance of a part that breaks on a ship that the players did not build × this. Cheap resources only (spec 1832).</summary>
     [Serialize(Optional = true)] public float SalvageDropFactor = 0.6f;
+    /// <summary>Spec 1832: the same for expensive components (processor, diamond, enriched uranium): a mild cut, so they drop only a bit less.</summary>
+    [Serialize(Optional = true)] public float SalvageComponentDropFactor = 0.85f;
+    /// <summary>Spec 1832: a resource whose base price (BuyPrice in its rules) is at least this is an expensive component. Vanilla: gold 500, enriched uranium 2,000.</summary>
+    [Serialize(Optional = true)] public int SalvageComponentPrice = 1000;
     /// <summary>Spec 1248: the ore that an asteroid part drops when it breaks × this, for a break by any weapon or a collision.</summary>
     [Serialize(Optional = true)] public float MiningYieldFactor = 1.2f;
     /// <summary>Spec 1248: the same for a break by salvage damage (a mining laser). Parts hit by both get a mix by the salvage share.</summary>
@@ -33,6 +37,8 @@ public sealed class DebrisTunables
         require(CheckSeconds > 0, "Debris.CheckSeconds must be above 0");
         require(TractorMargin >= 0, "Debris.TractorMargin must not be negative");
         require(SalvageDropFactor >= 0, "Debris.SalvageDropFactor must not be negative");
+        require(SalvageComponentDropFactor >= 0, "Debris.SalvageComponentDropFactor must not be negative");
+        require(SalvageComponentPrice >= 1, "Debris.SalvageComponentPrice must be 1 or more");
         require(MiningYieldFactor >= 0 && LaserMiningYieldFactor >= 0, "Debris.MiningYieldFactor and LaserMiningYieldFactor must not be negative");
     }
 }

@@ -35,6 +35,13 @@ public static class DebrisModel
     public static float OreFactor(float salvageFraction, float miningFactor, float laserFactor) =>
         miningFactor + (laserFactor - miningFactor) * Math.Clamp(salvageFraction, 0f, 1f);
 
+    /// <summary>
+    /// Spec 1832: the salvage cut of one resource. A resource whose rules BuyPrice is at least componentPrice is an expensive
+    /// component (processor, diamond, enriched uranium) and gets the mild componentFactor; every cheaper resource gets baseFactor.
+    /// </summary>
+    public static float SalvageFactor(int buyPrice, float baseFactor, float componentFactor, int componentPrice) =>
+        buyPrice >= componentPrice ? componentFactor : baseFactor;
+
     /// <summary>Sim ticks between two checks: at least 1, so a very short check time checks every tick.</summary>
     public static int CheckTicks(double checkSeconds, double tickSeconds) =>
         tickSeconds <= 0 ? 1 : Math.Max(1, (int)Math.Round(checkSeconds / tickSeconds));

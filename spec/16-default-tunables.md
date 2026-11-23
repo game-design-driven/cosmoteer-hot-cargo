@@ -7,6 +7,7 @@
 | `RewardScale` | 1.0 | 4 |
 | `Journey.MissionMoneyScale` | 1.5 | 4 |
 | `Debris.SalvageDropFactor` | 0.6 | 1247 |
+| `Debris.SalvageComponentDropFactor`, `SalvageComponentPrice` | 0.85, 1000 | 1832 |
 | `Debris.MiningYieldFactor`, `LaserMiningYieldFactor` | 1.2, 1.3 | 1248 |
 | `Journey.TechCostScale` | 2.5 | 301 |
 | `BuyerPriceFactor` | 4 | 7 |

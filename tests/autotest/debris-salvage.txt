@@ -1,4 +1,4 @@
-# Salvage and ore drops (spec 1247 to 1249, 1814): a broken junk part drops loose resources × SalvageDropFactor, and a broken ore deposit
+# Salvage and ore drops (spec 1247 to 1249, 1814, 1832): a broken junk part drops loose resources × SalvageDropFactor, and a broken ore deposit
 # drops its ore × the mining factor (any break) or the laser factor (salvage damage). Exact counts: a laser break of an iron deposit
 # drops its 1 iron at 100 % (Fast economy), and a salvage factor of 0 drops nothing.
 newgame run
@@ -19,6 +19,25 @@ debris_spawn 10 10
 debris_break debris weapon
 wait 1
 expect debris_loose_gain > 0
+# Spec 1832: cheap resources and expensive components get their own cut. A large control room costs steel, coil2 and processors.
+# A salvage break rolls 15 % for each of the 50 processors (vanilla PartSalvaged). With the base cut at 0, only processors drop; with the component cut at 0, steel drops and no processor does.
+debris_set SalvageDropFactor 0
+debris_set SalvageComponentDropFactor 1
+debris_spawn 5 1 0 cosmoteer.control_room_large
+debris_break debris salvage
+wait 1
+expect debris_gain_steel == 0
+expect debris_gain_processor > 0
+debris_set SalvageDropFactor 1
+debris_set SalvageComponentDropFactor 0
+debris_spawn 5 1 0 cosmoteer.control_room_large
+debris_break debris salvage
+wait 1
+expect debris_gain_processor == 0
+expect debris_gain_steel > 0
+debris_set SalvageComponentDropFactor 0.85
+debris_set SalvageDropFactor 0.6
+debris_split
 # Spec 1814: cargo comes back in full. A broken storage bay drops all of its steel (vanilla drops half); the bay itself drops nothing at 0.
 debris_set SalvageDropFactor 0
 debris_cargo 40

@@ -18,15 +18,29 @@ static class DebrisAutotest
     static readonly ID<PartRules> IronDeposit = new("cosmoteer.deposit_iron_1x");
     static long _looseMark;
     static int _broken;
+    /// <summary>Loose units of a few resources at the last debris_break, for the debris_gain_* fields (spec 1832).</summary>
+    static readonly Dictionary<string, long> _looseMarkOf = [];
 
     static long LooseUnits() => R().Game.Sim.Nuggets.Where(n => n.ResourceType != Tech.Vaults.TechId).Sum(n => (long)n.Quantity);
+
+    static long LooseUnits(string resource) => R().Game.Sim.Nuggets.Where(n => n.ResourceType == new ID<Cosmoteer.Resources.ResourceRules>(resource)).Sum(n => (long)n.Quantity);
+
+    static readonly string[] GainResources = ["steel", "processor"];
 
     internal static void Register()
     {
         Autotest.Commands["debris_set"] = arg => Autotest.SetField(R().T.Debris, arg);
-        // debris_spawn <count> [parts] [speed]: loose junk pieces near the acting player's first ship, or near the first human ship by ID
-        // when a fight left that player without a ship (godmode cannot stop a one-hit kill). Each piece is a row of [parts] armor blocks
-        // (default 3), with no crew and no resources. [speed] (default 0) sends them drifting and spinning, like pieces of a destroyed ship.
+        // debris_split: logs the salvage cut of every resource in the loaded rules (spec 1832): its base price and its factor.
+        Autotest.Commands["debris_split"] = _ =>
+        {
+            var t = R().T.Debris;
+            foreach (var rr in Cosmoteer.GameApp.Rules.Resources.OrderBy(r => r.BuyPrice).ThenBy(r => r.ID.ToString(), StringComparer.Ordinal))
+                Log.Info($"AUTOTEST debris_split {rr.ID} price={rr.BuyPrice} factor={DebrisModel.SalvageFactor(rr.BuyPrice, t.SalvageDropFactor, t.SalvageComponentDropFactor, t.SalvageComponentPrice)}");
+        };
+        // debris_spawn <count> [parts] [speed] [part id]: loose junk pieces near the acting player's first ship, or near the first human ship by ID
+        // when a fight left that player without a ship (godmode cannot stop a one-hit kill). Each piece is a row of [parts] parts
+        // (default 3) of [part id] (default cosmoteer.armor), with no crew and no resources. [speed] (default 0) sends them drifting and
+        // spinning, like pieces of a destroyed ship.
         // Fixed seeds and sim positions, so every co-op machine makes the same pieces.
         Autotest.Commands["debris_spawn"] = arg =>
         {
@@ -34,19 +48,20 @@ static class DebrisAutotest
             int count = int.Parse(p[0], CultureInfo.InvariantCulture);
             int parts = p.Length > 1 ? int.Parse(p[1], CultureInfo.InvariantCulture) : 3;
             float speed = p.Length > 2 ? float.Parse(p[2], CultureInfo.InvariantCulture) : 0f;
+            string partId = p.Length > 3 ? p[3] : "cosmoteer.armor";
             var sim = R().Game.Sim;
             var home = Autotest.ActingShip(sim) ?? sim.Ships.HumanPlayerShips.OrderBy(s => s.UniqueID).FirstOrDefault()
                 ?? throw new InvalidOperationException("no human ship");
-            var armor = home.Rules.PartsByID[new ID<PartRules>("cosmoteer.armor")];
+            var block = home.Rules.PartsByID[new ID<PartRules>(partId)];
             for (int i = 0; i < count; i++)
             {
                 var piece = new Ship(home.Rules, "Test debris", -3, randSeed: 7700UL + (ulong)i);
                 using (var sui = ShipUpdateInfo.Alloc(piece))
                 {
                     for (int x = 0; x < parts; x++)
-                        if (!sui.TryAddBlueprintPart(armor, new IntVector2(x, 0), 0, flipX: false, mirrorPhysical: false,
+                        if (!sui.TryAddBlueprintPart(block, new IntVector2(x * block.Size.X, 0), 0, flipX: false, mirrorPhysical: false,
                                 allowOverwrite: false, addDoors: false, hireCrew: false, out var reasons, force: true))
-                            throw new InvalidOperationException($"cannot add armor: {reasons}");
+                            throw new InvalidOperationException($"cannot add {partId}: {reasons}");
                     sui.Apply();
                 }
                 piece.MatchPhysicalToBlueprints();
@@ -56,7 +71,7 @@ static class DebrisAutotest
                 piece.Physics.PhysicsWrapper.LinearVelocity = Vector2.FromAngle(i * 1.7f) * speed;
                 piece.Physics.PhysicsWrapper.AngularVelocity = speed > 0 ? 0.3f + 0.1f * (i % 5) : 0f;
             }
-            Log.Info($"AUTOTEST debris_spawn: {count} pieces of {parts} parts, speed {speed}");
+            Log.Info($"AUTOTEST debris_spawn: {count} pieces of {parts} {partId}, speed {speed}");
         };
         // debris_cargo <units>: one junk piece (named like debris_spawn's) made of a storage bay that holds this much steel (spec 1814).
         Autotest.Commands["debris_cargo"] = arg =>
@@ -132,6 +147,7 @@ static class DebrisAutotest
             var parts = sim.Ships.Where(s => s.Metadata.PlainShipName == name).SelectMany(s => s.Parts).ToList();
             if (parts.Count == 0) throw new InvalidOperationException($"no part of '{name}' to break");
             _looseMark = LooseUnits();
+            foreach (string r in GainResources) _looseMarkOf[r] = LooseUnits(r);
             _broken = parts.Count;
             // Salvage damage marks the part salvaged (a laser kill). A weapon break sets the health to 0, like "kill": a plain hit
             // on fresh junk did not break it in the test.
@@ -143,6 +159,8 @@ static class DebrisAutotest
         // Loose resource units in the system (tech crates left out) since the last debris_break, and the parts that it broke.
         Autotest.Fields["debris_loose_gain"] = () => LooseUnits() - _looseMark;
         Autotest.Fields["debris_broken"] = () => _broken;
+        // debris_gain_<resource>: the same for one resource. A cheap and an expensive one (spec 1832).
+        foreach (string r in GainResources) Autotest.Fields["debris_gain_" + r] = () => LooseUnits(r) - _looseMarkOf[r];
         // Parts of the test junk and test asteroids that are still there: 0 after a break that destroyed them all.
         Autotest.Fields["debris_parts_left"] = () => R().Game.Sim.Ships.Where(s => s.Metadata.PlainShipName is "Test debris" or TestRockName).Sum(s => s.Parts.Count);
         Autotest.Fields["junk"] = () => R().Game.Sim.Ships.Count(s => s.IsJunk && !s.Rules.IsAsteroid);
