@@ -13,6 +13,8 @@ namespace HotCargo.Balance;
 /// <summary>Entry point of the Balance area: the economy patches (BALANCE.md) and the balance census for tests.</summary>
 public static class BalanceArea
 {
+    static Dictionary<string, long> _lootMark = [], _lootCargo = [];
+
     public static void Register()
     {
         FuelRules.Register();
@@ -23,7 +25,7 @@ public static class BalanceArea
         RegisterContractTests();
         Autotest.Commands["balance_census"] = arg => BalanceCensus.Log(arg.Length > 0 ? arg : "census");
         // econ_census: logs every built-in ship (faction, tier, tags, value, units and value of each resource in its parts) and every
-        // part (cost and resources), from the loaded rules. For price studies (docs/steel-coil-price-study.md). Test only.
+        // part (cost and resources), from the loaded rules. For price studies (docs/loot-volume-study.md). Test only.
         Autotest.Commands["econ_census"] = _ =>
         {
             static string Units(IEnumerable<(string Id, int Units)> rs) =>
@@ -42,6 +44,49 @@ public static class BalanceArea
             foreach (var (kit, n, parts) in Thieves.ThiefShip.CensusLayouts())
                 Log.Info($"ECON thief kit={kit} segments={n} parts={string.Join(",", parts.GroupBy(p => p).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key}:{g.Count()}"))}");
             for (int t = 1; t <= 20; t++) Log.Info($"ECON tiermax {t} {GameData.TierValueMaximum(t)} thiefParts={Thieves.ThiefShip.Design(t).Count}");
+        };
+        // econ_loot mark | break <weapon|salvage> | report <label>: loot volume of a fight (docs/loot-volume-study.md). mark: the
+        // loose units and the cargo of the ships of the last aispawn. break: every part of those ships breaks, by weapon damage or
+        // salvage damage. report: per resource, the loose units since mark, the cargo at mark, and the free storage of the player's
+        // first ship. Test only.
+        Autotest.Commands["econ_loot"] = arg =>
+        {
+            var a = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var run = Autotest.RequireRun();
+            var sim = run.Game.Sim;
+            var enemies = Ai.PersonalityAutotest.LastSpawned.Select(id => sim.Ships[id]).OfType<Cosmoteer.Ships.Ship>().Where(s => !s.IsJunk).ToList();
+            Dictionary<string, long> Loose() => Enumerable.Range(0, sim.Nuggets.Count).Select(i => sim.Nuggets[i])
+                .GroupBy(n => n.ResourceType.ToString()).ToDictionary(g => g.Key, g => g.Sum(n => (long)n.Quantity));
+            switch (a[0])
+            {
+                case "mark":
+                    _lootMark = Loose();
+                    _lootCargo = enemies.SelectMany(e => Tech.Vaults.StorageTiles(e)).Where(t => t.ResourceType is not null)
+                        .GroupBy(t => t.ResourceType!.Value.ToString()).ToDictionary(g => g.Key, g => g.Sum(t => (long)t.Resources));
+                    Log.Info($"ECON loot mark: {enemies.Count} ships [{string.Join(", ", enemies.Select(e => $"{e.Metadata.PlainShipName} value={e.BaseBlueprintCost} parts={e.Parts.Count} bayTiles={Tech.Vaults.StorageTiles(e).Count()}"))}] econ={run.Mode.EconDifficulty.ID} enemyDrop={run.Mode.EconDifficulty.EnemyResourceDropRateFactor}");
+                    break;
+                case "break":
+                    bool salvage = a[1] == "salvage";
+                    foreach (var part in enemies.SelectMany(e => e.Parts).ToList())
+                        if (salvage) part.OnHit(part.Rules.MaxHealth * 10, Cosmoteer.DamageType.Salvage);
+                        else part.Health = 0;
+                    break;
+                case "report":
+                    var now = Loose();
+                    var me = sim.Ships.LocalPlayerShips.First();
+                    var tiles = Tech.Vaults.StorageTiles(me).ToList();
+                    foreach (string r in now.Keys.Union(_lootCargo.Keys).OrderBy(k => k, StringComparer.Ordinal))
+                    {
+                        long gain = now.GetValueOrDefault(r) - _lootMark.GetValueOrDefault(r);
+                        if (gain == 0 && _lootCargo.GetValueOrDefault(r) == 0) continue;
+                        Log.Info($"ECON loot {a[1]} {r} loose={gain} cargoAtMark={_lootCargo.GetValueOrDefault(r)}");
+                    }
+                    int empty = tiles.Count(t => t.Resources == 0);
+                    Log.Info($"ECON loot {a[1]} player {me.Metadata.PlainShipName} value={me.BaseBlueprintCost} bayTiles={tiles.Count} emptyTiles={empty} " +
+                             $"held=[{string.Join(",", tiles.Where(t => t.Resources > 0).GroupBy(t => t.ResourceType!.Value.ToString()).Select(g => $"{g.Key}:{g.Sum(t => t.Resources)}/{g.Count()}"))}]");
+                    break;
+                default: throw new InvalidOperationException("econ_loot needs: mark | break weapon|salvage | report <label>");
+            }
         };
         Autotest.Commands["balance_visit"] = arg => BalanceCensus.Visit(int.Parse(arg, System.Globalization.CultureInfo.InvariantCulture));
         // balance_probe <tier> <count>: spawns hunters of this tier and logs their mass, value, fuel and kill fame.

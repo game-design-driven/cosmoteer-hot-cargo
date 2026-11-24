@@ -1,22 +1,82 @@
-# Study: cheaper steel and coil
+# Study: loot volume and building after every fight
 
 Status: analysis only. Nothing in the game changed. The user decides.
 
-## The proposal
+## The question
 
-- Steel and coil cost 50 % less to buy and to sell.
-- The steel and coil factories make 2× per cycle, so a factory keeps its value.
-- Steel and coil hold 2× per stack (`MaxStackSize` 40 → 80).
+Players build and upgrade after every fight because the fight leaves more loose loot than the ship can store, and leaving it behind makes no sense (user, 2026-11-24). The building is a storage workaround. Repair after each fight is fine.
 
-Goal: less reason to rebuild after every fight, more reason to build in fewer, focused sessions.
+So: **how do we stop loot volume from forcing a build, without making building worse?**
+
+Out of scope (rejected by the user): station-only blueprint changes, a refit fee or a loss on removed parts, salvage that favors repair, a build cooldown.
 
 ## How the numbers were made
 
-- `econ_census` (test command, `src/HotCargo/Balance/BalanceArea.cs`) logs every part, every built-in ship and every thief kit with its resources, from the loaded rules. Run it in the headless sim: a test script with `newgame run`, `wait 5`, `econ_census`, `quit`.
-- "After" prices: steel 12, coil 50. `ResourceRules.BuyPrice` is an `int`, so steel cannot be 12.5. Choose 12 (−52 %) or 13 (−48 %).
-- Ship values: the vanilla part cost (`PartRules.Cost` = Σ units × `BuyPrice`), summed over the ship's blueprint parts.
+- `econ_loot` (test command, `src/HotCargo/Balance/BalanceArea.cs`): `aispawn pirates 4 <tier>`, then `econ_loot mark`, `econ_loot break salvage|weapon`, `econ_loot report`. It counts the loose units per resource, the enemy cargo, and the player ship's bay tiles.
+- Every run used the "fast" economy (enemy drop factor 2). The playtest telemetry of 12 to 14 November shows `econ_difficulty: fast`, so these are play numbers. On "normal", part drops halve.
+- "Salvage" breaks every part with salvage damage, like cutting up a wreck with salvage beams. "Weapon" breaks every part by damage. A real fight is in between: the hulk dies by weapons, the wreck by beams. The tables use salvage (the upper end, about 10–40 % above weapon).
+- `econ_census` (same file) gives the part, ship and price data for the price cut appendix.
 
-## 1. What reads prices or ship value
+## 1. Loot on the ground per fight
+
+Measured per enemy ship (4 ships per run, `fast`):
+
+| Fight | Steel | Coil | Bullets | Hyperium | Other |
+|---|---|---|---|---|---|
+| Tier 1, per ship, salvage | 57 | 39 | 0 | 8 | coil2 1, enriched uranium 1.5, processor 0.75 |
+| Tier 1, per ship, weapon | 50 | 27 | 0 | 4 | |
+| Tier 3, per ship, salvage | 129 | 54 | **166** | 13 | coil2 2, enriched uranium 2, processor 0.75 |
+| Tier 3, per ship, weapon | 121 | 33 | **110** | 5 | |
+
+- **Bullets come from the 1:1 bay drop** ([#209](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/209) "cargo comes back in full", spec 1814). The tier-3 pirates carried 440 bullets in their bays, and all 440 dropped in both runs. Vanilla drops 0 ammo from a bay that weapons break (`AmmoDropRates`: `StorageDestroyed = 0%`), but all of it from a bay that a salvage beam cuts (`StorageSalvaged = 100%`).
+- These pirates carried no steel or coil cargo. All steel and coil on the ground came from their parts, not from #209.
+- Storage: the starter Model-L has **4 bay tiles** (one 2×2 bay). A tile holds one stack of one resource: steel 40, coil 40, bullets 20, hyperium 10, processor 5.
+
+Two typical fights:
+
+| Fight | On the ground | Bay tiles needed |
+|---|---|---|
+| Tier 1, 2 ships | 114 steel, 78 coil, 16 hyperium, 2 coil2, 3 enriched uranium, 2 processors | 10 |
+| Tier 3, 3 ships | 386 steel, 160 coil, 498 bullets, 38 hyperium, 6 coil2, 6 enriched uranium, 2 processors | 47 |
+
+## 2. What share fits, per lever
+
+The player fills the free tiles with the most valuable stacks first. "4 tiles": the starter ship. "12 tiles": a ship with 3 bays.
+
+| Lever | Tier 1, 2 ships, 4 tiles | Tier 3, 3 ships, 4 tiles | Tier 3, 3 ships, 12 tiles |
+|---|---|---|---|
+| Today | 10 tiles needed; steel + coil stored 21 %; value stored 61 % | 47 tiles; steel + coil 7 %; value 44 % | steel + coil 29 %; value 78 % |
+| A. 2× stack for steel and coil | 8 tiles; steel + coil 40 %; value 77 % | 40 tiles; 15 %; 52 % | **steel + coil 100 %**; value 88 % |
+| B. Bay ammo back to vanilla (0 % when weapons break the bay) | no change (no bay ammo at tier 1) | 31 tiles; 7 %; 45 % | 29 %; 80 % |
+| A + B | 8 tiles; 40 %; 77 % | **24 tiles**; 15 %; 53 % | **100 %**; value 90 %; all units 74 % |
+| A + B + salvage drop factor 0.6 → 0.4 | 7 tiles; 40 %; 78 % | 22 tiles; 22 %; 64 % | 100 %; value 96 % |
+| C. Price cut (steel 12, coil 50) | no volume change | no volume change | no volume change |
+
+Notes:
+- **A** is the strongest volume lever for steel and coil. It doubles what each tile holds and changes nothing else in combat or building. Crew trips and crate size stay the same (they use `MaxPerNugget`, appendix A3).
+- **B** removes up to a third of the tier-3 volume (498 → 168 bullets) when weapons break the bays. Bays that a salvage beam cuts still drop their ammo, as in vanilla. Bullets are cheap (4 each) and useless for building, but they take bay tiles and invite pickup.
+- **The salvage factor** cuts volume and income alike (finding 11 in BALANCE.md set it to 0.6 for income). It does not separate "too much to carry" from "too little to earn".
+- **C** does not change volume. It halves what is left behind: the tier-3 fight's steel and coil are worth 25,650 today (3.8 tier-3 missions) and about 12,600 after. Leaving it hurts less, but it is still worth taking. The price cut has many side effects (appendix A1, A2).
+- A starter ship cannot store a tier-3 fight with any of these levers. It needs more bays, which is building. This is a reason for lever D.
+
+## 3. Other levers that cut "can't carry it all"
+
+| Lever | Effect | Side effects | Knob | Effort |
+|---|---|---|---|---|
+| **D. Cash out the overflow.** Loose crates that the ship cannot store sell where they lie, for example at the station refund (50 %), with a button on the collect tool or automatically after the collect order | Nothing is wasted, and nothing forces a build. The money buys upgrades later, at a station, in one session. | Money income rises by the part that players left behind. A player with storage still prefers to store. Co-op: one sim input, the money goes to the clicker. | new MP input; `GetResourceSellRefund` for the price; a tunable refund factor | medium |
+| **E. Junk stays, decay off for loose crates** | Loose crates already never expire: vanilla `Nugget` has no lifetime, and Hot Cargo debris decay removes junk pieces, not crates (spec 1240). Players can come back for them. | Players must remember and fly back; does not solve storage. | none (state today) | none |
+| **F. Second ship as a hold** | Hot Cargo autonomous ships with the Looter preset already collect and sell. | A second ship is building too, but one time. | spec 1076 to 1080 | none (exists) |
+| **G. 2× stack for other salvage forms too** (hyperium 10, processor 5, enriched uranium 10) | A few more tiles free | Each stack change is a balance change of its own | rules `MaxStackSize` | small |
+
+## 4. Recommendation
+
+1. **A: 2× stack for steel and coil** (and `ResourcesPerStackSprite = 2`, appendix A3). With 3 bays, a whole tier-3 fight's steel and coil fit. Small effort, no combat or price side effects.
+2. **B: bay ammo back to vanilla** in the 1:1 bay rule: 0 % when weapons break the bay (spec 1814 keeps cargo like steel at 1:1). It removes up to 30 % of the tier-3 volume. Small effort.
+3. **D: cash out the overflow** for what is still left. It ends "leaving it makes no sense" for every resource and every ship size, without touching building. Medium effort.
+4. **Skip the price cut (C) for this goal.** It does not change volume and moves thieves, hunters, rewards and event payouts (appendix A1, A2). Keep it only if cheaper repair is a goal of its own; then take the counter-changes of appendix A4.
+5. Keep the salvage drop factor at 0.6: lowering it cuts income too.
+
+## A1. Price cut: what reads prices or ship value
 
 A part's cost is Σ (units × `BuyPrice`). So the cut changes every ship value, not only the steel price.
 
@@ -30,15 +90,15 @@ A part's cost is Σ (units × `BuyPrice`). So the cut changes every ship value, 
 | Mercenary hire price, pay-offs, hold fee, loans, overdraft, relay fee and bribe price | Tier money or tech value | `Diplomacy/Quotes.cs:68, 88, 101–113, 144`, `Debt/`, `Relays/RelaysArea.cs:77–79` |
 | Tech value and the Buyer | Fixed tier values | `Tech/TechPatches.cs:20–38`, `Journey/Buyer.cs:129` |
 | Salvage cut | Steel and coil stay below the component price | `Debris/SalvageDrops.cs:56` (spec 1832) |
-| Crew trips and crate size | Both use `MaxPerNugget` (10), not the stack | section 3 |
+| Crew trips and crate size | Both use `MaxPerNugget` (10), not the stack | section A3 |
 
 ### Changes
 
 | System | What changes | Size | Code |
 |---|---|---|---|
-| Ship value and build cost | Every steel or coil part costs less | Ships −25 to −34 % (table 2.1). Armor, corridor, storage, crew quarters, thrusters −50 %. Small reactor −18 %, ion beam −8 %. | `PartRules.Cost` |
+| Ship value and build cost | Every steel or coil part costs less | Ships −25 to −34 % (table A2.1). Armor, corridor, storage, crew quarters, thrusters −50 %. Small reactor −18 %, ion beam −8 %. | `PartRules.Cost` |
 | Repair and rebuild money | Steel and coil units cost half | −50 % for those units | vanilla |
-| **Thief size** | A thief design grows until it reaches 0.85 × the fixed tier value | 2 → 4 segments at tier 1 (table 2.3) | `Thieves/ThiefShip.cs:131` |
+| **Thief size** | A thief design grows until it reaches 0.85 × the fixed tier value | 2 → 4 segments at tier 1 (table A2.3) | `Thieves/ThiefShip.cs:131` |
 | **Hunter count** | Fleet value against the fixed tier value, 0.15 per doubling, clamped at ±0.15 | About −9 % hunter ships | `Pursuit/Director.cs:30` |
 | Surrender payout and surrender price | Uses ship value | About −30 % | `Diplomacy/Quotes.cs:47`, vanilla `GetSurrenderForPrice` |
 | Reputation loss for a kill (vanilla) | Uses ship value | About −30 % | vanilla `GetReputationValue` |
@@ -53,9 +113,9 @@ A part's cost is Σ (units × `BuyPrice`). So the cut changes every ship value, 
 
 Test-only and telemetry-only reads are left out.
 
-## 2. Scenarios
+## A2. Price cut: scenarios
 
-### 2.1 Ship value
+### A2.1 Ship value
 
 Built-in combat ships (all factions), mean value. Starter: Hot Cargo's Model-L.
 
@@ -67,7 +127,7 @@ Built-in combat ships (all factions), mean value. Starter: Hot Cargo's Model-L.
 | Tier 6 (39 ships) | 151,110 | 103,432 | −32 % | 64 % |
 | Tier 12 (44 ships) | 678,818 | 504,568 | −26 % | 51 % |
 
-### 2.2 Encounters
+### A2.2 Encounters
 
 | Encounter | Before | After |
 |---|---|---|
@@ -82,7 +142,7 @@ Built-in combat ships (all factions), mean value. Starter: Hot Cargo's Model-L.
 
 Enemy and player ships lose about the same share of value, so vanilla fights stay as they are. Thieves get about 1.5–2× stronger at the same tier.
 
-### 2.3 Money
+### A2.3 Money
 
 | Scenario | Before | After |
 |---|---|---|
@@ -96,7 +156,7 @@ Enemy and player ships lose about the same share of value, so vanilla fights sta
 | Coil2 factory: 2 coil + 1 copper → 1 coil2 per 2 s | input 280, output 300 | input 180, output 300: margin 6× (20 → 120) |
 | Processor factory: 5 coil + 3 gold → 1 processor | input 2,000, output 2,500 | input 1,750: margin +50 % |
 
-### 2.4 Building and storage
+### A2.4 Building and storage
 
 | Ship | Steel, coil units | Storage tiles at stack 40 | At stack 80 | Crew trips (10 per trip) | Steel + coil buy cost |
 |---|---|---|---|---|---|
@@ -107,7 +167,7 @@ Enemy and player ships lose about the same share of value, so vanilla fights sta
 
 A storage bay (2×2) holds 4 tiles. So a tier-3 rebuild needs about 8 bays of stock now and about 4 after.
 
-## 3. The stack question
+## A3. The stack question
 
 **What a stack is.** `MaxStackSize` is the number of units in one storage tile. Other resources already use other stacks: iron, copper and processor 5, helion ore 5, stolen tech 4, mod items 1, steel, coil, coil2 and tristeel 40. A crate in space holds `MaxPerNugget` units (steel 10, coil 10), not a stack.
 
@@ -127,11 +187,11 @@ What `MaxStackSize` controls (decompiled game):
 
 **Is it odd?** No. Stacks already differ by resource, and the game reads the stack everywhere it needs it. Two follow-ups: `ResourcesPerStackSprite = 2`, and twice as many crates from a broken bay.
 
-**Coil2 and tristeel.** Leave their stack at 40. Their price and volume do not change. Coil2 is made from coil, so its factory margin grows 6× (table 2.3). There is no buy-and-sell loop: a station pays 50 % of `BuyPrice` (`ResourceSaleRefund`, `career.rules`). If the coil2 margin matters, cut coil2 to about 200.
+**Coil2 and tristeel.** Leave their stack at 40. Their price and volume do not change. Coil2 is made from coil, so its factory margin grows 6× (table A2.3). There is no buy-and-sell loop: a station pays 50 % of `BuyPrice` (`ResourceSaleRefund`, `career.rules`). If the coil2 margin matters, cut coil2 to about 200.
 
 **If "crate" means a crate in space or a crew load**, the field is `MaxPerNugget`, not `MaxStackSize`. Doubling `MaxPerNugget` halves crew trips and crates. It speeds up building and hauling, which the stated goal does not ask for.
 
-## 4. Counter-changes
+## A4. Price cut: counter-changes
 
 | Side effect | Counter-change | Knob |
 |---|---|---|
@@ -146,10 +206,3 @@ What `MaxStackSize` controls (decompiled game):
 | Stack picture full at half | `ResourcesPerStackSprite = 2` for steel and coil | rules |
 | Coil2 margin 6× | Accept, or coil2 `BuyPrice` about 200 | rules |
 | Steel price must be an int | 12 or 13 | rules |
-
-## 5. Does it serve the goal?
-
-- It makes a rebuild cost half the money for steel and coil (−25 to −34 % for a whole ship). The work stays the same: the same units, the same crew trips.
-- So money stops being a reason not to rebuild. Rebuilding gets cheaper, not rarer.
-- The larger stack doubles the stock that a ship can hold. A player can keep a full rebuild in store and build in one session.
-- If the aim is fewer rebuilds, the price cut alone works against it. The stack change and fixed rewards help it.
