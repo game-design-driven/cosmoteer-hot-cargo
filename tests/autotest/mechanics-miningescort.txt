@@ -20,7 +20,7 @@ expect mech_mine_goal <= 35
 mech_mine_ready
 expect mech_mine_phase == 1
 # Spec 1881: alone, the miner holds and waits for the players. Back next to it, it flies on.
-hc_guard_goto 3000
+hc_guard_goto 1800
 pause off
 waitfor hc_guard_alone == 1 10
 # Spec 1886: the Mining Escort's rules give it 5 minutes alone.

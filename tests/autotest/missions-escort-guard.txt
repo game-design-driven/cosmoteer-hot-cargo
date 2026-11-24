@@ -16,8 +16,8 @@ wait 2
 expect hc_guard_alone == 0
 # Spec 1886: Convoy Duty's rules give it 4 minutes alone.
 expect hc_guard_lost_after == 240
-# Spec 1881: the players 3,000 away. The game keeps the cells around a player ship live, so the freighter is live, but it holds.
-hc_escort_goto 3000
+# Spec 1881: the players 1,800 away (more than EscortGuardRadius, less than the 2,500 live range), so the freighter is live, but it holds.
+hc_escort_goto 1800
 pause off
 waitfor hc_guard_alone == 1 10
 expect hc_guard_live == 1
@@ -36,7 +36,7 @@ expect hc_guard_alone == 0
 expect hc_guard_exposed == 0
 expect hc_guard_ring == 0
 # Spec 1882: alone for EscortRaidSeconds (60 s, here set to 59 s), live raiders jump in around it and attack it.
-hc_escort_goto 3000
+hc_escort_goto 1800
 pause off
 waitfor hc_guard_alone == 1 10
 hc_guard_expose 59
