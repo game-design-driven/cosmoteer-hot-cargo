@@ -23,8 +23,10 @@ public static class UxArea
     {
         Run.Hooks.NewRunStarted += run => RunEndUi.IntroPending = run;
         HeatPanel.ExtraLines.Add(JumpWarnings.StrandedLine);
+        Run.Hooks.Frame += run => UxKit.Guard("tech watch", () => TechWatch.OnFrame(run));
         AddAutotestCommands();
         UxAutotest.Register();
+        TechWatch.RegisterAutotest();
     }
 
     /// <summary>App.Director does not exist yet when Register runs, so frame hooks start at the first title screen.</summary>

@@ -35,6 +35,13 @@ public sealed class UxTunables
     /// <summary>Trade tab: what a tech sale does to the heat rate and the final score, and a note at the Buyer.</summary>
     [Serialize(Optional = true)] public bool TechSaleHint = true;
 
+    /// <summary>Tech watch: a box under the heat panel lists tech outside your vaults (decaying, waiting, crates, derelicts, hunters, holders), each line clicks to it, and a banner warns.</summary>
+    [Serialize(Optional = true)] public bool TechWatch = true;
+    /// <summary>Seconds that tech stays at risk before the tech watch banner and sound. A short move between vaults stays quiet.</summary>
+    [Serialize(Optional = true)] public float TechWatchAlarmSeconds = 3f;
+    /// <summary>Tech crates within this distance of each other share one tech watch line.</summary>
+    [Serialize(Optional = true)] public float TechWatchCrateGroupRadius = 300f;
+
     // ---- Vanilla UI
     /// <summary>Hull integrity: ShipsCard box, ship hover text, and off-screen blips of damaged own ships.</summary>
     [Serialize(Optional = true)] public bool ShipIntegrity = true;

@@ -1,0 +1,36 @@
+# Tech watch (spec 2120 to 2129): the box under the heat panel, the banners, and the lines for a friendly holder, crates,
+# a design without vault room and tech in normal storage. Mac: RUNNER=mac scripts/screens.sh tests/screens/tech-watch.txt <folder>
+render on
+newgame run 0
+wait 10
+closepanel
+wait 1
+ev_set Enabled false
+tech_set LossGraceSeconds 600
+aiset FleeEnabled false
+aiset CallEnabled false
+dip_set DemandHailChance 0
+dip_set MercChance 0
+dip_spawn friend 250
+wait 2
+dip_set HoldChanceBase 5
+dip_set FeeChanceBase -5
+dip hold friend 2
+wait 1
+tech drop 2
+tech add 4
+vault focus wide
+wait 1
+vault focus wide
+wait 4
+screenshot techwatch-crates
+# The playtest rebuild: a full vault leaves the design.
+vault grab full
+wait 1
+screenshot techwatch-design
+waitfor watch_storage >= 1 120
+wait 2
+pause on
+wait 1
+screenshot techwatch-storage
+quit

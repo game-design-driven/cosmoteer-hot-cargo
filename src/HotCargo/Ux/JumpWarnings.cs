@@ -168,10 +168,14 @@ static class JumpWarnings
         try
         {
             var game = gui.Game;
-            if (!gui.AreAllShipsReadyToJump(onlyWithCommands: false))
+            bool ready = gui.AreAllShipsReadyToJump(onlyWithCommands: false);
+            // Spec 2126: tech that stays in this system also asks first.
+            string? techStays = Run.Current is { } run && run.Game == game ? TechWatch.JumpLine(run) : null;
+            if (!ready || techStays is not null)
             {
                 DialogsShown++;
-                if (await TwoButtonDialog.Show(DialogText(game)) == TwoButtonDialog.DialogResponse.Option2) return;
+                string text = ready ? techStays + "\n\n" + UxKit.Text("JumpDialogAsk") : (techStays is null ? "" : techStays + "\n") + DialogText(game);
+                if (await TwoButtonDialog.Show(text) == TwoButtonDialog.DialogResponse.Option2) return;
             }
             game.NetManager.EnqueueInput(new MPReadyFtlJumpInput());
         }
