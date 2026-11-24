@@ -23,6 +23,7 @@ public static class UxArea
     {
         Run.Hooks.NewRunStarted += run => RunEndUi.IntroPending = run;
         HeatPanel.ExtraLines.Add(JumpWarnings.StrandedLine);
+        Run.Hooks.Frame += run => UxKit.Guard("tech watch", () => TechWatch.OnFrame(run));
         AddAutotestCommands();
         UxAutotest.Register();
     }

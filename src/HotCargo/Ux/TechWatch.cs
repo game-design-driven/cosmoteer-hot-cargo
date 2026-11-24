@@ -1,0 +1,243 @@
+using Cosmoteer;
+using Cosmoteer.Game;
+using Cosmoteer.Gui;
+using Cosmoteer.Input;
+using Cosmoteer.Modes.Career;
+using Cosmoteer.Ships;
+using Cosmoteer.Simulation;
+using Halfling;
+using Halfling.Geometry;
+using Halfling.Graphics.Text;
+using Halfling.Gui;
+using Halfling.Gui.Components.Input;
+using Halfling.Gui.Components.Graphics;
+using Halfling.Gui.Components.Toggles;
+using HotCargo.Core;
+using HotCargo.Missions;
+using HotCargo.Tech;
+using static Halfling.StringTools;
+
+namespace HotCargo.Ux;
+
+/// <summary>One line of the tech watch: where the tech is, how much, the text and where a click goes.</summary>
+internal readonly record struct WatchLine(WatchKind Kind, int Units, string Text, FocusTarget Target);
+
+/// <summary>
+/// Spec 2120 to 2129: tech of the players that is not in a vault of a player ship. A box under the heat panel lists each place
+/// with a line that clicks to it (MissionFocus, spec 1873), a banner and a sound say when tech starts to be at risk, and a banner
+/// says at once when a new design has too little vault room. GUI only: it reads synced sim state, so every co-op player sees the
+/// same lines, and it changes no sim state.
+/// </summary>
+internal static class TechWatch
+{
+    static bool On => UxKit.On(s => s.TechWatch);
+
+    /// <summary>
+    /// Spec 2121: every place, most urgent first. Tech that the players gave away (a deal, a surrender, the Buyer, a fence, a
+    /// hand-over) left the game through Vaults.Remove or FleetHold.Take, so it has no place here.
+    /// </summary>
+    internal static List<WatchLine> Lines(Run run)
+    {
+        var game = run.Game;
+        var sim = game.Sim;
+        var here = sim.NodeId();
+        var lines = new List<WatchLine>();
+        var ux = run.T.Ux;
+
+        foreach (var ship in Vaults.HumanShips(sim).OrderBy(s => s.UniqueID))
+        {
+            int tech = Vaults.ShipTech(ship);
+            if (tech == 0) continue;
+            var target = new FocusTarget(here, ship, null, ship.DetWorldCenter);
+            if (DesignShort(ship, tech) is > 0 and var shortBy)
+                lines.Add(new(WatchKind.Design, shortBy, UxKit.Format("WatchDesignFmt", ship.Metadata.XmlShipName, shortBy), target));
+            if (Vaults.StorageTech(ship) is > 0 and var stored && run.T.Tech.DecaySeconds > 0)
+            {
+                double left = Vaults.StorageTiles(ship).Where(t => t.ResourceType == Vaults.TechId && t.Resources > 0).Min(t => TechDecay.SecondsLeft(run, t));
+                lines.Add(new(WatchKind.Storage, stored, UxKit.Format("WatchStorageFmt", stored, ship.Metadata.XmlShipName, LossTimer.FormatTime(left)), target));
+            }
+        }
+        foreach (var ship in sim.Ships.AllShips.Where(s => s.IsJunk).OrderBy(s => s.UniqueID))
+            if (Vaults.ShipTech(ship) is > 0 and var units)
+                lines.Add(new(WatchKind.Derelict, units, UxKit.Format("WatchDerelictFmt", units, ship.Metadata.XmlShipName), new(here, ship, null, ship.DetWorldCenter)));
+
+        var crates = new List<CratePoint>();
+        for (int i = 0; i < sim.Nuggets.Count; i++)
+            if (sim.Nuggets[i] is { } n && n.ResourceType == Vaults.TechId)
+                crates.Add(new((uint)n.UniqueID, n.WorldLocation.X, n.WorldLocation.Y, n.Quantity));
+        foreach (var g in TechWatchModel.Groups(crates, ux.TechWatchCrateGroupRadius))
+            lines.Add(new(WatchKind.Crates, g.Units, UxKit.Format("WatchCratesFmt", g.Units), new(here, null, null, new Vector2(g.X, g.Y))));
+
+        foreach (var h in run.State.Tech.HunterHeld.Where(h => h.Units > 0))
+            lines.Add(Held(game, WatchKind.Hunter, "WatchHunterFmt", h.Units, h.ShipName, h.Ship, h.Node, h.Location));
+        foreach (var h in run.State.Diplomacy.Held.Where(h => h.Units > 0))
+            lines.Add(Held(game, WatchKind.Friend, "WatchFriendFmt", h.Units, h.ShipName, h.Ship, h.Node, h.Location));
+        foreach (var w in run.State.Tech.Waiting.Where(w => w.Units > 0))
+        {
+            var ship = w.Node == here ? sim.Ships[w.Ship] : null;
+            lines.Add(new(WatchKind.Waiting, w.Units, UxKit.Format("WatchWaitingFmt", w.Units, EscapeForXml(w.ShipName)) + Elsewhere(game, w.Node),
+                new(w.Node, ship, null, ship?.DetWorldCenter)));
+        }
+        return lines.OrderBy(l => l.Kind).ThenByDescending(l => l.Units).ToList();
+    }
+
+    /// <summary>Spec 2121: a ship that holds the players' tech, here or in another system (then the click opens the map on it).</summary>
+    static WatchLine Held(GameRoot game, WatchKind kind, string key, int units, string name, ObjectID shipId, ObjectID node, Vector2 lastSeen)
+    {
+        bool here = node == game.Sim.NodeId();
+        var ship = here ? game.Sim.Ships[shipId] : null;
+        return new(kind, units, UxKit.Format(key, units, EscapeForXml(name)) + Elsewhere(game, node),
+            new(node, ship, null, here ? ship?.DetWorldCenter ?? lastSeen : null));
+    }
+
+    static string Elsewhere(GameRoot game, ObjectID node) =>
+        node == game.Sim.NodeId() ? "" : " " + UxKit.Format("WatchInSystemFmt", EscapeForXml(game.Map.Nodes[node]?.Name ?? "?"));
+
+    /// <summary>Spec 2124: tech of the ship that its design has no vault room for, while the design removes a built vault.</summary>
+    static int DesignShort(Ship ship, int tech)
+    {
+        var built = Vaults.LiveVaults(ship).ToList();
+        if (built.Count == 0) return 0;
+        int blueprints = ship.BlueprintParts.Count(p => p.Rules.ID == Vaults.VaultId);
+        return TechWatchModel.DesignShort(tech, built.Count, blueprints, built[0].MaxResources);
+    }
+
+    /// <summary>Spec 2126: tech that stays in this system on a jump: crates and derelicts. Hunters and friendly holders keep theirs.</summary>
+    internal static string? JumpLine(Run run)
+    {
+        if (!On) return null;
+        var stays = Lines(run).Where(l => l.Kind is WatchKind.Crates or WatchKind.Derelict).ToList();
+        return stays.Count == 0 ? null : UxKit.Format("WatchJumpFmt", stays.Sum(l => l.Units));
+    }
+
+    static readonly AlarmWatch Alarm = new();
+    static HashSet<ObjectID> _shortDesigns = [];
+    static double _nextPoll;
+    /// <summary>Banners shown since start: risk and design. For autotests.</summary>
+    internal static int Alarms, DesignAlarms;
+
+    /// <summary>Spec 2123, 2124: the banners, polled twice a second. Each machine shows them for every player's tech.</summary>
+    internal static void OnFrame(Run run)
+    {
+        double now = App.Clock.Time.Seconds;
+        if (now < _nextPoll) return;
+        _nextPoll = now + 0.5;
+        if (!On || run.State.Result != RunResult.Running || run.Game.Sim is null)
+        {
+            Alarm.Update(now, false, 0);
+            _shortDesigns = [];
+            return;
+        }
+        var lines = Lines(run);
+        var game = run.Game;
+
+        var designs = lines.Where(l => l.Kind == WatchKind.Design).ToList();
+        foreach (var l in designs.Where(l => !_shortDesigns.Contains(l.Target.Live!.UniqueID)))
+        {
+            DesignAlarms++;
+            var ship = l.Target.Live!;
+            Log.Info($"ux: tech watch design {ship.Metadata.PlainShipName}: no vault room for {l.Units} tech");
+            Warn(game, UxKit.Format("WatchDesignBannerFmt", ship.Metadata.PlainShipName, l.Units), UxKit.Format("WatchDesignChatFmt", ship.Metadata.XmlShipName, l.Units));
+        }
+        _shortDesigns = designs.Select(l => l.Target.Live!.UniqueID).ToHashSet();
+
+        int atRisk = lines.Where(l => TechWatchModel.Alarms(l.Kind)).Sum(l => l.Units);
+        if (!Alarm.Update(now, atRisk > 0, run.T.Ux.TechWatchAlarmSeconds)) return;
+        Alarms++;
+        Log.Info($"ux: tech watch alarm, {atRisk} tech at risk: {string.Join("; ", lines.Select(l => $"{l.Kind} {l.Units}"))}");
+        // The design banner already said it.
+        if (designs.Count > 0) return;
+        Warn(game, UxKit.Format("WatchBannerFmt", atRisk), UxKit.Format("WatchChatFmt", atRisk, lines.First(l => TechWatchModel.Alarms(l.Kind)).Text));
+    }
+
+    static void Warn(GameRoot game, string banner, string chat)
+    {
+        game.Gui.PlayErrorSound();
+        ShipAlerts.Banner(game, banner, WidgetRules.Instance.BadTextColor);
+        UxKit.ChatLine(game, chat);
+    }
+
+    /// <summary>Spec 2122: the box in the left HUD column, under the heat panel. One header line, then one line per place.</summary>
+    internal sealed class Box : LayoutBox
+    {
+        readonly CareerGameModeManager _mode;
+        readonly Label _head;
+        readonly List<Label> _lines = [];
+        double _nextText;
+
+        /// <summary>The lines as the box last showed them. For autotests.</summary>
+        internal static List<WatchLine> Shown = [];
+
+        public Box(CareerGameModeManager mode)
+        {
+            _mode = mode;
+            Width = 330f;
+            AutoSize.AutoHeightMode = AutoSizeMode.Enable;
+            InputBlockMode = InputBlockMode.Auto;
+            Children.LayoutAlgorithm = LayoutAlgorithms.StretchTopToBottom;
+            Children.BorderPadding = new Borders(12f, 6f, 12f, 8f);
+            WidgetRules.AddBlur(this);
+            _head = new Label { InputBlockMode = InputBlockMode.Never };
+            Style(_head, 16);
+            AddChild(_head);
+            BeforeFrameDraw += (_, _) => UxKit.Guard("tech watch box", Refresh);
+        }
+
+        static void Style(Label l, int size)
+        {
+            l.TextRenderer.Font = WidgetRules.Instance.ShadowFont;
+            l.TextRenderer.FontSize = size;
+            l.TextRenderer.XmlFormatting = true;
+            l.TextRenderer.HAlignment = HAlignment.Left;
+            l.TextRenderer.VAlignment = VAlignment.Center;
+            l.TextRenderer.OversizeMode = OversizeMode.Wrap;
+            l.AutoSize.AutoHeightMode = AutoSizeMode.Enable;
+        }
+
+        void Refresh()
+        {
+            var run = Run.Current is { } r && r.Mode == _mode ? r : null;
+            bool show = run is not null && On && Ui.Overlay.Visible && run.State.Result == RunResult.Running && _mode.Game.MapDisplayFactor < 1f;
+            if (!show) { SelfActive = false; return; }
+            if (!UxKit.HudDue(ref _nextText)) return;
+            var lines = Shown = Lines(run!);
+            SelfActive = lines.Count > 0;
+            if (lines.Count == 0) return;
+            _head.Text = UxKit.Format("WatchHeadFmt", lines.Sum(l => l.Units));
+            for (int i = _lines.Count; i < lines.Count; i++) _lines.Add(NewLine());
+            for (int i = 0; i < _lines.Count; i++)
+            {
+                _lines[i].SelfActive = i < lines.Count;
+                if (i >= lines.Count) continue;
+                _lines[i].Text = lines[i].Text;
+                _lines[i].UserData = lines[i].Target;
+            }
+        }
+
+        /// <summary>A clickable line in the style of the vanilla objective lines (MissionsHud.MissionWidget).</summary>
+        Label NewLine()
+        {
+            var lbl = new Label { InputBlockMode = InputBlockMode.Always };
+            Style(lbl, 14);
+            lbl.TextRenderer.Padding = new Borders(5f, 2f, 5f, 2f);
+            var input = new WidgetInputStateController();
+            lbl.Components.Add(input);
+            var highlighted = new WidgetNineSlice(lbl);
+            highlighted.CopySettingsFrom(ListItem.Default.StateHighlightedNineSlice);
+            lbl.ComponentToggles[highlighted] = new InputStateToggle(input, InputState.Highlighted);
+            lbl.Components.Insert(0, highlighted);
+            var pressed = new WidgetNineSlice(lbl);
+            pressed.CopySettingsFrom(ListItem.Default.StatePressedNineSlice);
+            lbl.ComponentToggles[pressed] = new InputStateToggle(input, InputState.Pressed);
+            lbl.Components.Insert(1, pressed);
+            var game = _mode.Game;
+            lbl.CustomShapeFunc = (w, loc) => w.ScreenRect.Contains(in loc) && w.UserData is FocusTarget t && MissionFocus.CanFocus(game, t);
+            lbl.ConfigureAltClick(Inputs.General.UIEitherClick, (_, _) => UxKit.Guard("tech watch click", () =>
+            {
+                if (lbl.UserData is FocusTarget t) MissionFocus.Focus(game, t);
+            }), game.Sim.Rules.SimGui.FocusModeCursor);
+            AddChild(lbl);
+            return lbl;
+        }
+    }
+}

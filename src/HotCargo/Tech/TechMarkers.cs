@@ -72,6 +72,54 @@ public static class TechMarkers
         });
     }
 
+    /// <summary>Derelicts that have an indicator or have one queued, so the tick adds each one once.</summary>
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Ship, DerelictIndicator> Derelicts = new();
+
+    /// <summary>
+    /// Spec 2125: sim tick. A derelict (junk) ship with the players' tech gets a marker, on screen and off screen: vanilla shows no
+    /// indicator on a junk ship (ShipIndicatorSource.ShouldShowA), so its "TECH n" tag never drew. Adds a GUI component only.
+    /// </summary>
+    internal static void MarkDerelicts(Run run, SimRoot sim, double dt)
+    {
+        if (!run.T.Tech.TechMarkers) return;
+        foreach (var ship in sim.Ships.AllShips)
+        {
+            if (!ship.IsJunk || Derelicts.TryGetValue(ship, out _) || Vaults.ShipTech(ship) == 0) continue;
+            var indicator = new DerelictIndicator();
+            Derelicts.Add(ship, indicator);
+            // Vanilla adds indicator components through the non-deterministic queue too (CrewSoul distance warnings).
+            sim.EnqueueNonDeterministic(() => ship.Components.Add(indicator));
+        }
+    }
+
+    internal sealed class DerelictIndicator : ObjectIndicatorSource
+    {
+        int _units;
+
+        public override Color Color => CrateIndicator.Gold;
+        public override int Sort => 1;
+        public override bool AllowInteractions => false;
+        public override Halfling.Geometry.Vector2 WorldLocation => Node is Ship ship ? ship.WorldCenter : base.WorldLocation;
+        public override float WorldRadius => Node is Ship ship ? ship.WorldBoundingRadius : 0f;
+
+        public override bool? ShouldShowA(out bool allowOffScreen, out bool isPingable)
+        {
+            allowOffScreen = true;
+            isPingable = false;
+            // Every marker runs this in every frame, so it has no closure (spec 872). A failure logs once, like Errors.Guard.
+            try
+            {
+                _units = On && Node is Ship { IsJunk: true } ship ? Vaults.ShipTech(ship) : 0;
+                return _units > 0;
+            }
+            catch (Exception ex) { Errors.Report("tech derelict marker", ex.Message, ex); return false; }
+        }
+
+        public override void GetIcons(out ISprite normal, out ISprite highlighted, out ISprite pressed) => CrateIndicator.Icon(out normal, out highlighted, out pressed);
+
+        public override string? GetNonMouseoverText() => string.Format(Strings.GetText("HotCargoTech/MarkerTag"), _units);
+    }
+
     /// <summary>
     /// One marker for each group of crates: the crate with the lowest ID within ClusterRadius shows "TECH n", the others hide.
     /// Limit: the group is the crates near the leader, so two groups can share a crate at their edges. Revisit if counts look off.
@@ -79,7 +127,7 @@ public static class TechMarkers
     internal sealed class CrateIndicator : ObjectIndicatorSource
     {
         const float ClusterRadius = 100f;
-        static readonly Color Gold = new(1f, 0.78f, 0.2f);
+        internal static readonly Color Gold = new(1f, 0.78f, 0.2f);
         readonly List<Nugget> _near = [];
         int _units;
 
@@ -108,7 +156,9 @@ public static class TechMarkers
         /// <summary>Tech units in the group this marker leads, as of the last frame. For autotests.</summary>
         internal int Units => _units;
 
-        public override void GetIcons(out ISprite normal, out ISprite highlighted, out ISprite pressed)
+        public override void GetIcons(out ISprite normal, out ISprite highlighted, out ISprite pressed) => Icon(out normal, out highlighted, out pressed);
+
+        internal static void Icon(out ISprite normal, out ISprite highlighted, out ISprite pressed)
         {
             ISprite icon = GameApp.Rules.GetResourceRules(Vaults.TechId).Icon ?? throw new InvalidOperationException($"{Vaults.TechId} has no icon");
             normal = highlighted = pressed = icon;
