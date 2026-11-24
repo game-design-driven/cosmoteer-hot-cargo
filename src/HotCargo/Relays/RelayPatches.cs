@@ -41,14 +41,16 @@ static class JumpWindowPatches
     {
         static void Postfix(FtlJumpGui __instance) => UxKit.Guard("relay jump line", () =>
         {
-            if (__instance._jumpBtn.Parent is not LayoutBox column) return;
-            // A text line like the window's own waiting line (centered, wrapped), not a greyed-out button.
-            var line = new Label { SelfActive = false };
+            // A text line at the bottom of the window, like the window's own waiting line (centered, wrapped, the window grows with
+            // it). Below ENGAGE in the button column it sat under the window's edge and could not be seen.
+            var line = new Label { SelfActive = false, DockMode = DockMode.Bottom };
             line.TextRenderer.XmlFormatting = true;
             line.TextRenderer.HAlignment = HAlignment.Center;
             line.TextRenderer.OversizeMode = OversizeMode.Wrap;
             line.AutoSize.AutoHeightMode = AutoSizeMode.Enable;
-            column.AddChild(line);
+            line.AutoSize.HeightPadding = 10f;
+            // Next to the waiting line, docked before the button column, so it spans the whole width.
+            __instance.DockedChildren.Insert(__instance.DockedChildren.IndexOf(__instance._waitingLbl) + 1, line);
             Lines.Add(__instance, line);
         });
     }

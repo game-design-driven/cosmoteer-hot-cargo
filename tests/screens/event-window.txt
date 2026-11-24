@@ -1,0 +1,17 @@
+# Event window (spec 591, 810): option rows with the game's check box and choice buttons in the comms dialogue style.
+# RUNNER=mac scripts/screens.sh tests/screens/event-window.txt <out-dir>
+render on
+newgame run
+wait 10
+closepanel
+wait 1
+ev_set Enabled false
+# No hail notice over the window: open space, away from the start world's ships.
+dip_set MercChance 0
+openspace 6000
+wait 2
+godmode on
+event corporate_checkpoint
+wait 1
+screenshot event-window
+quit
