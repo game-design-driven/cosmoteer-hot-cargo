@@ -1,5 +1,6 @@
 # Hot Cargo installer for Cosmoteer (Windows).
-# - Copies the hot_cargo mod folder into your Cosmoteer Mods folder (your tunables.rules is kept).
+# - Copies the hot_cargo mod files into your Cosmoteer Mods folder. Your files there stay: tunables.rules, telemetry,
+#   screenshots, logs.
 # - Copies HotCargo.Loader.dll into <Cosmoteer>\Bin\HotCargoLoader.
 # - Adds a .NET startup hook to <Cosmoteer>\Bin\Cosmoteer.runtimeconfig.json (backup: .hot_cargo_orig).
 # Run it again after a Cosmoteer update or a Steam "verify files", because those restore the original runtimeconfig.
@@ -15,14 +16,17 @@ $bin = Join-Path $GameDir "Bin"
 if (-not (Test-Path (Join-Path $bin "Cosmoteer.runtimeconfig.json"))) { throw "Not a Cosmoteer folder: $GameDir" }
 if (Get-Process Cosmoteer -ErrorAction SilentlyContinue) { throw "Close Cosmoteer first." }
 
-# Mod folder. Keep the player's tunables.
+# Mod folder (spec 1989): copy the release files over it and delete nothing, so the player's files stay: telemetry\ (sessions,
+# notes.jsonl, note screenshots, players\), screenshots\, testships\ and the log. The release's tunables.rules is only a
+# template: it goes in only when the player has none. Same rule as release/install-mac.sh.
+# Limit: a file that an older release shipped and this one does not stays behind. Nothing loads such a file: mod.rules names
+# every rules file, and the loader loads only csharp\HotCargo.dll. Revisit if a release ever must remove a file.
 $modDir = Join-Path $ModsDir "hot_cargo"
-New-Item -ItemType Directory -Force $ModsDir | Out-Null
-$keep = $null
-if (Test-Path (Join-Path $modDir "tunables.rules")) { $keep = Get-Content (Join-Path $modDir "tunables.rules") -Raw }
-if (Test-Path $modDir) { Remove-Item $modDir -Recurse -Force }
-Copy-Item (Join-Path $here "hot_cargo") $ModsDir -Recurse
-if ($keep -ne $null) { [IO.File]::WriteAllText((Join-Path $modDir "tunables.rules"), $keep) }
+New-Item -ItemType Directory -Force $modDir | Out-Null
+foreach ($item in Get-ChildItem (Join-Path $here "hot_cargo") -Force) {
+    if ($item.Name -eq "tunables.rules" -and (Test-Path (Join-Path $modDir "tunables.rules"))) { continue }
+    Copy-Item $item.FullName $modDir -Recurse -Force
+}
 
 # Loader and startup hook.
 $loaderDir = Join-Path $bin "HotCargoLoader"

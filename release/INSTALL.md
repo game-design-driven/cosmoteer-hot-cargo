@@ -29,7 +29,7 @@ After a Cosmoteer update, run `install-mac.sh` again. In co-op, every player ins
 
 ## What the installer changes
 
-- It copies the mod to `Saved Games\Cosmoteer\<your id>\Mods\hot_cargo`.
+- It copies the mod files to `Saved Games\Cosmoteer\<your id>\Mods\hot_cargo` (on a Mac: `~/Library/Application Support/Cosmoteer/<your id>/Mods/hot_cargo`). It deletes nothing there, so a reinstall or an update keeps your files: `tunables.rules`, `telemetry` (the session files, playtest notes and their screenshots), `screenshots` and the log.
 - It copies `HotCargo.Loader.dll` to `<Cosmoteer>\Bin\HotCargoLoader`.
 - It adds a .NET startup hook to `<Cosmoteer>\Bin\Cosmoteer.runtimeconfig.json` and keeps the original as `Cosmoteer.runtimeconfig.json.hot_cargo_orig`.
 
@@ -37,7 +37,7 @@ With the mod turned off in the Mods menu, the game plays vanilla.
 
 ## Uninstall
 
-Close Cosmoteer and double-click `uninstall.bat`.
+Close Cosmoteer and double-click `uninstall.bat`. It deletes the whole `hot_cargo` folder, with your tunables and telemetry: copy them first if you want to keep them.
 
 ## Keys
 
