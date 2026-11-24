@@ -64,7 +64,12 @@ static class CareerPatches
     [HarmonyPostfix, HarmonyPatch(nameof(CareerGameModeManager.GetIntegrityHash))]
     static void IntegrityHash(CareerGameModeManager __instance, IntegrityHash iHash)
     {
-        if (Run.Current is not { } run || run.Mode != __instance) return;
+        if (Run.Current is { } run && run.Mode == __instance) AddRunHash(run, iHash);
+    }
+
+    /// <summary>The Hot Cargo part of the mode's integrity hash. MpAutotest logs it alone at the first ticks of a co-op game.</summary>
+    internal static void AddRunHash(Run run, IntegrityHash iHash)
+    {
         var s = run.State;
         iHash.AddHash((int)(s.Heat * 1000));
         iHash.AddHash(s.SectorIndex);

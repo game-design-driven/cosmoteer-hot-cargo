@@ -36,7 +36,7 @@ internal sealed class TunablesInput : MPInput
         run.HostSent = file;
         run.HostSendsInFlight++;
         run.Game.NetManager.EnqueueInput(new TunablesInput(file.Bytes));
-        Log.Info($"tunables: sent {file.Hash} to all players");
+        Log.Info($"tunables: sent {file.Hash} to all players at {Ticks(run.Game)}");
     }
 
     public override void Execute(GameRoot game, int playerIndex, MessengerID playerID, bool force = false)
@@ -45,8 +45,12 @@ internal sealed class TunablesInput : MPInput
         // Only the host counts its sends. The host's own inputs always execute, in order, so the count reaches 0 after the last one.
         if (run.HostSendsInFlight > 0 && --run.HostSendsInFlight == 0) run.HostSent = null;
         // Parse runs on every machine with the same bytes, so a bad file fails the same way everywhere and the values in effect stay.
+        Log.Info($"tunables: the host's input runs at {Ticks(game)}");
         Errors.Guard("host tunables", () => run.ApplyTunables(TunablesFile.Parse(Bytes)));
     }
+
+    /// <summary>The input tick and the sim tick, for the log: both machines must apply the tunables at the same ticks.</summary>
+    static string Ticks(GameRoot game) => $"input tick {(game.NetManager as BaseMPManager)?.NetworkInputTick}, sim tick {game.Sim.Tick}";
 }
 
 [HarmonyPatch(typeof(CareerGameModeManager), nameof(CareerGameModeManager.AllowMPInput))]

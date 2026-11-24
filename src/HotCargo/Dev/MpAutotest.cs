@@ -82,7 +82,7 @@ public static class MpAutotest
         // share one player index and its ships. Address it with "on shared".
         Autotest.Commands["mpshare"] = _ => _share = true;
         Autotest.Commands["mpstart"] = arg => Start(_players = arg.Length > 0 ? int.Parse(arg, CultureInfo.InvariantCulture) : 2);
-        Autotest.Commands["mp"] = arg => RequireMpGame().NetManager.EnqueueInput(new AutotestInput(arg));
+        Autotest.Commands["mp"] = arg => WhenAllInGame(g => g.NetManager.EnqueueInput(new AutotestInput(arg)));
         // mplobby (host): ends the game for all players and returns everyone to the game setup screen, with the connections kept.
         Autotest.Commands["mplobby"] = _ =>
         {
@@ -140,7 +140,7 @@ public static class MpAutotest
         Autotest.Commands["as"] = arg =>
         {
             var (player, line) = PlayerAndLine(arg, "as");
-            RequireMpGame().NetManager.EnqueueInput(new AutotestInput(line, player));
+            WhenAllInGame(g => g.NetManager.EnqueueInput(new AutotestInput(line, player)));
         };
         // on <player> <command>: runs the command on that player's own machine and waits until it reports back. For what must
         // happen there: its UI, its view, and inputs that it sends over the network like a real click. A failure there fails the step.
@@ -148,11 +148,14 @@ public static class MpAutotest
         Autotest.Commands["on"] = arg =>
         {
             var (player, line) = PlayerAndLine(arg, "on");
-            int number = ++_onSent;
-            RequireMpGame().NetManager.EnqueueInput(new AutotestInput($"mpon {player} {number} {line}"));
-            Autotest.WaitFor(() => _acked >= number, OnTimeoutSeconds, $"player {player} to run '{line}'", () =>
+            WhenAllInGame(g =>
             {
-                if (_failedAcks.Contains(number)) throw new InvalidOperationException($"CHECK FAILED: player {player}: '{line}' (the client log has the reason)");
+                int number = ++_onSent;
+                g.NetManager.EnqueueInput(new AutotestInput($"mpon {player} {number} {line}"));
+                Autotest.WaitFor(() => _acked >= number, OnTimeoutSeconds, $"player {player} to run '{line}'", () =>
+                {
+                    if (_failedAcks.Contains(number)) throw new InvalidOperationException($"CHECK FAILED: player {player}: '{line}' (the client log has the reason)");
+                });
             });
         };
         // Sim side of "on": the target machine queues the command and its acknowledgement for "follow".
@@ -307,6 +310,19 @@ public static class MpAutotest
 
     static GameRoot RequireMpGame() =>
         Autotest.Game is { NetManager.IsMultiplayer: true } g ? g : throw new InvalidOperationException("no multiplayer game");
+
+    /// <summary>
+    /// Runs send with the current MP game once every player runs it: its first input tick ran, and vanilla runs an input tick only when
+    /// every player sent it (BaseMPManager.IsReadyForTick). After a resync, a load or mprestart the new game exists on the host before the
+    /// clients finished loading it, and an input that the host sends then can be lost: queue run 45384440792 lost an "on 1" line that the
+    /// host sent while the client still loaded a resync.
+    /// </summary>
+    static void WhenAllInGame(Action<GameRoot> send) =>
+        Autotest.WaitForReal(() => InGame() && Autotest.Game!.NetManager is BaseMPManager { NetworkInputTick: > 0 }, AllInGameSeconds,
+            "every player in the current game", () => send(RequireMpGame()));
+
+    /// <summary>Real seconds: the game clock stands while a client loads. A resync took 16 s in CI (queue run 45384440792).</summary>
+    const double AllInGameSeconds = 120;
 
     static GameSetupScreen? Setup() => App.Director.States.OfType<GameSetupScreen>().FirstOrDefault();
 
@@ -664,5 +680,41 @@ static class OutOfSyncDetail
                       $"hash {h.Hash} here, {theirs.Current.Hash} on the host");
             return;
         }
+    }
+}
+
+/// <summary>
+/// The parts of the game's integrity hash (GameRoot.GetIntegrityHash) at the first input ticks of each co-op game, in autotests. Both
+/// machines log them, so a desync right after a game start names the part that differs. Queue run 45384440792: the hash of input tick 1
+/// after mprestart differed, and "phase TickStart" did not say which state.
+/// </summary>
+[HarmonyPatch(typeof(GameRoot), nameof(GameRoot.GetIntegrityHash))]
+static class StartHashParts
+{
+    const int FirstInputTicks = 3;
+
+    static void Postfix(GameRoot __instance, IntegrityHash iHash)
+    {
+        if (!Autotest.IsActive || iHash.Phase != IntegrityHashPhase.TickStart || iHash.InputTick > FirstInputTicks
+            || __instance.NetManager is not BaseMPManager || Run.Current is not { } run || run.Game != __instance) return;
+        int Part(Action<IntegrityHash> add)
+        {
+            using var h = IntegrityHash.Alloc(iHash.Tick, iHash.InputTick, iHash.Phase, iHash.Bucket, recordHashes: false, validator: null);
+            add(h);
+            return h.Hash;
+        }
+        int players = Part(h =>
+        {
+            foreach (var (index, state) in __instance._playerStates)
+            {
+                if (!state.ExistsDeterministically || state.Team == -5) continue;
+                index.GetIntegrityHash(h);
+                state.GetIntegrityHash(h);
+            }
+        });
+        Log.Info($"MPSTARTHASH game={MpAutotest._mpGames} input tick {iHash.InputTick} sim tick {iHash.Tick}: all={iHash.Hash:X8} " +
+                 $"sim={Part(__instance.Sim.GetIntegrityHash):X8} map={Part(__instance.Map.GetIntegrityHash):X8} mode={Part(__instance.Mode.GetIntegrityHash):X8} " +
+                 $"run={Part(h => CareerPatches.AddRunHash(run, h)):X8} players={players:X8} tunables={run.State.TunablesHash} heat={run.State.Heat:0.000} " +
+                 $"seconds={run.State.GameSeconds:0.00}");
     }
 }

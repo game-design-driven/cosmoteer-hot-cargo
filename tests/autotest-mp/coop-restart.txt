@@ -1,0 +1,27 @@
+# Co-op session: a new run after a restart starts in sync (spec 60, 504). Short on purpose: it repeats the start of a new co-op run
+# three times. The host's tunables differ from the defaults, so a machine that applies them at another tick desyncs at once.
+# Queue run 45384440792: the first state hash after mprestart differed and the game resynced. See coop-core.txt for "as 1" and "on 1".
+tunablesfile Heat { HeatPerGameMinute = 30 }  Events { Enabled = false }
+mphost {PORT}
+mpstart {PLAYERS}
+
+step core.restart-sync
+# The same lines as the start of tech.move in coop-economy: sim inputs right after the new game starts.
+mprestart
+mp godmode off
+mp ev_set Enabled false
+as 1 heat 5
+mp heat 3
+wait 3
+on 1 waitfor heatperminute == 30 30
+expect heatperminute == 30
+mprestart
+mp godmode off
+as 1 heat 5
+wait 3
+on 1 waitfor heatperminute == 30 30
+mprestart
+on 1 waitfor heatperminute == 30 30
+expect heatperminute == 30
+
+end
