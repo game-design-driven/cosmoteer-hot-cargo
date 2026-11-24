@@ -348,6 +348,10 @@ on 1 waitfor share_on == 0 10
 mp godmode on
 
 step tech.decay
+# No fight during the decay wait: at this point heat is about 80, and in queue runs 2026-11-23 a hunter fight took the stored tech
+# from a crate (decay never counted it) or left the host's only ship derelict. tech.move starts a new run after this step.
+mp maxhunters 0
+mp stasishunters
 # Spec 1546, 1547, 1551: the client turns off the fill of its vaults with the vanilla toggle input (its real input), and 1 tech goes
 # into the normal storage of its ship. The decay runs in the sim tick, so both machines destroy the same tech at the same time.
 on 1 vault fill off
