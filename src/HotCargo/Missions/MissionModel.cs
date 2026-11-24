@@ -87,4 +87,39 @@ public static class MissionModel
         if (routeLength <= 0f) throw new ArgumentOutOfRangeException(nameof(routeLength), routeLength, "must be above 0");
         return Math.Max(0f, 1f - distanceLeft / routeLength);
     }
+
+    /// <summary>
+    /// Spec 1882 to 1884: one sim tick of the exposure clock of an escort that is under way. A guarded escort resets the clock and can
+    /// draw a new raid later. Unguarded, the clock runs: at <paramref name="raidSeconds"/> a live escort draws one raid (an escort in stasis
+    /// draws it when it is live again, because raiders that spawn in stasis do not move); at <paramref name="lostSeconds"/> an escort in
+    /// stasis is lost. A live escort is never lost by the clock: the raiders decide.
+    /// </summary>
+    public static EscortGuardEvent GuardStep(ref double exposed, ref bool raided, double seconds, bool guarded, bool live, float raidSeconds, float lostSeconds)
+    {
+        if (seconds < 0) throw new ArgumentOutOfRangeException(nameof(seconds), seconds, "must not be negative");
+        if (raidSeconds <= 0f || lostSeconds <= raidSeconds) throw new ArgumentOutOfRangeException(nameof(lostSeconds), lostSeconds, "need 0 < raidSeconds < lostSeconds");
+        if (guarded)
+        {
+            exposed = 0;
+            raided = false;
+            return EscortGuardEvent.None;
+        }
+        exposed += seconds;
+        if (live && !raided && exposed >= raidSeconds)
+        {
+            raided = true;
+            return EscortGuardEvent.Raid;
+        }
+        return !live && exposed >= lostSeconds ? EscortGuardEvent.Lost : EscortGuardEvent.None;
+    }
+}
+
+/// <summary>What the exposure clock of an escort under way asks for in a tick (spec 1882 to 1884).</summary>
+public enum EscortGuardEvent
+{
+    None,
+    /// <summary>Raiders find the lone escort: spawn one raid around it.</summary>
+    Raid,
+    /// <summary>The escort in stasis is lost to raiders: remove it, so the mission fails.</summary>
+    Lost,
 }

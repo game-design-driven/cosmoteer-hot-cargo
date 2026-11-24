@@ -20,6 +20,9 @@ internal interface IMeetingEscort
 
     /// <summary>A player answered "Ready". Runs in the shared choice input, on every machine.</summary>
     void Depart(SimRoot sim, int playerIndex);
+
+    /// <summary>Spec 1881 to 1884: the guard rule that runs after "Ready".</summary>
+    EscortGuardState Guard { get; }
 }
 
 /// <summary>The meet step that every <see cref="IMeetingEscort"/> runs in its sim tick while it waits (spec 1851 to 1853).</summary>

@@ -193,6 +193,41 @@ public static class MissionArea
         Autotest.Fields["hc_escort_health"] = () =>
             100f * Hunters.HunterOrders.HealthFraction(RequireEscort().Escort.TargetShip ?? throw new InvalidOperationException("escort is not live; keep a player near it"));
         Autotest.Fields["hc_escort_done"] = () => RequireEscort().Completion == CompletionState.Completed ? 1 : 0;
+        // Spec 1881 to 1884, for every escort that meets the players (Convoy Duty, the chain escorts, the Mining Escort): the newest one.
+        Autotest.Fields["hc_guard_alone"] = () => RequireGuarded().Guard.Guarded ? 0 : 1;
+        Autotest.Fields["hc_guard_exposed"] = () => (float)RequireGuarded().Guard.ExposedSeconds;
+        Autotest.Fields["hc_guard_live"] = () => RequireGuarded().Escort.TargetShip is null ? 0 : 1;
+        Autotest.Fields["hc_guard_failed"] = () => ((Cosmoteer.Modes.Career.Missions.Objectives.Objective)RequireGuarded()).Completion == CompletionState.Failed ? 1 : 0;
+        // Live raid ships of the newest escort, and how many of them attack it.
+        Autotest.Fields["hc_guard_raiders"] = () => GuardRaiders().Count;
+        Autotest.Fields["hc_guard_raiders_on_escort"] = () =>
+            RequireGuarded().Escort.TargetShip is { } escort ? GuardRaiders().Count(r => r.Commands.CurConfirmedCommand is Cosmoteer.Ships.Commands.AttackCommand a && a.Target == escort) : 0;
+        // hc_guard_expose <seconds>: sets the time alone, so a test does not wait for the raid or the loss.
+        Autotest.Commands["hc_guard_expose"] = arg => RequireGuarded().Guard.ExposedSeconds = double.Parse(arg, System.Globalization.CultureInfo.InvariantCulture);
+        // hc_guard_goto [distance]: the players next to the newest escort, or this much farther away (any escort, the miner too).
+        Autotest.Commands["hc_guard_goto"] = arg => TeleportPlayers((RequireGuarded().Escort.DetLocation() ?? throw new InvalidOperationException("escort is not in this system"))
+            + new Vector2(arg.Trim().Length == 0 ? 0f : float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture), 0f));
+        // hc_guard_diag: one log line for each raid ship of the newest escort (place, order, whether it is an enemy of the escort).
+        Autotest.Commands["hc_guard_diag"] = _ =>
+        {
+            var sim = RequireSim();
+            Ship? escort = RequireGuarded().Escort.TargetShip;
+            foreach (Ship r in GuardRaiders())
+                Log.Info($"AUTOTEST GUARD raider {r.Metadata.PlainShipName} p{r.Metadata.PlayerIndex} at {r.DetWorldCenter} dist={(escort is null ? -1 : r.DetWorldCenter.DistanceTo(escort.DetWorldCenter)):0} " +
+                         $"cmd={r.Commands.CurConfirmedCommand?.GetType().Name} target={(r.Commands.CurConfirmedCommand as Cosmoteer.Ships.Commands.AttackCommand)?.Target?.Metadata.PlainShipName} " +
+                         $"enemy={(escort is null ? "?" : sim.Mode.AreEnemies(r.Metadata.PlayerIndex, escort.Metadata.PlayerIndex).ToString())} origin={r.AI?.PreferredOrigin} modules={string.Join(",", r.AI?.StrategyModules.Select(m => m.GetType().Name) ?? [])}");
+        };
+        // hc_guard_camera <size>: centers the camera on the newest escort, this many units wide (screenshots).
+        Autotest.Commands["hc_guard_camera"] = arg =>
+        {
+            Vector2 at = RequireGuarded().Escort.DetLocation() ?? throw new InvalidOperationException("escort is not in this system");
+            Autotest.Commands["camera"](string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{at.X} {at.Y} {arg.Trim()}"));
+        };
+        // hc_guard_clear_raiders: removes the live raid ships of the newest escort (sim; "mp" in co-op), so a later step is not a fight.
+        Autotest.Commands["hc_guard_clear_raiders"] = _ =>
+        {
+            foreach (Ship r in GuardRaiders()) RequireSim().Ships.Remove(r, dispose: true, handleLostShip: false);
+        };
         Autotest.Fields["hc_trap_done"] = () => RequireTrap().Completion == CompletionState.Completed ? 1 : 0;
         Autotest.Fields["hc_ambushers"] = () => RequireTrap().Ambushers.Count(a => a.IsAlive);
         Autotest.Fields["hc_trap_state"] = () => (int)RequireTrap().State;
@@ -449,6 +484,21 @@ public static class MissionArea
         FindObjective<T>() ?? throw new InvalidOperationException($"no accepted mission has a {typeof(T).Name}");
 
     static EscortObjective RequireEscort() => RequireObjective<EscortObjective>();
+
+    /// <summary>The newest objective that meets the players and then runs the guard rule.</summary>
+    static IMeetingEscort RequireGuarded()
+    {
+        var found = new List<Cosmoteer.Modes.Career.Missions.Objectives.Objective>();
+        foreach (Mission m in RequireRun().Mode.Missions)
+            foreach (var o in m.Objectives) o.GetObjectives(found);
+        return found.OfType<IMeetingEscort>().LastOrDefault() ?? throw new InvalidOperationException("no accepted mission has an escort");
+    }
+
+    static List<Ship> GuardRaiders()
+    {
+        int raiders = RequireGuarded().Guard.RaidAllegiance;
+        return raiders == 0 ? [] : [.. RequireSim().Ships.Where(s => s.Metadata.PlayerIndex == raiders)];
+    }
     static ShadyTrapObjective RequireTrap() => RequireObjective<ShadyTrapObjective>();
 
     /// <summary>Logs the escort state: stasis, position, speed, command, AI origin and target, distance to the destination.</summary>

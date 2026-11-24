@@ -130,6 +130,7 @@ public static class TunablesFile
         Require(t.Worlds.SystemTypeWeights.All(w => w.Type.Length > 0 && w.Weight >= 0) && t.Worlds.SystemTypeWeights.Any(w => w.Weight > 0),
             "Worlds.SystemTypeWeights entries need a Type and a weight of 0 or more, and one weight above 0");
         Require(t.Chains.MaxNewChainsPerSystem >= 0, "Chains.MaxNewChainsPerSystem must not be negative");
+        Missions.MissionTunables.Validate(t.Missions);
         Missions.Mechanics.MechanicsTunables.Validate(t.Mechanics);
         // Level IDs are checked once the game rules exist; the boot-time check of the defaults runs before that.
         t.RunModes.Validate(Require, Cosmoteer.GameApp.Assets?.Rules is null ? null : RunModes.Difficulty.IsVanillaLevel);

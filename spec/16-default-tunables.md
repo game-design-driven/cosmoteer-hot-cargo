@@ -36,6 +36,8 @@
 | `ShadyTrapSurvivalReward` | 0.5 | 40 |
 | `EscortHeatChange` | −8 | 36 |
 | `EscortRouteShare`, `EscortAmbushAt`, `EscortAmbushLead`, `EscortRaiderFocus` | 0.65, 0.3, 1800, 20 | 36 |
+| `EscortGuardRadius`, `EscortRaidSeconds`, `EscortLostSeconds` | 1500, 60, 150 | 1881 to 1883 |
+| `EscortRaidShips`, `EscortRaidMaxLive`, `EscortRaidTierOffset`, `EscortRaidShipTags`, `EscortRaidDistanceMin`, `EscortRaidDistanceMax` | 2, 4, −1, [combat], 900, 1300 | 1882 |
 | `Events.ArrivalEventChance`, `ArrivalDelaySeconds` | 0.6, 6 s | 69 |
 | `Events.StationEventChance`, `StationTriggerDistance` | 0.5, 1500 | 69 |
 | `Events.SignalTriggerDistance` | 900 | 69 |

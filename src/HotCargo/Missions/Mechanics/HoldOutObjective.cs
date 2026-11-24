@@ -443,16 +443,18 @@ static class AllowHoldOutOrderPatch
 internal static class WaveSpawns
 {
     /// <summary>
-    /// Spawns <paramref name="count"/> ships of the tags at the tier, 1,800 to 2,400 from the center near the direction, on one allegiance,
-    /// with the spawn tag. Each ship jumps in and attacks around the center (Normal AI, origin at the center). Sim tick only (sim.Rand).
+    /// Spawns <paramref name="count"/> ships of the tags at the tier, <paramref name="minDistance"/> to <paramref name="maxDistance"/> from the
+    /// center near the direction, on one allegiance, with the spawn tag. Each ship jumps in and attacks around the center (Normal AI, origin at
+    /// the center). Sim tick only (sim.Rand).
     /// </summary>
-    public static void Spawn(SimRoot sim, Vector2 center, float direction, int count, int shipTier, string[] shipTags, int allegiance, ID<SimObjectSpawner> tag)
+    public static void Spawn(SimRoot sim, Vector2 center, float direction, int count, int shipTier, string[] shipTags, int allegiance, ID<SimObjectSpawner> tag,
+        float minDistance = 1800f, float maxDistance = 2400f)
     {
         var tags = shipTags.Select(s => new ID<BuiltinShipTag>(s)).ToArray();
         for (int i = 0; i < count; i++)
         {
             BuiltinShipRules ship = PickShip(sim, tags, shipTier);
-            Vector2 loc = Location(sim, center, direction, 1800f, 2400f);
+            Vector2 loc = Location(sim, center, direction, minDistance, maxDistance);
             var spawner = new StasisShipSpawner(sim, ship.ID, loc, SpawnedShipFeatures.None, sim.Rand.UInt64(), [tag])
             {
                 AI = new ID<ShipAIRules>("Normal"),

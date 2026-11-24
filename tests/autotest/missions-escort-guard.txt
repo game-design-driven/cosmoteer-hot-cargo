@@ -1,0 +1,49 @@
+# Escort guard (spec 1881 to 1884): after "Ready" the freighter moves only while a player ship is near. Alone it holds, raiders find
+# it after EscortRaidSeconds, and alone in stasis it is lost after EscortLostSeconds. Before this rule the freighter flew alone past
+# raiders that the game had frozen in stasis, and arrived.
+# missions: random
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+hc_generate escort
+hc_accept escort
+hc_escort_goto
+pause off
+wait 3
+hc_escort_ready
+wait 2
+expect hc_guard_alone == 0
+# Spec 1881: the players 3,000 away. The game keeps the cells around a player ship live, so the freighter is live, but it holds.
+hc_escort_goto 3000
+pause off
+waitfor hc_guard_alone == 1 10
+expect hc_guard_live == 1
+hc_mark
+wait 10
+expect hc_escort_progress < 300
+# Back next to it: it flies on, and the time alone starts again from 0.
+hc_escort_goto
+pause off
+waitfor hc_escort_progress > 400 45
+expect hc_guard_alone == 0
+expect hc_guard_exposed == 0
+# Spec 1882: alone for EscortRaidSeconds (60 s, here set to 59 s), live raiders jump in around it and attack it.
+hc_escort_goto 3000
+pause off
+waitfor hc_guard_alone == 1 10
+hc_guard_expose 59
+waitfor hc_guard_raiders >= 2 10
+waitfor hc_guard_raiders_on_escort >= 1 30
+expect hc_guard_failed == 0
+# Spec 1883: with no player ship near enough to keep it live, it is lost after EscortLostSeconds (150 s, here set to 149 s).
+hc_guard_clear_raiders
+hc_escort_goto 9000
+pause off
+waitfor hc_guard_live == 0 20
+expect hc_guard_failed == 0
+hc_guard_expose 149
+wait 2
+# The failed mission leaves the log.
+expect hc_active_escort == 0
+quit

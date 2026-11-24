@@ -38,4 +38,33 @@ public sealed class MissionTunables
     [Serialize(Optional = true)] public float EscortRehailSeconds = 60f;
     /// <summary>Spec 1854: radius of the map ring that marks a waiting escort.</summary>
     [Serialize(Optional = true)] public float EscortMarkerRadius = 600f;
+    /// <summary>
+    /// Spec 1881: an escort under way moves only while a player ship's hull is this close to its hull. Keep it well below the game's
+    /// StasisLiveRange (2,500 from a player ship): then a moving escort and the raiders on its route are always live, never in stasis.
+    /// </summary>
+    [Serialize(Optional = true)] public float EscortGuardRadius = 1500f;
+    /// <summary>Spec 1882: game seconds that an escort under way waits alone before raiders find it.</summary>
+    [Serialize(Optional = true)] public float EscortRaidSeconds = 60f;
+    /// <summary>Spec 1883: game seconds alone after which an escort in stasis (no player ship near) is lost to raiders.</summary>
+    [Serialize(Optional = true)] public float EscortLostSeconds = 150f;
+    /// <summary>Spec 1882: ships of one raid (scaled for co-op). Live raiders of the same escort count against EscortRaidMaxLive.</summary>
+    [Serialize(Optional = true)] public int EscortRaidShips = 2;
+    [Serialize(Optional = true)] public int EscortRaidMaxLive = 4;
+    /// <summary>Spec 1882: raid ships have the escort mission's tier plus this, at least 1.</summary>
+    [Serialize(Optional = true)] public int EscortRaidTierOffset = -1;
+    /// <summary>Spec 1882: built-in ship tags of the raid pool.</summary>
+    [Serialize(Optional = true)] public string[] EscortRaidShipTags = ["combat"];
+    /// <summary>Spec 1882: raid ships jump in this far from the escort's center. Close, so they share its live area.</summary>
+    [Serialize(Optional = true)] public float EscortRaidDistanceMin = 900f;
+    [Serialize(Optional = true)] public float EscortRaidDistanceMax = 1300f;
+
+    /// <summary>Called by TunablesFile.Validate, so a bad file keeps the last valid values (spec 53).</summary>
+    public static void Validate(MissionTunables t)
+    {
+        static void Require(bool ok, string what) { if (!ok) throw new InvalidDataException($"Missions.{what}"); }
+        Require(t.EscortGuardRadius > 0f, "EscortGuardRadius must be above 0");
+        Require(t.EscortRaidSeconds > 0f && t.EscortLostSeconds > t.EscortRaidSeconds, "EscortLostSeconds must be above EscortRaidSeconds, and both above 0");
+        Require(t.EscortRaidShips >= 0 && t.EscortRaidMaxLive >= 0 && t.EscortRaidShipTags.Length > 0, "EscortRaidShips and EscortRaidMaxLive must not be negative, EscortRaidShipTags must not be empty");
+        Require(t.EscortRaidDistanceMin >= 0f && t.EscortRaidDistanceMax >= t.EscortRaidDistanceMin, "EscortRaidDistanceMax must be at least EscortRaidDistanceMin");
+    }
 }

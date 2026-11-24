@@ -4,7 +4,9 @@
 
 ## Escorts
 
-Spec 64 (requirements 1850 to 1855). Every escort (Convoy Duty, the chain escort stages and the Mining Escort) waits for the players before it leaves. After the accept, the escorted ship flies to your nearest ship and stops close (`Missions.EscortMeetGap`, 300 from your hull). It goes at most `EscortMeetRange` (3,000) from where it started; past that, fly to it. The map ring and the objective line show where it is. When your hull is within `EscortHailGap` (800), it hails you: "Ready to leave?". Click **Ready. Lead the way.** in its comms, and it starts its route from there. **Not yet** closes the window. It never leaves by itself: it hails again every 60 s while you stay close, and you can always call it. In co-op, "Ready" is a shared choice, so every player sees it and can vote.
+Spec 64 (requirements 1850 to 1855, 1881 to 1884). Every escort (Convoy Duty, the chain escort stages and the Mining Escort) waits for the players before it leaves. After the accept, the escorted ship flies to your nearest ship and stops close (`Missions.EscortMeetGap`, 300 from your hull). It goes at most `EscortMeetRange` (3,000) from where it started; past that, fly to it. The map ring and the objective line show where it is. When your hull is within `EscortHailGap` (800), it hails you: "Ready to leave?". Click **Ready. Lead the way.** in its comms, and it starts its route from there. **Not yet** closes the window. It never leaves by itself: it hails again every 60 s while you stay close, and you can always call it. In co-op, "Ready" is a shared choice, so every player sees it and can vote.
+
+On the way, stay close. The escort moves only while one of your ships is within `EscortGuardRadius` (1,500) of it; alone, it stops and waits ("Stay close: <escort> waits for you"). A miner also stops mining. Leave it alone for `EscortRaidSeconds` (60 s) and raiders jump in on it. If you are so far away that the game freezes it (stasis), it is lost after `EscortLostSeconds` (150 s) alone, and the mission fails.
 
 ## Mechanics missions
 
