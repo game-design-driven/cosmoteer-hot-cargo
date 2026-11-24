@@ -33,6 +33,7 @@ The whole workflow and which parts are generic: `docs/WORKFLOW.md`. Each rule be
 - Before you call a build playable or ask for a playtest, the CI `full-suite` check on that commit must be green. It holds the invariant checks (spec 44) and the no-cheat `core-playthrough`. Reason: once about 100 green tests passed and the game was still not playable.
 - When the player reports bugs, freeze features and merge only fixes until the bug list is clear. Reason: bugs piled up while about ten feature agents ran.
 - When the player reports a bug mid-session, read the live game log and telemetry first (`hot-cargo-telemetry`).
+- Each bug that the player reports becomes a GitHub issue with the `bug` label: `gh issue create --label bug --title "bug: <what>" --body <what happened, expected, where and when>` (the form: `.github/ISSUE_TEMPLATE/bug.yml`). The brief of the fix names the issue. Reason: a bug in a chat gets lost; an issue stays open until a PR fixes it.
 - Check that the full suite runs on `main`: `gh run list --workflow check.yml --branch main --event workflow_dispatch --limit 5` (also `--event schedule`). Reason: GitHub once skipped the scheduled run, and a break stayed hidden.
 
 ## Merges and failures

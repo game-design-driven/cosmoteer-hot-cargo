@@ -1,0 +1,30 @@
+name: Bug
+description: Something in the game or the tools works wrong. The fixing PR says "Fixes #<this issue>" and adds a test that catches the bug again.
+title: "bug: "
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What the player saw, in the player's words if they reported it.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where and when
+      description: Version (title screen), single player or co-op, sector and system, what the player did just before. A playtest note, the run ID or a log line if there is one.
+    validations:
+      required: true
+  - type: textarea
+    id: test
+    attributes:
+      label: Test idea
+      description: How a unit test or a game test can show the bug. Optional.
