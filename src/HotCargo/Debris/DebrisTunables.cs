@@ -30,6 +30,8 @@ public sealed class DebrisTunables
     [Serialize(Optional = true)] public string[] LaserBaseResources = ["steel", "coil"];
     /// <summary>Spec 1834: the drop chance of LaserBaseResources on a laser break × this (a weapon break: × SalvageDropFactor).</summary>
     [Serialize(Optional = true)] public float LaserBaseDropFactor = 0.75f;
+    /// <summary>Spec 1835: the share of the ammo in a storage bay that drops when a salvage beam cuts the bay (vanilla: all). Weapons drop none.</summary>
+    [Serialize(Optional = true)] public float LaserBayAmmoShare = 0f;
     /// <summary>Spec 1248: the ore that an asteroid part drops when it breaks × this, for a break by any weapon or a collision.</summary>
     [Serialize(Optional = true)] public float MiningYieldFactor = 1.2f;
     /// <summary>Spec 1248: the same for a break by salvage damage (a mining laser). Parts hit by both get a mix by the salvage share.</summary>
@@ -47,6 +49,7 @@ public sealed class DebrisTunables
         require(SalvageComponentPrice >= 1, "Debris.SalvageComponentPrice must be 1 or more");
         require(LaserDropShare is >= 0f and <= 1f, "Debris.LaserDropShare must be 0 to 1");
         require(LaserBaseDropFactor >= 0, "Debris.LaserBaseDropFactor must not be negative");
+        require(LaserBayAmmoShare is >= 0f and <= 1f, "Debris.LaserBayAmmoShare must be 0 to 1");
         require(LaserBaseResources.All(r => !string.IsNullOrWhiteSpace(r)), "Debris.LaserBaseResources must not hold an empty name");
         require(MiningYieldFactor >= 0 && LaserMiningYieldFactor >= 0, "Debris.MiningYieldFactor and LaserMiningYieldFactor must not be negative");
     }
