@@ -77,6 +77,7 @@ Procedures are skills in `.claude/skills/`:
 ## Agents
 - Never start, stop or restart the game in slot main (the player's game): no `vault-saved-ships.sh`, `run.sh`, `stop.sh` or deploy with `SLOT=main`. While `.state/player-hold` exists, the scripts refuse it (exit 3). They also refuse a windowed test slot (`screens.sh`, `screens-mp.sh`) while that file exists: a window could take focus from the player. Headless test slots stay allowed. Do not remove that file and do not work around it. Ask the coordinator for main-slot work; the coordinator runs it when the player says the PC is free.
 
+- Hot Cargo is in beta: each run is a new save (user decision, 2026-11-24). Breaking old saves is fine. Write no save migration and no old-save compatibility code, and do not list a save break as a risk in a PR. Only the user changes this rule.
 - An agent works only in its own worktree and branch. At the end it pushes its branch, opens a PR and merges its own PR with auto-merge after CI passes (Git section). It never pushes to `main` directly.
 - Tests: run `scripts/autotest-affected.sh` (the smoke tests of your areas, their co-op tests, `core`, and any test you changed) and the unit tests. Put logic in a `*Model.cs` file with unit tests (`tests/TIERS.md`). The merge queue runs the PR's game test set in the headless sim, and a full suite runs on `main` after merges.
 - Save progress so a crash or restart loses nothing:

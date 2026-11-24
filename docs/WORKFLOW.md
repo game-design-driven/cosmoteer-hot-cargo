@@ -31,6 +31,7 @@ Generic:
 - Procedures live in skills (`.claude/skills/`). `CLAUDE.md` lists them. A skill gives the order of steps and links to the doc that holds the rules.
 
 Hot Cargo:
+- Beta: each run is a new save. Breaking old saves is fine. Agents write no save migration and no old-save compatibility code, and a PR does not list a save break as a risk (`CLAUDE.md`, Agents).
 - An area is a folder `src/HotCargo/<Area>/` and `mod/<area>/` with its own entry point, tunables and rules (`CONTRIBUTING.md`, Layout; skill `hot-cargo-new-area`). Areas own separate files, so parallel work rarely edits the same file.
 - The agents run as Claude threads in T3 Code. PC calls go over the T3 link and work only while the calling thread has an active turn (`CLAUDE.md`, Agents).
 
