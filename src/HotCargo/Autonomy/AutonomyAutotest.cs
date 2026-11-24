@@ -3,6 +3,7 @@ using Cosmoteer;
 using Cosmoteer.Data;
 using Cosmoteer.Game;
 using Cosmoteer.Game.Multiplayer;
+using Cosmoteer.Modes.Career;
 using Cosmoteer.Game.Multiplayer.MPInputs;
 using Cosmoteer.Resources;
 using Cosmoteer.Ships;
@@ -40,7 +41,7 @@ internal static class AutonomyAutotest
     static Ship Home() => TechAutotest.PlayerShip();
 
     static int _moneyMark, _homeMark;
-    static ObjectID? _rock;
+    static ObjectID? _rock, _enemy;
     /// <summary>The ship that auto_mark ran for, so a test can wait until a co-op mark reached the sim.</summary>
     static ObjectID? _marked;
 
@@ -151,14 +152,14 @@ internal static class AutonomyAutotest
             var rules = TestShip().Rules.PartsByID[new ID<PartRules>(arg)];
             if (!Autotest.RequireRun().Game.Gui.ShipGui.BuildToolbox.SelectPartType(rules)) throw new InvalidOperationException($"the build toolbox did not take {arg}");
         };
-        // auto_damage <part id> <fraction>: sets every such part of the test ship to this fraction of its health (screenshots of the
-        // damage levels). Single player only; turn godmode off first.
+        // auto_damage <part id>|all <fraction>: sets every such part (all: every part) of the test ship to this fraction of its health
+        // (screenshots of the damage levels, a ship that needs repair). Single player only; turn godmode off first.
         Autotest.Commands["auto_damage"] = arg =>
         {
             if (Autotest.RequireRun().IsMultiplayer) throw new InvalidOperationException("auto_damage is single player only");
             var p = Args(arg, 2);
             float f = float.Parse(p[1], CultureInfo.InvariantCulture);
-            var parts = TestShip().Parts.Where(part => part.Rules.ID.ToString() == p[0]).ToList();
+            var parts = TestShip().Parts.Where(part => p[0] == "all" || part.Rules.ID.ToString() == p[0]).ToList();
             if (parts.Count == 0) throw new InvalidOperationException($"no {p[0]} on {_shipName}");
             foreach (var part in parts) part.Health = Math.Max(1, (int)(part.Rules.MaxHealth * f));
         };
@@ -217,11 +218,13 @@ internal static class AutonomyAutotest
                          .Where(rs => rs.ResourceType.ToString() == "battery"))
                 rs.Resources = 0;
         };
-        // auto_loot <resource> <amount> <count> <distance>: drops count loot items of amount units in a ring around the test ship, distance from its hull.
+        // auto_loot <resource> <amount> <count> <distance> [home]: drops count loot items of amount units in a ring around the test ship
+        // (home: around the first own ship), distance from its hull.
         Autotest.Commands["auto_loot"] = arg =>
         {
-            var p = Args(arg, 4);
-            var ship = TestShip();
+            var p = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (p.Length is < 4 or > 5 || (p.Length == 5 && p[4] != "home")) throw new InvalidOperationException("auto_loot needs: resource amount count distance [home]");
+            var ship = p.Length == 5 ? Home() : TestShip();
             var type = Resource(p[0]);
             int amount = int.Parse(p[1], CultureInfo.InvariantCulture), count = int.Parse(p[2], CultureInfo.InvariantCulture);
             float dist = float.Parse(p[3], CultureInfo.InvariantCulture) + ship.WorldBoundingRadius;
@@ -231,6 +234,29 @@ internal static class AutonomyAutotest
                 Sim().Nuggets.AddNugget(new Nugget(type, amount, at, Direction.Zero));
             }
             Log.Info($"AUTOTEST auto_loot {count} x {amount} {p[0]} at {dist:0} from {ship.Metadata.PlainShipName}");
+        };
+        // auto_enemy <distance>: a still enemy: a crewed copy of the first own ship without an AI, of a new hostile player, this far from
+        // the first own ship's center on the side away from the test ship. Test only; auto_enemy_remove takes it out of the sim.
+        Autotest.Commands["auto_enemy"] = arg =>
+        {
+            var sim = Sim();
+            var home = Home();
+            using var stream = new MemoryStream();
+            home.SaveDesign(stream);
+            int hostile = ((CareerSimModeManager)sim.Mode).AllocUniquePlayerIndex();
+            var enemy = Ship.Load(stream.ToArray(), "Test enemy", hostile, spawnWithCrew: true, randSeed: 4343UL);
+            var away = Vector2.FromAngle(TestShip().DetWorldCenter.DirectionTo(home.DetWorldCenter));
+            enemy.WorldCenter = home.DetWorldCenter + away * float.Parse(arg, CultureInfo.InvariantCulture);
+            sim.Ships.Add(enemy);
+            _enemy = enemy.UniqueID;
+            Log.Info($"AUTOTEST auto_enemy id={enemy.UniqueID} player={hostile} enemies={home.IsEnemiesWith(enemy)} significant={enemy.IsSignificant} " +
+                     $"edge to home={HunterOrders.EdgeDistance(home, enemy):0}");
+        };
+        Autotest.Commands["auto_enemy_remove"] = _ =>
+        {
+            var enemy = (_enemy is { } id ? Sim().Ships[id] : null) ?? throw new InvalidOperationException("no auto_enemy ship");
+            Sim().Ships.Remove(enemy, dispose: true, handleLostShip: false);
+            _enemy = null;
         };
         // auto_cargo <resource> <amount>: puts cargo straight into the test ship's storage bays (setup only).
         Autotest.Commands["auto_cargo"] = arg =>

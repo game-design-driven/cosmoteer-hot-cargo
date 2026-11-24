@@ -207,6 +207,25 @@ public static class AutonomyModel
     }
 
     /// <summary>
+    /// Spec 1083: whether a ship of radius shipRadius can fly straight from (ax, ay) to (bx, by), its center on the line, and keep its hull
+    /// more than clearance from the hull of each enemy (center and radius). Both ends count: an enemy near the start or the goal blocks it.
+    /// </summary>
+    public static bool PathClear(float ax, float ay, float bx, float by, float shipRadius,
+        IEnumerable<(float X, float Y, float Radius)> enemies, float clearance)
+    {
+        float dx = bx - ax, dy = by - ay;
+        float lengthSquared = dx * dx + dy * dy;
+        foreach (var (ex, ey, er) in enemies)
+        {
+            float t = lengthSquared > 0f ? Math.Clamp(((ex - ax) * dx + (ey - ay) * dy) / lengthSquared, 0f, 1f) : 0f;
+            float px = ax + t * dx - ex, py = ay + t * dy - ey;
+            float keep = clearance + er + shipRadius;
+            if (px * px + py * py <= keep * keep) return false;
+        }
+        return true;
+    }
+
+    /// <summary>
     /// Spec 1070: how far a mining laser stands from its target part, along the part's outward line (rock center to part). depth: how
     /// far the part lies inside the rock's bounding circle (0 or more). The laser keeps gap outside the circle, but comes closer when its
     /// reach (range × MineReach) needs it, and never goes inside the circle.

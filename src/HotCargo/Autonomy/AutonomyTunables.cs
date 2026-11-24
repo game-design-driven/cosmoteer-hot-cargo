@@ -20,4 +20,9 @@ public sealed class AutonomyTunables
     [Serialize(Optional = true)] public int BuyReserve = 5000;
     /// <summary>Go to station: the ship stops this far from the station hull, inside the vanilla trade distance (400).</summary>
     [Serialize(Optional = true)] public float DockDistance = 150f;
+    /// <summary>
+    /// Spec 1083: a player ship collects no loot and goes to no station when the loot, the station or the straight path there comes this
+    /// close to the hull of an enemy on radar, edge to edge. 0 turns it off.
+    /// </summary>
+    [Serialize(Optional = true)] public float EnemyClearance = ShipAi.ShipAiModel.EnemyClearanceDefault;
 }

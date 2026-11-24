@@ -12,6 +12,8 @@ public enum Cond
     HeatStageAtLeast, HuntersInSystem, StrikeWithin, LossTimerRunning, CratesWithin, EnemyHoldsTech, EnemyCalling,
     // Autonomous ships (spec 1066)
     CargoAbove, CargoToSell, LootWithin, StationInRange, AsteroidWithin, WreckWithin, FleetBeyond,
+    // Loot runner (spec 1083)
+    FleetHealthAbove,
     // Formations (spec 423, 424)
     AllyWithin, AllyInLineOfFire,
 }
@@ -80,7 +82,8 @@ public sealed record TacticRow(Term[] Terms, Act Act, int ActParam)
 /// Fractions are 0 to 1; null means the ship has none of that thing (no shields, no battery storage).
 /// NearestEnemy and NearestCrate are edge distances, or +infinity with none. StrikeIn is the game seconds to the next Strike wave,
 /// or null outside the Strike stage. Spec 1066: Cargo is null without storage bays; NearestLoot, NearestAsteroid, NearestWreck and
-/// NearestFleet are edge distances, or +infinity with none.
+/// NearestFleet are edge distances, or +infinity with none. Spec 1083: OthersHealth is the lowest hull share (ShipAiController.HullHealth)
+/// of the other human player ships in the system, or null with none.
 /// </summary>
 public sealed record ShipFacts(
     float Health,
@@ -110,7 +113,8 @@ public sealed record ShipFacts(
     float NearestWreck = float.PositiveInfinity,
     float NearestFleet = float.PositiveInfinity,
     float NearestAlly = float.PositiveInfinity,
-    bool AllyInLineOfFire = false);
+    bool AllyInLineOfFire = false,
+    float? OthersHealth = null);
 
 /// <summary>The last value of one term and the game second it took that value (spec 418). Rows keep one per term, in term order.</summary>
 public readonly record struct TermMemory(bool On, double Since);
@@ -161,7 +165,7 @@ public static class ShipAiModel
 
     public static ParamKind ParamOf(Cond cond) => cond switch
     {
-        Cond.HealthBelow or Cond.ShieldsBelow or Cond.AmmoBelow or Cond.BatteryBelow or Cond.CargoAbove => ParamKind.Percent,
+        Cond.HealthBelow or Cond.ShieldsBelow or Cond.AmmoBelow or Cond.BatteryBelow or Cond.CargoAbove or Cond.FleetHealthAbove => ParamKind.Percent,
         Cond.EnemyWithin or Cond.EnemyBeyond or Cond.CratesWithin or Cond.LootWithin or Cond.AsteroidWithin or Cond.WreckWithin
             or Cond.FleetBeyond or Cond.AllyWithin => ParamKind.Distance,
         Cond.EnemiesAtLeast => ParamKind.Count,
@@ -290,6 +294,8 @@ public static class ShipAiModel
             Cond.AsteroidWithin => f.NearestAsteroid <= p * (1f + m),
             Cond.WreckWithin => f.NearestWreck <= p * (1f + m),
             Cond.FleetBeyond => f.NearestFleet > p * (1f - m),
+            // Spec 1083: every other ship is above the threshold. With no other ship, no repair needs the loot.
+            Cond.FleetHealthAbove => f.OthersHealth is not { } v || v * 100f > p - m * 100f,
             Cond.AllyWithin => f.NearestAlly <= p * (1f + m),
             Cond.AllyInLineOfFire => f.AllyInLineOfFire,
             _ => throw new ArgumentOutOfRangeException(nameof(term), term.Cond, null),
@@ -520,6 +526,15 @@ public static class ShipAiModel
     /// </summary>
     public const int EngageRangeDefault = 1500;
 
+    /// <summary>
+    /// Spec 1083: the default of the Autonomy tunable EnemyClearance and the flee distance of the Looter preset. It is the engage
+    /// range of the combat presets (requirement 406).
+    /// </summary>
+    public const int EnemyClearanceDefault = EngageRangeDefault;
+
+    /// <summary>Spec 1083: the Looter waits while another ship has this share of its hull or less, so the crews keep the loot for repair.</summary>
+    public const int RepairedPercent = 90;
+
     /// <summary>Spec 406. Starting points for the editor. Each one is a plain list of rows that the player can change.</summary>
     public static IReadOnlyList<TacticRow> PresetRows(Preset preset) => preset switch
     {
@@ -563,12 +578,15 @@ public static class ShipAiModel
             new(Cond.EnemyWithin, 1200, Act.TargetNearest, 0),
             new(Cond.Always, 0, Act.Guard, (int)GuardWho.VaultShip),
         ],
-        // Spec 1076 to 1080: autonomous ship scenarios.
+        // Spec 1076 to 1080: autonomous ship scenarios. Spec 1083: the Looter collects and sells only while every other ship is
+        // repaired, and keeps away from enemies.
         Preset.Looter =>
         [
-            new(Cond.CargoAbove, 95, Act.GoToStation, (int)StationPick.Nearest),
+            new(Cond.EnemyWithin, EnemyClearanceDefault, Act.ReturnToFleet, 0),
             new([new Term(Cond.StationInRange, 0), new Term(Cond.CargoToSell, 0)], Act.Sell, 0),
-            new(Cond.LootWithin, 3000, Act.CollectLoot, 0),
+            new([new Term(Cond.FleetHealthAbove, RepairedPercent), new Term(Cond.CargoAbove, 95)], Act.GoToStation, (int)StationPick.Nearest),
+            new([new Term(Cond.FleetHealthAbove, RepairedPercent), new Term(Cond.LootWithin, 3000)], Act.CollectLoot, 0),
+            new([new Term(Cond.FleetHealthAbove, RepairedPercent), new Term(Cond.CargoToSell, 0)], Act.GoToStation, (int)StationPick.Nearest),
             new(Cond.Always, 0, Act.ReturnToFleet, 0),
         ],
         Preset.Miner =>

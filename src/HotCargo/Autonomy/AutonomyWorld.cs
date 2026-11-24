@@ -18,8 +18,12 @@ using HotCargo.Tech;
 
 namespace HotCargo.Autonomy;
 
-/// <summary>A trading station, live or in stasis (spec 1069). Live is null in stasis.</summary>
-internal readonly record struct StationRef(ObjectID Id, Vector2 Center, float Radius, int PlayerIndex, Ship? Live);
+/// <summary>
+/// A trading station, live or in stasis (spec 1069). Live is null in stasis. Known (spec 1083): the human players know it: vanilla marks
+/// the station discovered (Landmark.IsDiscovered, sim state that every co-op machine shares), or a trade ship that is not a station is
+/// on their radar.
+/// </summary>
+internal readonly record struct StationRef(ObjectID Id, Vector2 Center, float Radius, int PlayerIndex, Ship? Live, bool Known);
 
 /// <summary>An asteroid with ore of the mine list, live or in stasis (spec 1070).</summary>
 internal readonly record struct AsteroidRef(ObjectID Id, Vector2 Center, float Radius, Ship? Live);
@@ -153,14 +157,15 @@ internal static class AutonomyWorld
         {
             var s = sim.Ships[i];
             if (s == ship || s.IsJunk || s.AI?.WillTradeWith(ship) != true) continue;
-            result.Add(new StationRef(s.UniqueID, s.DetWorldCenter, s.WorldBoundingRadius, s.Metadata.PlayerIndex, s));
+            bool known = SpaceStation.GetStation(s, onlyOperating: false) is { } station ? station.IsDiscovered : s.IsWithinRadarOfTeam(ship.Metadata.Team);
+            result.Add(new StationRef(s.UniqueID, s.DetWorldCenter, s.WorldBoundingRadius, s.Metadata.PlayerIndex, s, known));
             seen.Add(s.UniqueID);
         }
         foreach (var ms in SpaceStation.GetStations(sim, onlyOperating: true).OrderBy(m => m.StationID))
         {
             if (ms.PhysicalShip is not null || ms.Spawner is not { } sp || seen.Contains(ms.StationID)) continue;
             if (ship.IsEnemiesWith(sp.ObjectAllegiance)) continue;
-            result.Add(new StationRef(ms.StationID, ms.DetWorldCenter, 0f, sp.ObjectAllegiance, null));
+            result.Add(new StationRef(ms.StationID, ms.DetWorldCenter, 0f, sp.ObjectAllegiance, null, ms.StasisStation is { IsDiscovered: true }));
         }
         return result;
     }
@@ -173,11 +178,22 @@ internal static class AutonomyWorld
             .OrderBy(s => EdgeDistance(ship, s.Center) - s.Radius).ThenBy(s => s.Id).Select(s => s.Live).FirstOrDefault();
     }
 
-    /// <summary>Spec 1069: the station that "go to station" picks.</summary>
-    internal static StationRef? PickStation(Ship ship, ShipAi.StationPick pick, CargoSettings c)
+    /// <summary>
+    /// Spec 1069, 1083: the station that "go to station" picks. A human player ship picks only a station that its players know and that
+    /// does not refuse them (requirement 657), among those that allow says yes to. Limit: the refusal needs the live ship, so a station
+    /// in stasis that refuses counts until it turns live as the ship comes near; the pick then moves on. Other ships (scavengers) pick
+    /// among all stations.
+    /// </summary>
+    internal static StationRef? PickStation(Ship ship, ShipAi.StationPick pick, CargoSettings c, Func<StationRef, bool>? allow = null)
     {
         var sim = HunterOrders.Sim(ship);
         var stations = Stations(ship);
+        if (ship.IsHumanPlayerShip)
+        {
+            var run = Run.Current ?? throw new InvalidOperationException("a player ship picks a station without a run");
+            stations = stations.Where(s => s.Known && !(s.Live is { } live && Factions.FactionsArea.Refuses(run, ship, live)) && (allow?.Invoke(s) ?? true)).ToList();
+        }
+        else if (allow is not null) stations = stations.Where(allow).ToList();
         var cargo = CargoByType(ship);
         double? Score(StationRef s) => pick switch
         {
