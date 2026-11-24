@@ -14,21 +14,21 @@ repo="${GITHUB_REPOSITORY:-$(gh repo view --json nameWithOwner -q .nameWithOwner
 body="$(gh api "repos/$repo/pulls/$pr" --jq '.body // ""' | tr -d '\r' | awk '/<!--/ { c = 1 } !c { print } /-->/ { c = 0 }')"
 headings="$(grep -E '^#{1,6}[[:space:]]' <<<"$body" | sed 's/[[:space:]]*$//' || true)"
 problems=()
-grep -qx '### Decisions' <<<"$headings" || problems+=("no '### Decisions' block: list each choice that the brief did not make, one line with the reason, or 'none'")
-grep -qx '### Game tests' <<<"$headings" || problems+=("no '### Game tests' block")
-[[ "$(tail -1 <<<"$headings")" == '### Game tests' ]] || problems+=("'### Game tests' must be the last heading")
+grep -qx '### Decisions' <<<"$headings" || problems+=("No '### Decisions' block. Fix: add '### Decisions' before '### Game tests', with one line per choice that the brief did not make (what and why), or 'none'.")
+grep -qx '### Game tests' <<<"$headings" || problems+=("No '### Game tests' block. Fix: end the PR text with '### Game tests' and its lines ('+ <test>', '- <test>', 'all' or 'none: <reason>'; PR template).")
+[[ "$(tail -1 <<<"$headings")" == '### Game tests' ]] || problems+=("'### Game tests' is not the last heading. Fix: move every block that follows it (images, checkboxes, notes) above it.")
 if grep -qx '### Decisions' <<<"$headings"; then
   decisions="$(awk '/^###[[:space:]]+Decisions[[:space:]]*$/ { on = 1; next } on && /^#/ { exit } on && NF' <<<"$body")"
-  [[ -n "$decisions" ]] || problems+=("the '### Decisions' block is empty: write each decision with its reason, or 'none'")
+  [[ -n "$decisions" ]] || problems+=("The '### Decisions' block is empty. Fix: write one line per decision with its reason, or 'none'.")
   [[ "$(grep -nx '### Decisions' <<<"$headings" | cut -d: -f1)" -lt "$(grep -nx '### Game tests' <<<"$headings" | cut -d: -f1 || echo 0)" ]] \
-    || problems+=("'### Decisions' must come before '### Game tests'")
+    || problems+=("'### Decisions' comes after '### Game tests'. Fix: move the Decisions block above '### Game tests'.")
 fi
 if grep -qiE '(^|[^[:alnum:]])(fix(es|ed)?|close[sd]?|resolve[sd]?) #[0-9]+' <<<"$body"; then
   gh api "repos/$repo/pulls/$pr/files" --paginate --jq '.[].filename' | grep -qE '^tests/|^tools/[^/]+/tests/|Tests\.cs$' \
-    || problems+=("it fixes an issue but changes no test: add a unit test or a game test that fails without the fix (tests/, tools/<tool>/tests/)")
+    || problems+=("The PR fixes an issue but changes no test. Fix: add a unit test or a game test that fails without the fix (tests/, tools/<tool>/tests/, *Tests.cs).")
 fi
 if [[ "$(gh api "repos/$repo/pulls/$pr" --jq .draft)" == false ]] && gh api "repos/$repo/pulls/$pr/files" --paginate --jq '.[] | select(.status != "removed") | .filename' | grep -qx PLAN.md; then
-  problems+=("PLAN.md is still in the PR: delete it before the PR leaves draft")
+  problems+=("PLAN.md is still in the PR. Fix: delete PLAN.md in a commit (git rm PLAN.md), or turn the PR back to draft while you work.")
 fi
 for p in "${problems[@]}"; do echo "check-pr-text: PR #$pr: $p"; done
 (( ${#problems[@]} == 0 )) || exit 1

@@ -14,7 +14,7 @@ dup_sections="$(ls spec | grep -E '^[0-9]+-' | cut -d- -f1 | sort | uniq -d | tr
 if [[ -n "$dup_sections" ]]; then echo "check-spec-numbers: two spec files share the section number: $dup_sections"; rc=1; fi
 dup_reqs="$(cat spec/*.md | grep -oE '^[0-9]+\. ' | sort | uniq -d | tr -d '. ' | tr '\n' ' ' || true)"
 if [[ -n "$dup_reqs" ]]; then
-  echo "check-spec-numbers: requirement numbers used twice: $dup_reqs"
+  echo "check-spec-numbers: requirement numbers used twice: $dup_reqs. Fix: keep the number that main has and renumber yours from your block (spec/blocks.txt):"
   for n in $dup_reqs; do grep -n "^$n\. " spec/*.md | cut -c1-120; done
   rc=1
 fi
@@ -38,7 +38,7 @@ outside="$(grep -oHE '^[0-9]+\. ' spec/*.md | sed 's#^spec/##; s/:/ /; s/\. *$//
          !($2 in seen) { ok = 0; for (i = 1; i <= m; i++) if ($1 == file[i] && $2 >= lo[i] && $2 <= hi[i]) ok = 1; if (!ok) print $2 " in " $1 }' \
     <(echo "$old") <(echo "$blocks") -)"
 if [[ -n "$outside" ]]; then
-  echo "check-spec-numbers: new requirement numbers outside the blocks of their file in spec/blocks.txt (scripts/spec-block.sh gives a free block):"
+  echo "check-spec-numbers: new requirement numbers outside the blocks of their file in spec/blocks.txt. Fix: add the block from your brief to spec/blocks.txt, or run scripts/spec-block.sh <spec file> for the next free block, then renumber into it:"
   echo "$outside" | sed 's/^/  /'
   rc=1
 fi

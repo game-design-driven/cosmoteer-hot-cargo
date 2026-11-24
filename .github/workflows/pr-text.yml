@@ -1,24 +1,37 @@
-# Checks the text of a pull request on each edit and push: the "### Decisions" block (scripts/check-pr-text.sh) and the
-# lines of the "### Game tests" block (scripts/ci-test-set.sh). Its own workflow, so that an edit of the text reruns only this
-# check, not the build and the game tests of check.yml. The merge queue checks the text again (ci-test-set.sh --group).
+# The rule checks of a pull request (scripts/check-rules.sh): the PR text, the Game tests block, spec numbers and the co-op
+# determinism lint. Check "pr-text", required on main. On a PR it keeps one comment that says what is wrong and how to fix it,
+# and deletes it when every rule passes. Its own workflow, so that an edit of the text reruns only this check, not the build
+# and the game tests of check.yml. In the merge queue it checks the texts of the group's PRs and the merged tree: a required
+# check must report there too.
 name: pr-text
 on:
   pull_request:
     types: [opened, edited, reopened, synchronize, ready_for_review]
+  merge_group:
+    types: [checks_requested]
 concurrency:
-  group: pr-text-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: pr-text-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 jobs:
   pr-text:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          # The base commit of the PR or of the queue group, for the new spec numbers.
+          fetch-depth: 0
       - env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
+          QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
+          QUEUE_HEAD: ${{ github.event.merge_group.head_sha }}
         run: |
-          rc=0
-          scripts/check-pr-text.sh "$PR" || rc=1
-          scripts/ci-test-set.sh "$PR" > set.txt || rc=1
-          cat set.txt
+          if [[ "${{ github.event_name }}" == merge_group ]]; then scripts/check-rules.sh --group "$QUEUE_BASE" "$QUEUE_HEAD" | tee report.md
+          else scripts/check-rules.sh "$PR" | tee report.md; fi
+          rc="${PIPESTATUS[0]}"
+          { echo "### Rule checks"; echo; if [[ -s report.md ]]; then cat report.md; else echo "Every rule passes."; fi; } >> "$GITHUB_STEP_SUMMARY"
           exit "$rc"
