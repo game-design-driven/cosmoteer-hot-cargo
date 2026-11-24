@@ -212,6 +212,14 @@ mp hc_escort_advance 0.29
 pause off
 waitfor hc_escort_raiders >= 2 60
 on 1 waitfor hc_escort_raiders >= 2 60
+# Spec 1881, 1882: both players leave the freighter. It holds alone, and its raid spawns at the same tick and place on both machines.
+mp hc_escort_goto 3000
+pause off
+waitfor hc_guard_alone == 1 15
+on 1 waitfor hc_guard_alone == 1 15
+mp hc_guard_expose 59
+waitfor hc_guard_raiders >= 2 30
+on 1 waitfor hc_guard_raiders >= 2 30
 wait 5
 mp shieldplayers off
 

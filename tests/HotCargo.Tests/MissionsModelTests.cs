@@ -75,3 +75,42 @@ public class ConvoyRouteTests
         public int GetHashCode(Vector2 v) => 0;
     }
 }
+
+public class EscortGuardTests
+{
+    static EscortGuardEvent Step(ref double exposed, ref bool raided, double seconds, bool guarded, bool live) =>
+        MissionModel.GuardStep(ref exposed, ref raided, seconds, guarded, live, raidSeconds: 60f, lostSeconds: 150f);
+
+    [Fact]
+    public void A_live_escort_alone_draws_one_raid_then_never_a_loss()
+    {
+        double exposed = 0;
+        bool raided = false;
+        Assert.Equal(EscortGuardEvent.None, Step(ref exposed, ref raided, 59, guarded: false, live: true));
+        Assert.Equal(EscortGuardEvent.Raid, Step(ref exposed, ref raided, 1, guarded: false, live: true));
+        Assert.Equal(EscortGuardEvent.None, Step(ref exposed, ref raided, 200, guarded: false, live: true));
+    }
+
+    [Fact]
+    public void An_escort_in_stasis_is_lost_at_the_lost_time_and_raided_only_when_live_again()
+    {
+        double exposed = 0;
+        bool raided = false;
+        Assert.Equal(EscortGuardEvent.None, Step(ref exposed, ref raided, 100, guarded: false, live: false));
+        Assert.Equal(EscortGuardEvent.Raid, Step(ref exposed, ref raided, 1, guarded: false, live: true));
+        Assert.Equal(EscortGuardEvent.Lost, Step(ref exposed, ref raided, 49, guarded: false, live: false));
+    }
+
+    [Fact]
+    public void A_guard_resets_the_clock_and_allows_a_new_raid()
+    {
+        double exposed = 0;
+        bool raided = false;
+        Step(ref exposed, ref raided, 60, guarded: false, live: true);
+        Assert.Equal(EscortGuardEvent.None, Step(ref exposed, ref raided, 1, guarded: true, live: true));
+        Assert.Equal(0, exposed);
+        Assert.False(raided);
+        Assert.Equal(EscortGuardEvent.Raid, Step(ref exposed, ref raided, 60, guarded: false, live: true));
+    }
+}
+
