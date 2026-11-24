@@ -1,6 +1,6 @@
 // Prototype Core (spec 133). The special part that a Prototype Retrieval carrier holds. C# (Missions/Mechanics/PrototypeObjective.cs)
 // puts it on the carrier's hull. It has no function: it only needs to survive the fight.
-// Vanilla storage bay sprites with a tint. It stays buildable, because a part that is not buildable cannot go on a blueprint.
+// Own art in sprites/prototype_core (spec 2005). It stays buildable, because a part that is not buildable cannot go on a blueprint.
 Part : <./Data/ships/terran/base_part_terran.rules>/Part
 {
 	NameKey = "HotCargoMechanics/PrototypeCore"
@@ -21,67 +21,54 @@ Part : <./Data/ships/terran/base_part_terran.rules>/Part
 	TypeCategories = []
 	ReceivableBuffs : ^/0/ReceivableBuffs []
 	IgnoreRotationForMirroredSelection = true
-	TINT = [255, 120, 255]
 	EditorIcon
 	{
 		Texture
 		{
-			File = "./Data/ships/terran/storage_2x2/icon.png"
+			File = "sprites/prototype_core/icon.png"
 			SampleMode = Linear
 		}
 		Size = [64, 64]
-		VertexColor = &~/Part/TINT
 	}
 	Components : ^/0/Components
 	{
+		// Art (spec 1057, 2005): the vanilla deck and battery walls by reference, and the own layers in sprites/prototype_core
+		// (tools/sprites/make_sprites.py). The core pulses on the doodad layer.
+		Deck00 : <../../autonomy/part_art.rules>/DeckTile {}
+		Deck10 : <../../autonomy/part_art.rules>/DeckTile { Location = [1.5, 0.5] }
+		Deck01 : <../../autonomy/part_art.rules>/DeckTile { Location = [0.5, 1.5] }
+		Deck11 : <../../autonomy/part_art.rules>/DeckTile { Location = [1.5, 1.5] }
 		Graphics
 		{
 			Type = Graphics
 			Location = [1, 1]
 			Floor
 			{
-				Layer = "floors"
-				DamageLevels
-				[
-					{
-						File = "./Data/ships/terran/storage_2x2/floor.png"
-						Size = [2, 2]
-						VertexColor = &~/Part/TINT
-					}
-					{
-						File = "./Data/ships/terran/storage_2x2/floor_33.png"
-						Size = [2, 2]
-						VertexColor = &~/Part/TINT
-					}
-					{
-						File = "./Data/ships/terran/storage_2x2/floor_66.png"
-						Size = [2, 2]
-						VertexColor = &~/Part/TINT
-					}
+				Layer = "turrets"
+				DamageLevels [
+					{ File = "sprites/prototype_core/machine.png"; Size = [2, 2] }
+					{ File = "sprites/prototype_core/machine_33.png"; Size = [2, 2] }
+					{ File = "sprites/prototype_core/machine_66.png"; Size = [2, 2] }
 				]
 			}
-			Walls
+			OperationalDoodad
 			{
-				Layer = "walls"
+				Layer = "doodads_low"
 				DamageLevels
 				[
 					{
-						File = "./Data/ships/terran/storage_2x2/walls.png"
+						AnimationFiles [ "sprites/prototype_core/doodads_on1.png", "sprites/prototype_core/doodads_on2.png", "sprites/prototype_core/doodads_on3.png", "sprites/prototype_core/doodads_on4.png" ]
 						Size = [2, 2]
-						VertexColor = &~/Part/TINT
-					}
-					{
-						File = "./Data/ships/terran/storage_2x2/walls_33.png"
-						Size = [2, 2]
-						VertexColor = &~/Part/TINT
-					}
-					{
-						File = "./Data/ships/terran/storage_2x2/walls_66.png"
-						Size = [2, 2]
-						VertexColor = &~/Part/TINT
+						AnimationInterval = 0.25
 					}
 				]
 			}
+			OperationalLighting
+			{
+				Layer = "lights_add"
+				DamageLevels [ { File = "sprites/prototype_core/lights.png"; Size = [2, 2] } ]
+			}
+			Walls = &<../../autonomy/part_art.rules>/Walls2x2
 		}
 
 		DestroyedEffects
@@ -94,7 +81,7 @@ Part : <./Data/ships/terran/base_part_terran.rules>/Part
 		Blueprints
 		{
 			Type = BlueprintSprite
-			File = "./Data/ships/terran/storage_2x2/blueprints.png"
+			File = "sprites/prototype_core/blueprints.png"
 			Size = [2, 2]
 		}
 	}

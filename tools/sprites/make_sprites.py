@@ -3,8 +3,8 @@
 # dependencies = ["pillow>=13", "numpy>=2.5", "scipy>=1.18"]
 # ///
 """
-Draws the own layers of the Hot Cargo parts (spec 1057): Computer, targeted reactor, Funnel.
-Run: uv run tools/sprites/make_sprites.py   (rewrites mod/autonomy/sprites/<part>/*.png)
+Draws the own layers of the Hot Cargo parts (spec 1057): Computer, targeted reactor, Funnel, Tech Vault, Prototype Core.
+Run: uv run tools/sprites/make_sprites.py   (rewrites mod/<area>/sprites/<part>/*.png)
 
 Each part shows the vanilla deck and walls by reference from its rules (never copied). This script draws only what makes
 the part itself: the machine on the deck, animated doodads, lights, the roof with its normals and glows, the blueprint
@@ -21,7 +21,8 @@ from scipy import ndimage
 from kit import (BLACK, COPPER, DARK, GUNMETAL, HAZARD, STEEL, TILE, Out, Sprite, blueprint, damaged_normals, deck,
                  frame, glow, lights)
 
-ROOT = pathlib.Path(__file__).resolve().parents[2] / "mod" / "autonomy" / "sprites"
+MOD = pathlib.Path(__file__).resolve().parents[2] / "mod"
+ROOT = MOD / "autonomy" / "sprites"
 POWER = (180, 255, 77)  # the vanilla reactor glow (reactor_small roof light VertexColor)
 SCREEN = (70, 160, 255)
 INTAKE = (255, 170, 60)
@@ -277,8 +278,102 @@ def computer():
     icon(out, 2, 1, machine, frames[0])
 
 
+# ---- Tech Vault, 1x1: an armoured bed for 4 units of tech, a heavy frame with locking bolts and mint status lights.
+# No roof: the tech shows (spec 1540). The units draw on doodads_low, inset 8 px, so the 4 pads sit under the stack slots.
+
+MINT = (140, 255, 200)  # the Stolen Tech glyph colour (make_items.py)
+VAULT_WALL = ((84, 80, 76), 0.25)
+
+
+def tech_vault():
+    out = Out(MOD / "tech" / "sprites", "tech_vault")
+    f = Sprite(1, 1)
+    f.put(f.d_rect(0, 0, 64, 64), 4, DARK)  # under the walls: a hole in a wall shows a dark breach
+    f.put(f.d_rect(5, 5, 59, 59, chamfer=6), 6, GUNMETAL, bevel=2)
+    f.put(f.d_rect(8, 8, 56, 56, chamfer=4), 2, DARK, bevel=1)
+    for x0, y0 in ((10, 10), (32.5, 10), (10, 32.5), (32.5, 32.5)):  # under the stack slots (8 + 0.75 x vanilla slot)
+        f.put(f.d_rect(x0, y0, x0 + 21.5, y0 + 21.5, round_=1.5), 3.5, ((112, 118, 122), 0.35), bevel=1)
+        f.slots(x0 + 3, y0 + 3, x0 + 18.5, y0 + 18.5, 3, 1)
+    floor = out.save_damaged("floor", f.color(41), 41, holes="burnt")[0]
+
+    w = Sprite(1, 1)
+    w.put(np.maximum(w.d_rect(0, 0, 64, 64), -w.d_rect(5, 5, 59, 59, chamfer=6)), 9, VAULT_WALL, bevel=2)
+    w.cut(np.maximum(w.d_rect(1.5, 1.5, 62.5, 62.5), -w.d_rect(2.5, 2.5, 61.5, 61.5)), 2)
+    for (dx, dy), (x, y) in side_points(32, 32, 30):  # locking bolts, one in each wall
+        w.put(w.d_rect(*along(32, (dx, dy), 26, 31.5, -5, 5), round_=1), 11, STEEL, bevel=1)
+        w.cut(w.d_rect(*along(32, (dx, dy), 27.5, 30, -0.6, 0.6)), 2)
+    for sx, sy in ((0, 0), (1, 0), (0, 1), (1, 1)):  # mint status lights in the corners
+        x, y = 4.5 + sx * 55, 4.5 + sy * 55
+        w.put(w.d_circle(x, y, 2.6), 10, BLACK)
+        w.put(w.d_circle(x, y, 1.6), 10, MINT, emit=True)
+    walls = out.save_damaged("walls", w.color(42), 42)[0]
+    corners = np.zeros((64, 64), bool)
+    for sx, sy in ((0, 0), (1, 0), (0, 1), (1, 1)):
+        corners |= w.d_circle(4.5 + sx * 55, 4.5 + sy * 55, 2) < 0
+    out.save("lights", lights([(corners, (50, 110, 80))], (64, 64), blur=3))
+
+    out.save("blueprints", blueprint((f.d_rect(5, 5, 59, 59, chamfer=6) < 0)))
+    # The editor icon shows the vault full: the four tech crates of make_items.py on the bed.
+    img = floor.copy()
+    crates = Image.open(MOD / "tech" / "sprites" / "stolen_tech" / "stack_4.png").resize((48, 48), Image.LANCZOS)
+    img.alpha_composite(crates, (8, 8))
+    img.alpha_composite(walls)
+    out.save("icon", img)
+
+
+# ---- Prototype Core, 2x2: the containment unit that a Prototype Retrieval carrier holds. The same blue core and hazard
+# corners as the cargo item (make_items.py), so a player who sees the part knows the item. No roof: the core shows.
+
+CORE = (70, 170, 255)
+
+
+def prototype_core():
+    out = Out(MOD / "missions" / "mechanics" / "sprites", "prototype_core")
+    m = Sprite(2, 2)
+    c = 64
+    m.put(m.d_rect(10, 10, 118, 118, chamfer=26), 6, GUNMETAL, bevel=2)
+    m.cut(np.maximum(m.d_rect(14, 14, 114, 114, chamfer=24), -m.d_rect(15, 15, 113, 113, chamfer=23)), 2)
+    for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+        # Hazard pad in each corner, with black stripes across it.
+        pad = m.d_poly([(c + sx * 54, c + sy * 30), (c + sx * 54, c + sy * 38), (c + sx * 38, c + sy * 54),
+                        (c + sx * 30, c + sy * 54)])
+        inside = m.put(pad, 9, HAZARD, bevel=1)
+        stripe = np.mod(sx * m.X + sy * m.Y, 8) < 4
+        m.base[inside & stripe] = (34, 32, 30)
+        # Coolant line from the ring to the pad.
+        m.pipe(c + sx * 24, c + sy * 24, c + sx * 36, c + sy * 36, 2.4, 8, ((70, 110, 160), 0.5))
+    m.greebles(14, 14, 114, 114, 51, 6, density=0.7, avoid=(m.height != 6))
+    for side in SIDES:  # clamps that hold the core
+        m.put(m.d_rect(*along(c, side, 26, 50, -7, 7), round_=1.5), 11, STEEL, bevel=2)
+        m.slots(*along(c, side, 36, 48, -5, 5), 3, 1.5, vertical=bool(side[0]))
+        m.put(m.d_rect(*along(c, side, 50, 54, -9, 9)), 9, DARK, bevel=1)
+    m.put(m.d_circle(c, c, 30), 12, STEEL, bevel=3)
+    m.cut(m.d_ring(c, c, 25, 26.5), 3)
+    m.rivets([(c + 28 * math.cos(a), c + 28 * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 16, endpoint=False)], 12)
+    m.put(m.d_circle(c, c, 23), 3, BLACK)
+    m.dome(c, c, 18, 3, 6, ((24, 40, 60), 0.9))  # the dark core glass; the doodads light it
+    machine = out.save_damaged("machine", m.color(51), 51, holes="burnt")[0]
+
+    frames = []
+    for f in range(4):  # a slow pulse, as the cargo item
+        pulse = (1.0, 0.86, 0.72, 0.86)[f]
+        d = Sprite(2, 2)
+        d.dome(c, c, 18, 0, 6, tuple(int(v * pulse) for v in CORE), emit=True)
+        d.dome(c - 2, c - 2, 11, 1, 6, tuple(int(v * (0.6 + 0.4 * pulse)) for v in (170, 228, 255)), emit=True)
+        d.dome(c - 4, c - 4, 4.5, 2, 3, (250, 254, 255), emit=True)
+        for k, ((dx, dy), (x, y)) in enumerate(side_points(c, c, 44)):
+            d.put(d.d_circle(x, y, 1.8), 0, CORE if (f + k) % 2 == 0 else (30, 60, 90), emit=True)
+        frames.append(out.save(f"doodads_on{f + 1}", d.color()))
+
+    out.save("lights", lights([(m.d_circle(c, c, 22) < 0, (40, 100, 170))], (128, 128), blur=14))
+    out.save("blueprints", blueprint(m.mask()))
+    icon(out, 2, 2, machine, frames[0])
+
+
 if __name__ == "__main__":
     targeted_reactor()
     funnel()
     computer()
-    print(f"sprites written to {ROOT}")
+    tech_vault()
+    prototype_core()
+    print(f"sprites written to {MOD}/<area>/sprites")
