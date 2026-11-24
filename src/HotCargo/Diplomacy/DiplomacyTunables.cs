@@ -160,6 +160,12 @@ public sealed class DiplomacyTunables
     [Serialize(Optional = true)] public float HireUseFalloff = 0.15f;
     /// <summary>Spec 2224: trust falloff per whole ship of health that hired ships lost this run. Trust × 1 ÷ (1 + ships × this).</summary>
     [Serialize(Optional = true)] public float HireLossFalloff = 0.5f;
+    /// <summary>Spec 2225: the paid hires, the ships lost and the clean returns halve every this many game minutes. 0 keeps them for the run.</summary>
+    [Serialize(Optional = true)] public float HireHalfLifeMinutes = 20f;
+    /// <summary>Spec 2226: hire and mercenary prices fall by this share for each paid hire that came back unhurt.</summary>
+    [Serialize(Optional = true)] public float HireCleanDiscount = 0.05f;
+    /// <summary>Spec 2226: the most that clean returns take off hire and mercenary prices (0 to 0.2, user rule: at most 20 %).</summary>
+    [Serialize(Optional = true)] public float HireMaxDiscount = 0.2f;
     /// <summary>Seconds that a hired ship helps: about one mission.</summary>
     [Serialize(Optional = true)] public float HireSeconds = 300f;
     /// <summary>A hired ship below this health stops helping and runs.</summary>
@@ -222,6 +228,8 @@ public sealed class DiplomacyTunables
         require(SurrenderMinFightSeconds >= 0 && SurrenderMinDamage is >= 0 and <= 1, "Diplomacy.SurrenderMinFightSeconds must be 0 or more, SurrenderMinDamage 0 to 1");
         require(HireSureUnits > 0 && HireMinShare is > 0 and <= 1 && HirePerHeat >= 0 && HireUseFalloff >= 0 && HireLossFalloff >= 0,
             "Diplomacy.HireSureUnits must be above 0, HireMinShare above 0 to 1, HirePerHeat, HireUseFalloff and HireLossFalloff 0 or more");
+        require(HireHalfLifeMinutes >= 0 && HireCleanDiscount >= 0 && HireMaxDiscount is >= 0 and <= 0.2f,
+            "Diplomacy.HireHalfLifeMinutes and HireCleanDiscount must be 0 or more, HireMaxDiscount 0 to 0.2");
         var groups = new HashSet<string>();
         foreach (var g in RiskBravery)
             require(g.Group.Length > 0 && groups.Add(g.Group) && g.Bravery is >= 0 and <= 1, $"Diplomacy.RiskBravery '{g.Group}': empty, twice, or bravery outside 0 to 1");

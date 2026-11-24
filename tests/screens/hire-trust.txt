@@ -1,4 +1,4 @@
-# Spec 579, 2224: the help offer before and after paid hires. The slider runs from 60 % of the sure price to the sure price,
+# Spec 579, 2224, 2226: the help offer before and after paid hires, and after an unhurt return. The slider runs from 60 % of the sure price to the sure price,
 # and after a hire with damage the page shows the trust line. RUNNER=mac scripts/screens.sh tests/screens/hire-trust.txt <out-dir>
 render on
 newgame run
@@ -36,6 +36,29 @@ dip_slider friend hire 10
 dip_open friend
 wait 2
 screenshot hire-later
+dip_close
+wait 1
+# Spec 2226: a hire that comes back unhurt cuts the prices. The factors go to 1 for a sure hire, then back.
+pause off
+dip_set HirePerHeat 0
+dip_set HirePerReputation 0
+dip_set HireUseFalloff 0
+dip_set HireLossFalloff 0
+dip hire friend 10
+wait 1
+dip_endhire friend
+wait 2
+dip_set HirePerHeat 0.4
+dip_set HirePerReputation 0.3
+dip_set HireUseFalloff 0.15
+dip_set HireLossFalloff 0.5
+dip_spawn friend 250
+wait 2
+pause on
+dip_slider friend hire 10
+dip_open friend
+wait 2
+screenshot hire-clean
 dip_close
 wait 1
 quit

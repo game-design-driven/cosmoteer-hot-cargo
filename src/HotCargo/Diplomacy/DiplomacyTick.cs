@@ -26,6 +26,7 @@ static class DiplomacyTick
         S(run).NextCheck = run.State.GameSeconds + run.T.Diplomacy.CheckSeconds;
         TickHeld(run, sim);
         TickFights(run, sim);
+        DecayHires(run);
         TickHires(run, sim);
         TickHails(run, sim);
     });
@@ -35,6 +36,8 @@ static class DiplomacyTick
     {
         var s = S(run);
         if (s.Hires.Count > 0) Log.Info($"diplomacy: {s.Hires.Count} hires end with the jump");
+        // Spec 2226: a hired ship that the jump leaves behind unhurt counts as a clean return.
+        foreach (var h in s.Hires) CountReturn(run, h);
         s.Hires.Clear();
         s.Leaving.Clear();
         s.FeeAsks.Clear();
@@ -150,6 +153,7 @@ static class DiplomacyTick
             // before a jump does not count. Revisit if jumps often come right after heavy hits on hired ships.
             CountDamage(run, h, ship);
             if (now < h.Until || h.Fleeing) continue;
+            CountReturn(run, h);
             Ux.UxKit.ChatLine(run.Game, DipText.Format("HireDoneFmt", ship.Metadata.XmlShipName));
             Log.Info($"diplomacy: hire of {ship.Metadata.PlainShipName} ended");
             hires.RemoveAt(i--);
@@ -164,6 +168,29 @@ static class DiplomacyTick
         if (health >= h.LastHealth) return;
         S(run).HireShipsLost += h.LastHealth - health;
         h.LastHealth = health;
+        h.Hurt = true;
+    }
+
+    /// <summary>Spec 2226: a paid contract that ends by time or a jump with no damage is a clean return.</summary>
+    static void CountReturn(Run run, Hire h)
+    {
+        if (!h.Paid || h.Hurt) return;
+        S(run).HireCleanReturns++;
+        Log.Info($"diplomacy: hired ship {h.Ship} came back unhurt");
+    }
+
+    /// <summary>Spec 2225: the hire counts halve every HireHalfLifeMinutes of game time (the shared decay of paid heat cuts, spec 2230).</summary>
+    static void DecayHires(Run run)
+    {
+        var s = S(run);
+        double seconds = run.State.GameSeconds - s.HireDecayAt;
+        s.HireDecayAt = run.State.GameSeconds;
+        if (seconds <= 0) return;
+        float halfLife = run.T.Diplomacy.HireHalfLifeMinutes;
+        if (halfLife <= 0f) return;
+        s.PaidHires = HeatModel.BuyDecay(s.PaidHires, seconds, halfLife);
+        s.HireShipsLost = HeatModel.BuyDecay(s.HireShipsLost, seconds, halfLife);
+        s.HireCleanReturns = HeatModel.BuyDecay(s.HireCleanReturns, seconds, halfLife);
     }
 
     /// <summary>The first human ship that can talk with the AI ship now, or null.</summary>

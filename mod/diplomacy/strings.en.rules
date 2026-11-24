@@ -71,7 +71,7 @@ HotCargoDiplomacy
 	HeldGoneFmt = "<bad>The {0} is gone, and your {1} tech with it.</bad>"
 	HireFmt = "Offer {0} for {1} min of help {2}. You pay only if they agree."
 	HireWanted = "<bad>You are wanted. Nobody here fights for you.</bad>"
-	HireTrustFmt = "<gray>Mercenaries talk. Paid hires this run: {0}. Hull lost on hired ships: {1:0.#} ships. Hire chances ×{2:0.##}, mercenary prices ×{3:0.##}.</gray>"
+	HireTrustFmt = "<gray>Mercenaries talk. Recent paid hires: {0:0.#}. Hull lost on hired ships: {1:0.#} ships. Unhurt returns: {2:0.#}. Hire chances ×{3:0.##}, help prices ×{4:0.##}, mercenary prices ×{5:0.##}.</gray>"
 	HireYesFmt = "<b>{0}:</b> <i>\"Deal. We fight with you for {1} min.\"</i>"
 	HireNoFmt = "<b>{0}:</b> <i>\"Not for that.\"</i> You keep your money."
 	MercFmt = "Hire them for {0} min: {1}"
