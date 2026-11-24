@@ -224,6 +224,8 @@ ChainEscort
 									DestinationTag = { Mode=Latest; Tag=hc_ch_dest; }
 									// The route keeps the route sun clearance of the smaller systems (spec 36, spec 105).
 									SunClearance = "(&<../contracts/system_scale.rules>/RouteSunClearance)"
+									// Spec 1886: the convoy route, so the convoy's 4 minutes alone.
+									LostSeconds = 240
 								}
 								{
 									Type = ProtectShips

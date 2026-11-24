@@ -811,6 +811,8 @@ MiningEscort
 							Type = HotCargoMiningEscort
 							FieldTag = asteroid_field_poi
 							StationTag = { Mode=Nearest; Tag=trade_station; }
+							// Spec 1886: the longest escort (the trip, about 3 minutes of mining, the trip back), so 5 minutes alone.
+							LostSeconds = 300
 						}
 						{
 							Type = ReceiveRewards

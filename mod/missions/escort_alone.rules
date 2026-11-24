@@ -1,0 +1,12 @@
+// Spec 1886: the warning ring that follows an escort while it is alone (Missions/EscortGuard.cs). A red copy of the vanilla target area
+// ring, on the map and in space.
+AloneRing : <./Data/doodads/poi/doodad_poi_target_area.rules>
+{
+	ID = yarden_zamir.poi_escort_alone
+	DescriptionKey = "HotCargoObjectives/EscortAloneMarker"
+	OverrideHudIconColor = [255, 80, 60, 255]
+	RingCircle : <./Data/doodads/poi/doodad_poi_ring.rules>/RingCircle
+	{
+		VertexColor = [255, 70, 50, 230]
+	}
+}

@@ -23,6 +23,9 @@ expect mech_mine_phase == 1
 hc_guard_goto 3000
 pause off
 waitfor hc_guard_alone == 1 10
+# Spec 1886: the Mining Escort's rules give it 5 minutes alone.
+expect hc_guard_lost_after == 300
+expect hc_guard_ring == 1
 mech_mine_goto
 pause off
 waitfor hc_guard_alone == 0 10

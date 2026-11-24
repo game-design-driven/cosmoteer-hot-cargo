@@ -1,6 +1,6 @@
-# Escort guard (spec 1881 to 1884): after "Ready" the freighter moves only while a player ship is near. Alone it holds, raiders find
-# it after EscortRaidSeconds, and alone in stasis it is lost after EscortLostSeconds. Before this rule the freighter flew alone past
-# raiders that the game had frozen in stasis, and arrived.
+# Escort guard (spec 1881 to 1886): after "Ready" the freighter moves only while a player ship is near. Alone it holds, a red ring
+# follows it, the alone line counts down, raiders find it after EscortRaidSeconds, and raiders take it when its time alone runs out.
+# Before this rule the freighter flew alone past raiders that the game had frozen in stasis, and arrived.
 # missions: random
 newgame run
 wait 8
@@ -14,11 +14,17 @@ wait 3
 hc_escort_ready
 wait 2
 expect hc_guard_alone == 0
+# Spec 1886: Convoy Duty's rules give it 4 minutes alone.
+expect hc_guard_lost_after == 240
 # Spec 1881: the players 3,000 away. The game keeps the cells around a player ship live, so the freighter is live, but it holds.
 hc_escort_goto 3000
 pause off
 waitfor hc_guard_alone == 1 10
 expect hc_guard_live == 1
+# Spec 1886: the red ring follows it, and the line counts down from 4:00.
+expect hc_guard_ring == 1
+expect hc_guard_left <= 240
+expect hc_guard_left >= 225
 hc_mark
 wait 10
 expect hc_escort_progress < 300
@@ -28,6 +34,7 @@ pause off
 waitfor hc_escort_progress > 400 45
 expect hc_guard_alone == 0
 expect hc_guard_exposed == 0
+expect hc_guard_ring == 0
 # Spec 1882: alone for EscortRaidSeconds (60 s, here set to 59 s), live raiders jump in around it and attack it.
 hc_escort_goto 3000
 pause off
@@ -36,14 +43,20 @@ hc_guard_expose 59
 waitfor hc_guard_raiders >= 2 10
 waitfor hc_guard_raiders_on_escort >= 1 30
 expect hc_guard_failed == 0
-# Spec 1883: with no player ship near enough to keep it live, it is lost after EscortLostSeconds (150 s, here set to 149 s).
+# Spec 1883, 1886: far away (it goes into stasis), the clock still runs. When it runs out, raiders take it: it turns hostile, and
+# the failed mission leaves the log.
 hc_guard_clear_raiders
+hc_guard_mark
 hc_escort_goto 9000
 pause off
 waitfor hc_guard_live == 0 20
 expect hc_guard_failed == 0
-hc_guard_expose 149
+# The second warning, one minute before the end.
+hc_guard_expose 179
 wait 2
-# The failed mission leaves the log.
+expect hc_guard_left <= 60
+hc_guard_expose 239
+wait 2
 expect hc_active_escort == 0
+expect hc_guard_marked_taken == 1
 quit

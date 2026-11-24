@@ -89,37 +89,51 @@ public static class MissionModel
     }
 
     /// <summary>
-    /// Spec 1882 to 1884: one sim tick of the exposure clock of an escort that is under way. A guarded escort resets the clock and can
-    /// draw a new raid later. Unguarded, the clock runs: at <paramref name="raidSeconds"/> a live escort draws one raid (an escort in stasis
-    /// draws it when it is live again, because raiders that spawn in stasis do not move); at <paramref name="lostSeconds"/> an escort in
-    /// stasis is lost. A live escort is never lost by the clock: the raiders decide.
+    /// Spec 1882 to 1886: one sim tick of the alone clock of an escort that is under way. A guarded escort resets the clock and can draw a
+    /// new raid later. Unguarded, the clock runs. It starts with a warning; at <paramref name="raidSeconds"/> a live escort draws one raid
+    /// (an escort in stasis draws it when it is live again, because raiders that spawn in stasis do not move); <paramref name="warnSeconds"/>
+    /// before <paramref name="lostSeconds"/> a second warning comes; at <paramref name="lostSeconds"/> the escort is lost, live or in stasis.
     /// </summary>
-    public static EscortGuardEvent GuardStep(ref double exposed, ref bool raided, double seconds, bool guarded, bool live, float raidSeconds, float lostSeconds)
+    public static EscortGuardEvent GuardStep(ref double exposed, ref bool raided, double seconds, bool guarded, bool live, float raidSeconds, float lostSeconds, float warnSeconds)
     {
         if (seconds < 0) throw new ArgumentOutOfRangeException(nameof(seconds), seconds, "must not be negative");
         if (raidSeconds <= 0f || lostSeconds <= raidSeconds) throw new ArgumentOutOfRangeException(nameof(lostSeconds), lostSeconds, "need 0 < raidSeconds < lostSeconds");
+        if (warnSeconds <= 0f || warnSeconds >= lostSeconds) throw new ArgumentOutOfRangeException(nameof(warnSeconds), warnSeconds, "need 0 < warnSeconds < lostSeconds");
         if (guarded)
         {
             exposed = 0;
             raided = false;
             return EscortGuardEvent.None;
         }
+        double before = exposed;
         exposed += seconds;
+        var events = EscortGuardEvent.None;
+        if (before == 0 && exposed > 0) events |= EscortGuardEvent.Alone;
+        if (before < lostSeconds - warnSeconds && exposed >= lostSeconds - warnSeconds) events |= EscortGuardEvent.Warning;
         if (live && !raided && exposed >= raidSeconds)
         {
             raided = true;
-            return EscortGuardEvent.Raid;
+            events |= EscortGuardEvent.Raid;
         }
-        return !live && exposed >= lostSeconds ? EscortGuardEvent.Lost : EscortGuardEvent.None;
+        if (exposed >= lostSeconds) events |= EscortGuardEvent.Lost;
+        return events;
     }
+
+    /// <summary>Spec 1886: whole seconds left on the alone clock, never below 0.</summary>
+    public static int SecondsLeft(float lostSeconds, double exposed) => (int)Math.Max(0, Math.Ceiling(lostSeconds - exposed));
 }
 
-/// <summary>What the exposure clock of an escort under way asks for in a tick (spec 1882 to 1884).</summary>
+/// <summary>What the alone clock of an escort under way asks for in a tick (spec 1882 to 1886). One tick can ask for more than one.</summary>
+[Flags]
 public enum EscortGuardEvent
 {
-    None,
+    None = 0,
+    /// <summary>The clock starts: warn the players.</summary>
+    Alone = 1,
+    /// <summary>EscortLostWarnSeconds are left: warn again.</summary>
+    Warning = 2,
     /// <summary>Raiders find the lone escort: spawn one raid around it.</summary>
-    Raid,
-    /// <summary>The escort in stasis is lost to raiders: remove it, so the mission fails.</summary>
-    Lost,
+    Raid = 4,
+    /// <summary>The clock ran out: raiders take the escort, so the mission fails.</summary>
+    Lost = 8,
 }

@@ -45,8 +45,13 @@ public sealed class MissionTunables
     [Serialize(Optional = true)] public float EscortGuardRadius = 1500f;
     /// <summary>Spec 1882: game seconds that an escort under way waits alone before raiders find it.</summary>
     [Serialize(Optional = true)] public float EscortRaidSeconds = 60f;
-    /// <summary>Spec 1883: game seconds alone after which an escort in stasis (no player ship near) is lost to raiders.</summary>
-    [Serialize(Optional = true)] public float EscortLostSeconds = 150f;
+    /// <summary>
+    /// Spec 1883, 1886: game seconds alone after which raiders take an escort. An escort's rules can set their own (the spawner's
+    /// LostSeconds) to fit the trip.
+    /// </summary>
+    [Serialize(Optional = true)] public float EscortLostSeconds = 240f;
+    /// <summary>Spec 1886: the second banner and chat line come this many seconds before raiders take a lone escort.</summary>
+    [Serialize(Optional = true)] public float EscortLostWarnSeconds = 60f;
     /// <summary>Spec 1882: ships of one raid (scaled for co-op). Live raiders of the same escort count against EscortRaidMaxLive.</summary>
     [Serialize(Optional = true)] public int EscortRaidShips = 2;
     [Serialize(Optional = true)] public int EscortRaidMaxLive = 4;
@@ -64,6 +69,7 @@ public sealed class MissionTunables
         static void Require(bool ok, string what) { if (!ok) throw new InvalidDataException($"Missions.{what}"); }
         Require(t.EscortGuardRadius > 0f, "EscortGuardRadius must be above 0");
         Require(t.EscortRaidSeconds > 0f && t.EscortLostSeconds > t.EscortRaidSeconds, "EscortLostSeconds must be above EscortRaidSeconds, and both above 0");
+        Require(t.EscortLostWarnSeconds > 0f && t.EscortLostWarnSeconds < t.EscortLostSeconds, "EscortLostWarnSeconds must be above 0 and below EscortLostSeconds");
         Require(t.EscortRaidShips >= 0 && t.EscortRaidMaxLive >= 0 && t.EscortRaidShipTags.Length > 0, "EscortRaidShips and EscortRaidMaxLive must not be negative, EscortRaidShipTags must not be empty");
         Require(t.EscortRaidDistanceMin >= 0f && t.EscortRaidDistanceMax >= t.EscortRaidDistanceMin, "EscortRaidDistanceMax must be at least EscortRaidDistanceMin");
     }

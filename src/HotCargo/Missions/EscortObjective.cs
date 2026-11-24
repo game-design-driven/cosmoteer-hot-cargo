@@ -49,6 +49,8 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
         [Serialize(Optional = true), PortableHash] public int TierOffset;
         /// <summary>The straight route keeps this distance from every sun.</summary>
         [Serialize(Optional = true), PortableHash] public float SunClearance = 6000f;
+        /// <summary>Spec 1886: game seconds alone before raiders take the escort. 0: Missions.EscortLostSeconds.</summary>
+        [Serialize(Optional = true), PortableHash] public float LostSeconds;
 
         public override Objective? CreateObjectiveImpl(SimRoot sim, Mission mission, Rand rand, SpawnedObjectCollection objects, Vector2 loc, out bool invalid)
         {
@@ -72,6 +74,7 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
                 DestinationPoiID = poiId,
                 Start = start,
                 AmbushSeed = rand.UInt64(),
+                Guard = new EscortGuardState { LostSeconds = EscortGuard.CheckLostSeconds(sim, LostSeconds) },
                 RouteSunClearance = SunClearance,
                 Tier = Math.Max(1, mode.TierFields.GetTier(destination) + TierOffset),
             };
@@ -105,7 +108,7 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
     [Serialize] public Vector2 Destination { get; private set; }
     [Serialize(Optional = true)] public ObjectID? DestinationPoiID { get; private set; }
 
-    IEnumerable<ObjectID> IMissionMarkers.MarkerIds => DestinationPoiID is { } id ? [id] : [];
+    IEnumerable<ObjectID> IMissionMarkers.MarkerIds => new[] { DestinationPoiID, Guard.MarkerId }.OfType<ObjectID>();
     [Serialize(Optional = true)] public int Tier { get; private set; }
     /// <summary>Where the escort started. The ambush springs at a share of the route from here.</summary>
     [Serialize(Optional = true)] public Vector2 Start { get; private set; }
@@ -196,7 +199,18 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
             CanFocus = CanFocusDisplayLine,
             OnFocused = OnDisplayLineFocused,
         });
-        if (Ready && Completion == CompletionState.InProgress && EscortGuard.AloneLine(Guard, name) is { } alone) lines.Add(alone);
+        if (Ready && Completion == CompletionState.InProgress && EscortGuard.AloneLine(Guard, name, game) is { } alone) lines.Add(alone);
+    }
+
+    int _shownSeconds = -1;
+
+    /// <summary>Spec 1886: the alone line counts down once a second.</summary>
+    public override void RefreshDisplayLines(GameRoot game)
+    {
+        int shown = EscortGuard.ShownSeconds(Guard, game);
+        if (shown == _shownSeconds) return;
+        _shownSeconds = shown;
+        OnDisplayLinesChanged();
     }
 
     public override void RegisterEvents(GameRoot game, bool isLoading)
@@ -244,7 +258,8 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
         bool AtPoint(Vector2 point) => Escort.TargetShip is { } ship && ShipDelivery.Arrived(sim.RequireGame(), ship.DetWorldBoundingCircle, new Circle(point, 0f));
         if (Via is { } via && AtPoint(via)) Via = null;
         // Spec 1881: alone, the escort holds where it was when the last player ship left.
-        bool guarded = EscortGuard.Tick(sim, Escort, Guard, Tier, RaiderTag, OnDisplayLinesChanged);
+        bool guarded = EscortGuard.Tick(sim, Escort, Guard, Tier, RaiderTag, OnDisplayLinesChanged, () => OnEscortKilled(null, EventArgs.Empty));
+        if (Completion != CompletionState.InProgress) return;
         if (Escort.TargetShip?.AI is { } ai) SteerTo(ai, guarded ? Via ?? Destination : Guard.HoldAt ?? at, 0f);
         float left = at.DistanceTo(Destination);
         if (!AmbushSprung && Escort.TargetShip is not null
