@@ -39,7 +39,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      # New numbers count against the base of the PR or of the queue group (spec/blocks.txt); other runs check main itself.
       - run: scripts/check-spec-numbers.sh
+        env:
+          SPEC_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
   build:
     runs-on: ubuntu-latest
     # Pull requests from forks get no secrets, so they cannot read the private game references.
