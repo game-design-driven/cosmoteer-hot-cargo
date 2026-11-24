@@ -51,7 +51,10 @@ internal sealed class ScavengeStrategy(ScavengeStrategyRules rules) : AIStrategy
     public override bool OnAITick(Ship ship, ShipAI ai)
     {
         var step = ScavengeStep.Idle;
-        if (Run.Current is { } run && run.T.Scavenge.Enabled && SideMay(run.T.Scavenge, ship) && ScavengeAutotest.MayScavenge(ship))
+        // Spec 1337: a ship that a mission uses (the convoy freighter) leaves the steering to the mission. Playtest 2026-11-24: the freighter
+        // collected a wreck and ignored the route after Ready.
+        if (Run.Current is { } run && run.T.Scavenge.Enabled && SideMay(run.T.Scavenge, ship) && ScavengeAutotest.MayScavenge(ship)
+            && !Scavenger.OnMission(run, ship))
         {
             _keep ??= new Dictionary<string, int>(Autonomy.AutonomyWorld.CargoByType(ship), StringComparer.Ordinal);
             var keep = _keep;

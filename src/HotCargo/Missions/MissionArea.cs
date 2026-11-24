@@ -118,6 +118,22 @@ public static class MissionArea
         Autotest.Fields["hc_escort_hailing"] = () =>
             RequireRun().Game.Sim.Mode is CareerSimModeManager m && RequireEscort().Escort.TargetShip is { } e && m.IsShipHailingLocalPlayer(e) ? 1 : 0;
         Autotest.Commands["hc_escort_diag"] = arg => LogEscort(arg);
+        // hc_escort_wreck: a junk copy of the escort freighter ("Test wreck", like auto_wreck) at a clear spot next to it, for the scavenge
+        // check (spec 1337). Sim change: use "mp" in co-op.
+        Autotest.Commands["hc_escort_wreck"] = _ =>
+        {
+            var sim = RequireSim();
+            var escort = RequireEscort().Escort.TargetShip ?? throw new InvalidOperationException("escort is not live");
+            using var stream = new MemoryStream();
+            escort.SaveDesign(stream);
+            var wreck = Ship.Load(stream.ToArray(), "Test wreck", -3, spawnWithCrew: false, randSeed: 4242UL);
+            wreck.WorldCenter = Autotest.ClearSpotNear(sim, escort.DetWorldCenter, escort.DetWorldBoundingCircle.Radius + wreck.WorldBoundingRadius + 200f, wreck.WorldBoundingRadius);
+            sim.Ships.Add(wreck);
+            Log.Info($"AUTOTEST hc_escort_wreck id={wreck.UniqueID} junk={wreck.IsJunk} at {wreck.WorldCenter}");
+        };
+        // The escort freighter's scavenge step (Scavenge.ScavengeStep; 0 idle), -1 without the module.
+        Autotest.Fields["hc_escort_scav_step"] = () =>
+            (int?)(RequireEscort().Escort.TargetShip ?? throw new InvalidOperationException("escort is not live")).AI?.GetStrategyModule<Scavenge.ScavengeStrategy>()?.Step ?? -1;
         Autotest.Commands["hc_escort_advance"] = arg => TestEscortAdvance(float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture));
         Autotest.Commands["hc_escort_ambush"] = _ =>
         {

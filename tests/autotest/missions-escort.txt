@@ -27,6 +27,13 @@ expect hc_escort_hailing == 1
 expect hc_escort_gap <= 800
 expect hc_escort_waiting == 1
 expect hc_escort_steering == 0
+# Spec 1337: a ripe wreck next to the freighter. A ship that a mission uses does not scavenge. Playtest 2026-11-24: the convoy
+# freighter collected a wreck, so neither the meeting nor the route moved it.
+hc_escort_wreck
+waitfor scav_wreck_seen == 1 20
+scav_age 120
+wait 3
+expect hc_escort_scav_step == 0
 # "Not yet" only closes the window. "Ready" is the shared choice that starts the route.
 hc_escort_call
 comms_click Not yet
@@ -42,6 +49,7 @@ hc_escort_diag before_flight
 # The freighter type is random, and a slow one can take a while to turn and speed up. Wait for progress instead of a fixed time.
 waitfor hc_escort_progress > 50 45
 hc_escort_diag after_flight
+expect hc_escort_scav_step == 0
 expect hc_escort_done == 0
 hc_escort_arrive
 wait 3
