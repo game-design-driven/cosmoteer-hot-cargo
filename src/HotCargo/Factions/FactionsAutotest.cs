@@ -115,6 +115,28 @@ static class FactionsAutotest
         Autotest.Commands["fa_set"] = arg => Autotest.SetField(R().T.Factions, arg);
         // fa_blind on|off: the real player action (the MP input of the switch under ENGAGE).
         Autotest.Commands["fa_blind"] = arg => R().Game.NetManager.EnqueueInput(new BlindJumpInput(arg == "on"));
+        // fa_jumpguis: jump windows with a blind jump button. fa_blindbutton: 1 when a shown jump window shows its blind jump button
+        // inside the window (spec 652). Each read logs the window and button state.
+        Autotest.Fields["fa_jumpguis"] = () => Jumps.BlindButtons.Count();
+        // fa_blindclick: clicks the blind jump button of the shown spin-up window, as a player does. Fails when no window shows it.
+        Autotest.Commands["fa_blindclick"] = _ =>
+        {
+            var (_, button) = Jumps.BlindButtons.SingleOrDefault(x => x.Window.SelfActive && x.Button.SelfActive);
+            (button ?? throw new InvalidOperationException("no shown spin-up window shows the blind jump button")).ClickController.InvokeClicked();
+            Autotest.Wait(1);
+        };
+        Autotest.Fields["fa_blindbutton"] = () =>
+        {
+            int shown = 0;
+            foreach (var (window, button) in Jumps.BlindButtons)
+            {
+                var (w, b) = (window.ScreenRect, button.ScreenRect);
+                bool inside = b.Height > 0f && b.Left >= w.Left && b.Right <= w.Right && b.Top >= w.Top && b.Bottom <= w.Bottom;
+                Log.Info($"AUTOTEST blind button: window active={window.SelfActive} rect={window.ScreenRect} button active={button.SelfActive} rect={button.ScreenRect} text={button.Text}");
+                if (window.SelfActive && button.SelfActive && inside) shown++;
+            }
+            return shown;
+        };
         // fa_jump relay|blind|view: single player. Jumps to the first unvisited neighbor like the "jump" command, without the animation.
         // relay picks watched or clear from the hunters near that relay now (spec 650), like a real jump start.
         Autotest.Commands["fa_jump"] = arg =>

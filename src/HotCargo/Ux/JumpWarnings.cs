@@ -104,9 +104,10 @@ static class JumpWarnings
         {
             var tip = new LiveText(() => WindowTip(game, ship));
             __instance.ToolTips.TextProvider = tip;
-            // The ship icon is a button that takes the hover from the widget under it.
-            foreach (var slot in __instance.Components.OfType<Halfling.Gui.Components.Children.WidgetSingleChild<ShipIconButton>>())
-                if (slot.Child is { } icon) icon.ToolTips.TextProvider = tip;
+            // The ship icon is a button that takes the hover from the widget under it. Single(): a game change that moves the icon
+            // fails loudly instead of leaving the icon without the tip.
+            var slot = __instance.Components.OfType<Halfling.Gui.Components.Children.WidgetSingleChild<ShipIconButton>>().Single();
+            (slot.Child ?? throw new InvalidOperationException("the jump window ship slot has no icon")).ToolTips.TextProvider = tip;
         });
     }
 

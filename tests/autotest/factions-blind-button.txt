@@ -1,0 +1,19 @@
+# Spec 652: the blind jump switch shows under ENGAGE in the spin-up window during a run, inside the window, and its click switches
+# the next jump to blind. Headless layout check (the window lays out without graphics).
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+fa_drive
+wait 1
+expect fa_jumpguis >= 1
+jw_gatejump
+waitfor jw_ready >= 1 120
+wait 1
+expect fa_blindbutton == 1
+# A click switches the next jump to blind, and the button stays inside the window.
+expect fa_blind == 0
+fa_blindclick
+expect fa_blind == 1
+expect fa_blindbutton == 1
+quit
