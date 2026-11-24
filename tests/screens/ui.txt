@@ -35,7 +35,11 @@ choose last
 wait 2
 uxpick 1
 wait 1
+# The toll page shows in the toll gunship's comms (spec 2420).
 event toll_gate
+ev_carrier_goto
+ev_open carrier
+ev_dialogue carrier
 wait 2
 pick 1 2
 pick 3 2
@@ -43,7 +47,7 @@ wait 2
 screenshot ui-04-toll
 choose last
 wait 2
-uxpick 1
+dip_close
 wait 1
 win
 wait 3

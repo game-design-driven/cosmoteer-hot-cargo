@@ -99,3 +99,4 @@
 2390-2399 54-friendly-encounters.md
 2400-2409 59-payment-hint.md
 2410-2419 65-rules-values-as-tunables.md
+2420-2429 40-events-research-abandoned-ships-and-ship.md

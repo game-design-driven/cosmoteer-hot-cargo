@@ -82,9 +82,12 @@ wait 1
 partsstate
 expect ux_parts_info > 0
 expect ux_parts_xml == 1
-# Keys on a multiselect page (UX V15, spec 810): a digit toggles an option row, Enter submits.
-# Refugee Convoy pays nothing, so the damage above (vault tech) does not matter.
+# Keys on a multiselect page (UX V15, spec 810): a digit toggles an option row, Enter submits. Refugee Convoy comes from a ship
+# (spec 2420), so the keys work in its comms window. It pays nothing, so the damage above (vault tech) does not matter.
 event refugee_convoy
+ev_carrier_goto
+ev_open carrier
+ev_dialogue carrier
 wait 1
 uxpick 1
 wait 1
@@ -95,6 +98,8 @@ uxsubmit
 wait 2
 expect ev_pending == 0
 expect ev_heat_gain > 0
+dip_close
+wait 1
 # Wanted (after the event keys: the hostile station can destroy the damaged vaults): the line names the faction and the timer state.
 wanted
 wait 2

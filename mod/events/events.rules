@@ -92,6 +92,8 @@ Events
 
 	{
 		ID = stranded_freighter
+		// Spec 2420: the dry freighter hails and carries the page; it jumps out once it has fuel.
+		Carrier = DryFreighter
 		Trigger = Arrival
 		Title = "Running on Empty"
 		Text = "A freighter drifts dead in the lane, its captain hailing on every channel. \"We're dry. Give us enough hyperium to reach the next station and we'll pay what we can.\""
@@ -107,7 +109,7 @@ Events
 				NeedPoints = 1
 				Outcomes
 				[
-					{ Text = "The captain thanks you, then lowers her voice. \"Corporate cutters asked about a ship like yours. I'll tell them you went the other way.\""; Fame = 0.4; Heat = -10 }
+					{ Text = "The captain thanks you, then lowers her voice. \"Corporate cutters asked about a ship like yours. I'll tell them you went the other way.\""; Fame = 0.4; Heat = -10; Effect = leave }
 				]
 			}
 			{
@@ -117,8 +119,8 @@ Events
 				ScaleByPoints = true
 				Outcomes
 				[
-					{ Weight = 70; Text = "They pay. They do not thank you."; Money = 0.8 }
-					{ Weight = 30; Text = "They pay, and then file a report about you on an open channel."; Money = 0.8; Heat = 8 }
+					{ Weight = 70; Text = "They pay. They do not thank you."; Money = 0.8; Effect = leave }
+					{ Weight = 30; Text = "They pay, and then file a report about you on an open channel."; Money = 0.8; Heat = 8; Effect = leave }
 				]
 			}
 			{
@@ -138,6 +140,8 @@ Events
 
 	{
 		ID = corporate_checkpoint
+		// Spec 2420: the customs cutter hails and carries the page (and the caught follow-up); it leaves when the matter is settled.
+		Carrier = CustomsCutter
 		Trigger = Arrival
 		Weight = 8
 		WeightPerHeat = 0.15
@@ -164,15 +168,15 @@ Events
 				NeedPoints = 1
 				Outcomes
 				[
-					{ Weight = 80; Text = "The inspector waves you through. Your file goes in a drawer, for now."; Heat = -10 }
-					{ Weight = 20; Text = "The inspector takes your offer and calls it in anyway."; Heat = 10 }
+					{ Weight = 80; Text = "The inspector waves you through. Your file goes in a drawer, for now."; Heat = -10; Effect = leave }
+					{ Weight = 20; Text = "The inspector takes your offer and calls it in anyway."; Heat = 10; Effect = leave }
 				]
 			}
 			{
 				Text = "Submit to the scan and hope."
 				Outcomes
 				[
-					{ Weight = 60; WeightPerTech = -8; Text = "The scanner sweeps the vault twice and finds only old shielding. You fly on." }
+					{ Weight = 60; WeightPerTech = -8; Text = "The scanner sweeps the vault twice and finds only old shielding. You fly on."; Effect = leave }
 					{ Weight = 20; WeightPerTech = 8; Text = "The scanner stops on your vault and stays there."; Next = checkpoint_caught }
 				]
 			}
@@ -180,8 +184,8 @@ Events
 				Text = "Run the checkpoint."
 				Outcomes
 				[
-					{ Weight = 60; Text = "You punch through before the cutter can lock on. They will report it."; Heat = 15 }
-					{ Weight = 40; Text = "The cutter was not alone."; Heat = 10; Spawn = CorporatePatrol }
+					{ Weight = 60; Text = "You punch through before the cutter can lock on. They will report it."; Heat = 15; Effect = leave }
+					{ Weight = 40; Text = "The cutter was not alone."; Heat = 10; Spawn = CorporatePatrol; Effect = leave }
 				]
 			}
 		]
@@ -197,17 +201,19 @@ Events
 				Text = "Hand over one crate as evidence and take the fine."
 				Need { Tech = 1 }
 				Cost { Tech = 1 }
-				Outcomes [ { Text = "They seize a crate and let you go with a warning. You both know the warning is a lie."; Heat = 5 } ]
+				Outcomes [ { Text = "They seize a crate and let you go with a warning. You both know the warning is a lie."; Heat = 5; Effect = leave } ]
 			}
 			{
 				Text = "Break away and fight."
-				Outcomes [ { Text = "You do not stand by. The cutters open fire."; Heat = 20; Spawn = CorporatePatrol } ]
+				Outcomes [ { Text = "You do not stand by. The cutters open fire."; Heat = 20; Spawn = CorporatePatrol; Effect = leave } ]
 			}
 		]
 	}
 
 	{
 		ID = defector
+		// Spec 2420: Varga's escape pod hails and carries the page; it leaves after the answer.
+		Carrier = EscapePod
 		Trigger = Arrival
 		Need { MinSector = 3 }
 		Title = "The Defector"
@@ -218,15 +224,15 @@ Events
 				Text = "Bring her aboard."
 				Outcomes
 				[
-					{ Weight = 75; Text = "Varga goes straight to your vault with a toolkit. An hour later the tags whisper instead of shout."; Crew = 1; Heat = -20; SetFlags = [defector] }
-					{ Weight = 25; WeightPerHeat = 0.2; Text = "Varga smiles as the hatch seals. \"Sorry. They have my family.\" Her pod beacon was never off."; Heat = 25; Spawn = CorporatePatrol }
+					{ Weight = 75; Text = "Varga goes straight to your vault with a toolkit. An hour later the tags whisper instead of shout."; Crew = 1; Heat = -20; SetFlags = [defector]; Effect = leave }
+					{ Weight = 25; WeightPerHeat = 0.2; Text = "Varga smiles as the hatch seals. \"Sorry. They have my family.\" Her pod beacon was never off."; Heat = 25; Spawn = CorporatePatrol; Effect = leave }
 				]
 			}
 			{
 				Text = "Turn her in for the reward."
 				Outcomes
 				[
-					{ Text = "The corporation pays bounties, even to thieves. It also notes the hull that collected one."; Money = 1; Heat = 15 }
+					{ Text = "The corporation pays bounties, even to thieves. It also notes the hull that collected one."; Money = 1; Heat = 15; Effect = leave }
 				]
 			}
 			{
@@ -271,6 +277,8 @@ Events
 
 	{
 		ID = rival_crew
+		// Spec 2420: Rook's gunship hails and carries the page (and the bluff follow-up); it leaves after the answer, and a fight spawns the Magpies.
+		Carrier = RookShip
 		Trigger = Arrival
 		Need { MinSector = 2; Tech = 2 }
 		Title = "The Magpies"
@@ -287,20 +295,20 @@ Events
 				// Spec 811: one crate, or 1.5 money units in credits, as before. A crate still marks you as a payer.
 				Text = "Pay Rook off."
 				NeedPoints = 1
-				Outcomes [ { Text = "Rook's crew takes the payment and salutes. \"Pleasure doing business.\"" } ]
+				Outcomes [ { Text = "Rook's crew takes the payment and salutes. \"Pleasure doing business.\""; Effect = leave } ]
 			}
 			{
 				Text = "Fake a vault breach on your own transponder."
 				Need { Parts = ["cosmoteer.sensor_array"] }
 				Outcomes
 				[
-					{ Weight = 60; Text = "Your sensors broadcast a breached, empty vault. Rook laughs. \"Somebody beat us to it.\" The Magpies peel away." }
+					{ Weight = 60; Text = "Your sensors broadcast a breached, empty vault. Rook laughs. \"Somebody beat us to it.\" The Magpies peel away."; Effect = leave }
 					{ Weight = 40; Text = "Rook is quiet for a second too long."; Next = rival_crew_bluff }
 				]
 			}
 			{
 				Text = "Tell Rook to come and take it."
-				Outcomes [ { Text = "Rook sighs. \"Your funeral.\" The Magpies come in hot. Every station in the system has a bounty on them."; Spawn = Magpies } ]
+				Outcomes [ { Text = "Rook sighs. \"Your funeral.\" The Magpies come in hot. Every station in the system has a bounty on them."; Spawn = Magpies; Effect = leave } ]
 			}
 		]
 	}
@@ -315,11 +323,11 @@ Events
 				Text = "Hand over one crate."
 				Need { Tech = 1 }
 				Cost { Tech = 1 }
-				Outcomes [ { Text = "Rook takes the crate. \"Next time, don't insult me.\""; SetFlags = [magpies_paid] } ]
+				Outcomes [ { Text = "Rook takes the crate. \"Next time, don't insult me.\""; SetFlags = [magpies_paid]; Effect = leave } ]
 			}
 			{
 				Text = "Fight."
-				Outcomes [ { Text = "So be it. Every station in the system has a bounty on the Magpies."; Spawn = Magpies } ]
+				Outcomes [ { Text = "So be it. Every station in the system has a bounty on the Magpies."; Spawn = Magpies; Effect = leave } ]
 			}
 		]
 	}
@@ -345,6 +353,8 @@ Events
 
 	{
 		ID = odd_merchant
+		// Spec 2420: the merchant's ship hails and carries the page; it leaves after the answer.
+		Carrier = OddMerchant
 		Trigger = Arrival
 		Title = "The Odd Merchant"
 		Text = "A ship made of three hulls welded together pulls alongside. Its owner grins through the comm. \"Mystery crate! Could be anything. Could be wonderful. No refunds.\""
@@ -355,22 +365,22 @@ Events
 				Cost { Money = 0.5 }
 				Outcomes
 				[
-					{ Weight = 35; Text = "Processors, still in the factory wrap."; Resources = [{ ID = processor; Amount = 15; PerTier = 3 }] }
-					{ Weight = 20; Text = "Diamonds. Real ones."; Resources = [{ ID = diamond; Amount = 10; PerTier = 2 }] }
-					{ Weight = 20; Text = "A stowaway climbs out, stretches, and asks where her bunk is."; Crew = 1 }
-					{ Weight = 15; Text = "Scrap. You should have expected that." }
-					{ Weight = 10; Text = "The crate is empty, except for a blinking corporate tracker. Clever merchant."; Heat = 15 }
+					{ Weight = 35; Text = "Processors, still in the factory wrap."; Resources = [{ ID = processor; Amount = 15; PerTier = 3; Effect = leave }] }
+					{ Weight = 20; Text = "Diamonds. Real ones."; Resources = [{ ID = diamond; Amount = 10; PerTier = 2; Effect = leave }] }
+					{ Weight = 20; Text = "A stowaway climbs out, stretches, and asks where her bunk is."; Crew = 1; Effect = leave }
+					{ Weight = 15; Text = "Scrap. You should have expected that."; Effect = leave }
+					{ Weight = 10; Text = "The crate is empty, except for a blinking corporate tracker. Clever merchant."; Heat = 15; Effect = leave }
 				]
 			}
 			{
 				Text = "Offer him one tech crate for his whole hold."
 				Need { Tech = 1 }
 				Cost { Tech = 1 }
-				Outcomes [ { Text = "He nearly faints. His whole hold is yours, plus every credit on board."; Money = 0.6; Resources = [{ ID = processor; Amount = 20; PerTier = 4 }, { ID = steel; Amount = 40; PerTier = 8 }] } ]
+				Outcomes [ { Text = "He nearly faints. His whole hold is yours, plus every credit on board."; Money = 0.6; Resources = [{ ID = processor; Amount = 20; PerTier = 4; Effect = leave }, { ID = steel; Amount = 40; PerTier = 8 }] } ]
 			}
 			{
 				Text = "No thanks."
-				Outcomes [ { Text = "\"Your loss!\" The merchant is already hailing someone else." } ]
+				Outcomes [ { Text = "\"Your loss!\" The merchant is already hailing someone else."; Effect = leave } ]
 			}
 		]
 	}
@@ -416,6 +426,8 @@ Events
 
 	{
 		ID = magpies_return
+		// Spec 2420: Rook's gunship hails again and carries the page; it leaves after the answer.
+		Carrier = RookShip
 		Trigger = Arrival
 		Weight = 30
 		Need { Tech = 3; FlagAges = [{ Flag = magpies_paid; MinSectors = 2 }] }
@@ -434,24 +446,26 @@ Events
 				Text = "Pay Rook."
 				NeedPoints = 1
 				Need { Tech = 1 }
-				Outcomes [ { Text = "Rook's crew carries the payment off, laughing. \"See you around.\" You will, unless you end it." } ]
+				Outcomes [ { Text = "Rook's crew carries the payment off, laughing. \"See you around.\" You will, unless you end it."; Effect = leave } ]
 			}
 			{
 				Text = "Hand over a crate that Varga rigged to blow."
 				Need { Flags = [defector]; Tech = 1 }
 				HideIfUnmet = true
 				Cost { Tech = 1 }
-				Outcomes [ { Text = "Rook docks the crate in his own hold. A minute later his ship lights up like a flare. The other Magpies scatter and do not come back."; Fame = 0.5; Heat = 5; ClearFlags = [magpies_paid] } ]
+				Outcomes [ { Text = "Rook docks the crate in his own hold. A minute later his ship lights up like a flare. The other Magpies scatter and do not come back."; Fame = 0.5; Heat = 5; ClearFlags = [magpies_paid]; Effect = leave } ]
 			}
 			{
 				Text = "Not this time. Come and take them."
-				Outcomes [ { Text = "\"Wrong answer.\" The Magpies come in hot, more of them and better armed. Their bounty has grown too."; Spawn = MagpiesReturn; ClearFlags = [magpies_paid] } ]
+				Outcomes [ { Text = "\"Wrong answer.\" The Magpies come in hot, more of them and better armed. Their bounty has grown too."; Spawn = MagpiesReturn; ClearFlags = [magpies_paid]; Effect = leave } ]
 			}
 		]
 	}
 
 	{
 		ID = refugee_convoy
+		// Spec 2420: the convoy's lead transport hails and carries the page; the convoy jumps on after the answer.
+		Carrier = ConvoyLead
 		Trigger = Arrival
 		Need { MinSector = 3 }
 		Title = "Refugee Convoy"
@@ -471,21 +485,23 @@ Events
 				// Spec 811: each refugee and each share of fuel has its own effects; two refugees or one share is the old choice.
 				Text = "Help them."
 				NeedPoints = 0.5
-				Outcomes [ { Text = "The convoy leader salutes as they turn for the jump point. The locals will hear about this." } ]
+				Outcomes [ { Text = "The convoy leader salutes as they turn for the jump point. The locals will hear about this."; Effect = leave } ]
 			}
 			{
 				Text = "Sell their position to the corporation."
-				Outcomes [ { Text = "The corporation pays, and for a few hours its cutters chase someone else. Nobody in this system will forget who sold the convoy."; Money = 1; Heat = -15; Fame = -0.5; Reputation = -2 } ]
+				Outcomes [ { Text = "The corporation pays, and for a few hours its cutters chase someone else. Nobody in this system will forget who sold the convoy."; Money = 1; Heat = -15; Fame = -0.5; Reputation = -2; Effect = leave } ]
 			}
 			{
 				Text = "Wish them luck and fly on."
-				Outcomes [ { Text = "You leave them to the lane." } ]
+				Outcomes [ { Text = "You leave them to the lane."; Effect = leave } ]
 			}
 		]
 	}
 
 	{
 		ID = toll_gate
+		// Spec 2420: the toll gunship hails and carries the page; it leaves after the toll or the run.
+		Carrier = TollGunship
 		Trigger = Arrival
 		Need { MinSector = 2 }
 		Title = "Pirate Toll Gate"
@@ -503,22 +519,24 @@ Events
 				// Spec 811: one toll is the old money cost (0.3 + 0.01 per heat money units); steel and crew count too.
 				Text = "Pay the toll."
 				NeedPoints = 1
-				Outcomes [ { Text = "They wave you through. \"You pay better than the corporation. For now.\"" } ]
+				Outcomes [ { Text = "They wave you through. \"You pay better than the corporation. For now.\""; Effect = leave } ]
 			}
 			{
 				Text = "Pay double, and they report you heading the wrong way."
 				NeedPoints = 2
-				Outcomes [ { Text = "The pirates sell the corporation a sighting three systems off. Everyone gets paid, except the corporation."; Heat = -20 } ]
+				Outcomes [ { Text = "The pirates sell the corporation a sighting three systems off. Everyone gets paid, except the corporation."; Heat = -20; Effect = leave } ]
 			}
 			{
 				Text = "Run the gate."
-				Outcomes [ { Text = "You punch through the minefield. The gunships open fire, and their sighting goes out anyway."; Heat = 15; Spawn = TollGuards } ]
+				Outcomes [ { Text = "You punch through the minefield. The gunships open fire, and their sighting goes out anyway."; Heat = 15; Spawn = TollGuards; Effect = leave } ]
 			}
 		]
 	}
 
 	{
 		ID = buyers_agent
+		// Spec 2420: the Buyer's courier hails and carries the page; it leaves after the answer.
+		Carrier = BuyerCourier
 		Trigger = Arrival
 		Weight = 40
 		Need { MinSectorsLeft = 1; MaxSectorsLeft = 2; Tech = 1 }
@@ -528,15 +546,15 @@ Events
 		[
 			{
 				Text = "Take a small advance: the Buyer pays 80% at delivery."
-				Outcomes [ { Text = "The credits arrive before the courier finishes its turn. The contract terms update."; MoneyTech = 1.5; BuyerPrice = 0.8 } ]
+				Outcomes [ { Text = "The credits arrive before the courier finishes its turn. The contract terms update."; MoneyTech = 1.5; BuyerPrice = 0.8; Effect = leave } ]
 			}
 			{
 				Text = "Take a large advance: the Buyer pays 60% at delivery."
-				Outcomes [ { Text = "\"A pleasure.\" The courier is gone, and so is a good part of your final payday."; MoneyTech = 3; BuyerPrice = 0.6 } ]
+				Outcomes [ { Text = "\"A pleasure.\" The courier is gone, and so is a good part of your final payday."; MoneyTech = 3; BuyerPrice = 0.6; Effect = leave } ]
 			}
 			{
 				Text = "Decline. You will be paid in full or not at all."
-				Outcomes [ { Text = "\"As you wish. My client will be waiting.\"" } ]
+				Outcomes [ { Text = "\"As you wish. My client will be waiting.\""; Effect = leave } ]
 			}
 		]
 	}
