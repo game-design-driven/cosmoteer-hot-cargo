@@ -113,12 +113,22 @@ Magpies
 					Faction = None
 					Objectives
 					[
+						// Spec 1879: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
 						{
-							Type = DefeatShips
-							TargetsTag = { Tag=hc_ev_magpie; LimitToFleet=true; }
-							AutoDiscoverTargetArea = true
-							TierCombineMode = ValueSum
-							AllowSurrender = false
+							Type = Sequential
+							SubObjectives
+							[
+								{
+									Type = DefeatShips
+									TargetsTag = { Tag=hc_ev_magpie; LimitToFleet=true; }
+									AutoDiscoverTargetArea = true
+									TierCombineMode = ValueSum
+									AllowSurrender = false
+								}
+								{
+									Type = ReceiveRewards
+								}
+							]
 						}
 					]
 					Rewards
@@ -202,22 +212,32 @@ Siege
 					OkayIfFactionTagNotFound = true
 					Objectives
 					[
+						// Spec 1879: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
 						{
-							Type = TimeLimit
-							TimeLimit = 240
-							StartOnCreation = true
+							Type = Sequential
 							SubObjectives
 							[
 								{
-									Type = DefeatShips
-									TargetsTag = { Tag=hc_ev_siege_raider; }
-									AutoDiscoverTargetArea = true
-									TierCombineMode = ValueSum
-									AllowSurrender = false
+									Type = TimeLimit
+									TimeLimit = 240
+									StartOnCreation = true
+									SubObjectives
+									[
+										{
+											Type = DefeatShips
+											TargetsTag = { Tag=hc_ev_siege_raider; }
+											AutoDiscoverTargetArea = true
+											TierCombineMode = ValueSum
+											AllowSurrender = false
+										}
+										{
+											Type = ProtectShips
+											TargetsTag = { Tag=hc_ev_siege_ship; Max=1; }
+										}
+									]
 								}
 								{
-									Type = ProtectShips
-									TargetsTag = { Tag=hc_ev_siege_ship; Max=1; }
+									Type = ReceiveRewards
 								}
 							]
 						}
@@ -430,12 +450,22 @@ BountyHunters
 			Faction = None
 			Objectives
 			[
+				// Spec 1879: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
 				{
-					Type = DefeatShips
-					TargetsTag = { Tag=hc_ev_bounty; }
-					AutoDiscoverTargetArea = true
-					TierCombineMode = ValueSum
-					AllowSurrender = false
+					Type = Sequential
+					SubObjectives
+					[
+						{
+							Type = DefeatShips
+							TargetsTag = { Tag=hc_ev_bounty; }
+							AutoDiscoverTargetArea = true
+							TierCombineMode = ValueSum
+							AllowSurrender = false
+						}
+						{
+							Type = ReceiveRewards
+						}
+					]
 				}
 			]
 			Rewards
@@ -493,12 +523,22 @@ MagpiesReturn
 					Faction = None
 					Objectives
 					[
+						// Spec 1879: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
 						{
-							Type = DefeatShips
-							TargetsTag = { Tag=hc_ev_magpie; LimitToFleet=true; }
-							AutoDiscoverTargetArea = true
-							TierCombineMode = ValueSum
-							AllowSurrender = false
+							Type = Sequential
+							SubObjectives
+							[
+								{
+									Type = DefeatShips
+									TargetsTag = { Tag=hc_ev_magpie; LimitToFleet=true; }
+									AutoDiscoverTargetArea = true
+									TierCombineMode = ValueSum
+									AllowSurrender = false
+								}
+								{
+									Type = ReceiveRewards
+								}
+							]
 						}
 					]
 					Rewards

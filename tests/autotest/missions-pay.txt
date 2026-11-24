@@ -1,0 +1,5 @@
+# Spec 1879: every mission that pays a reward pays it at a station (vanilla ReceiveRewards). The check reads every loaded mission spawner.
+newgame run
+wait 8
+expect hc_missions_pay_on_completion == 0
+quit

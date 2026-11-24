@@ -352,7 +352,8 @@ ChainCourierHit
 		}
 		: ~/PlayerMission
 		{
-			Objectives [ &~/CarefulObjective ]
+			// Spec 1879: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
+			Objectives [ { Type = Sequential; SubObjectives [ &~/CarefulObjective, { Type = ReceiveRewards } ] } ]
 			Rewards = &~/BountyRewards
 		}
 	]
@@ -648,12 +649,22 @@ ChainStationRaid
 		{
 			Objectives
 			[
+				// Spec 1879: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
 				{
-					Type = DefeatShips
-					TargetsTag = { Tag=hc_ch_enemy; }
-					AutoDiscoverTargetArea = true
-					TierCombineMode = ValueSum
-					AllowSurrender = false
+					Type = Sequential
+					SubObjectives
+					[
+						{
+							Type = DefeatShips
+							TargetsTag = { Tag=hc_ch_enemy; }
+							AutoDiscoverTargetArea = true
+							TierCombineMode = ValueSum
+							AllowSurrender = false
+						}
+						{
+							Type = ReceiveRewards
+						}
+					]
 				}
 			]
 			Rewards = &~/BountyRewards
@@ -683,12 +694,22 @@ ChainAmbush
 		{
 			Objectives
 			[
+				// Spec 1879: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
 				{
-					Type = DefeatShips
-					TargetsTag = { Tag=hc_ch_enemy; LimitToFleet=true; }
-					AutoDiscoverTargetArea = true
-					TierCombineMode = ValueSum
-					AllowSurrender = false
+					Type = Sequential
+					SubObjectives
+					[
+						{
+							Type = DefeatShips
+							TargetsTag = { Tag=hc_ch_enemy; LimitToFleet=true; }
+							AutoDiscoverTargetArea = true
+							TierCombineMode = ValueSum
+							AllowSurrender = false
+						}
+						{
+							Type = ReceiveRewards
+						}
+					]
 				}
 			]
 			Rewards = &~/BountyRewards
@@ -756,13 +777,23 @@ ChainDepot
 		{
 			Objectives
 			[
+				// Spec 1879: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
 				{
-					Type = DefeatShips
-					TargetsTag = { Tag=hc_ch_enemy; }
-					TargetAreaTag = { Mode=Latest; Tag=hc_ch_poi; }
-					AutoDiscoverTargetArea = true
-					TierCombineMode = ValueSum
-					AllowSurrender = false
+					Type = Sequential
+					SubObjectives
+					[
+						{
+							Type = DefeatShips
+							TargetsTag = { Tag=hc_ch_enemy; }
+							TargetAreaTag = { Mode=Latest; Tag=hc_ch_poi; }
+							AutoDiscoverTargetArea = true
+							TierCombineMode = ValueSum
+							AllowSurrender = false
+						}
+						{
+							Type = ReceiveRewards
+						}
+					]
 				}
 			]
 			Rewards = &~/BountyRewards
