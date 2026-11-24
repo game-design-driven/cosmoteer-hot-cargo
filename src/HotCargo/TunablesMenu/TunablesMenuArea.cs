@@ -19,7 +19,10 @@ public static class TunablesMenuArea
         Errors.Guard("tunables timing", TunableTiming.Check);
         Run.Hooks.Frame += TuneRequest.Poll;
         Autotest.Commands["menu"] = MenuCommand;
-        Autotest.Fields["menu_ready"] = () => Autotest.RequireRun() is { HostTunablesPending: false, HostSendsInFlight: 0 } ? 1 : 0;
+        // After a co-op resync the loaded game first runs on the setup manager, whose AllowNewGame throws when the escape menu opens
+        // (#305, queue run 45497788356). The menu is ready once the game has its own network manager again.
+        Autotest.Fields["menu_ready"] = () => Autotest.RequireRun() is { HostTunablesPending: false, HostSendsInFlight: 0 } run
+            && run.Game.NetManager is not Cosmoteer.Game.Multiplayer.MPTempSetupManager ? 1 : 0;
         Autotest.Fields["menu_open"] = () => TunablesDialog.Open is null ? 0 : 1;
         Autotest.Fields["menu_rows"] = () => Dialog().RowCount;
         Autotest.Fields["menu_sections"] = () => Dialog().SectionCount;
