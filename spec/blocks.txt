@@ -1,0 +1,5 @@
+# Requirement number blocks: one line per block, "<first>-<last> <spec file>". scripts/check-spec-numbers.sh fails when a
+# requirement number that a branch adds lies outside the blocks of its own file, or when two blocks overlap. Numbers that
+# were on main before this file need no block. Get the next free block with scripts/spec-block.sh <spec file> [size].
+1890-1899 64-escorts.md
+2200-2219 02-design-pillars.md

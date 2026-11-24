@@ -8,7 +8,7 @@ description: Take a Hot Cargo change from its branch to a merged PR and an insta
 The rules are in CLAUDE.md (Git, Spec, Agents) and CONTRIBUTING.md (Git). This skill gives the order.
 
 1. Branch from `origin/main` in your own worktree: `git --git-dir ../.bare worktree add ../<name> -b <type>/<name> origin/main`.
-2. In the same change, make the spec lines true that the change touches. For a visible change, take screenshots (`hot-cargo-screenshots`). Before you pick a new spec section or requirement number, check the open PRs (`gh pr diff <n>`) for numbers in use.
+2. In the same change, make the spec lines true that the change touches. For a visible change, take screenshots (`hot-cargo-screenshots`). New requirement numbers come from your block in `spec/blocks.txt` (from the brief; without one, `scripts/spec-block.sh <spec file>` adds the next free block). Before you pick a new spec section number, check the open PRs (`gh pr diff <n>`).
 3. Commit with conventional commits (`feat:`, `fix:`, `docs:`, `chore:`). Never credit an AI, a model or a tool.
 4. Before each push, run the game tests that the change needs (`scripts/autotest-sim.sh <names>`, `scripts/autotest-affected.sh`). PR runs run no game tests.
    - `autotest-affected.sh` runs only the smoke tier. Before a push that changes shared data (presets, enum lists, default rows), run every test of the touched areas: `AUTOTEST_TIER=full scripts/autotest-affected.sh`. Reason: the queue runs only the PR's set, so such a break shows first in the full suite on `main`.
