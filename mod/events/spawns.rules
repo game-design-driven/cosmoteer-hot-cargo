@@ -1204,3 +1204,252 @@ BrokerShip
 		}
 	]
 }
+
+// Spec 2420: the freighter out of fuel (Running on Empty). A civilian hauler that waits and answers comms.
+DryFreighter
+{
+	Spawners
+	[
+		{
+			Type = Ships
+			Tags = [hc_ev_carrier]
+			Distance = [700, 900]
+			Allegiance = FactionCivilian
+			SuppressLocationAssertions = true
+			NameGenerator = { Type = NameList; Names = ["Dry Tank", "Last Drop", "Empty Promise", "Fumes"]; }
+			ShipCriteria
+			{
+				UseLocalFactionWeights = true
+				UseTierField = true
+				AllowTierRangeExpansion = true
+				Tags = [trade]
+			}
+			AI
+			{
+				Type = Normal
+				ChanceToConsiderSurrenderingToPlayer = 0
+				PatrolRadius = 50
+				TargetAcquireRangeFromOrigin = 100
+				TargetUnacquireRangeFromOrigin = 100
+			}
+		}
+	]
+}
+
+// Spec 2420: the corporate customs cutter (Corporate Checkpoint). Neutral until the players run; the patrol that follows is a separate spawn.
+CustomsCutter
+{
+	Spawners
+	[
+		{
+			Type = Ships
+			Tags = [hc_ev_carrier]
+			Distance = [700, 900]
+			Allegiance = Neutral
+			SuppressLocationAssertions = true
+			NameGenerator = { Type = NameList; Names = ["Customs Cutter", "Inspector", "Routine Check"]; }
+			ShipCriteria
+			{
+				UseLocalFactionWeights = true
+				UseTierField = true
+				AllowTierRangeExpansion = true
+				Tags = [combat]
+			}
+			AI
+			{
+				Type = Normal
+				ChanceToConsiderSurrenderingToPlayer = 0
+				PatrolRadius = 50
+				TargetAcquireRangeFromOrigin = 100
+				TargetUnacquireRangeFromOrigin = 100
+			}
+		}
+	]
+}
+
+// Spec 2420: Dr. Varga's escape pod (The Defector): the smallest civilian hull of the system tier.
+EscapePod
+{
+	Spawners
+	[
+		{
+			Type = Ships
+			Tags = [hc_ev_carrier]
+			Distance = [700, 900]
+			Allegiance = FactionCivilian
+			SuppressLocationAssertions = true
+			NameGenerator = { Type = NameList; Names = ["Escape Pod"]; }
+			ShipCriteria
+			{
+				UseLocalFactionWeights = true
+				UseTierField = true
+				AllowTierRangeExpansion = true
+				Tags = [trade]
+				Tier = -2
+			}
+			AI
+			{
+				Type = Normal
+				ChanceToConsiderSurrenderingToPlayer = 0
+				PatrolRadius = 50
+				TargetAcquireRangeFromOrigin = 100
+				TargetUnacquireRangeFromOrigin = 100
+			}
+		}
+	]
+}
+
+// Spec 2420: Captain Rook's gunship (The Magpies, The Magpies Return). Neutral while they talk; the fight spawns the Magpies.
+RookShip
+{
+	Spawners
+	[
+		{
+			Type = Ships
+			Tags = [hc_ev_carrier]
+			Distance = [700, 900]
+			Allegiance = Neutral
+			SuppressLocationAssertions = true
+			NameGenerator = { Type = NameList; Names = ["Rook's Gunship"]; }
+			ShipCriteria
+			{
+				UseLocalFactionWeights = true
+				UseTierField = true
+				AllowTierRangeExpansion = true
+				Tags = [combat]
+			}
+			AI
+			{
+				Type = Normal
+				ChanceToConsiderSurrenderingToPlayer = 0
+				PatrolRadius = 50
+				TargetAcquireRangeFromOrigin = 100
+				TargetUnacquireRangeFromOrigin = 100
+			}
+		}
+	]
+}
+
+// Spec 2420: the merchant's ship of three welded hulls (The Odd Merchant).
+OddMerchant
+{
+	Spawners
+	[
+		{
+			Type = Ships
+			Tags = [hc_ev_carrier]
+			Distance = [700, 900]
+			Allegiance = FactionCivilian
+			SuppressLocationAssertions = true
+			NameGenerator = { Type = NameList; Names = ["Three Hulls", "No Refunds", "Mystery Box"]; }
+			ShipCriteria
+			{
+				UseLocalFactionWeights = true
+				UseTierField = true
+				AllowTierRangeExpansion = true
+				Tags = [trade]
+			}
+			AI
+			{
+				Type = Normal
+				ChanceToConsiderSurrenderingToPlayer = 0
+				PatrolRadius = 50
+				TargetAcquireRangeFromOrigin = 100
+				TargetUnacquireRangeFromOrigin = 100
+			}
+		}
+	]
+}
+
+// Spec 2420: the lead transport of the refugee convoy (Refugee Convoy).
+ConvoyLead
+{
+	Spawners
+	[
+		{
+			Type = Ships
+			Tags = [hc_ev_carrier]
+			Distance = [700, 900]
+			Allegiance = FactionCivilian
+			SuppressLocationAssertions = true
+			NameGenerator = { Type = NameList; Names = ["Convoy Lead", "Company Town Exit", "Long Way Out"]; }
+			ShipCriteria
+			{
+				UseLocalFactionWeights = true
+				UseTierField = true
+				AllowTierRangeExpansion = true
+				Tags = [trade]
+			}
+			AI
+			{
+				Type = Normal
+				ChanceToConsiderSurrenderingToPlayer = 0
+				PatrolRadius = 50
+				TargetAcquireRangeFromOrigin = 100
+				TargetUnacquireRangeFromOrigin = 100
+			}
+		}
+	]
+}
+
+// Spec 2420: the pirate gunship at the toll gate (Pirate Toll Gate). Neutral while it talks; running the gate spawns the guards.
+TollGunship
+{
+	Spawners
+	[
+		{
+			Type = Ships
+			Tags = [hc_ev_carrier]
+			Distance = [700, 900]
+			Allegiance = Neutral
+			SuppressLocationAssertions = true
+			NameGenerator = { Type = NameList; Names = ["Toll Gate", "Gap Keeper"]; }
+			ShipCriteria
+			{
+				UseLocalFactionWeights = true
+				UseTierField = true
+				AllowTierRangeExpansion = true
+				Tags = [combat]
+			}
+			AI
+			{
+				Type = Normal
+				ChanceToConsiderSurrenderingToPlayer = 0
+				PatrolRadius = 50
+				TargetAcquireRangeFromOrigin = 100
+				TargetUnacquireRangeFromOrigin = 100
+			}
+		}
+	]
+}
+
+// Spec 2420: the Buyer's courier (The Buyer's Agent), on the Buyer's neutral side.
+BuyerCourier
+{
+	Spawners
+	[
+		{
+			Type = Ships
+			Tags = [hc_ev_carrier]
+			Distance = [700, 900]
+			Allegiance = Neutral
+			SuppressLocationAssertions = true
+			NameGenerator = { Type = NameList; Names = ["Buyer's Courier"]; }
+			ShipCriteria
+			{
+				UseLocalFactionWeights = true
+				UseTierField = true
+				AllowTierRangeExpansion = true
+				Tags = [trade]
+			}
+			AI
+			{
+				Type = Normal
+				ChanceToConsiderSurrenderingToPlayer = 0
+				PatrolRadius = 50
+				TargetAcquireRangeFromOrigin = 100
+				TargetUnacquireRangeFromOrigin = 100
+			}
+		}
+	]
+}

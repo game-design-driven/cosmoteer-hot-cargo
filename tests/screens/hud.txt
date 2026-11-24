@@ -18,8 +18,11 @@ uxpick 1
 wait 1
 godmode on
 screenshot hud-04-heat-calm
-# A greyed choice (no forged codes) and a follow-up page, on a popup (Distress Beacon now comes from a ship, spec 1815).
+# A greyed choice (no forged codes) and a follow-up page, in the customs cutter's comms (spec 2420).
 event corporate_checkpoint
+ev_carrier_goto
+ev_open carrier
+ev_dialogue carrier
 wait 1
 screenshot hud-05-event-greyed
 choose 2 2
@@ -27,7 +30,7 @@ wait 2
 screenshot hud-06-event-followup
 choose 2 1
 wait 1
-uxpick 1
+dip_close
 wait 1
 # Stage start: heat panel strip, chat line, hunter center text.
 stage

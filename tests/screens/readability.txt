@@ -17,8 +17,8 @@ ev_set StationEventChance 0
 godmode on
 wait 2
 matrix hud
-# A popup page: Distress Beacon now comes from a ship (spec 1815), so the pass uses The Odd Merchant.
-matrix event | event odd_merchant ; wait 1 | uxpick 3 ; wait 1 ; uxpick 1 ; wait 1
+# A popup page: most events come from a ship (spec 1815, 2420), so the pass uses Freighter Under Fire, which stays a popup.
+matrix event | event siege ; wait 1 | uxpick 2 ; wait 1 ; uxpick 1 ; wait 1
 matrix settings | menu open ; wait 1.5 | menu close ; wait 1
 select
 wait 1

@@ -11,7 +11,8 @@ dip_set MercChance 0
 openspace 6000
 wait 2
 godmode on
-event corporate_checkpoint
+# Corporate Checkpoint comes from a ship now (spec 2420); Vault Coolant Leak stays a popup with option rows.
+event vault_coolant_leak
 wait 1
 screenshot event-window
 quit

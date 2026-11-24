@@ -1,5 +1,5 @@
-# Pages from ships (spec 1815): Distress Beacon and A Lab That Won't Take No come from a ship that hails, and the page shows in its comms.
-# The lab ship jumps out after the answer (effect leave).
+# Pages from ships (spec 1815, 2420): popup events with a ship in the story come from that ship. It hails, and the page shows in its
+# comms. Ships with nothing left to do jump out after the answer (effect leave).
 newgame run
 wait 8
 ev_set StationEventChance 0
@@ -25,4 +25,63 @@ expect dip_leaving == 0
 ev_comms carrier Refuse
 expect ev_pending == 0
 expect dip_leaving >= 1
+# Spec 2420: each of these spawns exactly one carrier (the spawn fails loudly otherwise), and its page closes from the choice input.
+event stranded_freighter
+expect ev_carrier == 1
+choose last
+expect ev_pending == 0
+event defector
+expect ev_carrier == 1
+choose last
+expect ev_pending == 0
+event odd_merchant
+expect ev_carrier == 1
+choose last
+expect ev_pending == 0
+event magpies_return
+expect ev_carrier == 1
+choose last
+expect ev_pending == 0
+event refugee_convoy
+expect ev_carrier == 1
+choose last
+expect ev_pending == 0
+event buyers_agent
+expect ev_carrier == 1
+choose last
+expect ev_pending == 0
+# The checkpoint cutter hails; the caught follow-up stays on it, and it leaves when the matter is settled.
+event corporate_checkpoint
+expect ev_carrier == 1
+ev_carrier_goto
+pause off
+waitfor ev_hailing == 1 20
+expectcomms carrier Submit to the scan 1
+choose 2 2
+expect ev_pending == 1
+expect ev_carrier == 1
+expectcomms carrier Break away and fight 1
+ev_mark
+choose 2 1
+expect ev_pending == 0
+expecttagged hc_ev_corp >= 1
+expect dip_leaving >= 1
+# Rook's gunship hails; telling him to take it spawns the Magpies, and the gunship leaves.
+event rival_crew
+expect ev_carrier == 1
+ev_carrier_goto
+waitfor ev_hailing == 1 20
+expectcomms carrier Tell Rook to come and take it 1
+ev_comms carrier Tell Rook to come and take it
+expect ev_pending == 0
+expecttagged hc_ev_magpie >= 1
+# The toll gunship's page has its option rows in comms.
+event toll_gate
+expect ev_carrier == 1
+ev_carrier_goto
+waitfor ev_hailing == 1 20
+expectcomms carrier Pay the toll. 1
+ev_comms carrier Run the gate.
+expect ev_pending == 0
+expecttagged hc_ev_toll >= 1
 quit

@@ -1,4 +1,5 @@
-# Pages from ships (spec 1815): Distress Beacon comes from the tender that hails, A Lab That Won't Take No from the lab's ship.
+# Pages from ships (spec 1815, 2420): Distress Beacon comes from the tender that hails, A Lab That Won't Take No from the lab's ship,
+# Corporate Checkpoint from the customs cutter, The Magpies from Rook's gunship, Pirate Toll Gate from the toll gunship.
 # Windowed test slot or RUNNER=mac (needs graphics): see the hot-cargo-screenshots skill.
 render on
 newgame run 0
@@ -31,4 +32,41 @@ ev_open carrier
 ev_dialogue carrier
 wait 1
 screenshot shiphail-lab-comms
+ev_comms carrier Refuse
+dip_close
+wait 1
+event corporate_checkpoint
+ev_carrier_goto
+pause off
+waitfor ev_hailing == 1 20
+wait 1
+screenshot shiphail-checkpoint-hail
+ev_open carrier
+ev_dialogue carrier
+wait 1
+screenshot shiphail-checkpoint-comms
+choose 2 1
+dip_close
+wait 1
+event rival_crew
+ev_carrier_goto
+pause off
+waitfor ev_hailing == 1 20
+ev_open carrier
+ev_dialogue carrier
+wait 1
+screenshot shiphail-magpies-comms
+choose 3 1
+dip_close
+wait 1
+event toll_gate
+ev_carrier_goto
+pause off
+waitfor ev_hailing == 1 20
+ev_open carrier
+ev_dialogue carrier
+wait 1
+pick 1 2
+wait 1
+screenshot shiphail-toll-comms
 quit

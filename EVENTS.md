@@ -63,7 +63,7 @@ Removed after a playtest: a popup at the start of a run confused players. The fo
 
 Reads as: classic FTL beacon. The Sensor Array turns a gamble into a safe gain.
 
-#### 3. Running on Empty (Arrival, any sector)
+#### 3. Running on Empty (Arrival, any sector; the dry freighter hails, spec 2420)
 A dry freighter wants hyperium.
 | Choice | Cost | Outcomes |
 |---|---|---|
@@ -74,7 +74,7 @@ A dry freighter wants hyperium.
 
 Reads as: fuel is a currency. Kindness buys heat, greed buys money, piracy buys trouble.
 
-#### 4. Corporate Checkpoint (Arrival, sector 2+, heat 10+; weight 8 + 0.15 × heat)
+#### 4. Corporate Checkpoint (Arrival, sector 2+, heat 10+; weight 8 + 0.15 × heat; the customs cutter hails, spec 2420)
 | Choice | Cost / Need | Outcomes |
 |---|---|---|
 | Settle it quietly | options: a private fee (0.6 money), one crate (sure), forged codes (flag `fake_codes` from the Fence's Ledger chain, hidden without it; sure, extra heat −10, flag cleared) | 80 %: heat −10. 20 %: heat +10. A crate or the codes take the good outcome. |
@@ -85,7 +85,7 @@ Reads as: fuel is a currency. Kindness buys heat, greed buys money, piracy buys 
 
 Reads as: the more tech you hold, the less a scan can hide. Selling down makes this event safer.
 
-#### 5. The Defector (Arrival, sector 3+)
+#### 5. The Defector (Arrival, sector 3+; her escape pod hails, spec 2420)
 Dr. Ines Varga, a corporate engineer in an escape pod.
 | Choice | Outcomes |
 |---|---|
@@ -103,7 +103,7 @@ The defector's payoff, two or more systems later.
 
 Reads as: an FTL quest chain. A choice in sector 3 pays off in sector 5.
 
-#### 7. The Magpies (Arrival, sector 2+, 2+ tech)
+#### 7. The Magpies (Arrival, sector 2+, 2+ tech; Rook's gunship hails, spec 2420)
 A rival thief crew, Captain Rook, wants one crate.
 | Choice | Cost / Need | Outcomes |
 |---|---|---|
@@ -122,7 +122,7 @@ A freighter with failing shields and two raiders (tier − 1), 2,000 to 2,600 aw
 
 Reads as: FTL's station under siege. The time limit makes "move on or burn" a real choice; fame from the rescue adds heat.
 
-#### 9. The Odd Merchant (Arrival, any sector)
+#### 9. The Odd Merchant (Arrival, any sector; the merchant's ship hails, spec 2420)
 | Choice | Cost | Outcomes |
 |---|---|---|
 | Buy the mystery crate | 0.5 money | 35 % processors, 20 % diamonds, 20 % +1 crew, 15 % scrap, 10 % a corporate tracker (heat +15). |
@@ -189,7 +189,7 @@ Every buoy plays your hull number and a reward. Local bounty hunters: 2 ships wi
 
 Reads as: high heat has a local price too, not only corporate waves.
 
-#### 18. The Magpies Return (Arrival, 3+ tech, flag `magpies_paid` set 2+ sectors ago; weight 30)
+#### 18. The Magpies Return (Arrival, 3+ tech, flag `magpies_paid` set 2+ sectors ago; weight 30; Rook's gunship hails, spec 2420)
 Rook is back with two friends and wants two crates. Paying once made you a mark.
 | Choice | Cost / Need | Outcomes |
 |---|---|---|
@@ -199,7 +199,7 @@ Rook is back with two friends and wants two crates. Paying once made you a mark.
 
 Reads as: an FTL extortion arc, and a payoff for the Defector chain.
 
-#### 20. Refugee Convoy (Arrival, sector 3+)
+#### 20. Refugee Convoy (Arrival, sector 3+; the lead transport hails, spec 2420)
 Miners fleeing a corporate company town. The corporation searches every convoy.
 | Choice | Cost | Outcomes |
 |---|---|---|
@@ -209,7 +209,7 @@ Miners fleeing a corporate company town. The corporation searches every convoy.
 
 Reads as: a moral choice with a heat cost on the kind side and a fame and reputation cost on the cruel side.
 
-#### 21. Pirate Toll Gate (Arrival, sector 2+)
+#### 21. Pirate Toll Gate (Arrival, sector 2+; the toll gunship hails, spec 2420)
 The twist: the pirates sell sightings to the corporation, so the toll grows with your heat. A vanilla pirate base wants to be destroyed; this gate wants to be paid, and the price is the bounty on you.
 | Choice | Cost | Outcomes |
 |---|---|---|
@@ -217,7 +217,7 @@ The twist: the pirates sell sightings to the corporation, so the toll grows with
 | Pay double for a false sighting | the same options; two tolls | Heat −20. |
 | Run the gate | — | Heat +15, 3 pirates at the system tier (no bounty). |
 
-#### 22. The Buyer's Agent (Arrival, 1 to 2 sectors before the Buyer, 1+ tech; weight 40)
+#### 22. The Buyer's Agent (Arrival, 1 to 2 sectors before the Buyer, 1+ tech; weight 40; the Buyer's courier hails, spec 2420)
 An advance against the final sale. The run state keeps a Buyer price multiplier; the Buyer price and the score use it (spec 7, 84).
 | Choice | Outcomes |
 |---|---|
@@ -307,7 +307,7 @@ One per run, in a sector from 2 to the one before the Buyer. Within 3,000 the va
 
 Events do not only pop up. Ships carry them and talk:
 - **Ship-carried pages.** An event with a `Carrier` spawns its ship when it opens. The ship calls ("Courier is calling. Fly within comms range to answer, or hail it."), hails you in comms range, and its comms tab shows the page and the choices. It stays a real ship: attack it and the page closes ("The ship is gone, and so is the offer"), or leave it behind. Dead in Space now comes from its freighter, and the tow choice tows that freighter.
-- **More ships hail.** Distress Beacon (the tender), A Lab That Won't Take No (the lab's ship) and Data Broker (the broker's ship) come from ships too (spec 1815).
+- **More ships hail.** Distress Beacon (the tender), A Lab That Won't Take No (the lab's ship) and Data Broker (the broker's ship) come from ships too (spec 1815). So do Running on Empty, Corporate Checkpoint, The Defector, The Magpies, The Magpies Return, The Odd Merchant, Refugee Convoy, Pirate Toll Gate and The Buyer's Agent (spec 2420). Each ship jumps out when it has nothing left to do.
 - **Stations hail.** A Station event (The Fence, Smugglers' Den, The Informant, The Archive) comes from the station's comms.
 - **Hot Cargo lines in vanilla hails.** Stations offer "Sell crates off the books." Faction ships offer "Ask about hunters nearby." (heat 10+). Once per ship and line.
 
