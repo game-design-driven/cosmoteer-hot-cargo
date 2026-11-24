@@ -68,6 +68,7 @@ Procedures are skills in `.claude/skills/`:
 - Randomness: `sim.Rand` or a `FastRand` seeded from sim data. Never `System.Random`, `DateTime` or `App.Clock` in sim logic. Iterate in a stable order.
 - Positions: `Ship.DetWorldCenter` or `SimQueries.DetLocation`. Never `Ship.Location` or `ObjectiveTargetShip.Location` in sim logic: rendering moves them (spec 1512).
 - Player choices that change the sim go through an `MPInput`, allowed in `CareerGameModeManager.AllowMPInput`.
+- `tools/determinism-lint.py` (CI `build`) enforces these rules: it fails on new clock, random, local-player, hash, thread or unsorted file-order lines in sim code. A line that never changes the sim gets `// determinism: <reason>`. Never raise a count in `tools/determinism-allow.txt` to pass it.
 - Test sim changes with the co-op harness (see `hot-cargo-testing`).
 
 ## Text
