@@ -92,4 +92,5 @@ Procedures are skills in `.claude/skills/`:
 - Never end a turn while your own tests or builds run in the background. Ending the turn early leaves the work hanging. How to wait:
   - Short runs (under about 9 minutes): run them in the foreground with a long Bash timeout.
   - Long runs: start them with Bash `run_in_background`, then call `t3_background_wait` with the task ID (load it with ToolSearch `select:mcp__t3-code__t3_background_wait`). The turn then stays open until the run finishes.
-- Start only the last message with `FINAL REPORT`: what works with test results, what does not, Core changes, spec changes, commits, merge notes.
+- Decide with a reason. Initiative is welcome, but every choice that the brief did not make is visible: one line each (what and why) in the `### Decisions` block of the PR text, and again in the FINAL REPORT. Never hide a decision. The user or the coordinator can then override it. The `pr-text` check and the merge queue fail a PR without the block (`scripts/check-pr-text.sh`).
+- Start only the last message with `FINAL REPORT`: what works with test results, what does not, decisions with their reasons, Core changes, spec changes, commits, merge notes.

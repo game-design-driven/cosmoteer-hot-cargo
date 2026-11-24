@@ -9,9 +9,10 @@ name: check
 on:
   # No push trigger: main moves only through the merge queue, and main gets the exact commit that the queue tested, with
   # its checks. release.sh reads those checks. dev-release.yml has its own trigger.
-  # "edited": a change of the pull request text checks its "### Game tests" block again.
+  # No "edited": a change of the pull request text reruns only the pr-text workflow (pr-text.yml), not the build and the
+  # game tests. Reason: text edits once cancelled and restarted 24 runs in a day.
   pull_request:
-    types: [opened, synchronize, reopened, edited]
+    types: [opened, synchronize, reopened]
   # The merge queue of main: it tests each pull request on top of main and the pull requests ahead of it.
   merge_group:
     types: [checks_requested]
@@ -62,7 +63,8 @@ jobs:
         run: |
           run=true
           case "${{ github.event_name }}" in
-            pull_request) scripts/ci-test-set.sh "$PR" > set.txt; run=false ;;
+            # A text error fails the pr-text check, not this one: build does not rerun on a text edit, so its result would stay stale.
+            pull_request) scripts/ci-test-set.sh "$PR" > set.txt || printf '== the PR text has an error: see the pr-text check\nTESTS \nSHARDS 0\nFULL no\n' >> set.txt; run=false ;;
             merge_group) scripts/ci-test-set.sh --group "$QUEUE_BASE" "$QUEUE_HEAD" > set.txt ;;
             workflow_dispatch) scripts/ci-test-set.sh --all > set.txt ;;
             schedule)

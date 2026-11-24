@@ -1,6 +1,9 @@
 - [ ] Game tests that the change needs, run before the push: <names>
 - [ ] Tests outside CI: none affected, or ran: <names> (`LIST_ONLY=1 RUNNER=pc scripts/autotest-affected.sh`)
 
+### Decisions
+<!-- Each choice that the brief did not make: one line each, what you decided and why. Write "none" when there was none. -->
+
 ### Game tests
 <!-- The merge queue runs the affected tests and the baseline (core, tech-start) by default; see the PR summary of check.yml.
 Change the set with one line each, outside this comment: "+ <test>" adds, "- <test>" removes, "all" runs every test,
