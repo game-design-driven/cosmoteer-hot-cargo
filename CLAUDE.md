@@ -22,6 +22,7 @@ Procedures are skills in `.claude/skills/`:
 - `hot-cargo-balance`: change balance defaults with the economy model, the balance tests and `BALANCE.md`.
 - `hot-cargo-game-update`: bring the mod to a new Cosmoteer version.
 - `hot-cargo-player-ships`: Tech Vaults in the player's saved ships or the starter ships (coordinator only).
+- `hot-cargo-status`: the whole state in one run (`scripts/status.sh`): main, the queue, open PRs, releases, installed versions, the player hold, disk.
 - `hot-cargo-coordinate`: briefs, the agent watch, merges and failures, the player hold and main-slot work (coordinator only).
 
 ## Git
