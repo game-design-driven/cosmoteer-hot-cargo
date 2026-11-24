@@ -1,10 +1,8 @@
 using Cosmoteer.Game.Gui;
 using Cosmoteer.Modes.Career;
-using Halfling;
 using Halfling.Graphics;
 using Halfling.Gui;
 using Halfling.Gui.Components.Rects;
-using Halfling.ObjectText;
 using HarmonyLib;
 using HotCargo.Core;
 
@@ -41,16 +39,8 @@ static class ShareResourcesHud
 
     static ISprite Icon(bool on)
     {
-        _icons ??= LoadIcons();
+        _icons ??= (Ui.ModSprite.Read("tactics/share_icons.rules", "On"), Ui.ModSprite.Read("tactics/share_icons.rules", "Off"));
         return on ? _icons.Value.On : _icons.Value.Off;
-    }
-
-    static (ISprite, ISprite) LoadIcons()
-    {
-        string path = Path.Combine(Mod.ModRoot, "tactics", "share_icons.rules");
-        var file = new OTFile(path);
-        ISprite Read(string name) => App.ObjectTextSerializer.ReadFromPath<ISprite>(file, name) ?? throw new InvalidDataException($"{name} missing in {path}");
-        return (Read("On"), Read("Off"));
     }
 
     [HarmonyPatch(typeof(CareerGameModeManager), nameof(CareerGameModeManager.Update))]

@@ -1,0 +1,5 @@
+// Icons of the AI button on the ships card (spec 410), drawn by tools/sprites/make_ui_icons.py. Read by ShipAi/ShipAiArea.cs.
+// Same texture settings as the vanilla tool icons (gui/game/resources/resources_gui.rules, ToolIcon).
+On { Texture { File = "sprites/ai_on.png"; MipLevels = 2; SampleMode = Linear } }
+Off { Texture { File = "sprites/ai_off.png"; MipLevels = 2; SampleMode = Linear } }
+Mixed { Texture { File = "sprites/ai_mixed.png"; MipLevels = 2; SampleMode = Linear } }

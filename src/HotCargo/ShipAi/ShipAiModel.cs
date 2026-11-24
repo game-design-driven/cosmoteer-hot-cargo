@@ -639,6 +639,20 @@ public static class ShipAiModel
         return autoOn == 0 ? CardState.Off : autoOn == ships ? CardState.On : CardState.Mixed;
     }
 
+    /// <summary>
+    /// Spec 410: the preset whose rows a ship has, for the card tooltip. A built-in preset first, then a personal preset by its name, in
+    /// the order of the editor's list. Both null: the ship has its own rows, or none.
+    /// </summary>
+    public static (Preset? BuiltIn, string? Personal) PresetOf(string text, IEnumerable<(string Name, string Text)> personal)
+    {
+        if (text.Length == 0) return (null, null);
+        foreach (var p in Enum.GetValues<Preset>())
+            if (Encode(PresetRows(p)) == text) return (p, null);
+        foreach (var (name, rows) in personal)
+            if (rows == text) return (null, name);
+        return (null, null);
+    }
+
     /// <summary>A term with a new condition keeps Not and its connector. The parameter resets when its kind changes.</summary>
     public static Term WithCond(Term term, Cond cond) =>
         term with { Cond = cond, Param = ParamOf(cond) == ParamOf(term.Cond) ? term.Param : DefaultParam(ParamOf(cond)) };

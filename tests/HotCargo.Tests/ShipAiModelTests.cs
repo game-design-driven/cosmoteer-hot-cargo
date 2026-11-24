@@ -443,6 +443,17 @@ public class ShipAiModelTests
     }
 
     [Fact]
+    public void Preset_of_a_ship_is_the_built_in_one_first_then_a_personal_one_with_the_same_rows()
+    {
+        string escort = ShipAiModel.Encode(ShipAiModel.PresetRows(Preset.Escort));
+        Assert.Equal((Preset.Escort, (string?)null), ShipAiModel.PresetOf(escort, [("Mine", escort)]));
+        string own = ShipAiModel.Encode([Row(Cond.Always, 0, Act.TargetNearest)]);
+        Assert.Equal(((Preset?)null, "Mine"), ShipAiModel.PresetOf(own, [("Other", escort), ("Mine", own)]));
+        Assert.Equal(((Preset?)null, (string?)null), ShipAiModel.PresetOf(own, []));
+        Assert.Equal(((Preset?)null, (string?)null), ShipAiModel.PresetOf("", [("Empty", "")]));
+    }
+
+    [Fact]
     public void A_target_row_picks_within_its_enemy_within_range()
     {
         Assert.Equal(1545f, ShipAiModel.EngageRange(new TacticRow([new Term(Cond.EnemyWithin, 1500)], Act.TargetWeakest, 0), 0.03f)!.Value, 2);
