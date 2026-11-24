@@ -53,12 +53,9 @@ internal sealed class CargoPicker : WindowBox
             });
             box.Children.Add(toggle);
         }
-        var done = new Button();
-        done.CopySettingsFrom(WidgetRules.Instance.FlatButton);
+        var done = Ui.FlatButton.New(Strings.GetText("HotCargoAutonomy/PickDone"), () => this.Unparent());
         done.Height = 34f;
-        done.Text = Strings.GetText("HotCargoAutonomy/PickDone");
         done.PercentileWidth = 100f;
-        done.Clicked += (_, _) => this.Unparent();
         box.Children.Add(done);
         Parented += (_, _) =>
         {

@@ -1,0 +1,19 @@
+# Relay lockdown in the jump spin-up window (spec 954): ENGAGE greyed and the line that says why and how out.
+# RUNNER=mac scripts/screens.sh tests/screens/relay-jump.txt <out-dir>
+render on
+newgame run
+wait 10
+closepanel
+wait 1
+ev_set Enabled false
+godmode on
+pause off
+rl_here closed
+# The start ship of a run has no hyperdrive.
+fa_drive
+wait 2
+jw_gatejump
+waitfor jw_ready >= 1 120
+wait 1
+screenshot relay-jump-blocked
+quit

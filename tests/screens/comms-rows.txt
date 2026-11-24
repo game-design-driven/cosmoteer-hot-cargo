@@ -1,0 +1,20 @@
+# Option rows wrap inside their box (spec 591): a friendly ship's comms page at 1280x720 with a long help row (a seven-digit
+# price) that needs three lines. WINDOW_SIZE=1280x720 RUNNER=mac scripts/screens.sh tests/screens/comms-rows.txt <out-dir>
+render on
+newgame run
+wait 10
+closepanel
+wait 1
+ev_set Enabled false
+dip_set DemandHailChance 0
+dip_set MercChance 0
+dip_set HireFairUnits 1000
+godmode on
+dip_spawn friend 250
+wait 2
+uiscale max
+wait 1
+dip_open friend
+wait 2
+screenshot comms-rows-small
+quit
