@@ -10,6 +10,7 @@ using Cosmoteer.Ships;
 using Cosmoteer.Ships.Commands;
 using Cosmoteer.Simulation;
 using Halfling.Geometry;
+using Halfling.Graphics;
 using Halfling.Graphics.Text;
 using Halfling.Gui;
 using Halfling.Gui.Components.Rects;
@@ -53,40 +54,77 @@ public static class ShipAiArea
     }
 
     /// <summary>
-    /// Spec 410: the "AI" button of the ships card. One selected ship: a box in the info row. Several selected ships: vanilla hides the
-    /// info row (ShipsCard.UpdateForMultipleShips), so a second button sits in its own box at the card's right edge. A click opens the
-    /// editor like Ctrl+K: for the first selected own ship; its "Apply to selected" reaches the others.
+    /// Spec 410: the AI button of the ships card, a vanilla command button (ShipGui.SHIP_COMMAND_BUTTON, 50 x 50, as the halt button)
+    /// with an icon: green when every selected own ship has Auto on, HUD blue when none has, half and half when some have. One selected
+    /// ship: a 50 px slot in the info row, which stretches its children, so the slot centres the button. Several selected ships: vanilla
+    /// hides the info row (ShipsCard.UpdateForMultipleShips), so a second button sits in its own box at the card's right edge. A click
+    /// opens the editor like Ctrl+K: for the first selected own ship; its "Apply to selected" reaches the others.
     /// </summary>
     [HarmonyPatch(typeof(ShipsCard), MethodType.Constructor, typeof(GameRoot), typeof(GameGui), typeof(IRectProvider))]
     static class CardButton
     {
-        internal sealed record Pair(Button Single, Button Multi, LayoutBox MultiBox);
+        internal sealed class Pair(ImageButton single, LayoutBox singleSlot, ImageButton multi, LayoutBox multiBox)
+        {
+            public ImageButton Single { get; } = single;
+            public LayoutBox SingleSlot { get; } = singleSlot;
+            public ImageButton Multi { get; } = multi;
+            public LayoutBox MultiBox { get; } = multiBox;
+            /// <summary>The state that each button shows; null before its first update.</summary>
+            public CardState? SingleState { get; set; }
+            public CardState? MultiState { get; set; }
+        }
 
         internal static readonly ConditionalWeakTable<ShipsCard, Pair> Buttons = new();
+        static Dictionary<CardState, ISprite>? _icons;
 
         static void Postfix(ShipsCard __instance) => Errors.Guard("tactics card button", () =>
         {
-            var single = NewButton("HotCargoShipAi/CardTip");
-            __instance._infoIconsBox.Children.Add(single);
-            var multi = NewButton("HotCargoShipAi/CardMultiTip");
-            var box = new LayoutBox { SelfActive = false };
-            box.NineSlice.Flags = NineSliceFlags.None;
+            var single = NewButton();
+            var slot = Slot(single);
+            slot.Width = Size;
+            __instance._infoIconsBox.Children.Add(slot);
+            var multi = NewButton();
+            var box = Slot(multi);
+            box.SelfActive = false;
             box.DockMode = DockMode.Right;
             box.AutoSize.AutoWidthMode = AutoSizeMode.Enable;
-            box.Children.LayoutAlgorithm = LayoutAlgorithms.StretchTopToBottom;
-            box.Children.BorderPadding = new Borders(0f, 0f, 41f, 41f);
-            box.AddChild(multi);
+            box.Children.BorderPadding = new Borders(10f, 10f, 0f, 0f);
             __instance.DockedChildren.Add(box);
-            Buttons.AddOrUpdate(__instance, new Pair(single, multi, box));
+            Buttons.AddOrUpdate(__instance, new Pair(single, slot, multi, box));
         });
 
-        static Button NewButton(string tipKey)
+        const float Size = 50f;
+
+        /// <summary>A box without a frame that keeps the button at its own size in its middle.</summary>
+        static LayoutBox Slot(ImageButton button)
         {
-            var b = Ui.FlatButton.New("", Click);
-            b.Width = 72f;
-            b.Height = 34f;
-            b.ToolTips.TextProvider = new Ux.LiveText(() => Strings.GetText(tipKey));
+            var box = new LayoutBox();
+            box.NineSlice.Flags = NineSliceFlags.None;
+            box.Children.LayoutAlgorithm = LayoutAlgorithms.CenterMiddleByColumn;
+            box.AddChild(button);
+            return box;
+        }
+
+        static ImageButton NewButton()
+        {
+            var b = new ImageButton(Icon(CardState.Off), ShipGui.SHIP_COMMAND_BUTTON);
+            // The game reads the tooltip text once while it builds the card, before the card has a sim: the ships come from the run.
+            b.ToolTips.TextProvider = new Ux.LiveText(() => Run.Current is { } run ? Tip(Selected(run.Game.Sim)) : "");
+            b.Clicked += (_, _) => Errors.Guard("tactics card click", Click);
             return b;
+        }
+
+        static ISprite Icon(CardState state)
+        {
+            _icons ??= Enum.GetValues<CardState>().ToDictionary(s => s, s => Ui.ModSprite.Read("shipai/card_icons.rules", s.ToString()));
+            return _icons[state];
+        }
+
+        /// <summary>Shows the state on the button: a new icon only when the state changes.</summary>
+        internal static CardState Show(ImageButton button, CardState? shown, CardState state)
+        {
+            if (shown != state) button.ImageSprite.CopySpriteFrom(Icon(state));
+            return state;
         }
 
         /// <summary>Same ship as Ctrl+K: the first selected own ship.</summary>
@@ -99,18 +137,34 @@ public static class ShipAiArea
         internal static List<Ship> Selected(SimRoot sim) =>
             sim.PlayerInput.SelectedCommandableShips.Where(s => s.IsHumanPlayerShip).OrderBy(s => s.UniqueID).ToList();
 
-        /// <summary>The button text for these ships; null hides the button.</summary>
-        internal static string? Text(IReadOnlyList<Ship> ships)
+        /// <summary>The button state for these ships; null hides the button.</summary>
+        internal static CardState? State(IReadOnlyList<Ship> ships) =>
+            Run.Current is null || ships.Count == 0 ? null : ShipAiModel.CardStateOf(ships.Count(s => ShipTactics.Of(s) is { Auto: true }), ships.Count);
+
+        /// <summary>The tooltip: the state, the preset of each ship, and what a click does.</summary>
+        static string Tip(IReadOnlyList<Ship> ships)
         {
-            if (Run.Current is null || ships.Count == 0) return null;
+            if (State(ships) is not { } state) return "";
             int on = ships.Count(s => ShipTactics.Of(s) is { Auto: true });
-            return ShipAiModel.CardStateOf(on, ships.Count) switch
+            string line = state switch
             {
                 CardState.On => Strings.GetText("HotCargoShipAi/CardOn"),
                 CardState.Off => Strings.GetText("HotCargoShipAi/CardOff"),
                 CardState.Mixed => Strings.FormatText("HotCargoShipAi/CardMixedFmt", on, ships.Count),
-                var state => throw new ArgumentOutOfRangeException(nameof(ships), state, null),
+                _ => throw new ArgumentOutOfRangeException(nameof(ships), state, null),
             };
+            // The personal presets file is small and read only while the tooltip shows.
+            var personal = TacticsPresets.Load();
+            string presets = string.Join(", ", ships.Select(s => PresetName(s, personal)).Distinct());
+            return line + "\n" + Strings.FormatText(ships.Count == 1 ? "HotCargoShipAi/CardTipFmt" : "HotCargoShipAi/CardMultiTipFmt", presets);
+        }
+
+        static string PresetName(Ship ship, IEnumerable<(string Name, string Text)> personal)
+        {
+            string text = ShipTactics.Of(ship)?.Text ?? "";
+            var (builtIn, own) = ShipAiModel.PresetOf(text, personal);
+            return builtIn is { } p ? Strings.GetText("HotCargoShipAi/Preset_" + p)
+                : own ?? Strings.GetText(text.Length == 0 ? "HotCargoShipAi/CardNoRows" : "HotCargoShipAi/CardCustom");
         }
     }
 
@@ -121,8 +175,9 @@ public static class ShipAiArea
         {
             if (!CardButton.Buttons.TryGetValue(__instance, out var pair)) return;
             bool own = ship.Commands.IsCommandableByLocalPlayer && ship.IsHumanPlayerShip;
-            pair.Single.SelfActive = own && Run.Current is not null;
-            if (pair.Single.SelfActive) pair.Single.Text = CardButton.Text([ship])!;
+            var state = own ? CardButton.State([ship]) : null;
+            pair.SingleSlot.SelfActive = state is not null;
+            if (state is { } s) pair.SingleState = CardButton.Show(pair.Single, pair.SingleState, s);
             pair.MultiBox.SelfActive = false;
         });
     }
@@ -133,9 +188,9 @@ public static class ShipAiArea
         static void Postfix(ShipsCard __instance) => Errors.Guard("tactics card update", () =>
         {
             if (!CardButton.Buttons.TryGetValue(__instance, out var pair)) return;
-            string? text = CardButton.Text(CardButton.Selected(__instance.Sim));
-            pair.MultiBox.SelfActive = text is not null;
-            if (text is not null) pair.Multi.Text = text;
+            var state = CardButton.State(CardButton.Selected(__instance.Sim));
+            pair.MultiBox.SelfActive = state is not null;
+            if (state is { } s) pair.MultiState = CardButton.Show(pair.Multi, pair.MultiState, s);
         });
     }
 
@@ -234,8 +289,8 @@ public static class ShipAiArea
             else input.SelectShips(Sim().Ships.HumanPlayerShips.Where(s => s.Commands.IsCommandableByLocalPlayer).ToList());
         };
         // The AI buttons of the ships card (spec 410): -1 hidden, else the CardState (0 off, 1 mixed, 2 on). The card updates in UI frames.
-        Autotest.Fields["tactics_card_single"] = () => CardField(p => p.Single);
-        Autotest.Fields["tactics_card_multi"] = () => CardField(p => p.Multi);
+        Autotest.Fields["tactics_card_single"] = () => CardField(p => (p.Single, p.SingleState));
+        Autotest.Fields["tactics_card_multi"] = () => CardField(p => (p.Multi, p.MultiState));
         // tactics_card_update: one vanilla update of the ships card, as a UI frame does it (ShipsCard.OnUpdatingUIState runs before UI
         // input, and a headless game has no UI input pass). UI only.
         Autotest.Commands["tactics_card_update"] = _ => Autotest.RequireRun().Game.Gui.ShipGui.ShipsCard.OnUpdatingUIState(null, EventArgs.Empty);
@@ -433,20 +488,14 @@ public static class ShipAiArea
         };
     }
 
-    static int CardField(Func<CardButton.Pair, Button> button)
+    static int CardField(Func<CardButton.Pair, (Button Button, CardState? State)> button)
     {
         var card = Autotest.RequireRun().Game.Gui.ShipGui.ShipsCard;
         if (!CardButton.Buttons.TryGetValue(card, out var pair)) throw new InvalidOperationException("the ships card has no AI buttons");
-        var b = button(pair);
+        var (b, state) = button(pair);
         // IsActive: the button and every parent are active (vanilla hides the info row with several ships).
         if (!b.IsActive) return -1;
-        string text = b.Text;
-        if (text == Strings.GetText("HotCargoShipAi/CardOn")) return (int)CardState.On;
-        if (text == Strings.GetText("HotCargoShipAi/CardOff")) return (int)CardState.Off;
-        var ships = CardButton.Selected(Sim());
-        int on = ships.Count(x => ShipTactics.Of(x) is { Auto: true });
-        if (text == Strings.FormatText("HotCargoShipAi/CardMixedFmt", on, ships.Count)) return (int)CardState.Mixed;
-        throw new InvalidOperationException($"the AI card button shows '{text}'");
+        return (int)(state ?? throw new InvalidOperationException("the AI card button shows, but has no state yet"));
     }
 
     static Dictionary<Cosmoteer.Game.ObjectID, (string Text, bool Auto)>? _snapshot;

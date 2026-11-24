@@ -4,7 +4,8 @@
 # ///
 """
 Draws the HUD icons of Hot Cargo buttons in the vanilla HUD icon style. Run: uv run tools/sprites/make_ui_icons.py
-Writes mod/tactics/sprites/share_on.png and share_off.png (spec 1318).
+Writes mod/tactics/sprites/share_on.png and share_off.png (spec 1318), and mod/shipai/sprites/ai_on.png, ai_off.png and
+ai_mixed.png (spec 410).
 
 The vanilla HUD icons (gui/game/*/hud_*.png and the *_on/*_off tool icons), measured, no art copied: 96 x 96 px, a flat glyph
 about 55 px wide, blue 0,183,255 when off or neutral, green 10,212,97 when on, and a soft glow of the same hue around the glyph.
@@ -16,7 +17,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 from scipy import ndimage
 
-OUT = pathlib.Path(__file__).resolve().parents[2] / "mod" / "tactics" / "sprites"
+MOD = pathlib.Path(__file__).resolve().parents[2] / "mod"
 SIZE, K = 96, 4  # drawn at K times the size, then reduced, for smooth edges
 OFF, ON = (0, 183, 255), (10, 212, 97)
 
@@ -55,6 +56,30 @@ def share_glyph():
     return np.asarray(m.resize((SIZE, SIZE), Image.LANCZOS), np.float32) / 255
 
 
+def ai_glyph():
+    """A chip with three pins on each side and a small network of nodes on it: the ship AI."""
+    s = SIZE * K
+    m = Image.new("L", (s, s), 0)
+    d = ImageDraw.Draw(m)
+    c = s / 2
+
+    def p(x, y):
+        return (c + x * K, c + y * K)
+
+    body, stroke = 22, 6
+    d.rounded_rectangle([p(-body, -body), p(body, body)], radius=5 * K, outline=255, width=int(stroke * K))
+    for k in (-11, 0, 11):  # pins
+        for x0, y0, x1, y1 in ((k - 2.6, -body - 8, k + 2.6, -body), (k - 2.6, body, k + 2.6, body + 8),
+                               (-body - 8, k - 2.6, -body, k + 2.6), (body, k - 2.6, body + 8, k + 2.6)):
+            d.rectangle([p(x0, y0), p(x1, y1)], fill=255)
+    nodes = [(-8.5, -7.5), (8.5, -8.5), (0, 8.5)]
+    for (x0, y0), (x1, y1) in zip(nodes, nodes[1:] + nodes[:1]):
+        d.line([p(x0, y0), p(x1, y1)], fill=255, width=int(3.4 * K))
+    for x, y in nodes:
+        d.ellipse([p(x - 4.8, y - 4.8), p(x + 4.8, y + 4.8)], fill=255)
+    return np.asarray(m.resize((SIZE, SIZE), Image.LANCZOS), np.float32) / 255
+
+
 def icon(glyph, color):
     """The glyph in its colour with a soft glow of a darker shade of the same hue, as vanilla HUD icons."""
     glow = np.clip(ndimage.gaussian_filter(glyph, 3.5) * 1.6, 0, 1) * 0.75
@@ -64,9 +89,21 @@ def icon(glyph, color):
     return Image.fromarray(np.dstack([np.clip(rgb, 0, 255), a[..., None] * 255]).astype(np.uint8), "RGBA")
 
 
+def save(folder, name, img):
+    out = MOD / folder / "sprites"
+    out.mkdir(parents=True, exist_ok=True)
+    img.save(out / f"{name}.png", optimize=True)
+
+
 if __name__ == "__main__":
-    OUT.mkdir(parents=True, exist_ok=True)
     g = share_glyph()
-    icon(g, ON).save(OUT / "share_on.png", optimize=True)
-    icon(g, OFF).save(OUT / "share_off.png", optimize=True)
-    print(f"icons written to {OUT}")
+    save("tactics", "share_on", icon(g, ON))
+    save("tactics", "share_off", icon(g, OFF))
+    g = ai_glyph()
+    on, off = icon(g, ON), icon(g, OFF)
+    save("shipai", "ai_on", on)
+    save("shipai", "ai_off", off)
+    # Some of the selected ships have their AI on: the left half on, the right half off.
+    mixed = np.where((np.arange(SIZE) < SIZE // 2)[None, :, None], np.asarray(on), np.asarray(off))
+    save("shipai", "ai_mixed", Image.fromarray(mixed.astype(np.uint8), "RGBA"))
+    print(f"icons written under {MOD}")

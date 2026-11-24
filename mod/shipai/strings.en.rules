@@ -64,12 +64,14 @@ HotCargoShipAi
 	StatusMoveFmt = "Row {0}: {1}."
 	StatusIdle = "<gray>No row matches now: the ship does nothing.</gray>"
 
-	CardOn = "<good>AI on</good>"
-	CardOff = "<gray>AI off</gray>"
-	CardMixedFmt = "<limited_color>AI {0}/{1}</limited_color>"
-	CardTip = "Ship AI: the rows that fly this ship. Hotkey: Ctrl+K."
-	CardMultiTip = "Ship AI of the selected ships: AI on, off, or on in some of them. Hotkey: Ctrl+K. "\
-	               "Opens the first ship; Apply to selected copies its rows to the others."
+	// The AI button of the ships card (spec 410): its tooltip. The first line names the state.
+	CardOn = "<b>Ship AI: ON</b>"
+	CardOff = "<b>Ship AI: OFF</b>"
+	CardMixedFmt = "<b>Ship AI: ON in {0} of {1} ships</b>"
+	CardTipFmt = "Preset: {0}\nClick to open the Ship AI editor. Hotkey: Ctrl+K."
+	CardMultiTipFmt = "Presets: {0}\nClick to open the Ship AI editor for the first ship. Its Apply to selected copies the rows to the others. Hotkey: Ctrl+K."
+	CardCustom = "own rows"
+	CardNoRows = "none"
 
 	Preset_Aggressive = "Aggressive"
 	Preset_Defensive = "Defensive"
