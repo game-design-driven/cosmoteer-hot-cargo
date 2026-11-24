@@ -1,4 +1,4 @@
-// Tech Vault (spec 15, 440, 1540). One tile: the vanilla 2x2 storage bay art at 1x1 scale, with a tint and a single-type grid for Stolen Tech.
+// Tech Vault (spec 15, 440, 1540). One tile with a single-type grid for Stolen Tech. Own art in sprites/tech_vault (spec 2005).
 // The copy is on purpose: inheriting storage_2x2 would merge its FlexResourceGrid, which accepts any resource.
 Part : <./Data/ships/terran/base_part_terran.rules>/Part
 {
@@ -21,16 +21,14 @@ Part : <./Data/ships/terran/base_part_terran.rules>/Part
 	TypeCategories = [storage]
 	ReceivableBuffs : ^/0/ReceivableBuffs []
 	IgnoreRotationForMirroredSelection = true
-	TINT = [255, 200, 140]
 	EditorIcon
 	{
 		Texture
 		{
-			File = "./Data/ships/terran/storage_2x2/icon.png"
+			File = "sprites/tech_vault/icon.png"
 			SampleMode = Linear
 		}
 		Size = [64, 64]
-		VertexColor = &~/Part/TINT
 	}
 	Components : ^/0/Components
 	{
@@ -68,60 +66,33 @@ Part : <./Data/ships/terran/base_part_terran.rules>/Part
 			Type = Graphics
 			Location = [0.5, 0.5]
 			OperationalToggle = IsOperational
+			// Own art (tools/sprites/make_sprites.py): an armoured bed with a pad under each unit, and a heavy frame.
 			Floor
 			{
 				Layer = "floors"
-				DamageLevels
-				[
-					{
-						File = "./Data/ships/terran/storage_2x2/floor.png"
-						Size = [1, 1]
-						VertexColor = &~/Part/TINT
-					}
-					{
-						File = "./Data/ships/terran/storage_2x2/floor_33.png"
-						Size = [1, 1]
-						VertexColor = &~/Part/TINT
-					}
-					{
-						File = "./Data/ships/terran/storage_2x2/floor_66.png"
-						Size = [1, 1]
-						VertexColor = &~/Part/TINT
-					}
+				DamageLevels [
+					{ File = "sprites/tech_vault/floor.png"; Size = [1, 1] }
+					{ File = "sprites/tech_vault/floor_33.png"; Size = [1, 1] }
+					{ File = "sprites/tech_vault/floor_66.png"; Size = [1, 1] }
 				]
 			}
 			NonOperationalDoodad
 			{
 				Layer = "doodads_high"
-				DamageLevels
-				[
-					{
-						File = "./Data/ships/terran/darkness/darkness1x1.png"
-						Size = [1, 1]
-						VertexColor = &~/Part/TINT
-					}
-				]
+				DamageLevels [ { File = "./Data/ships/terran/darkness/darkness1x1.png"; Size = [1, 1] } ]
+			}
+			OperationalLighting
+			{
+				Layer = "lights_add"
+				DamageLevels [ { File = "sprites/tech_vault/lights.png"; Size = [1, 1] } ]
 			}
 			Walls
 			{
 				Layer = "walls"
-				DamageLevels
-				[
-					{
-						File = "./Data/ships/terran/storage_2x2/walls.png"
-						Size = [1, 1]
-						VertexColor = &~/Part/TINT
-					}
-					{
-						File = "./Data/ships/terran/storage_2x2/walls_33.png"
-						Size = [1, 1]
-						VertexColor = &~/Part/TINT
-					}
-					{
-						File = "./Data/ships/terran/storage_2x2/walls_66.png"
-						Size = [1, 1]
-						VertexColor = &~/Part/TINT
-					}
+				DamageLevels [
+					{ File = "sprites/tech_vault/walls.png"; Size = [1, 1] }
+					{ File = "sprites/tech_vault/walls_33.png"; Size = [1, 1] }
+					{ File = "sprites/tech_vault/walls_66.png"; Size = [1, 1] }
 				]
 			}
 		}
@@ -138,7 +109,7 @@ Part : <./Data/ships/terran/base_part_terran.rules>/Part
 		Blueprints
 		{
 			Type = BlueprintSprite
-			File = "./Data/ships/terran/storage_2x2/blueprints.png"
+			File = "sprites/tech_vault/blueprints.png"
 			Size = [1, 1]
 		}
 	}

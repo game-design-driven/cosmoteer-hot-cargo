@@ -1,0 +1,62 @@
+# Item and part art (spec 2000 to 2005): every Hot Cargo item in storage next to vanilla processors and gold, two Tech Vaults with
+# tech, the Prototype Core part, the loose nuggets in a row to the right of the ship, and both parts damaged.
+# On the Mac: RUNNER=mac scripts/screens.sh tests/screens/item-art.txt <out-dir>
+render on
+newgame run 0
+wait 10
+ev_set Enabled false
+closepanel
+wait 1
+pause off
+godmode on
+reveal on
+auto_build Showcase away yarden_zamir.tech_vault@0,0 yarden_zamir.tech_vault@1,0 yarden_zamir.prototype_core@0,1 cosmoteer.storage_4x3@2,0 cosmoteer.storage_4x3@6,0 cosmoteer.control_room_small@10,0
+wait 3
+# Tech into the vaults (the starter vaults are full, so it goes to the test ship), and 3 units in normal storage.
+tech add 7
+auto_cargo yarden_zamir.stolen_tech 3
+auto_cargo yarden_zamir.helion_ore 8
+auto_cargo processor 7
+auto_cargo gold 8
+auto_cargo yarden_zamir.flight_recorder 1
+auto_cargo yarden_zamir.sealed_case 1
+auto_cargo yarden_zamir.opened_case 1
+auto_cargo yarden_zamir.access_codes 1
+auto_cargo yarden_zamir.tracer_beacon 1
+auto_cargo yarden_zamir.rescue_beacon 1
+auto_cargo yarden_zamir.prototype_core_cargo 1
+# Loose nuggets in a row to the right of the ship, 1.2 tiles apart.
+auto_loot yarden_zamir.flight_recorder 1 1 1
+auto_loot yarden_zamir.sealed_case 1 1 2.2
+auto_loot yarden_zamir.opened_case 1 1 3.4
+auto_loot yarden_zamir.access_codes 1 1 4.6
+auto_loot yarden_zamir.tracer_beacon 1 1 5.8
+auto_loot yarden_zamir.rescue_beacon 1 1 7
+auto_loot yarden_zamir.prototype_core_cargo 1 1 8.2
+auto_loot yarden_zamir.stolen_tech 1 1 9.4
+auto_loot yarden_zamir.helion_ore 1 1 10.6
+auto_loot processor 1 1 11.8
+auto_loot gold 1 1 13
+wait 1
+auto_interior on
+wait 2
+# The first camera move after the selection does not hold (seen on the Mac runner): move twice.
+auto_frame 13
+wait 2
+auto_frame 13
+wait 3
+screenshot item-storage
+# The blinks: a shot a moment later shows other light frames.
+wait 0.4
+screenshot item-storage-later
+auto_focus 48
+wait 3
+screenshot item-nuggets
+# The parts damaged, at about a fifth of their health.
+godmode off
+auto_damage yarden_zamir.tech_vault 0.2
+auto_damage yarden_zamir.prototype_core 0.2
+auto_frame 13
+wait 3
+screenshot part-damage
+quit
