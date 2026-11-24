@@ -1,6 +1,6 @@
 # Study: loot volume and building after every fight
 
-Status: analysis only. Nothing in the game changed. The user decides.
+Status: decided 2026-11-24. Built: A (2× stack for steel and coil, spec 1836) and B (bay ammo back to vanilla, spec 1835), with a new rule for laser breaks (spec 1834). Rejected: C (price cut) and D (cash-out).
 
 ## The question
 

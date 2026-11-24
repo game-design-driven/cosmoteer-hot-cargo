@@ -8,6 +8,8 @@
 | `Journey.MissionMoneyScale` | 1.5 | 4 |
 | `Debris.SalvageDropFactor` | 0.6 | 1247 |
 | `Debris.SalvageComponentDropFactor`, `SalvageComponentPrice` | 0.85, 1000 | 1832 |
+| `Debris.LaserDropShare`, `LaserBaseDropFactor`, `LaserBaseResources` | 0.9, 0.75, steel and coil | 1834 |
+| `Balance.BuildStackSize`, `BuildStackResources` | 80, steel and coil | 1836 |
 | `Debris.MiningYieldFactor`, `LaserMiningYieldFactor` | 1.2, 1.3 | 1248 |
 | `Journey.TechCostScale` | 2.5 | 301 |
 | `BuyerPriceFactor` | 4 | 7 |
