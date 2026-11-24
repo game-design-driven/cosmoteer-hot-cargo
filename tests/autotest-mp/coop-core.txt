@@ -199,6 +199,9 @@ on 1 hc_escort_call
 on 1 comms_click Ready
 waitfor hc_escort_waiting == 0 15
 on 1 waitfor hc_escort_waiting == 0 15
+# Playtest 2026-11-24: after the client's "Ready" the freighter flies the route by itself, before any teleport.
+hc_mark
+waitfor hc_escort_progress > 50 45
 # Just before the ambush point (EscortAmbushAt 0.3). The freighter flies on and springs the ambush itself. From 0.25 the
 # flight took 11 to 60+ s in CI queue runs (the hunters of the steps before fight it), too close to the 60 s limit.
 mp hc_escort_advance 0.29

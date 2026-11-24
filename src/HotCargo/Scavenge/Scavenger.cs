@@ -71,8 +71,17 @@ internal static class Scavenger
         if (s.HasTag(Abandoned.RelicTag) || s.HasLabel(Abandoned.Label)) return false;
         foreach (var part in s.Parts)
             if (SalvageJob.s_jobsByPart.TryGetValue(part, out var jobs) && jobs.Any(j => j.Ship != self)) return false;
-        foreach (var mission in run.Mode.Missions) if (mission.IsShipAssociated(s)) return false;
-        return true;
+        return !OnMission(run, s);
+    }
+
+    /// <summary>
+    /// Spec 1330, 1337: an open mission in the log uses the ship (vanilla Mission.IsShipAssociated): an escort, a target, a wreck to salvage.
+    /// Such a ship is no wreck to take, and it does not scavenge, so the mission's own orders reach its AI.
+    /// </summary>
+    internal static bool OnMission(Run run, Ship s)
+    {
+        foreach (var mission in run.Mode.Missions) if (mission.IsShipAssociated(s)) return true;
+        return false;
     }
 
     static HashSet<ID<ResourceRules>> MissionItems(Run run) => run.Mode.Missions.SelectMany(MissionCargo.ItemTypes).ToHashSet();
