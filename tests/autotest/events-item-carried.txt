@@ -22,15 +22,17 @@ waitfor ev_courier_seen == 1 20
 ev_carry_check yarden_zamir.sealed_case
 expect ev_courier_handover == 0
 expectcomms contact Hand over the case. 1
-# Another page waits for an answer: no hail line shows, and the objective line says why.
+# Spec 1876: another page waits for an answer, and the hand-over line still shows. Opening it parks the waiting page; the hand-over
+# page opens on the contact, and the parked page comes back when it closes.
 event the_fence
 wait 1
-expect ev_handover_block == 1
-expectcomms contact Hand over the case. 0
-choose 2 1
-wait 1
 expect ev_handover_block == 0
+expectcomms contact Hand over the case. 1
 ev_comms contact Hand over the case.
+expectevent courier_handover
 ev_comms carrier Hand over the sealed case.
 expect ev_courier_handover == 1
+wait 1
+expectevent the_fence
+choose 2 1
 quit

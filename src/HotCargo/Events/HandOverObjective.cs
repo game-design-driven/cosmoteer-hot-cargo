@@ -408,14 +408,16 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     string? _lineBlock;
 
     /// <summary>
-    /// Spec 1875: why the contact's comms do not show this exchange's line now, or null when they show it (or the step still reads
-    /// "Recover"). One event page at a time: while another page waits for an answer, no hail line shows (EventHail.Lines).
-    /// A page that waits in the contact's own comms shows there, so it is no block. Sim state only.
+    /// Spec 1875, 1876: why the contact's comms do not show this exchange's line now, or null when they show it (or the step still reads
+    /// "Recover"). The line shows over a waiting page (it parks that page), but only one page parks at a time: while another hand-over
+    /// page is open with a page parked behind it, the line waits. A page in the contact's own comms shows there, so it is no block.
+    /// Sim state only.
     /// </summary>
     internal string? LineBlock(Run run, SimRoot sim)
     {
         if (ResourceType is not null && !Held) return null;
-        if (run.State.Events.Pending is not { } p || p.Carrier == Contact.ShipID) return null;
+        // Spec 1876: the line shows over a waiting page; it hides only while another hand-over page is open with a page parked behind it.
+        if (run.State.Events.Parked is null || run.State.Events.Pending is not { } p || p.Carrier == Contact.ShipID) return null;
         string title = EventLibrary.Get(p.EventId).Title;
         string? carrier = p.Carrier is { } c ? sim.Ships[c]?.Metadata.PlainShipName ?? sim.Stasis[c]?.ObjectName : null;
         return carrier is null
