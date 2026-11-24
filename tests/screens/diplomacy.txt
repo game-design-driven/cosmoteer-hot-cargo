@@ -30,7 +30,7 @@ dip_spawn friend 250
 wait 2
 pause on
 dip_slider friend hold 2
-dip_slider friend hire 12
+dip_slider friend hire 8
 dip_open friend
 wait 2
 screenshot diplomacy-friend

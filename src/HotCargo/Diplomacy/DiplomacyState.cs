@@ -42,6 +42,15 @@ public sealed class DiplomacyState
     [Serialize(Optional = true)] public List<HailResult> Results = new();
     /// <summary>Counts results, so each result line gets its own number.</summary>
     [Serialize(Optional = true)] public int Serial;
+    /// <summary>Spec 1818: paid hires this run: hired help, and new mercenary contracts (not the extensions).</summary>
+    [Serialize(Optional = true)] public int PaidHires;
+    /// <summary>Spec 1818: health that ships on a paid hire lost this run, in whole ships (0.5 is half a ship).</summary>
+    [Serialize(Optional = true)] public float HireShipsLost;
+    /// <summary>Spec 1818: ships that took a paid contract this run. A ship is never hired again after its contract ends.</summary>
+    [Serialize(Optional = true)] public HashSet<ObjectID> EverHired = new();
+
+    /// <summary>Spec 1818: the ship took a paid contract that ended.</summary>
+    public bool HiredBefore(ObjectID ship) => EverHired.Contains(ship) && !Hires.Any(h => h.Ship == ship);
 
     public static string Key(ObjectID ship, Offer offer) => $"{(uint)ship}:{offer}";
     public static string Key(ObjectID ship, string what) => $"{(uint)ship}:{what}";
@@ -80,6 +89,10 @@ public sealed class Hire
     [Serialize] public bool Merc;
     /// <summary>The ship ran from damage. It runs until clear, then the contract ends.</summary>
     [Serialize] public bool Fleeing;
+    /// <summary>Spec 1818: a hire from the hire page (help or mercenary). Its damage counts against later hires.</summary>
+    [Serialize(Optional = true)] public bool Paid;
+    /// <summary>Spec 1818: the ship's health share at the last hire check, for the damage it takes.</summary>
+    [Serialize(Optional = true)] public float LastHealth;
     /// <summary>The area that made the hire shows its own ship label (Friendly: apprentice, debtor, Wayfarers), so the hired label stays off.</summary>
     [Serialize(Optional = true)] public bool HideLabel;
 }

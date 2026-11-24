@@ -57,15 +57,28 @@ public class DiplomacyModelTests
     }
 
     [Fact]
-    public void Hire_is_never_possible_while_wanted_and_the_offer_counts_up_to_one_and_a_half_fair_prices()
+    public void Hire_chance_is_the_share_of_the_sure_price_between_the_floor_and_the_sure_price()
     {
-        Assert.Equal(0f, DiplomacyModel.HireChance(10_000, 1_000, 1f, 0f, wanted: true, 0.5f, 0.6f, 0.3f, 0.4f));
-        float fair = DiplomacyModel.HireChance(1_000, 1_000, 0f, 0f, false, -0.1f, 0.6f, 0.3f, 0.4f);
-        float lots = DiplomacyModel.HireChance(1_500, 1_000, 0f, 0f, false, -0.1f, 0.6f, 0.3f, 0.4f);
-        float more = DiplomacyModel.HireChance(9_000, 1_000, 0f, 0f, false, -0.1f, 0.6f, 0.3f, 0.4f);
-        Assert.Equal(0.5f, fair, 4);
-        Assert.Equal(lots, more, 4);
-        Assert.Equal(0f, DiplomacyModel.HireChance(0, 1_000, 0f, 0f, false, -0.1f, 0.6f, 0.3f, 0.4f));
+        Assert.Equal(0f, DiplomacyModel.HireChance(1_000, 1_000, 0.6f, 1f, 0f, wanted: true, 1f, 0.3f, 0.4f));
+        Assert.Equal(1f, DiplomacyModel.HireChance(1_000, 1_000, 0.6f, 0f, 0f, false, 1f, 0.3f, 0.4f));
+        Assert.Equal(0.6f, DiplomacyModel.HireChance(600, 1_000, 0.6f, 0f, 0f, false, 1f, 0.3f, 0.4f), 4);
+        Assert.Equal(0f, DiplomacyModel.HireChance(590, 1_000, 0.6f, 0f, 0f, false, 1f, 0.3f, 0.4f));
+        // More than the sure price buys nothing more.
+        Assert.Equal(1f, DiplomacyModel.HireChance(5_000, 1_000, 0.6f, 0f, 0f, false, 1f, 0.3f, 0.4f));
+        // Heat 80 keeps 1 - 0.4 x 0.8 = 0.68; trust and reputation multiply.
+        Assert.Equal(0.68f * 0.5f * 1.3f, DiplomacyModel.HireChance(1_000, 1_000, 0.6f, 1f, 80f, false, 0.5f, 0.3f, 0.4f), 4);
+        Assert.Throws<ArgumentOutOfRangeException>(() => DiplomacyModel.HireChance(1_000, 1_000, 0.6f, 0f, 0f, false, 1.5f, 0.3f, 0.4f));
+    }
+
+    [Fact]
+    public void Hire_trust_falls_with_each_paid_hire_and_each_lost_ship_and_the_slider_starts_at_the_floor()
+    {
+        Assert.Equal(1f, DiplomacyModel.HireTrust(0, 0f, 0.15f, 0.5f));
+        Assert.Equal(1f / 1.15f, DiplomacyModel.HireTrust(1, 0f, 0.15f, 0.5f), 4);
+        Assert.Equal(1f / 1.6f / 1.5f, DiplomacyModel.HireTrust(4, 1f, 0.15f, 0.5f), 4);
+        Assert.Equal(6, DiplomacyModel.HireMinStep(0.6f));
+        Assert.Equal(7, DiplomacyModel.HireMinStep(0.65f));
+        Assert.Equal(10, DiplomacyModel.HireMinStep(1f));
     }
 
     [Fact]

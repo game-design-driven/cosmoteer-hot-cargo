@@ -8,7 +8,7 @@ wait 1
 ev_set Enabled false
 dip_set DemandHailChance 0
 dip_set MercChance 0
-dip_set HireFairUnits 1000
+dip_set HireSureUnits 1000
 godmode on
 dip_spawn friend 250
 wait 2

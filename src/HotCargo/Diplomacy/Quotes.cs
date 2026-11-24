@@ -94,23 +94,34 @@ public static class Quotes
             t.BetrayChanceBase, t.BetrayPerHeat, t.BetrayPerHunter, t.BetrayPerReputation, t.BetrayFeePaid);
     }
 
-    public static int HireFair(Run run) => Math.Max(1, Money(run, T(run).HireFairUnits));
+    /// <summary>Spec 579: credits per step of the help offer slider: a tenth of the sure price. The slider ends at the sure price.</summary>
+    public static int HireStep(Run run) => Math.Max(1, Money(run, T(run).HireSureUnits) / DiplomacyModel.HireSteps);
 
-    /// <summary>Credits per step of the help offer slider: a tenth of the fair price. The slider goes from 0 to 20 steps.</summary>
-    public static int HireStep(Run run) => Math.Max(1, HireFair(run) / 10);
+    /// <summary>Spec 579: the sure hire price in credits: the last slider step.</summary>
+    public static int HireSure(Run run) => HireStep(run) * DiplomacyModel.HireSteps;
+
+    /// <summary>Spec 579: the first step of the help offer slider.</summary>
+    public static int HireMinStep(Run run) => DiplomacyModel.HireMinStep(T(run).HireMinShare);
+
+    /// <summary>Spec 1818: the trust left after this run's paid hires and the damage that hired ships took.</summary>
+    public static float HireTrust(Run run)
+    {
+        var (t, s) = (T(run), run.State.Diplomacy);
+        return DiplomacyModel.HireTrust(s.PaidHires, s.HireShipsLost, t.HireUseFalloff, t.HireLossFalloff);
+    }
 
     public static float Hire(Run run, SimRoot sim, int player, Ship ship, int offer)
     {
         var t = T(run);
-        return DiplomacyModel.HireChance(offer, HireFair(run), Situation.Reputation(run, ship), run.State.Heat, Situation.WantedAnywhere(sim, player),
-            t.HireChanceBase, t.HirePerOffer, t.HirePerReputation, t.HirePerHeat);
+        return DiplomacyModel.HireChance(offer, HireSure(run), t.HireMinShare, Situation.Reputation(run, ship), run.State.Heat, Situation.WantedAnywhere(sim, player),
+            HireTrust(run), t.HirePerReputation, t.HirePerHeat);
     }
 
-    /// <summary>Spec 583: MercPriceShare of the hire rate (HireFairUnits per HireSeconds), per minute.</summary>
+    /// <summary>Spec 583, 1818: MercPriceShare of the hire rate (HireSureUnits per HireSeconds) per minute, ÷ trust.</summary>
     public static int MercPrice(Run run, int minutes)
     {
         var t = T(run);
-        return Money(run, t.MercPriceShare * t.HireFairUnits * 60f / t.HireSeconds * minutes);
+        return Money(run, t.MercPriceShare * t.HireSureUnits * 60f / t.HireSeconds * minutes / HireTrust(run));
     }
 
     // ---- Pay them off (spec 594 to 597)

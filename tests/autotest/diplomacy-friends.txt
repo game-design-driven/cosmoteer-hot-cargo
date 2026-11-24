@@ -77,12 +77,18 @@ dip_log held
 godmode on
 dip_spawn friend 300
 wait 2
-dip_set HireChanceBase 5
+# The first paid hire at the sure price (spec 579) always works with no heat and reputation factors.
+dip_set HirePerHeat 0
+dip_set HirePerReputation 0
 dip_page friend
 expect dip_pageslider >= 1
-dip hire friend 0
+expect dip_trust == 1
+dip_expect hire friend 10 == 1
+dip_expect hire friend 6 == 0.6
+dip hire friend 10
 wait 1
 expect dip_hires == 1
+expect dip_paidhires == 1
 dip_spawn enemy 400
 # The hired ship attacks within a few AI checks. In CI it had not after 4 s (#184), so the step waits, and the report logs the hire's
 # command and the ships near the player for the next failure.
@@ -92,6 +98,10 @@ waitfor dip_friendattacking == 1 30
 dip_damage friend 0.3
 waitfor dip_hirefleeing == 1 10
 dip_log fleeing
+# Spec 1818: the hit counts against later hires: trust = 1 / (1 + 1 x 0.15) / (1 + lost x 0.5).
+wait 2
+expect dip_shipslost >= 0.2
+expect dip_trust < 0.8
 # Mercenaries: an armed friendly ship near a station rolls mercenary, hails, and takes pay by the minute (slider).
 tostation
 wait 2
@@ -109,7 +119,16 @@ wait 1
 expect dip_friendhired == 1
 expect dip_moneyspent > 0
 expect dip_merc_cheaper == 1
+expect dip_paidhires == 2
 dip_log merc
+# Spec 1818: a ship is never hired twice. After its contract ends, the mercenary takes no new one.
+dip_endhire friend
+wait 2
+expect dip_friendhired == 0
+dip merc friend 2
+wait 1
+expect dip_friendhired == 0
+expect dip_paidhires == 2
 # A military ship of the corporation's ally faction never holds tech (spec 574). A friendly military ship answers only while it has
 # a real option: after its help offer is used, it keeps the vanilla behavior (spec 560).
 dip_set MercChance 0
@@ -124,8 +143,9 @@ expect dip_pageslider == 1
 dip hold friend 2
 wait 1
 expect dip_held == 2
-dip_set HireChanceBase -5
-dip hire friend 0
+# Almost no trust left: the lowest offer fails, and the money stays.
+dip_set HireUseFalloff 1000
+dip hire friend 6
 wait 1
 expect dip_friendhired == 0
 expect dip_answers == 0
@@ -135,8 +155,9 @@ wait 1
 dip_set MercChance 0
 dip_spawn friend 300
 wait 2
-dip_expect hire friend 20 == 0
-dip hire friend 0
+dip_set HireUseFalloff 0.15
+dip_expect hire friend 10 == 0
+dip hire friend 10
 wait 1
 expect dip_friendhired == 0
 quit

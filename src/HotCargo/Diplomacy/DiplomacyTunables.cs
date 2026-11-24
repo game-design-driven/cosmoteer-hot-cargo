@@ -144,16 +144,18 @@ public sealed class DiplomacyTunables
 
     // ---- Hired help and mercenaries (spec 579 to 583)
 
-    /// <summary>Fair price for help, in event money units. The offer slider goes up to twice this.</summary>
-    [Serialize(Optional = true)] public float HireFairUnits = 1f;
-    /// <summary>Base hire chance before the offer counts.</summary>
-    [Serialize(Optional = true)] public float HireChanceBase = -0.1f;
-    /// <summary>Hire chance per fair price offered, up to 1.5 fair prices.</summary>
-    [Serialize(Optional = true)] public float HirePerOffer = 0.6f;
-    /// <summary>Hire chance per point of reputation with the ship's faction.</summary>
+    /// <summary>Spec 579: the sure hire price, in event money units: the most that the offer slider goes to. Before trust, heat and reputation, it always works.</summary>
+    [Serialize(Optional = true)] public float HireSureUnits = 0.8f;
+    /// <summary>Spec 579: the lowest offer, as a share of the sure price. Its chance is this share before trust, heat and reputation.</summary>
+    [Serialize(Optional = true)] public float HireMinShare = 0.6f;
+    /// <summary>Spec 579: hire chance factor per point of reputation with the ship's faction (-1 to 1): 1 + this × reputation.</summary>
     [Serialize(Optional = true)] public float HirePerReputation = 0.3f;
-    /// <summary>Hire chance lost at heat 100.</summary>
+    /// <summary>Spec 579: share of the hire chance lost at heat 100: the factor is 1 − this × heat ÷ 100.</summary>
     [Serialize(Optional = true)] public float HirePerHeat = 0.4f;
+    /// <summary>Spec 1818: trust falloff per paid hire this run (help and new mercenary contracts). Trust = 1 ÷ (1 + hires × this).</summary>
+    [Serialize(Optional = true)] public float HireUseFalloff = 0.15f;
+    /// <summary>Spec 1818: trust falloff per whole ship of health that hired ships lost this run. Trust × 1 ÷ (1 + ships × this).</summary>
+    [Serialize(Optional = true)] public float HireLossFalloff = 0.5f;
     /// <summary>Seconds that a hired ship helps: about one mission.</summary>
     [Serialize(Optional = true)] public float HireSeconds = 300f;
     /// <summary>A hired ship below this health stops helping and runs.</summary>
@@ -170,7 +172,7 @@ public sealed class DiplomacyTunables
     [Serialize(Optional = true)] public float MercStationRadius = 3000f;
     /// <summary>Chance, rolled once per mercenary, that it hails the players to offer its services when they come into comms range.</summary>
     [Serialize(Optional = true)] public float MercHailChance = 0.5f;
-    /// <summary>Mercenary price per minute as a share of the hire rate (HireFairUnits for HireSeconds). Below 1: mercenaries sell their time cheaper.</summary>
+    /// <summary>Mercenary price per minute as a share of the hire rate (HireSureUnits for HireSeconds), before trust. Below 1: mercenaries sell their time cheaper.</summary>
     [Serialize(Optional = true)] public float MercPriceShare = 0.7f;
     /// <summary>Most minutes that the slider offers for a mercenary contract.</summary>
     [Serialize(Optional = true)] public int MercMaxMinutes = 10;
@@ -213,6 +215,8 @@ public sealed class DiplomacyTunables
                 && RiskBraveryDefault is >= 0 and <= 1, "Diplomacy.RiskJoinRadius, RiskRangeWeight must be 0 or more; RiskCrewWeight, RiskBraverySpread, RiskBraveryDefault 0 to 1");
         require(RiskSurrenderAt <= RiskFleeAt && RiskFleeAt < RiskDemandAt && RiskSurrenderAt >= 0,
             "Diplomacy.RiskSurrenderAt <= RiskFleeAt < RiskDemandAt, and RiskSurrenderAt 0 or more");
+        require(HireSureUnits > 0 && HireMinShare is > 0 and <= 1 && HirePerHeat >= 0 && HireUseFalloff >= 0 && HireLossFalloff >= 0,
+            "Diplomacy.HireSureUnits must be above 0, HireMinShare above 0 to 1, HirePerHeat, HireUseFalloff and HireLossFalloff 0 or more");
         var groups = new HashSet<string>();
         foreach (var g in RiskBravery)
             require(g.Group.Length > 0 && groups.Add(g.Group) && g.Bravery is >= 0 and <= 1, $"Diplomacy.RiskBravery '{g.Group}': empty, twice, or bravery outside 0 to 1");
