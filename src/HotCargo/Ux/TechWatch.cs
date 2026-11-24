@@ -110,6 +110,34 @@ internal static class TechWatch
         return stays.Count == 0 ? null : UxKit.Format("WatchJumpFmt", stays.Sum(l => l.Units));
     }
 
+    /// <summary>
+    /// Fields for each kind (from the enum): watch_&lt;kind&gt; (units) and watch_focus_&lt;kind&gt; (the FocusStep of its first line, -1 without a line).
+    /// Command watch_click &lt;kind&gt;: the click on the first line of that kind.
+    /// </summary>
+    internal static void RegisterAutotest()
+    {
+        static Run R() => Dev.Autotest.RequireRun();
+        static WatchLine First(WatchKind k) => Lines(R()).FirstOrDefault(l => l.Kind == k);
+        foreach (var kind in Enum.GetValues<WatchKind>())
+        {
+            string name = kind.ToString().ToLowerInvariant();
+            Dev.Autotest.Fields["watch_" + name] = () => Lines(R()).Where(l => l.Kind == kind).Sum(l => l.Units);
+            Dev.Autotest.Fields["watch_focus_" + name] = () => Lines(R()).Any(l => l.Kind == kind) ? (int)MissionFocus.Step(R().Game, First(kind).Target) : -1;
+        }
+        Dev.Autotest.Fields["watch_lines"] = () => Lines(R()).Count;
+        Dev.Autotest.Fields["watch_alarms"] = () => Alarms;
+        Dev.Autotest.Fields["watch_design_alarms"] = () => DesignAlarms;
+        Dev.Autotest.Fields["watch_jumpline"] = () => JumpLine(R()) is null ? 0 : 1;
+        Dev.Autotest.Commands["watch_click"] = arg =>
+        {
+            var kind = Enum.Parse<WatchKind>(arg.Trim(), ignoreCase: true);
+            var line = Lines(R()).FirstOrDefault(l => l.Kind == kind);
+            if (line.Text is null) throw new InvalidOperationException($"no tech watch line of kind {kind}");
+            MissionFocus.Focus(R().Game, line.Target);
+            Log.Info($"AUTOTEST watch click {kind}: {line.Text}");
+        };
+    }
+
     static readonly AlarmWatch Alarm = new();
     static HashSet<ObjectID> _shortDesigns = [];
     static double _nextPoll;

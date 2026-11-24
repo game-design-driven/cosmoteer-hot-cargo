@@ -1,0 +1,66 @@
+# Spec 2120 to 2129: the tech watch lists the players' tech outside their vaults, each line clicks to it, and banners warn.
+# Playtest 2026-11-24 (co-op): a rebuild took a vault out of the design, the tech left the vaults, nobody saw it, the run was lost.
+# watch_<kind>: units of that kind; watch_focus_<kind>: the FocusStep of its first line (-1 none, 0 none, 1 galaxy map, 2 ship, 3 marker, 4 place).
+newgame run
+wait 8
+ev_set Enabled false
+tech_set LossGraceSeconds 600
+aiset FleeEnabled false
+aiset CallEnabled false
+dip_set DemandHailChance 0
+dip_set MercChance 0
+expect tech == 8
+expect watch_lines == 0
+# Tech that the players give away shows nothing: a sale to a station.
+tostation
+tech sell 1
+wait 1
+# The station crew carry the sale: no line, the tech is sold.
+expect watch_lines == 0
+waitfor tech == 7 60
+expect watch_lines == 0
+tech add 1
+# A friendly ship that holds tech: a line to hail it, which clicks to the ship. It raises no alarm: the players chose it.
+dip_spawn friend 250
+wait 2
+dip_set HoldChanceBase 5
+dip_set FeeChanceBase -5
+dip_set BetrayChanceBase -5
+dip hold friend 3
+wait 1
+expect watch_friend == 3
+expect watch_focus_friend == 2
+watch_click friend
+wait 4
+expect watch_alarms == 0
+dip return friend
+wait 1
+expect watch_friend == 0
+expect tech == 8
+# Crates in space: one line that clicks to their place, the crate marker, and the jump dialog line.
+tech drop 2
+wait 1
+expect watch_crates == 2
+expect watch_focus_crates == 4
+expect cratemarkers >= 1
+expect watch_jumpline == 1
+watch_click crates
+waitfor watch_alarms == 1 10
+tech collect
+waitfor watch_crates == 0 120
+expect watch_jumpline == 0
+waitfor vaulttech == 8 120
+# The playtest rebuild: a full vault leaves the design while the other vault is full. The design warning comes at once, before crew
+# take the vault apart. Then its tech has no vault and goes to normal storage, where the line counts down its decay.
+vault grab full
+wait 1
+expect watch_design == 4
+expect watch_design_alarms == 1
+expect watch_focus_design == 2
+waitfor vaultsbusy == 0 300
+waitfor watch_storage == 4 60
+expect watch_design == 0
+expect watch_focus_storage == 2
+waitfor watch_alarms == 2 10
+expect tech == 8
+quit

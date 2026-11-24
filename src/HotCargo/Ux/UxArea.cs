@@ -26,6 +26,7 @@ public static class UxArea
         Run.Hooks.Frame += run => UxKit.Guard("tech watch", () => TechWatch.OnFrame(run));
         AddAutotestCommands();
         UxAutotest.Register();
+        TechWatch.RegisterAutotest();
     }
 
     /// <summary>App.Director does not exist yet when Register runs, so frame hooks start at the first title screen.</summary>
