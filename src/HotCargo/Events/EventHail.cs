@@ -85,10 +85,13 @@ public static class EventHail
     public static List<EventRules> Lines(Run run, SimRoot sim, Ship caller, Ship callee)
     {
         var s = run.State.Events;
-        if (EventLibrary.LoadError is not null || s.Pending is not null || run.State.Result != RunResult.Running) return [];
+        if (EventLibrary.LoadError is not null || run.State.Result != RunResult.Running) return [];
         // The contact of an active hand-over shows its own page's line until the hand-over ends, so a "not yet" can come back (spec 1102).
         // A mission step, so it works with random events turned off.
         var handOver = HandOverObjective.ForContact(run, callee.UniqueID);
+        // Spec 1876: one page waits at a time, but a hand-over line shows anyway: opening it parks the waiting page. Not while a page is
+        // parked already, and not at a contact whose own comms show the waiting page.
+        if (s.Pending is { } waiting && (handOver is null || s.Parked is not null || waiting.Carrier == callee.UniqueID)) return [];
         if (handOver is null && !run.T.Events.Enabled) return [];
         // With an item, the line needs a unit in any of its forms: sealed or opened (spec 1117).
         if (handOver?.ResourceType is { } item && HandOverObjective.FleetUnits(sim, HandOverObjective.Forms(item)) == 0) return [];
@@ -112,6 +115,14 @@ public static class EventHail
         var e = Lines(run, sim, caller, callee).FirstOrDefault(x => x.ID == eventId);
         if (e is null) { Log.Info($"hail line {eventId} ignored: not offered by {callee.Metadata.PlainShipName} now"); return; }
         if (e.HailTarget != HailTarget.Contact) run.State.Events.HailUsed.Add(UseKey(e.ID, shipId));
+        var s = run.State.Events;
+        if (s.Pending is { } waiting)
+        {
+            // Lines offered this line with a page waiting only for a hand-over (spec 1876).
+            if (e.HailTarget != HailTarget.Contact || s.Parked is not null) throw new InvalidOperationException($"hail line {eventId} opened while page {waiting.EventId} waits");
+            s.Parked = waiting;
+            Log.Info($"hand-over line {eventId}: page {waiting.EventId} serial {waiting.Serial} waits behind it");
+        }
         EventRunner.Open(run, sim, e, lead: "", carrier: shipId);
     }
 }

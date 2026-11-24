@@ -59,6 +59,11 @@ public sealed class EventsState
     [Serialize(Optional = true)] public int LastSerial;
     /// <summary>The event page that waits for a choice, or null.</summary>
     [Serialize(Optional = true)] public PendingEvent? Pending;
+    /// <summary>
+    /// Spec 1876: the page that waited when a player opened a hand-over line. It waits on, hidden, and comes back when the hand-over page
+    /// closes (EventRunner.RestoreParked). Null: no page parked.
+    /// </summary>
+    [Serialize(Optional = true)] public PendingEvent? Parked;
     /// <summary>The result of the last choice that did not lead to a follow-up page. The dialog shows it once.</summary>
     [Serialize(Optional = true)] public EventResult? LastResult;
 }

@@ -59,6 +59,8 @@ public static class EventRunner
         var t = run.T.Events;
         var s = State(run);
         if (sim != run.Game.Sim) return;
+        // A hand-over page that closed another way (its carrier gone, an error) also brings the parked page back.
+        RestoreParked(run);
         CheckWanted(run, sim);
         CheckCarrier(run, sim);
         double at = run.State.GameSeconds;
@@ -329,7 +331,18 @@ public static class EventRunner
             s.LastResult = new EventResult { Serial = serial, Title = e.Title, Text = outcomeText, Lines = [.. lines] };
         }
         OutcomeChosen?.Invoke(run, sim, serial, playerIndex, outcome);
+        RestoreParked(run);
     });
+
+    /// <summary>Spec 1876: once no page waits, the page that a hand-over line parked comes back. Sim logic.</summary>
+    internal static void RestoreParked(Run run)
+    {
+        var s = State(run);
+        if (s.Pending is not null || s.Parked is not { } parked) return;
+        s.Pending = parked;
+        s.Parked = null;
+        Log.Info($"event page {parked.EventId} serial {parked.Serial} waits again after the hand-over");
+    }
 
     /// <summary>
     /// Runs inside Choose after an outcome applied. Arguments: run, sim, serial of the page that was chosen on, the choosing player, the outcome.
