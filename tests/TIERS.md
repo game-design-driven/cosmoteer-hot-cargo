@@ -190,7 +190,7 @@ The prune of 2026-11-14 classified every game test with evidence: git history (f
 
 ### Co-op
 
-Co-op tests are sessions (`tests/autotest-mp/`): `coop-core` (the broad sync session: tunables input, resync, save and load), `coop-combat`, `coop-economy`, `coop-autonomy`, `coop-friendly`, `coop-shared` (one shared player index) and `coop-stress` (a cost measure, spec 42, on the PC only). Each session compares a hash of the whole run state on both machines, so a step that adds no client input still finds a desync.
+Co-op tests are sessions (`tests/autotest-mp/`): `coop-core` (the broad sync session: tunables input, resync, save and load), `coop-combat`, `coop-economy`, `coop-autonomy`, `coop-friendly`, `coop-shared` (one shared player index), `coop-restart` (three new runs with sim inputs right after each start) and `coop-stress` (a cost measure, spec 42, on the PC only). Each session compares a hash of the whole run state on both machines, so a step that adds no client input still finds a desync.
 
 ## Findings
 
