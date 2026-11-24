@@ -24,6 +24,7 @@ public static class ContractsArea
     static Mission? _picked;
     static long _markedValue;
     static int _markedMoney;
+    static int _markedNotices;
     static float _markedHeat;
     static int _bonusGiven;
     static int _rivalsAtStation;
@@ -110,6 +111,7 @@ public static class ContractsArea
             var m = Picked();
             var ship = StationOf(m);
             _markedMoney = R().Game.LocalPlayerMoney;
+            _markedNotices = ContractBook.RivalNotices;
             R().Game.NetManager.EnqueueInput(new CommMissionsTab.MPAcceptMissionInput(CommMissionsTab.MissionSourceType.Ship, ship, m));
             Autotest.Wait(2);
         };
@@ -226,6 +228,12 @@ public static class ContractsArea
         // Money change since contract_accept plus the saved fee: 0 when exactly the fee was paid.
         Autotest.Fields["contract_fee_diff"] = () => R().Game.LocalPlayerMoney - _markedMoney + (ContractBook.Find(R(), Picked())?.Fee ?? 0);
         Autotest.Fields["contract_money_change"] = () => R().Game.LocalPlayerMoney - _markedMoney;
+        // Spec 103: 1 when the picked offer's accept button names its rival (the button text, as the comms tab shows it).
+        Autotest.Fields["contract_accept_rival"] = () =>
+            ContractBook.RivalsOf(R(), Sim(), Picked()) is [var (rival, _), ..] && ContractsUi.AcceptButtonPatch.State(Picked()).Text is { } text
+                && text.Contains(MissionTitle.Plain(rival), StringComparison.Ordinal) ? 1 : 0;
+        // Rival withdrawal notices (banner and chat) since the last contract_accept.
+        Autotest.Fields["contract_rival_notices"] = () => ContractBook.RivalNotices - _markedNotices;
         Autotest.Fields["contract_rival_offered"] = () =>
         {
             string g = ContractBook.Find(R(), Picked())?.RivalGroup ?? "";

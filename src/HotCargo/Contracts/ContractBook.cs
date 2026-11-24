@@ -234,10 +234,19 @@ public static class ContractBook
         Log.Info($"contracts: accepted {m.MetatypeID} {m.MissionID} by player {playerIndex}: fee={terms.Fee} bonus={terms.Bonus} flatHeat={terms.FlatHeat} " +
                  $"trail={terms.TrailWeight} rival='{terms.RivalGroup}' dismissed={dismissed.Count} informant={terms.InformantChance:0.00} sellout={informant}");
         Onboarding.RunLog.ContractAccepted(run, m.Name.Text, terms.Fee, dismissed.Count);
-        // UI only: a line in the chat log for each dismissed rival, so the players see why an offer vanished. Mission names are XML already.
+        // UI only (spec 103): a neutral banner and a chat line for each withdrawn rival, so the players see why an offer vanished and that it
+        // did not fail. A withdrawn offer never reaches the mission log, so the vanilla MISSION FAILED banner cannot show. Mission names are XML already.
+        if (dismissed.Count == 0) return;
         foreach (string name in dismissed.Values)
             Ux.UxKit.ChatLine(run.Game, Strings.FormatText("HotCargoContracts/RivalDismissedChatFmt", name, m.Name.Text));
+        Ux.UxKit.CenterText(run.Game, dismissed.Count == 1
+            ? Strings.FormatText("HotCargoContracts/RivalDismissedBannerFmt", dismissed.Values.Single(), m.Name.Text)
+            : Strings.FormatText("HotCargoContracts/RivalsDismissedBannerFmt", dismissed.Count, m.Name.Text));
+        RivalNotices++;
     }
+
+    /// <summary>Rival withdrawal notices shown since game start. For autotests only; not sim state.</summary>
+    internal static int RivalNotices;
 
     /// <summary>Spec 104: a client sells the players out when its time comes, while the contract is still open.</summary>
     static void TickInformants(Run run, SimRoot sim)

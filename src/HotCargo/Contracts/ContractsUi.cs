@@ -175,7 +175,7 @@ static class ContractsUi
         }
 
         /// <summary>The button text (null: the vanilla text) and whether it reacts.</summary>
-        static (string? Text, bool Active) State(Mission m)
+        internal static (string? Text, bool Active) State(Mission m)
         {
             var run = RunOf(m);
             bool offer = run is not null && !run.Mode.Missions.ContainsMission(m);
@@ -183,9 +183,14 @@ static class ContractsUi
             if (offer && m.Game.Sim is { } sim && Events.MissionCargo.NoRoomFor(sim, m, m.Game.LocalPlayerIndex) is { } item)
                 return (F("AcceptNoRoomFmt", item.GetResourceRules().NameKey.Text), false);
             int fee = offer ? ContractBook.Preview(run!, m)?.Fee ?? 0 : 0;
-            if (fee <= 0) return (null, true);
             bool canPay = m.Game.LocalPlayerMoney >= fee;
-            return (F(canPay ? "AcceptPayFmt" : "AcceptCannotPayFmt", fee), canPay);
+            string? text = fee <= 0 ? null : F(canPay ? "AcceptPayFmt" : "AcceptCannotPayFmt", fee);
+            // Spec 103: an offer with live rivals says which offers the accept withdraws. Plain names: the button shows no markup.
+            if (offer && canPay && m.Game.Sim is { } here && ContractBook.RivalsOf(run!, here, m) is { Count: > 0 } rivals)
+                text = rivals.Count == 1
+                    ? F("AcceptRivalFmt", text ?? Strings.GetText("CommWindow/AcceptMission"), Ux.MissionTitle.Plain(rivals[0].Mission))
+                    : F("AcceptRivalsFmt", text ?? Strings.GetText("CommWindow/AcceptMission"), rivals.Count);
+            return (text, canPay);
         }
     }
 }
