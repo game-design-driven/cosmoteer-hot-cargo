@@ -82,6 +82,17 @@ public class DiplomacyModelTests
     }
 
     [Fact]
+    public void An_enemy_is_ready_to_surrender_after_the_fight_time_or_enough_damage()
+    {
+        Assert.False(DiplomacyModel.SurrenderReady(5, 0.1f, 45f, 0.3f));
+        Assert.True(DiplomacyModel.SurrenderReady(45, 0.1f, 45f, 0.3f));
+        Assert.True(DiplomacyModel.SurrenderReady(5, 0.3f, 45f, 0.3f));
+        // Not in a fight with the players: only damage counts.
+        Assert.False(DiplomacyModel.SurrenderReady(null, 0.1f, 45f, 0.3f));
+        Assert.True(DiplomacyModel.SurrenderReady(null, 0.5f, 45f, 0.3f));
+    }
+
+    [Fact]
     public void Surrender_and_betrayal_chances_follow_their_inputs_and_stay_in_range()
     {
         var weak = new DiplomacyModel.SurrenderInputs(1f, 0.8f, 0f, 0f, 0, false, false, 0f);

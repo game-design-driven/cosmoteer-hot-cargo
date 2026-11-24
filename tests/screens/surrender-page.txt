@@ -1,0 +1,37 @@
+# Issue #289 (spec 2220, 2221): an enemy's page a few seconds into the fight, and its page when it offers its surrender after the
+# fight time (only the vanilla accept and decline). RUNNER=mac scripts/screens.sh tests/screens/surrender-page.txt <out-dir>
+render on
+newgame run
+wait 10
+ev_set Enabled false
+closepanel
+godmode on
+aiset FleeEnabled false
+scav_set SpawnChance 0
+fr_set PayForwardChance 0
+openspace 6000
+fr_kill_enemies
+dip_set RiskEnabled false
+dip_set DemandHailChance 0
+dip_set SurrenderMinFightSeconds 12
+dip_set SurrenderMinDamage 0.95
+aispawn pirates 1 1
+ainew_watch 0 300
+aidamage new 0.9
+dip_ai_offers
+wait 3
+pause on
+dip_open aispawn
+wait 2
+screenshot surrender-early
+dip_close
+wait 1
+pause off
+wait 12
+pause on
+dip_open aispawn
+wait 2
+screenshot surrender-offer
+dip_close
+wait 1
+quit

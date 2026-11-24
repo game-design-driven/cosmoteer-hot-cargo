@@ -29,6 +29,7 @@ static class DiplomacyAutotest
     static ObjectID? _friend, _enemy, _focus;
     static string _pageText = "";
     static int _pageButtons, _pageActive, _pageSlider, _pageToggles, _holdLast;
+    static HashSet<Offer> _pageOffers = [];
 
     static int _markedAllies;
 
@@ -67,6 +68,7 @@ static class DiplomacyAutotest
             int i = name.Length > 6 ? Int(name[6..]) : 0;
             return HunterSpawner.Hunters(sim).OrderBy(h => h.UniqueID).ElementAtOrDefault(i) ?? throw new InvalidOperationException($"no hunter {i}");
         }
+        if (name == "aispawn") return FirstSpawned();
         ObjectID? id = name switch { "friend" => _friend, "enemy" => _enemy, "focus" => _focus, _ => throw new InvalidOperationException($"unknown target '{name}'") };
         return (id is { } x ? sim.Ships[x] : null) ?? throw new InvalidOperationException($"no live {name} ship");
     }
@@ -136,6 +138,7 @@ static class DiplomacyAutotest
             _pageSlider = page.Rows.Count(r => r.Slider is not null);
             _holdLast = page.Rows.Count > 0 && page.Rows[^1].Key == Offer.Hold.ToString() ? 1 : 0;
             _pageToggles = page.Rows.Count(r => r.Toggle);
+            _pageOffers = page.Buttons.OfType<HailChoice>().Select(b => DiplomacyChoiceDomain.Decode(b.Option).Offer).ToHashSet();
             Log.Info($"AUTOTEST PAGE {target.Metadata.PlainShipName}: {_pageText.Replace('\n', ' ')} | rows: " +
                      string.Join(" | ", page.Rows.Select(r => (r.Active ? "" : "(off) ") + (r.Toggle ? (r.Selected ? "[X] " : "[ ] ") : "") + r.Text + (r.Slider is { } sl ? $" <{sl.Key}>" : ""))) +
                      " | buttons: " + string.Join(" | ", page.Buttons.Select(b => (b.SelfInputActive ? "" : "(off) ") + b.Text)));
@@ -253,6 +256,17 @@ static class DiplomacyAutotest
             module.WouldConsiderAcceptingSurrenderFromPlayer = true;
         };
         Autotest.Fields["dip_offers"] = () => DemandCheck(surrender: true);
+        // dip_ai_offers: the first aispawn ship considers its own surrender at any value ratio (the vanilla rolls from the ship ID, set
+        // like dip_ai_accepts), so only its damage and the Hot Cargo rules decide.
+        Autotest.Commands["dip_ai_offers"] = _ =>
+        {
+            var module = FirstSpawned().AI?.GetCommsModule<AIDialogueModule>() ?? throw new InvalidOperationException("the aispawn ship has no dialogue module");
+            module.WouldConsiderSurrenderingToPlayer = true;
+            module.ValueRatioDifferenceToSurrender = 1e6f;
+        };
+        // Spec 2220, 2221: the page that dip_page built offers the players' surrender, or a demand.
+        Autotest.Fields["dip_page_offersurrender"] = () => _pageOffers.Contains(Offer.OfferSurrender) ? 1 : 0;
+        Autotest.Fields["dip_page_demand"] = () => _pageOffers.Contains(Offer.DemandSurrender) ? 1 : 0;
         // The risk view of the first aispawn ship (spec 1520-1524): stance (0 surrender, 1 flee, 2 fight, 3 demand), confidence, allies.
         Autotest.Fields["dip_stance"] = () => (int)Risk.Read(R(), Sim(), FirstSpawned()).Stance;
         Autotest.Fields["dip_confidence"] = () => Risk.Read(R(), Sim(), FirstSpawned()).Confidence;

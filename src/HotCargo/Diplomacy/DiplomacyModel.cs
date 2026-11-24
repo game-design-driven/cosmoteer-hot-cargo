@@ -114,4 +114,11 @@ public static class DiplomacyModel
 
     /// <summary>A roll succeeds when it is below the chance. Chance 0 never succeeds, chance 1 always does.</summary>
     public static bool Succeeds(float roll, float chance) => roll < chance;
+
+    /// <summary>
+    /// Spec 2220: an AI ship is ready to offer its surrender after minSeconds in the fight or after it lost minDamage of its health.
+    /// Null fightSeconds: the ship is not in a fight with the players.
+    /// </summary>
+    public static bool SurrenderReady(double? fightSeconds, float healthLost, float minSeconds, float minDamage) =>
+        fightSeconds >= minSeconds || healthLost >= minDamage;
 }
