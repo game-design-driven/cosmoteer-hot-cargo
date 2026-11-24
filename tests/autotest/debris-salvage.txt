@@ -47,7 +47,8 @@ expect debris_gain_steel == 0
 debris_set LaserBaseDropFactor 0.75
 debris_set SalvageComponentDropFactor 0.85
 debris_set SalvageDropFactor 0.6
-# Spec 1835: ammo in a bay keeps the vanilla chance: none when weapons break the bay, all when a salvage beam cuts it.
+# Spec 1835: ammo in a bay drops none when weapons break the bay, and none when a salvage beam cuts it (LaserBayAmmoShare 0).
+# At share 1 the beam drops all of it, as vanilla does.
 debris_cargo 40 bullet
 wait 1
 debris_break debris weapon
@@ -57,7 +58,14 @@ debris_cargo 40 bullet
 wait 1
 debris_break debris salvage
 wait 1
+expect debris_gain_bullet == 0
+debris_set LaserBayAmmoShare 1
+debris_cargo 40 bullet
+wait 1
+debris_break debris salvage
+wait 1
 expect debris_gain_bullet == 40
+debris_set LaserBayAmmoShare 0
 debris_split
 # Spec 1814: cargo comes back in full. A broken storage bay drops all of its steel (vanilla drops half); the bay itself drops nothing at 0.
 # Spec 1836: a steel stack is 80, so the 4 tiles of a 2x2 bay hold 320 (vanilla 160).

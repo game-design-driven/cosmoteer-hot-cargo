@@ -99,7 +99,8 @@ static class SalvageDrops
     /// ship (thieves, pirates, hunters, scavengers, players). Resources that killed crew carry drop 1:1 too. Vanilla drops half
     /// (StorageDestroyed 50 %). Tech keeps its own rules (spec 65, 1549): it is left out. Part internals (batteries, ammo, factory buffers,
     /// typed grids) stay vanilla: they are not cargo. Spec 1835: a resource that vanilla never drops from a bay that weapons break
-    /// (StorageDestroyed 0 %: ammo) keeps the vanilla chance: none from weapons, all from a salvage beam. True while a bay tile drops its contents. Sim thread only.
+    /// (StorageDestroyed 0 %: ammo) drops none from weapons and LaserBayAmmoShare (0) of the vanilla chance from a salvage beam.
+    /// True while a bay tile drops its contents. Sim thread only.
     /// </summary>
     [ThreadStatic] static bool _bayBreaking;
 
@@ -124,7 +125,13 @@ static class SalvageDrops
         // No Errors.Guard: the body has no call that can throw.
         static void Postfix(ResourceRules rr, NuggetDropSource dropSource, ref float __result)
         {
-            if (Run.Current is null || rr.ID == Tech.Vaults.TechId || !IsCargo(rr) || rr.DropRates.StorageDestroyed <= 0f) return;
+            if (Run.Current is not { } run || rr.ID == Tech.Vaults.TechId || !IsCargo(rr)) return;
+            if (rr.DropRates.StorageDestroyed <= 0f)
+            {
+                // Ammo: vanilla drops it from a bay only by the salvage share (StorageSalvaged); only that share of it drops.
+                if (dropSource == NuggetDropSource.Storage && _bayBreaking) __result *= run.T.Debris.LaserBayAmmoShare;
+                return;
+            }
             if (dropSource == NuggetDropSource.Crew || dropSource == NuggetDropSource.Storage && _bayBreaking) __result = 1f;
         }
     }
