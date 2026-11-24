@@ -67,9 +67,26 @@ public class DebrisModelTests
     [Fact]
     public void Ore_factor_goes_from_the_mining_factor_to_the_laser_factor_by_the_salvage_share()
     {
-        Assert.Equal(1.2f, DebrisModel.OreFactor(0f, 1.2f, 1.3f), 4);
-        Assert.Equal(1.3f, DebrisModel.OreFactor(1f, 1.2f, 1.3f), 4);
-        Assert.Equal(1.25f, DebrisModel.OreFactor(0.5f, 1.2f, 1.3f), 4);
-        Assert.Equal(1.3f, DebrisModel.OreFactor(2f, 1.2f, 1.3f), 4);
+        Assert.Equal(1.2f, DebrisModel.ByLaserShare(0f, 1.2f, 1.3f), 4);
+        Assert.Equal(1.3f, DebrisModel.ByLaserShare(1f, 1.2f, 1.3f), 4);
+        Assert.Equal(1.25f, DebrisModel.ByLaserShare(0.5f, 1.2f, 1.3f), 4);
+        Assert.Equal(1.3f, DebrisModel.ByLaserShare(2f, 1.2f, 1.3f), 4);
+    }
+
+    [Theory]
+    // Spec 1834: a laser break drops a sure 90 % of the laser units; the weapon units go on to the chance roll.
+    [InlineData(10, 1f, 9, 0)]
+    [InlineData(10, 0f, 0, 10)]
+    [InlineData(10, 0.5f, 4, 5)]
+    [InlineData(0, 1f, 0, 0)]
+    public void A_laser_break_drops_a_sure_share_of_its_laser_units(int quantity, float salvageShare, int sure, int rolled) =>
+        Assert.Equal((sure, rolled), DebrisModel.LaserSplit(quantity, salvageShare, 0.9f, 0.99f, 0.99f));
+
+    [Fact]
+    public void The_sure_share_rounds_to_the_right_mean()
+    {
+        // 1 unit at 90 %: the rounding roll makes it drop in 9 of 10 places.
+        double mean = Enumerable.Range(0, 1000).Average(i => DebrisModel.LaserSplit(1, 1f, 0.9f, 0f, (i + 0.5f) / 1000f).Sure);
+        Assert.Equal(0.9, mean, 2);
     }
 }

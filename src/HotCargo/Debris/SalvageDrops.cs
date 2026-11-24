@@ -42,7 +42,9 @@ static class SalvageDrops
     }
 
     /// <summary>
-    /// Spec 1247, 1832: the chance cut, by the resource's base price: cheap resources × SalvageDropFactor, expensive components a mild cut.
+    /// Spec 1247, 1832, 1834: the chance cut, by the resource's base price: cheap resources × SalvageDropFactor, expensive components a mild cut.
+    /// The base resources of a laser break (LaserBaseResources: steel, coil) get LaserBaseDropFactor for the salvage share instead.
+    /// Other resources reach the roll only with their weapon units (LaserPatch), so they get the weapon cut.
     /// Vanilla rolls each unit against the chance, so a lower chance keeps the same number of sim rolls.
     /// Asteroids are mining (spec 1248), and parts that the players built are their own losses: both stay out.
     /// </summary>
@@ -50,18 +52,54 @@ static class SalvageDrops
     static class SalvagePatch
     {
         // No Errors.Guard: the body has no call that can throw.
-        static void Postfix(ResourceRules rr, NuggetDropSource dropSource, bool isPlayer, ref float __result)
+        static void Postfix(ResourceRules rr, NuggetDropSource dropSource, float salvageFraction, bool isPlayer, ref float __result)
         {
             if (_breaking is not { } ship || dropSource != NuggetDropSource.Part || isPlayer || ship.Rules.IsAsteroid) return;
-            if (Tunables(ship) is { } t) __result *= DebrisModel.SalvageFactor(rr.BuyPrice, t.SalvageDropFactor, t.SalvageComponentDropFactor, t.SalvageComponentPrice);
+            if (Tunables(ship) is not { } t) return;
+            __result *= IsLaserBase(t, rr)
+                ? DebrisModel.ByLaserShare(salvageFraction, t.SalvageDropFactor, t.LaserBaseDropFactor)
+                : DebrisModel.SalvageFactor(rr.BuyPrice, t.SalvageDropFactor, t.SalvageComponentDropFactor, t.SalvageComponentPrice);
         }
     }
+
+    static bool IsLaserBase(DebrisTunables t, ResourceRules rr) => t.LaserBaseResources.Contains(rr.ID.ToString());
+
+    /// <summary>
+    /// Spec 1834: a laser break drops a sure share of a part's resources. Before vanilla rolls, the units split by the salvage share:
+    /// the laser units drop LaserDropShare for sure, and the rest goes on to the roll as a weapon break (salvage share 0).
+    /// LaserBaseResources (steel, coil) keep the roll (SalvagePatch). The rounding rolls come from a hash of the place and the resource,
+    /// so the sim's own random rolls do not move. Ships that the players built, asteroids, tech and no-cargo resources stay out.
+    /// </summary>
+    [HarmonyPatch(typeof(SimNuggetManager), nameof(SimNuggetManager.DropNuggets),
+        [typeof(ID<ResourceRules>), typeof(int), typeof(RotRect), typeof(NuggetDropSource), typeof(float), typeof(bool), typeof(bool), typeof(Ship), typeof(Vector2)])]
+    static class LaserPatch
+    {
+        static void Prefix(SimNuggetManager __instance, ID<ResourceRules> resourceType, ref int quantity, RotRect worldRect, NuggetDropSource dropSource,
+            ref float salvageFraction, bool destroyed, bool isPlayer, Vector2 inheritVelocity)
+        {
+            if (_breaking is not { } ship || dropSource != NuggetDropSource.Part || isPlayer || ship.Rules.IsAsteroid || quantity <= 0 || salvageFraction <= 0f) return;
+            if (Tunables(ship) is not { } t) return;
+            var rr = Cosmoteer.Extensions.GetResourceRules(resourceType);
+            if (rr.ID == Tech.Vaults.TechId || !IsCargo(rr) || IsLaserBase(t, rr)) return;
+            ulong seed = PlaceSeed(worldRect) ^ (uint)ship.UniqueID ^ ((ulong)(uint)HotCargo.ShipAi.ShipAiModel.StableHash(rr.ID.ToString()) << 16);
+            var (sure, rolled) = DebrisModel.LaserSplit(quantity, salvageFraction, t.LaserDropShare, Ai.PersonalityModel.Unit(seed, 0), Ai.PersonalityModel.Unit(seed, 1));
+            // The vanilla drop without a roll, with the same velocity rules as the end of this method.
+            if (sure > 0) __instance.DropNuggets(resourceType, sure, worldRect, inheritVelocity, destroyed, false);
+            quantity = rolled;
+            salvageFraction = 0f;
+        }
+    }
+
+    /// <summary>A full hash of a drop's place: the first FastRand value of nearby seeds is not well spread (all ten parts of a test rock rolled low).</summary>
+    static ulong PlaceSeed(RotRect worldRect) =>
+        ((ulong)BitConverter.SingleToUInt32Bits(worldRect.Center.X) << 32) | BitConverter.SingleToUInt32Bits(worldRect.Center.Y);
 
     /// <summary>
     /// Spec 1814: cargo comes back in full. While a storage bay tile (vanilla FlexResourceGrid) breaks, its contents drop 1:1, on every
     /// ship (thieves, pirates, hunters, scavengers, players). Resources that killed crew carry drop 1:1 too. Vanilla drops half
     /// (StorageDestroyed 50 %). Tech keeps its own rules (spec 65, 1549): it is left out. Part internals (batteries, ammo, factory buffers,
-    /// typed grids) stay vanilla: they are not cargo. True while a bay tile drops its contents. Sim thread only.
+    /// typed grids) stay vanilla: they are not cargo. Spec 1835: a resource that vanilla never drops from a bay that weapons break
+    /// (StorageDestroyed 0 %: ammo) keeps the vanilla chance: none from weapons, all from a salvage beam. True while a bay tile drops its contents. Sim thread only.
     /// </summary>
     [ThreadStatic] static bool _bayBreaking;
 
@@ -86,7 +124,7 @@ static class SalvageDrops
         // No Errors.Guard: the body has no call that can throw.
         static void Postfix(ResourceRules rr, NuggetDropSource dropSource, ref float __result)
         {
-            if (Run.Current is null || rr.ID == Tech.Vaults.TechId || !IsCargo(rr)) return;
+            if (Run.Current is null || rr.ID == Tech.Vaults.TechId || !IsCargo(rr) || rr.DropRates.StorageDestroyed <= 0f) return;
             if (dropSource == NuggetDropSource.Crew || dropSource == NuggetDropSource.Storage && _bayBreaking) __result = 1f;
         }
     }
@@ -129,10 +167,8 @@ static class SalvageDrops
             if (_breaking is not { Rules.IsAsteroid: true } rock || dropSource != NuggetDropSource.Part || quantity <= 0) return;
             if (Tunables(rock) is not { } t) return;
             int before = quantity;
-            float factor = DebrisModel.OreFactor(salvageFraction, t.MiningYieldFactor, t.LaserMiningYieldFactor);
-            // A full hash of the place: the first FastRand value of nearby seeds is not well spread (all ten parts of a test rock rolled low).
-            ulong place = ((ulong)BitConverter.SingleToUInt32Bits(worldRect.Center.X) << 32) | BitConverter.SingleToUInt32Bits(worldRect.Center.Y);
-            quantity = DebrisModel.ScaleQuantity(before, factor, Ai.PersonalityModel.Unit(place ^ (uint)rock.UniqueID, 0));
+            float factor = DebrisModel.ByLaserShare(salvageFraction, t.MiningYieldFactor, t.LaserMiningYieldFactor);
+            quantity = DebrisModel.ScaleQuantity(before, factor, Ai.PersonalityModel.Unit(PlaceSeed(worldRect) ^ (uint)rock.UniqueID, 0));
         }
     }
 }

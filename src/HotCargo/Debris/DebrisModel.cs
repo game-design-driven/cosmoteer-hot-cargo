@@ -31,9 +31,22 @@ public static class DebrisModel
         return whole + (roll < exact - whole ? 1 : 0);
     }
 
-    /// <summary>Spec 1248: the ore factor of a part by its salvage share: weapon breaks get the mining factor, laser breaks the laser factor.</summary>
-    public static float OreFactor(float salvageFraction, float miningFactor, float laserFactor) =>
-        miningFactor + (laserFactor - miningFactor) * Math.Clamp(salvageFraction, 0f, 1f);
+    /// <summary>
+    /// Spec 1248, 1834: a factor by the salvage share of a break: a weapon break (share 0) gets weaponFactor, a laser break (share 1)
+    /// gets laserFactor, a mixed break a mix.
+    /// </summary>
+    public static float ByLaserShare(float salvageFraction, float weaponFactor, float laserFactor) =>
+        weaponFactor + (laserFactor - weaponFactor) * Math.Clamp(salvageFraction, 0f, 1f);
+
+    /// <summary>
+    /// Spec 1834: splits the units of one resource of a breaking part by the salvage share. The laser units drop a sure share
+    /// (Sure, no roll); the other units go on to the chance roll of a weapon break (Rolled). roll1 and roll2 (0 to 1) round the fractions.
+    /// </summary>
+    public static (int Sure, int Rolled) LaserSplit(int quantity, float salvageFraction, float laserShare, float roll1, float roll2)
+    {
+        int laserUnits = ScaleQuantity(quantity, Math.Clamp(salvageFraction, 0f, 1f), roll1);
+        return (ScaleQuantity(laserUnits, laserShare, roll2), quantity - laserUnits);
+    }
 
     /// <summary>
     /// Spec 1832: the salvage cut of one resource. A resource whose rules BuyPrice is at least componentPrice is an expensive

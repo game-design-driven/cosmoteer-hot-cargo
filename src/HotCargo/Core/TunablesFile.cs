@@ -121,6 +121,8 @@ public static class TunablesFile
         Require(t.Balance.StationFuelPerMillion >= 0 && t.Balance.StationFuelMinimum >= 0, "Balance.StationFuelPerMillion and StationFuelMinimum must not be negative");
         var b = t.Balance;
         Require(b.FuelPrice >= 1 && b.FuelStackSize >= 1, "Balance.FuelPrice and FuelStackSize must be 1 or more");
+        Require(b.BuildStackSize >= 1, "Balance.BuildStackSize must be 1 or more");
+        Require(b.BuildStackResources.All(r => !string.IsNullOrWhiteSpace(r)), "Balance.BuildStackResources must not hold an empty name");
         Require(b.MapJumpFuelCostPerMassDistance >= 0 && b.LocalJumpFuelCostPerMassDistance >= 0, "Balance jump fuel costs must not be negative");
         Require(b.StationFuelTypedMin is >= 0 and <= 1 && b.StationFuelTypedMax >= b.StationFuelTypedMin && b.StationFuelTypedMax <= 1
             && b.StationFuelUntypedMin is >= 0 and <= 1 && b.StationFuelUntypedMax >= b.StationFuelUntypedMin && b.StationFuelUntypedMax <= 1,

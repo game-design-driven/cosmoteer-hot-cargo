@@ -1,4 +1,4 @@
-# Salvage and ore drops (spec 1247 to 1249, 1814, 1832): a broken junk part drops loose resources × SalvageDropFactor, and a broken ore deposit
+# Salvage and ore drops (spec 1247 to 1249, 1814, 1832, 1834, 1835): a broken junk part drops loose resources × SalvageDropFactor, and a broken ore deposit
 # drops its ore × the mining factor (any break) or the laser factor (salvage damage). Exact counts: a laser break of an iron deposit
 # drops its 1 iron at 100 % (Fast economy), and a salvage factor of 0 drops nothing.
 newgame run
@@ -19,32 +19,54 @@ debris_spawn 10 10
 debris_break debris weapon
 wait 1
 expect debris_loose_gain > 0
-# Spec 1832: cheap resources and expensive components get their own cut. A large control room costs steel, coil2 and processors.
-# A salvage break rolls 15 % for each of the 50 processors (vanilla PartSalvaged). With the base cut at 0, only processors drop; with the component cut at 0, steel drops and no processor does.
+# Spec 1832: on a weapon break, cheap resources and expensive components get their own cut. A large control room costs steel,
+# coil2 and processors. With the base cut at 0, only processors drop; with the component cut at 0, steel drops and no processor does.
 debris_set SalvageDropFactor 0
 debris_set SalvageComponentDropFactor 1
 debris_spawn 5 1 0 cosmoteer.control_room_large
-debris_break debris salvage
+debris_break debris weapon
 wait 1
 expect debris_gain_steel == 0
 expect debris_gain_processor > 0
 debris_set SalvageDropFactor 1
 debris_set SalvageComponentDropFactor 0
 debris_spawn 5 1 0 cosmoteer.control_room_large
-debris_break debris salvage
+debris_break debris weapon
 wait 1
 expect debris_gain_processor == 0
 expect debris_gain_steel > 0
+# Spec 1834: a laser break drops 90 % of each part's processors for sure, whatever the cuts: 5 rooms × 10 → 45. Steel and coil keep
+# the roll with LaserBaseDropFactor: at 0 no steel drops.
+debris_set SalvageComponentDropFactor 0
+debris_set LaserBaseDropFactor 0
+debris_spawn 5 1 0 cosmoteer.control_room_large
+debris_break debris salvage
+wait 1
+expect debris_gain_processor == 45
+expect debris_gain_steel == 0
+debris_set LaserBaseDropFactor 0.75
 debris_set SalvageComponentDropFactor 0.85
 debris_set SalvageDropFactor 0.6
-debris_split
-# Spec 1814: cargo comes back in full. A broken storage bay drops all of its steel (vanilla drops half); the bay itself drops nothing at 0.
-debris_set SalvageDropFactor 0
-debris_cargo 40
+# Spec 1835: ammo in a bay keeps the vanilla chance: none when weapons break the bay, all when a salvage beam cuts it.
+debris_cargo 40 bullet
 wait 1
 debris_break debris weapon
 wait 1
-expect debris_loose_gain == 40
+expect debris_gain_bullet == 0
+debris_cargo 40 bullet
+wait 1
+debris_break debris salvage
+wait 1
+expect debris_gain_bullet == 40
+debris_split
+# Spec 1814: cargo comes back in full. A broken storage bay drops all of its steel (vanilla drops half); the bay itself drops nothing at 0.
+# Spec 1836: a steel stack is 80, so the 4 tiles of a 2x2 bay hold 320 (vanilla 160).
+debris_set SalvageDropFactor 0
+debris_cargo 320
+wait 1
+debris_break debris weapon
+wait 1
+expect debris_loose_gain == 320
 debris_set SalvageDropFactor 1
 # Spec 1248: the laser factor scales the ore. At 2, each deposit drops exactly 2 iron; at 1, exactly 1.
 debris_set LaserMiningYieldFactor 2

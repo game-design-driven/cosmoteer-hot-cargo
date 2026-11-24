@@ -32,13 +32,31 @@ static class FuelRules
             Errors.Guard("fuel tunables", () => Apply(TunablesFile.ForNewGame(__instance.Game).Balance, gameStart: true));
     }
 
+    /// <summary>
+    /// Spec 1836: the stack of steel and coil (BuildStackSize). The stack picture steps by stack / pictures, so a full tile shows the full
+    /// picture. Limit: a name taken off BuildStackResources keeps the stack that it had until the game restarts; revisit if the list changes in play.
+    /// </summary>
+    static void ApplyBuildStacks(BalanceTunables t)
+    {
+        foreach (string id in t.BuildStackResources)
+        {
+            var rr = GameApp.Rules.Resources.FirstOrDefault(r => r.ID.ToString() == id) ?? throw new InvalidOperationException($"Balance.BuildStackResources: no resource {id}");
+            rr.MaxStackSize = t.BuildStackSize;
+            if (rr.StackSprites is { Length: > 0 } pictures) rr.ResourcesPerStackSprite = (t.BuildStackSize + pictures.Length - 1) / pictures.Length;
+        }
+    }
+
     internal static void Apply(BalanceTunables t, bool gameStart)
     {
         _ = GameApp.Rules.RulesHash;
         var fuel = GameApp.Rules.FtlFuelResource;
         var resource = fuel.GetResourceRules();
         resource.BuyPrice = t.FuelPrice;
-        if (gameStart) resource.MaxStackSize = t.FuelStackSize;
+        if (gameStart)
+        {
+            resource.MaxStackSize = t.FuelStackSize;
+            ApplyBuildStacks(t);
+        }
         var career = GameApp.Rules.CareerMode;
         // The ship classes that a career allows (the terran class): their jump fuel costs.
         foreach (var ship in GameApp.Rules.Ships.Where(s => career.AllowedShipClasses.Contains(s.ID)))

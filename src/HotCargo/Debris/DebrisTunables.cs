@@ -24,6 +24,12 @@ public sealed class DebrisTunables
     [Serialize(Optional = true)] public float SalvageComponentDropFactor = 0.85f;
     /// <summary>Spec 1832: a resource whose base price (BuyPrice in its rules) is at least this is an expensive component. Vanilla: gold 500, enriched uranium 2,000.</summary>
     [Serialize(Optional = true)] public int SalvageComponentPrice = 1000;
+    /// <summary>Spec 1834: a part that a salvage or mining laser breaks drops this share of its resources for sure (no roll), on ships that the players did not build. Not for the resources in LaserBaseResources.</summary>
+    [Serialize(Optional = true)] public float LaserDropShare = 0.9f;
+    /// <summary>Spec 1834: resources that keep the chance roll on a laser break, with LaserBaseDropFactor in place of SalvageDropFactor.</summary>
+    [Serialize(Optional = true)] public string[] LaserBaseResources = ["steel", "coil"];
+    /// <summary>Spec 1834: the drop chance of LaserBaseResources on a laser break × this (a weapon break: × SalvageDropFactor).</summary>
+    [Serialize(Optional = true)] public float LaserBaseDropFactor = 0.75f;
     /// <summary>Spec 1248: the ore that an asteroid part drops when it breaks × this, for a break by any weapon or a collision.</summary>
     [Serialize(Optional = true)] public float MiningYieldFactor = 1.2f;
     /// <summary>Spec 1248: the same for a break by salvage damage (a mining laser). Parts hit by both get a mix by the salvage share.</summary>
@@ -39,6 +45,9 @@ public sealed class DebrisTunables
         require(SalvageDropFactor >= 0, "Debris.SalvageDropFactor must not be negative");
         require(SalvageComponentDropFactor >= 0, "Debris.SalvageComponentDropFactor must not be negative");
         require(SalvageComponentPrice >= 1, "Debris.SalvageComponentPrice must be 1 or more");
+        require(LaserDropShare is >= 0f and <= 1f, "Debris.LaserDropShare must be 0 to 1");
+        require(LaserBaseDropFactor >= 0, "Debris.LaserBaseDropFactor must not be negative");
+        require(LaserBaseResources.All(r => !string.IsNullOrWhiteSpace(r)), "Debris.LaserBaseResources must not hold an empty name");
         require(MiningYieldFactor >= 0 && LaserMiningYieldFactor >= 0, "Debris.MiningYieldFactor and LaserMiningYieldFactor must not be negative");
     }
 }
