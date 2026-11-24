@@ -47,7 +47,7 @@ if (( failed == 0 )); then
   echo "check-rules: PR #$pr: every rule passes"
   exit 0
 fi
-body="$(printf '%s\n🤖 **Rule checks failed** on %s. Fix each item below, then push or edit the PR text. This comment changes with each run and goes away when every rule passes (`scripts/check-rules.sh %s` runs the same checks locally).\n\n%s' \
+body="$(printf '%s\n🤖 **Rule checks failed** on %s. Fix each item below, then push or edit the PR text. This comment changes with each run and goes away when every rule passes (`scripts/check-rules.sh %s --no-comment` runs the same checks locally).\n\n%s' \
   "$MARK" "$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr" --jq '.head.sha[0:9]')" "$pr" "$(cat "$report")")"
 if [[ -n "$id" ]]; then gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body" > /dev/null
 else gh api "repos/$GITHUB_REPOSITORY/issues/$pr/comments" -f body="$body" > /dev/null; fi
