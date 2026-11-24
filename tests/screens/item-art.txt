@@ -56,6 +56,9 @@ screenshot item-nuggets
 godmode off
 auto_damage yarden_zamir.tech_vault 0.2
 auto_damage yarden_zamir.prototype_core 0.2
+# The damage brings up a hint that moves the camera: move twice again.
+auto_frame 13
+wait 2
 auto_frame 13
 wait 3
 screenshot part-damage
