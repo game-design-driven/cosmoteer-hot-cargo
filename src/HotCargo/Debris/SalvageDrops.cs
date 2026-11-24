@@ -128,8 +128,9 @@ static class SalvageDrops
             if (Run.Current is not { } run || rr.ID == Tech.Vaults.TechId || !IsCargo(rr)) return;
             if (rr.DropRates.StorageDestroyed <= 0f)
             {
-                // Ammo: vanilla drops it from a bay only by the salvage share (StorageSalvaged); only that share of it drops.
-                if (dropSource == NuggetDropSource.Storage && _bayBreaking) __result *= run.T.Debris.LaserBayAmmoShare;
+                // Ammo: vanilla drops it from a bay only by the salvage share (StorageSalvaged); only that share of it drops. The mod's own
+                // items keep the rates of their rules (the Tracer Beacon: shots destroy it, careful salvage frees it).
+                if (dropSource == NuggetDropSource.Storage && _bayBreaking && !IsModResource(rr)) __result *= run.T.Debris.LaserBayAmmoShare;
                 return;
             }
             if (dropSource == NuggetDropSource.Crew || dropSource == NuggetDropSource.Storage && _bayBreaking) __result = 1f;
@@ -142,6 +143,11 @@ static class SalvageDrops
     /// which crashed a playtest host.
     /// </summary>
     internal static bool IsCargo(ResourceRules rr) => rr.MaxStackSize > 0;
+
+    /// <summary>The mod's own resources (its items): their IDs start with the mod author's namespace, the part of the mod ID up to its dot.</summary>
+    internal static bool IsModResource(ResourceRules rr) => rr.ID.ToString().StartsWith(ModPrefix, StringComparison.Ordinal);
+
+    static readonly string ModPrefix = Mod.HarmonyId[..(Mod.HarmonyId.IndexOf('.') + 1)];
 
     /// <summary>
     /// Spec 1833: removes loose resources that are no cargo, from saves of builds that dropped them. Sim tick, nugget order, so every

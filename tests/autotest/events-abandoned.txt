@@ -36,6 +36,8 @@ expect ev_hulk_steel >= 15
 ev_mark
 ev_hulk_wreck salvage
 wait 2
+# Issue #299: the bay ammo rule (spec 1835) must not hold back the mod's own items. The beacon leaves the hull and lies loose.
+expect ev_hulk_yarden_zamir.tracer_beacon == 0
 expect ev_loose_yarden_zamir.tracer_beacon_gain == 1
 # 3. Cold Hulk, the reactor coughs (forced): when its hold breaks open, its tanks blow and damage the player ships close by.
 ev_hulk_force cold_hulk 2
