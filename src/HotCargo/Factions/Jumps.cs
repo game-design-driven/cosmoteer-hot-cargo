@@ -8,6 +8,7 @@ using Cosmoteer.Ships;
 using Cosmoteer.Ships.Parts.Ftl;
 using Cosmoteer.Ships.Special;
 using Cosmoteer.Simulation;
+using Halfling.Graphics.Text;
 using Halfling.Gui;
 using Halfling.Network;
 using Halfling.Random;
@@ -225,21 +226,39 @@ static class Jumps
     {
         static void Postfix(FtlJumpGui __instance, GameRoot game) => UxKit.Guard("blind jump button", () =>
         {
-            if (__instance._jumpBtn.Parent is not LayoutBox column) return;
+            // The column that holds ENGAGE and Cancel. Widget.Parent is the children list, not the box, so a "Parent is LayoutBox"
+            // check never matched and the button was never added (2026-11-24). Single() fails loudly if the game changes the window.
+            var column = __instance.DockedChildren.OfType<LayoutBox>().Single(b => b.Children.Any(w => w == __instance._jumpBtn));
+            // At least the height of vanilla Cancel (30), taller when the text wraps in the narrow column ("Relay jump: heat -85%").
             var button = new Button { Height = 30f };
+            button.AutoSize.AutoHeightMode = AutoSizeMode.Enable;
+            button.AutoSize.MinHeight = 30f;
             foreach (var r in new[] { button.StateNormalTextRenderer, button.StateHighlightedTextRenderer, button.StatePressedTextRenderer, button.StateDisabledTextRenderer })
+            {
                 r.XmlFormatting = true;
+                r.OversizeMode = OversizeMode.Wrap;
+            }
             button.ToolTips.TextProvider = new LiveText(() => Run.Current is { } run && run.Game == game ? Tooltip(run) : "");
             button.Clicked += (_, _) =>
             {
                 if (Run.Current is { PressureActive: true } run && run.Game == game) game.NetManager.EnqueueInput(new BlindJumpInput(!run.State.Factions.BlindJump));
             };
             column.AddChild(button);
-            Buttons.Add(__instance, button);
+            Buttons.Add(__instance, new BlindButton(button, __instance.AutoSize.MinHeight, column.Children.WidgetPadding.Y + column.Children.BorderPadding.Bottom));
         });
     }
 
-    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FtlJumpGui, Button> Buttons = new();
+    /// <summary>
+    /// The blind jump button of a spin-up window. The window's minimum height (vanilla 155) fits only ENGAGE and Cancel, so the window
+    /// grows by the button's height and Spacing (its gap and the column's bottom padding) while the button shows, or the button sits
+    /// below the window's edge.
+    /// </summary>
+    sealed record BlindButton(Button Button, float BaseMinHeight, float Spacing);
+
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FtlJumpGui, BlindButton> Buttons = new();
+
+    /// <summary>Autotests: the jump windows that got a blind jump button, with it.</summary>
+    internal static IEnumerable<(FtlJumpGui Window, Button Button)> BlindButtons => Buttons.Select(kv => (kv.Key, kv.Value.Button));
 
     [HarmonyPatch(typeof(FtlJumpGui), "OnUpdatingUIState")]
     static class GuiUpdatePatch
@@ -258,9 +277,12 @@ static class Jumps
                     __instance._jumpBtn.SelfInputActive = canAfford && !game.PlayersReadyToJump.Contains(game.NetManager.LocalPlayerID)
                         && game.Sim.Ships.HumanPlayerSignificantShips.Any(s => s.Ftl.IsReadyToJump);
                 }
-                if (!Buttons.TryGetValue(__instance, out var button)) return;
-                button.SelfActive = run.PressureActive;
-                if (button.SelfActive) button.Text = ButtonText(run);
+                if (!Buttons.TryGetValue(__instance, out var blind)) throw new InvalidOperationException("the spin-up window has no blind jump button");
+                bool show = run.PressureActive;
+                blind.Button.SelfActive = show;
+                float minHeight = blind.BaseMinHeight + (show ? blind.Button.Height + blind.Spacing : 0f);
+                if (__instance.AutoSize.MinHeight != minHeight) __instance.AutoSize.MinHeight = minHeight;
+                if (show) blind.Button.Text = ButtonText(run);
             });
         }
     }
