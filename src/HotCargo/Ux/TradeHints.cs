@@ -20,7 +20,7 @@ namespace HotCargo.Ux;
 
 /// <summary>
 /// A hint block at the top of the comms trade tab:
-/// - V13 (TradeHints): the price factors of your standing with the station's faction. Deliveries are comms hand-overs (spec 1880),
+/// - V13 (TradeHints): the price factors of your standing with the station's faction. Deliveries are comms hand-overs (spec 2384),
 ///   so the trade tab shows none.
 /// - H8 (TechSaleHint): what selling tech here does to the heat rate and the final score, or that a sale here wins the run.
 /// GUI only. It refreshes twice a second.

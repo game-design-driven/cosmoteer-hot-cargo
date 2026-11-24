@@ -344,7 +344,7 @@ public static class Deals
         double now = run.State.GameSeconds;
         if (hire is null)
         {
-            // Spec 1818: a new paid contract counts against later hires; an extension does not.
+            // Spec 2224: a new paid contract counts against later hires; an extension does not.
             s.Hires.Add(hire = new Hire { Ship = ship.UniqueID, Player = player, Until = now, Paid = true, LastHealth = Hunters.HunterOrders.HealthFraction(ship) });
             s.PaidHires++;
             s.EverHired.Add(ship.UniqueID);

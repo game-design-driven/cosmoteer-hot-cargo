@@ -26,7 +26,7 @@ static class DebtHelp
     internal static bool IsEnemyOfPlayers(SimRoot sim, Ship ship) =>
         !ship.IsHumanPlayerShip && !ship.IsJunk && sim.Game is { } game && game.HumanPlayersIndexes.Any(i => sim.Mode.AreEnemies(i, ship.Metadata.PlayerIndex));
 
-    /// <summary>Spec 1323: helpers come to the player ship with the most enemy ships within the fight radius: the one in the fight.</summary>
+    /// <summary>Spec 2240: helpers come to the player ship with the most enemy ships within the fight radius: the one in the fight.</summary>
     internal static Ship? Anchor(Run run, SimRoot sim)
     {
         float r2 = run.T.Debt.HelpFightRadius * run.T.Debt.HelpFightRadius;

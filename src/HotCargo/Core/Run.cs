@@ -232,13 +232,13 @@ public sealed class Run
         return State.Heat - before;
     }
 
-    /// <summary>Spec 1817: the share of a paid heat cut that works now (recent buys and current heat).</summary>
+    /// <summary>Spec 2230: the share of a paid heat cut that works now (recent buys and current heat).</summary>
     public float HeatBuyFactor() => HeatModel.BuyFactor(State.HeatBuys, State.Heat, T.Heat.HeatBuyFalloff, T.Heat.HeatBuyFullHeat);
 
-    /// <summary>Spec 1817: paid heat cuts are on offer now.</summary>
+    /// <summary>Spec 2230: paid heat cuts are on offer now.</summary>
     public bool HeatBuyOpen() => HeatModel.BuyOpen(HeatBuyFactor(), T.Heat.HeatBuyCloseBelow);
 
-    /// <summary>Spec 1817: a paid heat cut happened. Sim logic.</summary>
+    /// <summary>Spec 2230: a paid heat cut happened. Sim logic.</summary>
     public void CountHeatBuy() => State.HeatBuys += 1f;
 
     /// <summary>Starts the next stage at once, by raising heat to its threshold.</summary>

@@ -10,7 +10,7 @@ using HotCargo.Core;
 namespace HotCargo.Journey;
 
 /// <summary>
-/// Spec 1983: the galaxy tunables (Journey.FinalSectorTier, Journey.MapSystems, Worlds.SystemTypeWeights) go into the spawners of the
+/// Spec 2414: the galaxy tunables (Journey.FinalSectorTier, Journey.MapSystems, Worlds.SystemTypeWeights) go into the spawners of the
 /// run map (mod/journey/galaxy.rules) just before a new galaxy is made. The galaxy is made once per run, so they apply to new runs.
 /// Each co-op machine makes the galaxy itself, so co-op uses the defaults (TunablesFile.ForNewGame).
 /// </summary>

@@ -87,7 +87,7 @@ public static class DiplomacyModel
         Clamp01(baseChance + perHeat * heat / 100f + perHunter * hunters + perReputation * reputation + (feePaid ? feePaidChange : 0f));
 
     /// <summary>
-    /// Spec 579, 1818: help for pay. Never while wanted. The chance is the offer's share of the sure price (at most 1) × trust ×
+    /// Spec 579, 2224: help for pay. Never while wanted. The chance is the offer's share of the sure price (at most 1) × trust ×
     /// (1 + perReputation × reputation) × (1 − perHeat × heat ÷ 100, at least 0). An offer below minShare of the sure price never works.
     /// </summary>
     public static float HireChance(int offer, int sure, float minShare, float reputation, float heat, bool wanted, float trust, float perReputation, float perHeat)
@@ -98,7 +98,7 @@ public static class DiplomacyModel
         return Clamp01(share * trust * (1f + perReputation * reputation) * Math.Clamp(1f - perHeat * heat / 100f, 0f, 1f));
     }
 
-    /// <summary>Spec 1818: mercenaries talk. Trust after paid hires and after the health that hired ships lost (in whole ships).</summary>
+    /// <summary>Spec 2224: mercenaries talk. Trust after paid hires and after the health that hired ships lost (in whole ships).</summary>
     public static float HireTrust(int hires, float shipsLost, float perHire, float perShipLost) =>
         Core.HeatModel.Trust(hires, perHire) * Core.HeatModel.Trust(shipsLost, perShipLost);
 

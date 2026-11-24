@@ -1,4 +1,4 @@
-# Spec 1817: paid heat cuts share one factor. Each recent buy weakens the next, a cold trail cuts less, and below the threshold the
+# Spec 2230: paid heat cuts share one factor. Each recent buy weakens the next, a cold trail cuts less, and below the threshold the
 # choice is greyed and the hail line that only sells a cut is gone. Patrol Chatter (hunter_intel): 0.2 money units for heat -8.
 newgame run
 wait 8

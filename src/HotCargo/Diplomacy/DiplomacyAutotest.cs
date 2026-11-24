@@ -298,10 +298,10 @@ static class DiplomacyAutotest
         Autotest.Fields["dip_merc_cheaper"] = () =>
         {
             var t = R().T.Diplomacy;
-            // The merc price before trust (spec 1818) against the hire rate.
+            // The merc price before trust (spec 2224) against the hire rate.
             return Quotes.MercPrice(R(), t.MercMaxMinutes) * Quotes.HireTrust(R()) < Quotes.HireSure(R()) * t.MercMaxMinutes * 60f / t.HireSeconds ? 1 : 0;
         };
-        // Spec 1818: trust after paid hires and hired ship damage, and the counts it comes from.
+        // Spec 2224: trust after paid hires and hired ship damage, and the counts it comes from.
         Autotest.Fields["dip_trust"] = () => Quotes.HireTrust(R());
         Autotest.Fields["dip_paidhires"] = () => R().State.Diplomacy.PaidHires;
         Autotest.Fields["dip_shipslost"] = () => R().State.Diplomacy.HireShipsLost;
@@ -320,7 +320,7 @@ static class DiplomacyAutotest
         Autotest.Fields["dip_pagebuttons"] = () => _pageButtons;
         Autotest.Fields["dip_pageactive"] = () => _pageActive;
         Autotest.Fields["dip_pageslider"] = () => _pageSlider;
-        // 1 when the hold row is the last option row of the page that dip_page built (spec 1800).
+        // 1 when the hold row is the last option row of the page that dip_page built (spec 2223).
         Autotest.Fields["dip_holdlast"] = () => _holdLast;
         Autotest.Fields["dip_answers"] = () => _friend is { } f && Sim().Ships[f] is { } s && Situation.Career(Sim()).WillShipAnswerCall(Me(), s) ? 1 : 0;
     }

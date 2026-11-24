@@ -54,7 +54,7 @@ static class UxAutotest
             var run = Autotest.RequireRun();
             run.Mode.SimMode.Wanted.WarTriggeredByPlayer(TechAutotest.NearestStation());
         };
-        // Spec 1128. ux_click_marker <metatype ID>: clicks the indicator of the latest mission of that type, through the indicator's own
+        // Spec 2340. ux_click_marker <metatype ID>: clicks the indicator of the latest mission of that type, through the indicator's own
         // click controller, as a mouse click does. ux_click_area <metatype ID>: the logic of a left-click on empty space at the center
         // of that mission's area (a test cannot press the mouse in space). ux_highlight_mark <metatype ID> remembers that mission; the
         // field ux_highlight_marked is 1 while it is the highlighted one, ux_highlight_shown 1 while the list shows it highlighted.
@@ -82,7 +82,7 @@ static class UxAutotest
             MissionHighlight.FromPoint(run, area.Center);
             Autotest.Wait(1);
         };
-        // Spec 1129. ux_open_details <metatype ID>: what a left-click on that mission's name in the Nearby Missions list runs (a test
+        // Spec 2341. ux_open_details <metatype ID>: what a left-click on that mission's name in the Nearby Missions list runs (a test
         // cannot click the list). The field ux_details_shown is 1 while the open mission log shows the mission of ux_highlight_mark.
         Autotest.Commands["ux_open_details"] = arg =>
         {

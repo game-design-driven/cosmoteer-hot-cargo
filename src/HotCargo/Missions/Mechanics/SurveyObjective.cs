@@ -104,8 +104,8 @@ internal sealed class SurveyObjective : Objective, IMissionMarkers
 
     public override bool IsPOIAssociated(POIDoodad poi) => Completion == CompletionState.InProgress && Markers.Any(m => m.PoiId == poi.UniqueID);
 
-    /// <summary>Spec 1873: a click shows the next marker to scan, or the system in another system.</summary>
-    /// <summary>Spec 1873: where the objective is, for the click on its line.</summary>
+    /// <summary>Spec 2292: a click shows the next marker to scan, or the system in another system.</summary>
+    /// <summary>Spec 2292: where the objective is, for the click on its line.</summary>
     internal FocusTarget Where(GameRoot game) => new(NodeId, null, Next(game)?.PoiId, Next(game)?.Location);
 
     public override bool CanFocusDisplayLine(GameRoot game) => MissionFocus.CanFocus(game, Where(game));

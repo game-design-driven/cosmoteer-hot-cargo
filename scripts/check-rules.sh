@@ -2,7 +2,7 @@
 # Every rule check that a PR must pass, in one run, with one PR comment that says what is wrong and how to fix it:
 # - the PR text (scripts/check-pr-text.sh: Decisions block, Game tests last, a test for "Fixes #N", no PLAN.md when ready);
 # - the lines of the Game tests block (scripts/ci-test-set.sh);
-# - spec numbers and their blocks (scripts/check-spec-numbers.sh, against the PR's base);
+# - spec numbers, their blocks and the references to them (scripts/check-spec-numbers.sh);
 # - the co-op determinism lint (tools/determinism-lint.py).
 # Usage: check-rules.sh <pr number> [--no-comment]   a PR: then it updates its one rule comment, or deletes it when all pass
 #        check-rules.sh --group <base sha> <head sha>  a merge queue group: the texts of its PRs, and the merged tree
@@ -25,17 +25,16 @@ rule() {
 if [[ "${1:-}" == --group ]]; then
   base="${2:?--group needs a base and a head sha}" head="${3:?--group needs a base and a head sha}"
   for pr in $(scripts/queue-group-prs.sh "$base" "$head"); do rule "PR #$pr: PR text" scripts/check-pr-text.sh "$pr"; done
-  rule "Spec numbers" env SPEC_BASE="$base" scripts/check-spec-numbers.sh
+  rule "Spec numbers" scripts/check-spec-numbers.sh
   rule "Co-op determinism" python3 tools/determinism-lint.py
   cat "$report"
   exit "$failed"
 fi
 
 pr="${1:?usage: check-rules.sh <pr number> [--no-comment] | --group <base> <head>}"
-base="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr" --jq .base.sha)"
 rule "PR text" scripts/check-pr-text.sh "$pr"
 rule "Game tests block" scripts/ci-test-set.sh "$pr"
-rule "Spec numbers" env SPEC_BASE="$base" scripts/check-spec-numbers.sh
+rule "Spec numbers" scripts/check-spec-numbers.sh
 rule "Co-op determinism" python3 tools/determinism-lint.py
 cat "$report"
 [[ "${2:-}" == --no-comment ]] && exit "$failed"

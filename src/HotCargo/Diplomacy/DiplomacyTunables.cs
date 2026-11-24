@@ -156,9 +156,9 @@ public sealed class DiplomacyTunables
     [Serialize(Optional = true)] public float HirePerReputation = 0.3f;
     /// <summary>Spec 579: share of the hire chance lost at heat 100: the factor is 1 − this × heat ÷ 100.</summary>
     [Serialize(Optional = true)] public float HirePerHeat = 0.4f;
-    /// <summary>Spec 1818: trust falloff per paid hire this run (help and new mercenary contracts). Trust = 1 ÷ (1 + hires × this).</summary>
+    /// <summary>Spec 2224: trust falloff per paid hire this run (help and new mercenary contracts). Trust = 1 ÷ (1 + hires × this).</summary>
     [Serialize(Optional = true)] public float HireUseFalloff = 0.15f;
-    /// <summary>Spec 1818: trust falloff per whole ship of health that hired ships lost this run. Trust × 1 ÷ (1 + ships × this).</summary>
+    /// <summary>Spec 2224: trust falloff per whole ship of health that hired ships lost this run. Trust × 1 ÷ (1 + ships × this).</summary>
     [Serialize(Optional = true)] public float HireLossFalloff = 0.5f;
     /// <summary>Seconds that a hired ship helps: about one mission.</summary>
     [Serialize(Optional = true)] public float HireSeconds = 300f;

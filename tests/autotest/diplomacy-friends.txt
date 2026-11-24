@@ -19,7 +19,7 @@ dip_page friend
 expect dip_pagebuttons >= 2
 # Hold and help each have their own slider in their row (spec 591).
 expect dip_pageslider == 2
-# Spec 1800: asking to hold tech is the last option row.
+# Spec 2223: asking to hold tech is the last option row.
 expect dip_holdlast == 1
 # Hold for free, then the return without betrayal. Held tech counts in the fleet tech.
 dip_set HoldChanceBase 5
@@ -98,7 +98,7 @@ waitfor dip_friendattacking == 1 30
 dip_damage friend 0.3
 waitfor dip_hirefleeing == 1 10
 dip_log fleeing
-# Spec 1818: the hit counts against later hires: trust = 1 / (1 + 1 x 0.15) / (1 + lost x 0.5).
+# Spec 2224: the hit counts against later hires: trust = 1 / (1 + 1 x 0.15) / (1 + lost x 0.5).
 wait 2
 expect dip_shipslost >= 0.2
 expect dip_trust < 0.8
@@ -121,7 +121,7 @@ expect dip_moneyspent > 0
 expect dip_merc_cheaper == 1
 expect dip_paidhires == 2
 dip_log merc
-# Spec 1818: a ship is never hired twice. After its contract ends, the mercenary takes no new one.
+# Spec 2224: a ship is never hired twice. After its contract ends, the mercenary takes no new one.
 dip_endhire friend
 wait 2
 expect dip_friendhired == 0

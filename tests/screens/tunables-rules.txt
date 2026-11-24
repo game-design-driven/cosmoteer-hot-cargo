@@ -1,4 +1,4 @@
-# Settings menu: rules values as tunables (spec 1980 to 1983): fuel, galaxy size and final tier, system type weights.
+# Settings menu: rules values as tunables (spec 2411 to 2414): fuel, galaxy size and final tier, system type weights.
 # Windowed test slot or RUNNER=mac (needs graphics): see UX.md "Screenshots". The script changes no value.
 render on
 newgame run

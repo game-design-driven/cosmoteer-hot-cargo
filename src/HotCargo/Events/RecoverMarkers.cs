@@ -12,7 +12,7 @@ using HotCargo.Core;
 namespace HotCargo.Events;
 
 /// <summary>
-/// Spec 1874: while a hand-over step reads "Recover", its source ship and each loose unit of its item get a vanilla object indicator
+/// Spec 2381: while a hand-over step reads "Recover", its source ship and each loose unit of its item get a vanilla object indicator
 /// (the blip of the zoomed-out map and the off-screen arrow) with the item's icon and name. Vanilla shows no indicator on a junk ship
 /// or on a crate. GUI only: the indicators never change the sim.
 /// </summary>

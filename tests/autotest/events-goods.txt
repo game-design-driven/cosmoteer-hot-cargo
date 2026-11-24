@@ -1,4 +1,4 @@
-# Spec 1880: a vanilla Resource Delivery offer is a goods hand-over at its station: the trade tab does not deliver, the shared page does.
+# Spec 2384: a vanilla Resource Delivery offer is a goods hand-over at its station: the trade tab does not deliver, the shared page does.
 # The amount is fixed (vanilla picks it), so the page shows one option; handing it over pays the full reward at the station.
 # missions: random
 newgame run

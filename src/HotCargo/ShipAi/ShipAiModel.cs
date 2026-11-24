@@ -62,7 +62,7 @@ public enum Preset { Aggressive, Defensive, Sniper, Escort, VaultGuard, Looter, 
 /// <summary>
 /// One condition term of a row (spec 416). Not inverts it. Or joins it (with the brackets that it opens) to the item before it
 /// with OR, else with AND; Or of the first item in a bracket means nothing. Open: brackets that open before the term; Close:
-/// brackets that close after it (spec 1830). The brackets of a row are balanced (ShipAiModel.BracketError).
+/// brackets that close after it (spec 2320). The brackets of a row are balanced (ShipAiModel.BracketError).
 /// </summary>
 public readonly record struct Term(Cond Cond, int Param, bool Not = false, bool Or = false, int Open = 0, int Close = 0);
 
@@ -303,7 +303,7 @@ public static class ShipAiModel
     }
 
     /// <summary>
-    /// Spec 416, 1830: the terms of a row joined by AND and OR, AND first: "A AND B OR C AND D" = (A and B) or (C and D).
+    /// Spec 416, 2320: the terms of a row joined by AND and OR, AND first: "A AND B OR C AND D" = (A and B) or (C and D).
     /// A bracket is evaluated the same way and counts as one item. Every term is evaluated, so each one updates its memory.
     /// memory: the terms' old memory (or null), start: its first index. The new memory goes to output from start on.
     /// </summary>
@@ -347,7 +347,7 @@ public static class ShipAiModel
         return any | group;
     }
 
-    /// <summary>Spec 1830: why the brackets of the terms do not balance, or null when they do.</summary>
+    /// <summary>Spec 2320: why the brackets of the terms do not balance, or null when they do.</summary>
     public static string? BracketError(IReadOnlyList<Term> terms)
     {
         int depth = 0;
@@ -361,7 +361,7 @@ public static class ShipAiModel
         return depth == 0 ? null : $"{depth} brackets are not closed";
     }
 
-    /// <summary>Spec 1830: the bracket depth of each term, counting the brackets that it opens. Top level is 0.</summary>
+    /// <summary>Spec 2320: the bracket depth of each term, counting the brackets that it opens. Top level is 0.</summary>
     public static int[] Depths(IReadOnlyList<Term> terms)
     {
         var depths = new int[terms.Count];
@@ -430,7 +430,7 @@ public static class ShipAiModel
     public static bool AimsAtParts(Act act) => act is Act.FocusTarget or Act.TargetWeapons or Act.TargetEngines or Act.FireDisruptors;
 
     /// <summary>
-    /// Spec 405, 417, 1830. Text form: "HC1:" then rows joined by ';', each "terms>Act[=n]". Terms: "[(...][!]Cond[=n][)...]" joined
+    /// Spec 405, 417, 2320. Text form: "HC1:" then rows joined by ';', each "terms>Act[=n]". Terms: "[(...][!]Cond[=n][)...]" joined
     /// by '&amp;' (AND) or '|' (OR). Text without brackets is the old form, so old text reads and writes the same. Empty text = no tactics.
     /// </summary>
     public static string Encode(IReadOnlyList<TacticRow> rows)
@@ -672,7 +672,7 @@ public static class ShipAiModel
     /// <summary>Spec 419: "+ AND" on the THEN line adds an Always term joined by AND at the end, outside every bracket.</summary>
     public static TacticRow AddTerm(TacticRow row) => row with { Terms = [.. row.Terms, new Term(Cond.Always, 0)] };
 
-    /// <summary>Spec 1831: a new Always term joined by AND right after term j, inside the same brackets as j.</summary>
+    /// <summary>Spec 2321: a new Always term joined by AND right after term j, inside the same brackets as j.</summary>
     public static TacticRow InsertTerm(TacticRow row, int j)
     {
         var terms = row.Terms.ToList();
@@ -681,12 +681,12 @@ public static class ShipAiModel
         return row with { Terms = [.. terms] };
     }
 
-    /// <summary>Spec 1831: a new bracket around term j alone. "+" on that term then adds terms inside it.</summary>
+    /// <summary>Spec 2321: a new bracket around term j alone. "+" on that term then adds terms inside it.</summary>
     public static TacticRow Bracket(TacticRow row, int j) =>
         WithTerm(row, j, row.Terms[j] with { Open = row.Terms[j].Open + 1, Close = row.Terms[j].Close + 1 });
 
     /// <summary>
-    /// Spec 1831: removes the innermost bracket that opens at term j, and its closing bracket. The terms stay. Brackets of one kind
+    /// Spec 2321: removes the innermost bracket that opens at term j, and its closing bracket. The terms stay. Brackets of one kind
     /// next to each other are the same text, so any one of the closing brackets at the matching term can go.
     /// </summary>
     public static TacticRow Unbracket(TacticRow row, int j)

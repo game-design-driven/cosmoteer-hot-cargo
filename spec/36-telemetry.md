@@ -2,7 +2,7 @@
 
 Logs and telemetry of game sessions, for analysis of test runs and playtests. TELEMETRY.md holds the schema and the tools. Code: `src/HotCargo/Telemetry/`. Numbers: the `Telemetry` tunables section.
 
-530. Each game session writes one JSONL file `<run id>__<session id>.jsonl` in the `telemetry` folder of the mod. A session is one game from its start or load until it closes. `scripts/deploy.sh` and the player installers keep the folder (requirement 1989).
+530. Each game session writes one JSONL file `<run id>__<session id>.jsonl` in the `telemetry` folder of the mod. A session is one game from its start or load until it closes. `scripts/deploy.sh` and the player installers keep the folder (requirement 2260).
 531. A run has an ID that the career save keeps (path `HotCargoTelemetry`), so a loaded game continues it. A new career gets a new ID. The first line (`session.start`) holds the run and session IDs, the game version, the mod version with its git commit, the tunables hash, a hash and a full copy of the tunables in effect, the galaxy seed, the map size, the difficulty settings, the player count and the autotest label.
 532. Every event has the event name, real time, game time of the run, sim time of the session, sector index, system, tier, sector type, heat and fleet tech count.
 533. **Run**: new run, load, save, jump (with the stay and its time use), system entry (with the previous stay, its time use and its missions), win, loss with the reason, and the session end with its reason.

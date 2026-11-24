@@ -1,6 +1,6 @@
 # Study: loot volume and building after every fight
 
-Status: decided 2026-11-24. Built: A (2× stack for steel and coil, spec 1836) and B (bay ammo back to vanilla, spec 1835), with a new rule for laser breaks (spec 1834). Rejected: C (price cut) and D (cash-out).
+Status: decided 2026-11-24. Built: A (2× stack for steel and coil, spec 2410) and B (bay ammo back to vanilla, spec 1835), with a new rule for laser breaks (spec 1834). Rejected: C (price cut) and D (cash-out).
 
 ## The question
 
@@ -28,7 +28,7 @@ Measured per enemy ship (4 ships per run, `fast`):
 | Tier 3, per ship, salvage | 129 | 54 | **166** | 13 | coil2 2, enriched uranium 2, processor 0.75 |
 | Tier 3, per ship, weapon | 121 | 33 | **110** | 5 | |
 
-- **Bullets come from the 1:1 bay drop** ([#209](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/209) "cargo comes back in full", spec 1814). The tier-3 pirates carried 440 bullets in their bays, and all 440 dropped in both runs. Vanilla drops 0 ammo from a bay that weapons break (`AmmoDropRates`: `StorageDestroyed = 0%`), but all of it from a bay that a salvage beam cuts (`StorageSalvaged = 100%`).
+- **Bullets come from the 1:1 bay drop** ([#209](https://github.com/game-design-driven/cosmoteer-hot-cargo/pull/209) "cargo comes back in full", spec 2370). The tier-3 pirates carried 440 bullets in their bays, and all 440 dropped in both runs. Vanilla drops 0 ammo from a bay that weapons break (`AmmoDropRates`: `StorageDestroyed = 0%`), but all of it from a bay that a salvage beam cuts (`StorageSalvaged = 100%`).
 - These pirates carried no steel or coil cargo. All steel and coil on the ground came from their parts, not from #209.
 - Storage: the starter Model-L has **4 bay tiles** (one 2×2 bay). A tile holds one stack of one resource: steel 40, coil 40, bullets 20, hyperium 10, processor 5.
 
@@ -71,7 +71,7 @@ Notes:
 ## 4. Recommendation
 
 1. **A: 2× stack for steel and coil** (and `ResourcesPerStackSprite = 2`, appendix A3). With 3 bays, a whole tier-3 fight's steel and coil fit. Small effort, no combat or price side effects.
-2. **B: bay ammo back to vanilla** in the 1:1 bay rule: 0 % when weapons break the bay (spec 1814 keeps cargo like steel at 1:1). It removes up to 30 % of the tier-3 volume. Small effort.
+2. **B: bay ammo back to vanilla** in the 1:1 bay rule: 0 % when weapons break the bay (spec 2370 keeps cargo like steel at 1:1). It removes up to 30 % of the tier-3 volume. Small effort.
 3. **D: cash out the overflow** for what is still left. It ends "leaving it makes no sense" for every resource and every ship size, without touching building. Medium effort.
 4. **Skip the price cut (C) for this goal.** It does not change volume and moves thieves, hunters, rewards and event payouts (appendix A1, A2). Keep it only if cheaper repair is a goal of its own; then take the counter-changes of appendix A4.
 5. Keep the salvage drop factor at 0.6: lowering it cuts income too.
@@ -178,7 +178,7 @@ What `MaxStackSize` controls (decompiled game):
 | Units in a storage (flex) tile | `FlexResourceGrid.cs:171, 344, 734` | 2× per tile. The ship's storage capacity for steel and coil doubles. |
 | Units in a typed part buffer: factory input and output, ammo buffers | `TypedResourceGridRules.cs:59` (tiles × stack) | The steel factory output (2×2 tiles) holds 320 instead of 160. With 2 per cycle, that is the same 160 cycles. |
 | Station stock and trade ship cargo | `TradeRoutesManager.cs:221, 248, 415`, `ShipSpawner.cs:402` | 2× the units, the same money |
-| Enemy and wreck cargo at spawn | `ShipSpawner.cs:402` | 2× the units. With the 1:1 bay drop (spec 1814, from #209) a broken bay drops 2× the units as crates, so 2× the crates in space. |
+| Enemy and wreck cargo at spawn | `ShipSpawner.cs:402` | 2× the units. With the 1:1 bay drop (spec 2370, from #209) a broken bay drops 2× the units as crates, so 2× the crates in space. |
 | Trade and transfer window step | `CommTradeTab.cs:198`, `CrewAndResourceTransferWindow.cs:247` | Steps of 80 |
 | Right click "collect one stack" from a crate | `PlayerInputHandler.cs:1074` | 80 |
 | The stack picture of a tile | `StackSprites` index = (units − 1) / `ResourcesPerStackSprite` | Steel and coil have 40 pictures and `ResourcesPerStackSprite` 1, so a tile looks full at 40. **Set `ResourcesPerStackSprite = 2`.** |

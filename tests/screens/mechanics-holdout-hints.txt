@@ -1,4 +1,4 @@
-# Hold-out hints (spec 1872): the Drone Siege and Claim Jumpers texts say that a drone or a gun platform keeps the clock running, and the
+# Hold-out hints (spec 2291): the Drone Siege and Claim Jumpers texts say that a drone or a gun platform keeps the clock running, and the
 # stopped-clock line says it too. Shown in the mission log after the accept. Windowed test slot or RUNNER=mac: see hot-cargo-screenshots.
 render on
 newgame run 0

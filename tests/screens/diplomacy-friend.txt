@@ -1,4 +1,4 @@
-# Diplomacy (spec 1800): a friendly ship's comms page. Asking it to hold tech is the last choice.
+# Diplomacy (spec 2223): a friendly ship's comms page. Asking it to hold tech is the last choice.
 # Windowed test slot (needs graphics): see the hot-cargo-screenshots skill.
 render on
 newgame run

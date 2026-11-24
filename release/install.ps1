@@ -16,7 +16,7 @@ $bin = Join-Path $GameDir "Bin"
 if (-not (Test-Path (Join-Path $bin "Cosmoteer.runtimeconfig.json"))) { throw "Not a Cosmoteer folder: $GameDir" }
 if (Get-Process Cosmoteer -ErrorAction SilentlyContinue) { throw "Close Cosmoteer first." }
 
-# Mod folder (spec 1989): copy the release files over it and delete nothing, so the player's files stay: telemetry\ (sessions,
+# Mod folder (spec 2260): copy the release files over it and delete nothing, so the player's files stay: telemetry\ (sessions,
 # notes.jsonl, note screenshots, players\), screenshots\, testships\ and the log. The release's tunables.rules is only a
 # template: it goes in only when the player has none. Same rule as release/install-mac.sh.
 # Limit: a file that an older release shipped and this one does not stays behind. Nothing loads such a file: mod.rules names

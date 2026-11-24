@@ -52,7 +52,7 @@ public static class HunterArea
             HunterSpawner.Hunters(Sim()).Count(h => h.Commands.CurConfirmedCommand is Cosmoteer.Ships.Commands.AttackCommand);
 
         // takehunters: the players take over every live hunter, like the capture claim (mech_capture_claim): it becomes a wreck,
-        // then a ship of the first player. The next sim tick releases it (spec 1511). Test only.
+        // then a ship of the first player. The next sim tick releases it (spec 2280). Test only.
         Autotest.Commands["takehunters"] = _ =>
         {
             var sim = Sim();
@@ -65,9 +65,9 @@ public static class HunterArea
                 Log.Info($"AUTOTEST players took over hunter {h.Metadata.PlainShipName} id={h.UniqueID}");
             }
         };
-        // Ships that "takehunters" took that are still player ships in this system (spec 1511: the ship stays).
+        // Ships that "takehunters" took that are still player ships in this system (spec 2280: the ship stays).
         Autotest.Fields["hunterstaken"] = () => Sim().Ships.HumanPlayerShips.Count(s => _taken.Contains(s.UniqueID));
-        // Player ships with the hunter tag (spec 1511: 0 one tick after a takeover).
+        // Player ships with the hunter tag (spec 2280: 0 one tick after a takeover).
         Autotest.Fields["huntertagplayers"] = () => Sim().Ships.HumanPlayerShips.Count(s => s.HasTag(HunterSpawner.HunterTag));
         // Player indexes of the hunters, live and in stasis (spec 1003: 1 when hunters exist).
         Autotest.Fields["huntersides"] = () => HunterSpawner.SideIndexes(Sim(), (CareerSimModeManager)Sim().Mode).Count;
@@ -92,7 +92,7 @@ public static class HunterArea
         };
 
         // apart <distance>: moves the acting player's ships to clear spots at least this far from the first ship of every other player
-        // (spec 1539: players far apart). Sim state: use "as <n>" in co-op. Test only.
+        // (spec 2243: players far apart). Sim state: use "as <n>" in co-op. Test only.
         Autotest.Commands["apart"] = arg =>
         {
             var sim = Sim();

@@ -1,4 +1,4 @@
-# Spec 1127: the guard of a station stage offer stays neutral until the players accept the stage; then it fights.
+# Spec 2300: the guard of a station stage offer stays neutral until the players accept the stage; then it fights.
 # The Black Box's first stage is a station offer with a raider guard (vanilla Normal AI) at the wreck.
 newgame run
 wait 8

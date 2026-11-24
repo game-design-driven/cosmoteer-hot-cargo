@@ -1,4 +1,4 @@
-# Missions: a vanilla Visit mission through the Hot Cargo accept, the jump hook and the comms payment (spec 1596).
+# Missions: a vanilla Visit mission through the Hot Cargo accept, the jump hook and the comms payment (spec 2251).
 # Playtest 2026-11-14: "Visit Titraness" stayed open after the arrival. Vanilla ends it in two steps: the arrival (GotoNode),
 # then the receive payment button at any station of that system (ReceiveRewards). The players never called a station there.
 newgame run
@@ -13,7 +13,7 @@ jump
 waitfor sector == 2 25
 wait 2
 expect hc_visit == 2
-# The payment hint (spec 1600): one hint at the arrival, and the mission line says to call a station.
+# The payment hint (spec 2400): one hint at the arrival, and the mission line says to call a station.
 expect ux_payment_hints == 1
 expect ux_payment_lines == 1
 pause off

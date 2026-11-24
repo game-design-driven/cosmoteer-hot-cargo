@@ -58,13 +58,13 @@ public sealed record ResearchSale(IReadOnlyList<string> Techs, long Worth, int P
 public enum UnmetKind { Money, Tech, VaultSpace, Crew, Bunks, MinHeat, MaxHeat, MinSector, MaxSector, Resource, Part, Flag, NotFlag, FlagAge, MinSectorsLeft, MaxSectorsLeft, NotWanted,
     /// <summary>A submit: no option is selected (Amount 0), or the selected options give too few points (Amount = the points needed).</summary>
     Points,
-    /// <summary>Spec 1817: a paid heat cut while the paid heat cuts are closed (too many recent buys, or a cold trail).</summary>
+    /// <summary>Spec 2230: a paid heat cut while the paid heat cuts are closed (too many recent buys, or a cold trail).</summary>
     HeatBuy }
 
 public sealed record Unmet(UnmetKind Kind, string Id = "", float Amount = 0);
 
 /// <summary>Pure event math on plain numbers. No game types, so unit tests run on the Mac without the game.</summary>
-/// <summary>Spec 1816: the sure money, fame, heat and crew of a one-outcome choice.</summary>
+/// <summary>Spec 2270: the sure money, fame, heat and crew of a one-outcome choice.</summary>
 public readonly record struct ChoiceGain(int Money, int Fame, float Heat, int Crew);
 
 public static class EventModel
@@ -73,7 +73,7 @@ public static class EventModel
     public const int HandOverPayRoundTo = 100;
 
     /// <summary>
-    /// Spec 1816: what a choice with one outcome surely gives, for its button. A hand-over adds the job's pay: each money reward
+    /// Spec 2270: what a choice with one outcome surely gives, for its button. A hand-over adds the job's pay: each money reward
     /// × <paramref name="handOverPay"/> when it is above 0 (rounded like the delivery), and the fame rewards.
     /// </summary>
     public static ChoiceGain Gain(int credits, int fame, float heat, int crew, bool handOver, IEnumerable<int> jobMoney, int jobFame, float handOverPay)

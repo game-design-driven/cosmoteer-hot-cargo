@@ -7,7 +7,7 @@ using HotCargo.Core;
 namespace HotCargo.Balance;
 
 /// <summary>
-/// Spec 300, 1980 to 1982: the fuel values of the vanilla rules files come from the Balance tunables. They go into the loaded game rules
+/// Spec 300, 2411 to 2413: the fuel values of the vanilla rules files come from the Balance tunables. They go into the loaded game rules
 /// (GameApp.Rules), which every game of the process shares:
 /// - before a new galaxy is made (the first system and its stations generate before the run starts), with TunablesFile.ForNewGame;
 /// - at every game start and load, with the run's tunables;
@@ -33,7 +33,7 @@ static class FuelRules
     }
 
     /// <summary>
-    /// Spec 1836: the stack of steel and coil (BuildStackSize). The stack picture steps by stack / pictures, so a full tile shows the full
+    /// Spec 2410: the stack of steel and coil (BuildStackSize). The stack picture steps by stack / pictures, so a full tile shows the full
     /// picture. Limit: a name taken off BuildStackResources keeps the stack that it had until the game restarts; revisit if the list changes in play.
     /// </summary>
     static void ApplyBuildStacks(BalanceTunables t)

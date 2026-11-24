@@ -1,4 +1,4 @@
-# Mission details from the Nearby Missions list (spec 1129): the mission log with the mission selected, after a click on its name.
+# Mission details from the Nearby Missions list (spec 2341): the mission log with the mission selected, after a click on its name.
 # Windowed test slot (needs graphics): see the hot-cargo-screenshots skill.
 render on
 newgame run 0

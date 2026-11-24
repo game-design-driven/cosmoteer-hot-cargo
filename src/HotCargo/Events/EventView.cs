@@ -63,7 +63,7 @@ public static class EventView
     {
         var rows = new List<OptionView>();
         var options = EventRunner.OptionsOf(run, e, p.Serial);
-        // Spec 1880: the goods option also says what its amount pays.
+        // Spec 2384: the goods option also says what its amount pays.
         var goods = p.Carrier is { } contact && HandOverObjective.ForContact(run, contact) is { Goods: true } h ? h : null;
         for (int i = 0; i < options.Length; i++)
         {
@@ -115,21 +115,21 @@ public static class EventView
             return $"<gray>{EventText.Fill(c.Text, run.State.FleetTech, p)}{(cost.Length > 0 ? $" ({cost})" : "")}</gray>   <bad>{EventText.Reason(unmet)}</bad>";
         string tagXml = tag.Length > 0 ? EventText.Unlocked.FormatWithXml($"[{tag}]") + " " : "";
         string costXml = cost.Length > 0 ? $" <gray>({cost})</gray>" : "";
-        // Spec 1817: a paid heat cut shows the cut that works now.
+        // Spec 2230: a paid heat cut shows the cut that works now.
         float heatCutFactor = EventRunner.IsPaidHeatCut(c, picks) ? run.HeatBuyFactor() : 1f;
         string gain = e.HideEffects || c.Outcomes.Length != 1 ? "" : GainText(run, c.Outcomes[0], p, picks.Sum(k => k.Units), heatCutFactor);
         return $"{tagXml}{EventText.Fill(c.Text, run.State.FleetTech, p)}{costXml}{(gain.Length > 0 ? "   " + gain : "")}";
     }
 
     /// <summary>
-    /// Spec 1816: the sure effects of a choice with one outcome, in the words of its result lines (EventText): the money (with a
+    /// Spec 2270: the sure effects of a choice with one outcome, in the words of its result lines (EventText): the money (with a
     /// hand-over's job pay), fame, heat, crew and resources. A choice with several outcomes is a gamble and shows none. An offer price
     /// is in the choice text already.
     /// </summary>
     static string GainText(Run run, OutcomeRules o, PendingEvent p, float pickedUnits, float heatCutFactor)
     {
         var handOver = o.HandOver && p.Carrier is { } contact ? HandOverObjective.ForContact(run, contact) : null;
-        // Spec 1880: a goods delivery pays for the picked units; with no amount in range picked yet, its pay is not shown.
+        // Spec 2384: a goods delivery pays for the picked units; with no amount in range picked yet, its pay is not shown.
         if (handOver is { Goods: true } && (pickedUnits < 1 || pickedUnits > handOver.Remaining || !handOver.Completes(pickedUnits))) handOver = null;
         var job = handOver?.Mission;
         float handOverPay = handOver is { Goods: true } ? handOver.GoodsPayFactor(pickedUnits) : o.HandOverPay;

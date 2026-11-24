@@ -1,4 +1,4 @@
-# Drone Siege without the player (spec 132, 1871): a small autonomous turret platform guards the post alone. The player's ship leaves;
+# Drone Siege without the player (spec 132, 2290): a small autonomous turret platform guards the post alone. The player's ship leaves;
 # the platform keeps the area live and the clock running, the drone waves come, and it fights them. A one-gun platform does not last
 # the whole 300 s (it lost the post at 265 s in a sim run), so the test stops after a minute of guarded time.
 # Claim Jumpers raiders go for the barge (spec 137), so a one-gun platform is not enough there: mechanics-guard-hold.

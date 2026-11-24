@@ -1,4 +1,4 @@
-# Salvage and ore drops (spec 1247 to 1249, 1814, 1832, 1834, 1835): a broken junk part drops loose resources × SalvageDropFactor, and a broken ore deposit
+# Salvage and ore drops (spec 1247 to 1249, 2370, 1832, 1834, 1835): a broken junk part drops loose resources × SalvageDropFactor, and a broken ore deposit
 # drops its ore × the mining factor (any break) or the laser factor (salvage damage). Exact counts: a laser break of an iron deposit
 # drops its 1 iron at 100 % (Fast economy), and a salvage factor of 0 drops nothing.
 newgame run
@@ -67,8 +67,8 @@ wait 1
 expect debris_gain_bullet == 40
 debris_set LaserBayAmmoShare 0
 debris_split
-# Spec 1814: cargo comes back in full. A broken storage bay drops all of its steel (vanilla drops half); the bay itself drops nothing at 0.
-# Spec 1836: a steel stack is 80, so the 4 tiles of a 2x2 bay hold 320 (vanilla 160).
+# Spec 2370: cargo comes back in full. A broken storage bay drops all of its steel (vanilla drops half); the bay itself drops nothing at 0.
+# Spec 2410: a steel stack is 80, so the 4 tiles of a 2x2 bay hold 320 (vanilla 160).
 debris_set SalvageDropFactor 0
 debris_cargo 320
 wait 1

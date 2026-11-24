@@ -1,4 +1,4 @@
-# Mission highlight (spec 1128): the Nearby Missions list before and after a left-click on a mission's marker.
+# Mission highlight (spec 2340): the Nearby Missions list before and after a left-click on a mission's marker.
 # Windowed test slot (needs graphics): see the hot-cargo-screenshots skill.
 render on
 newgame run 0

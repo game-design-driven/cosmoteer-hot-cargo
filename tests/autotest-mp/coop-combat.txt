@@ -190,7 +190,7 @@ on 1 expect pu_moneyspent == 30000
 on 1 expect pu_outage >= 200
 
 step hunters.anchor
-# Spec 1537 to 1539, in a new run: the client flies 16,000 away from the host. A hunter wave spawns near one player ship, not at the
+# Spec 2241 to 2243, in a new run: the client flies 16,000 away from the host. A hunter wave spawns near one player ship, not at the
 # center between the fleets (far from both, where vanilla puts ships into stasis), so the hunters stay live.
 mprestart
 mp godmode on

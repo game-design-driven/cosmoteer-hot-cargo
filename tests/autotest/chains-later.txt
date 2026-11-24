@@ -49,7 +49,7 @@ ev_mark
 chain_goto
 chain_kill
 wait 3
-# Spec 1879: the pay waits at a station; the stage ends once it is collected.
+# Spec 2252: the pay waits at a station; the stage ends once it is collected.
 expectstage courier
 chain_tostation
 pause off

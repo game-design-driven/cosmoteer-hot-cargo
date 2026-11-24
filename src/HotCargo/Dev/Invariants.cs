@@ -119,7 +119,7 @@ public static class Invariants
     /// <summary>
     /// Spec 994, 995: a Hot Cargo hostile ship attacks the players only after its trigger. A chain ship (tag hc_ch_*) with the hunter AI
     /// waits until a chain mission is in progress: a stage mission of this system that the players accepted, or a Return or Arrival
-    /// mission, which goes straight to the log. A ship of a stage offer, with any AI, waits for the accept (spec 1127). After its stage
+    /// mission, which goes straight to the log. A ship of a stage offer, with any AI, waits for the accept (spec 2300). After its stage
     /// ends, a guard with the vanilla Normal AI may defend its post like a vanilla bounty guard.
     /// A hunter waits until heat is above 0 and a stage started, or a hunter wave spawned.
     /// Limit: "attacks" means an attack command on a human ship. A weapon that fires at a ship in range without a command

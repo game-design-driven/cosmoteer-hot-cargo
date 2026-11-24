@@ -174,7 +174,7 @@ public static class EventsArea
             var sim = RequireSim();
             foreach (var e in EventLibrary.InOrder)
             {
-                // The goods page (spec 1880) takes its option from an open goods hand-over, so it renders only at one.
+                // The goods page (spec 2384) takes its option from an open goods hand-over, so it renders only at one.
                 if (e.Options.Any(o => o.Resource == OptionRules.HandOverResource)) continue;
                 var p = new PendingEvent { EventId = e.ID, Serial = 0, Tier = run.CurrentTier, TechValue = EventRunner.CurrentTechValue(run) };
                 var page = EventView.Pending(run, sim, p, run.Game.LocalPlayerIndex);
@@ -352,9 +352,9 @@ public static class EventsArea
             return found.Single().Completion switch { CompletionState.Completed => 1, CompletionState.Failed => -1, _ => 0 };
         };
         // 1: the latest hand-over objective in the log (any mission) is done, 0: open, -1: failed, -2: none.
-        // 1 while an open ship delivery arrived but waits for the players' crew to leave the ship (spec 1110).
+        // 1 while an open ship delivery arrived but waits for the players' crew to leave the ship (spec 2380).
         Autotest.Fields["ev_ship_wait"] = () => OpenHandOvers().Any(o => o.ShipWait(RequireSim()) is not null) ? 1 : 0;
-        // Spec 1880: ev_res_add <resource> <n>: n units of the resource into the human ships' storage (lowest ship ID first). Test only.
+        // Spec 2384: ev_res_add <resource> <n>: n units of the resource into the human ships' storage (lowest ship ID first). Test only.
         Autotest.Commands["ev_res_add"] = arg =>
         {
             var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -482,7 +482,7 @@ public static class EventsArea
             if (left > 0) throw new InvalidOperationException($"no fleet storage for {left} {rid}");
             Autotest.Wait(1);
         }
-        // Spec 1874: the recovering hand-over (the latest in the log): what a click on its line shows (the FocusStep value), and how many
+        // Spec 2381: the recovering hand-over (the latest in the log): what a click on its line shows (the FocusStep value), and how many
         // recover markers show on ships and on loose crates.
         Autotest.Fields["ev_recover_focus"] = () => (int)MissionFocus.Step(RequireRun().Game, Recovering().RecoverWhere(RequireRun().Game));
         Autotest.Fields["ev_recover_named"] = () => Recovering().SourceName is null ? 0 : 1;
@@ -520,7 +520,7 @@ public static class EventsArea
             }
             Autotest.Wait(2);
         };
-        // Spec 1875: ev_carry_check <resource>: a crew member of the first human ship takes the one stored unit in hand. In the same tick (an
+        // Spec 2382: ev_carry_check <resource>: a crew member of the first human ship takes the one stored unit in hand. In the same tick (an
         // idle crew member puts a carried unit back within a second): the fleet still holds it, the event needs and the open hand-over's
         // hail line count it, and a cost takes it from the crew. Then the unit goes back to storage. Test only.
         Autotest.Commands["ev_carry_check"] = arg =>
@@ -544,7 +544,7 @@ public static class EventsArea
             Autotest.Check(FleetHold.Take(sim, rid, 1) == 1 && FleetHold.Units(sim, rid) == 0, "a cost takes the carried unit");
             if (ship.Resources.AddResources(rid, 1, excludeConstructionSinks: true) != 1) throw new InvalidOperationException($"no storage to put {rid} back");
         };
-        // 1 while an open hand-over's line cannot show and its objective line says why (spec 1875).
+        // 1 while an open hand-over's line cannot show and its objective line says why (spec 2382).
         Autotest.Fields["ev_handover_block"] = () => OpenHandOvers().Any(o => o.LineBlock(RequireRun(), RequireSim()) is not null) ? 1 : 0;
         // ev_storage_fill <resource>: fills every human ship's storage with the resource. ev_storage_clear <resource>: takes all of it out. Test only.
         Autotest.Commands["ev_storage_fill"] = arg =>
@@ -668,7 +668,7 @@ public static class EventsArea
             var ship = CommsTarget("faction");
             MoveNextTo(RequireSim(), ship.WorldCenter, ship.WorldBoundingRadius + float.Parse(arg, CultureInfo.InvariantCulture));
         };
-        // Rescue Beacon (spec 1147, 1148). Test only.
+        // Rescue Beacon (spec 2351, 2352). Test only.
         // ev_money_zero: the acting player's money goes to 0. ev_rescue_tip: 1 when the fire action's tooltip lines show the fee.
         Autotest.Commands["ev_money_zero"] = _ =>
         {
@@ -995,7 +995,7 @@ public static class EventsArea
         Autotest.Fields["ev_pending"] = () => RequireRun().State.Events.Pending is null ? 0 : 1;
         Autotest.Fields["ev_seen"] = () => RequireRun().State.Events.Seen.Values.Sum();
         Autotest.Fields["ev_result"] = () => RequireRun().State.Events.LastResult?.Serial ?? 0;
-        // Spec 1817: recent paid heat cuts, and 1 while the paid heat cuts are on offer.
+        // Spec 2230: recent paid heat cuts, and 1 while the paid heat cuts are on offer.
         Autotest.Fields["ev_heat_buys"] = () => RequireRun().State.HeatBuys;
         Autotest.Fields["ev_heat_buy_open"] = () => RequireRun().HeatBuyOpen() ? 1 : 0;
         // expectresultline <0|1> <text>: whether an effect line of the last result holds the text (plain, without XML).

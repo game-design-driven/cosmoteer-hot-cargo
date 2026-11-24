@@ -102,7 +102,7 @@ public sealed class NeedRules
     [Serialize(Optional = true)] public int MaxSectorsLeft = -1;
     /// <summary>True: only while a faction in this system wants the players.</summary>
     [Serialize(Optional = true)] public bool Wanted;
-    /// <summary>Spec 1817: true hides the event (a hail line) while the paid heat cuts are closed. For lines that only sell a heat cut.</summary>
+    /// <summary>Spec 2230: true hides the event (a hail line) while the paid heat cuts are closed. For lines that only sell a heat cut.</summary>
     [Serialize(Optional = true)] public bool HeatBuyOpen;
 }
 
@@ -281,7 +281,7 @@ public sealed class OptionRules
     public int MinSteps => (int)MathF.Round(MinUnits / StepUnits);
     public int MaxSteps => (int)MathF.Round(MaxUnits / StepUnits);
 
-    /// <summary>Spec 1880: Resource = "@handover" pays with the resource of the page's goods hand-over, in its amount range.</summary>
+    /// <summary>Spec 2384: Resource = "@handover" pays with the resource of the page's goods hand-over, in its amount range.</summary>
     public const string HandOverResource = "@handover";
 
     /// <summary>A copy that pays with this resource, from min to max units (one unit per step).</summary>
@@ -309,7 +309,7 @@ public sealed class EventRules
     [Serialize(Optional = true)] public string Carrier = "";
     /// <summary>True: the carrier hails the players when the page opens. False: the players must hail it.</summary>
     [Serialize(Optional = true)] public bool CarrierHails = true;
-    /// <summary>Spec 1816: true keeps the sure effects off the choice buttons, where they would give the answer away (the riddles).</summary>
+    /// <summary>Spec 2270: true keeps the sure effects off the choice buttons, where they would give the answer away (the riddles).</summary>
     [Serialize(Optional = true)] public bool HideEffects;
     /// <summary>Hail events: the button text in the target's comms.</summary>
     [Serialize(Optional = true)] public string HailLine = "";

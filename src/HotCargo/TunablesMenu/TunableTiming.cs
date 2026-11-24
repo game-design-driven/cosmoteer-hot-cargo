@@ -18,7 +18,7 @@ public enum Applies
     NextSystem,
     /// <summary>New runs only.</summary>
     NewRun,
-    /// <summary>The next new or loaded game (spec 1981): a value that must not change while ships exist, such as a storage size.</summary>
+    /// <summary>The next new or loaded game (spec 2412): a value that must not change while ships exist, such as a storage size.</summary>
     NextGame,
 }
 
@@ -147,7 +147,7 @@ public static class TunableTiming
         ["PursuitTunables.FleetFactorMax"] = Applies.NextSpawn,
         ["PursuitTunables.OutageSeconds"] = Applies.NextUse,
         ["PursuitTunables.HackerOutageSeconds"] = Applies.NextUse,
-        // Spec 1980 to 1983: values of the vanilla rules files.
+        // Spec 2411 to 2414: values of the vanilla rules files.
         ["BalanceTunables.FuelStackSize"] = Applies.NextGame,
         ["BalanceTunables.BuildStackSize"] = Applies.NextGame,
         ["BalanceTunables.BuildStackResources"] = Applies.NextGame,

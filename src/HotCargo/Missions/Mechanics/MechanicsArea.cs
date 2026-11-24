@@ -266,7 +266,7 @@ public static class MechanicsArea
         Autotest.Commands["mech_capture_claim"] = _ => TestClaim();
         Autotest.Commands["mech_capture_remove"] = _ => RemoveShip(Capture().Target.Live(RequireSim()) ?? throw new InvalidOperationException("capture target is not live"));
         Autotest.Fields["mech_capture_hostile"] = () => Capture().Target.Live(RequireSim()) is { } s && RequireSim().Mode.AreEnemies(s.Metadata.PlayerIndex, RequireRun().Game.HumanPlayersIndexes[0]) ? 1 : 0;
-        // Spec 1873: what a click on the objective line shows (the FocusStep value), and the galaxy map and system map markers.
+        // Spec 2292: what a click on the objective line shows (the FocusStep value), and the galaxy map and system map markers.
         Autotest.Fields["mech_capture_focus"] = () => (int)MissionFocus.Step(RequireRun().Game, Capture().Where(RequireRun().Game));
         Autotest.Fields["mech_capture_galaxy"] = () => Capture().GetFirstMapNode(RequireRun().Game) is { } n && Capture().IsMapNodeAssociated(n) ? 1 : 0;
         Autotest.Fields["mech_capture_area"] = () => Capture().GetAreaLocation(RequireRun().Game) is null ? 0 : 1;
@@ -404,7 +404,7 @@ public static class MechanicsArea
     static int _markedOre;
     static CaptureObjective Capture() => Require<CaptureObjective>();
     static SurveyObjective Survey() => Require<SurveyObjective>();
-    /// <summary>Spec 1880: the sun mining delivery, a goods hand-over.</summary>
+    /// <summary>Spec 2384: the sun mining delivery, a goods hand-over.</summary>
     static Events.HandOverObjective Deliver() => Require<Events.HandOverObjective>() is { Goods: true } h ? h : throw new InvalidOperationException("the latest hand-over is no goods delivery");
 
     /// <summary>

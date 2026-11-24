@@ -8,7 +8,7 @@ expect balance_fuel_station_typed_max >= 0.39
 expect balance_fuel_station_typed_max <= 0.41
 expect balance_jump_cost_per_mass_ly >= 0.0019
 expect balance_jump_cost_per_mass_ly <= 0.0021
-# Spec 1980, 1981: the menu changes the fuel price at once; the stack waits for the next new or loaded game.
+# Spec 2411, 2412: the menu changes the fuel price at once; the stack waits for the next new or loaded game.
 menu open
 menu set Balance.FuelPrice 200
 menu set Balance.FuelStackSize 5

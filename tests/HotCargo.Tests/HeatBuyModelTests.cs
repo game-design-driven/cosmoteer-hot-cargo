@@ -3,7 +3,7 @@ using Xunit;
 
 namespace HotCargo.Tests;
 
-/// <summary>Spec 1817: the shared factor of paid heat cuts.</summary>
+/// <summary>Spec 2230: the shared factor of paid heat cuts.</summary>
 public class HeatBuyModelTests
 {
     [Fact]

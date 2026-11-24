@@ -31,7 +31,7 @@ expect tactics_move_row == 1
 heat 55
 waitfor hunters >= 1 30
 waitfor tactics_move_row == 0 10
-# Spec 1830: brackets. Hunters, no stage 2, no crates: (hunters OR stage 2) AND crates is false; without brackets it would hold.
+# Spec 2320: brackets. Hunters, no stage 2, no crates: (hunters OR stage 2) AND crates is false; without brackets it would hold.
 tactics HC1:(HuntersInSystem|HeatStageAtLeast=2)&CratesWithin=3000>HoldPosition;Always>RetreatRepair
 expecttactics HC1:(HuntersInSystem|HeatStageAtLeast=2)&CratesWithin=3000>HoldPosition;Always>RetreatRepair
 waitfor tactics_move_row == 1 10

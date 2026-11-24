@@ -219,7 +219,7 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
         args["resource_icon"] = OreRules.TextIconXml;
     }
 
-    /// <summary>Spec 1873: the vanilla target focus, else the miner's place (also in stasis, not yet discovered).</summary>
+    /// <summary>Spec 2292: the vanilla target focus, else the miner's place (also in stasis, not yet discovered).</summary>
     public override bool CanFocusDisplayLine(GameRoot game) => MissionFocus.CanFocus(game, Escort);
 
     public override void OnDisplayLineFocused(GameRoot game) => MissionFocus.Focus(game, Escort);

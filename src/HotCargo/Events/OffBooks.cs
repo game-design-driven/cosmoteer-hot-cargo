@@ -14,7 +14,7 @@ using HotCargo.Hunters;
 namespace HotCargo.Events;
 
 /// <summary>
-/// Spec 1801 to 1812: Off the Books. A station's dock officer quotes a price and an informant chance and sets up a meet with a fence, away
+/// Spec 1801 to 1809: Off the Books. A station's dock officer quotes a price and an informant chance and sets up a meet with a fence, away
 /// from the station. The players fly the crates there and hand them over in the fence's comms. The sale pays the quote and cuts heat, or it
 /// is a sting: heat rises and corporate ships jump in. All state is run state (EventsState.OffBooks); every change runs in the choice input
 /// or the sim tick, so every co-op machine does the same.
@@ -39,7 +39,7 @@ static class OffBooks
         Run.Hooks.Tick += OnTick;
         Run.Hooks.SystemEntered += (run, _) => run.State.Events.OffBooks = null;
         EventText.Tokens.Add(Fill);
-        // Test fields (spec 1811): 1 while a meet runs, the meet's price per crate, the fence live.
+        // Test fields (spec 1809): 1 while a meet runs, the meet's price per crate, the fence live.
         Dev.Autotest.Fields["ob_meet"] = () => Dev.Autotest.RequireRun().State.Events.OffBooks is null ? 0 : 1;
         Dev.Autotest.Fields["ob_price"] = () => Dev.Autotest.RequireRun().State.Events.OffBooks?.PricePerCrate ?? 0;
         Dev.Autotest.Fields["ob_last_price"] = () => LastPrice;

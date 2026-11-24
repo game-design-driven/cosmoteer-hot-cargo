@@ -16,7 +16,7 @@ using System.Runtime.CompilerServices;
 namespace HotCargo.Ux;
 
 /// <summary>
-/// Spec 1128: a left-click on a mission's marker (its indicator, in space or on the system map) or inside its area in space highlights
+/// Spec 2340: a left-click on a mission's marker (its indicator, in space or on the system map) or inside its area in space highlights
 /// that mission in the Nearby Missions list (vanilla MissionsHud). Vanilla has no selection in that list, so the highlight is the
 /// vanilla selected list item background, and the mission counts as prioritized (vanilla PrioritizeOnHud) so that the list shows it.
 /// GUI only: the highlight is local to each player and changes no sim state.

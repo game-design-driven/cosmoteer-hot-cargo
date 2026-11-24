@@ -166,7 +166,7 @@ public static class JourneyArea
             return buyer.AI?.WillTradeWith(human) == true ? 1 : 0;
         };
         Autotest.Fields["nodes"] = () => Autotest.RequireRun().Game.Map.Nodes.NodeCount;
-        // Spec 1983: sector types on the run map that are not basic (the starting system is always basic).
+        // Spec 2414: sector types on the run map that are not basic (the starting system is always basic).
         Autotest.Fields["mapnonbasic"] = () =>
         {
             var run = Autotest.RequireRun();

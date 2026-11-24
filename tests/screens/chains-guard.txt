@@ -1,4 +1,4 @@
-# Chain guard (spec 1127): the Black Box guard next to the player ship before the accept (neutral), and after the accept (hostile).
+# Chain guard (spec 2300): the Black Box guard next to the player ship before the accept (neutral), and after the accept (hostile).
 # Windowed test slot (needs graphics): see the hot-cargo-screenshots skill.
 render on
 newgame run 0

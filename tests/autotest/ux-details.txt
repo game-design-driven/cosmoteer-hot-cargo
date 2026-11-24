@@ -1,4 +1,4 @@
-# Spec 1129: a left-click on a mission's name in the Nearby Missions list opens the mission log with that mission selected (the
+# Spec 2341: a left-click on a mission's name in the Nearby Missions list opens the mission log with that mission selected (the
 # vanilla mission info panel). ux_open_details runs what the click runs; a test cannot click the list. A chain stage, then a Hot
 # Cargo mission while the log is open (it must stay open, not toggle shut).
 newgame run

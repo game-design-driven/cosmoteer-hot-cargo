@@ -1,4 +1,4 @@
-# Spec 1817: paid heat cuts. Patrol Chatter at heat 80: the 1st buy shows the full cut, the 3rd a weaker one, and a cold trail
+# Spec 2230: paid heat cuts. Patrol Chatter at heat 80: the 1st buy shows the full cut, the 3rd a weaker one, and a cold trail
 # with recent buys shows the choice greyed with the reason. RUNNER=mac scripts/screens.sh tests/screens/heat-buy.txt <out-dir>
 render on
 newgame run

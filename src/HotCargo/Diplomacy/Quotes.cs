@@ -103,7 +103,7 @@ public static class Quotes
     /// <summary>Spec 579: the first step of the help offer slider.</summary>
     public static int HireMinStep(Run run) => DiplomacyModel.HireMinStep(T(run).HireMinShare);
 
-    /// <summary>Spec 1818: the trust left after this run's paid hires and the damage that hired ships took.</summary>
+    /// <summary>Spec 2224: the trust left after this run's paid hires and the damage that hired ships took.</summary>
     public static float HireTrust(Run run)
     {
         var (t, s) = (T(run), run.State.Diplomacy);
@@ -117,7 +117,7 @@ public static class Quotes
             HireTrust(run), t.HirePerReputation, t.HirePerHeat);
     }
 
-    /// <summary>Spec 583, 1818: MercPriceShare of the hire rate (HireSureUnits per HireSeconds) per minute, ÷ trust.</summary>
+    /// <summary>Spec 583, 2224: MercPriceShare of the hire rate (HireSureUnits per HireSeconds) per minute, ÷ trust.</summary>
     public static int MercPrice(Run run, int minutes)
     {
         var t = T(run);

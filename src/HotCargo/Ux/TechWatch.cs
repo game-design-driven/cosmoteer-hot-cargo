@@ -24,7 +24,7 @@ internal readonly record struct WatchLine(WatchKind Kind, int Units, string Text
 
 /// <summary>
 /// Spec 2120 to 2129: tech of the players that is not in a vault of a player ship. A box under the heat panel lists each place
-/// with a line that clicks to it (MissionFocus, spec 1873), a banner and a sound say when tech starts to be at risk, and a banner
+/// with a line that clicks to it (MissionFocus, spec 2292), a banner and a sound say when tech starts to be at risk, and a banner
 /// says at once when a new design has too little vault room. GUI only: it reads synced sim state, so every co-op player sees the
 /// same lines, and it changes no sim state.
 /// </summary>

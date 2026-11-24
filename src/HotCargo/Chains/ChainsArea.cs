@@ -233,7 +233,7 @@ public static class ChainsArea
         Autotest.Fields["chain_part"] = () => Test().Part;
         Autotest.Fields["chain_story"] = () => Test().Story.Count;
         Autotest.Fields["chain_mission"] = () => Test().MissionId is null ? 0 : 1;
-        // Spec 1127. chain_held: ships of the test chain's offer held neutral. chain_guard_hostile: live hc_ch_enemy ships that are enemies
+        // Spec 2300. chain_held: ships of the test chain's offer held neutral. chain_guard_hostile: live hc_ch_enemy ships that are enemies
         // of the players. chain_guard_attacks: live chain ships with an attack command on a player ship.
         Autotest.Fields["chain_held"] = () => Test().HeldShips.Count;
         // chain_guard_goto [zoom]: moves the player ships next to the test chain's guard (the first ship that its offer held neutral;
