@@ -1,0 +1,4 @@
+# Known flaky CI game tests: one test name per line, then a reason ("<name> # <why, date>"). A PR that the merge queue
+# drops only for tests on this list goes back into the queue once (scripts/requeue-flakes.sh, called by agent-watch.sh).
+# Add a test only after a check of the same test on main (hot-cargo-pr-flow, "A failure that looks unrelated"); remove it
+# when its cause is fixed.

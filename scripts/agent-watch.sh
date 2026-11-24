@@ -4,9 +4,11 @@
 # of the 5 newest logs show a refused PC link (the agent's turn was not active). Running tests: scripts/autotest.sh processes
 # (PC runs) and headless sim games (one per single-player test, two per co-op session).
 # Usage: agent-watch.sh   (from any worktree; it reads the container folder that holds .bare)
-# Exit code 0. It only reads state and changes nothing.
+# Exit code 0. It only reads state, except one action: PRs that the merge queue dropped on a known flake go back into the
+# queue (scripts/requeue-flakes.sh, once per commit, with a PR comment).
 # Called by: the coordinator, by hand or from a scheduled check (hot-cargo-coordinate skill).
 set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
 cd "$(dirname "$0")/../.."
 now=$(date +%s)
 echo "== $(date +%H:%M)  slots held: $(ls -d /tmp/hot_cargo_slot_[0-9]*.lock 2>/dev/null | wc -l | tr -d ' ')  main-slot lock: $([ -d /tmp/hot_cargo_main_slot.lock ] && basename "$(lsof -a -d cwd -p "$(cat /tmp/hot_cargo_main_slot.lock/pid 2>/dev/null)" -Fn 2>/dev/null | grep '^n' | cut -c2-)" || echo free)"
@@ -37,3 +39,5 @@ for w in $(git --git-dir .bare worktree list --porcelain | awk '/^worktree /{pri
   refused=$(ls -t "$(pwd)/.state/logs/$w"/*.log 2>/dev/null | head -5 | xargs grep -l "no longer owns an active thread run\|LINK REFUSED" 2>/dev/null | wc -l | tr -d ' ')
   printf "  %-16s commit %4dm ago  %-9s dirty %-3s tests %-3s slots %-2s refused-logs %s\n" "$w" $(( (now - last) / 60 )) "${pushed:-pushed}" "$dirty" "${tests[$w]:-0}" "${held[$w]:-0}" "$refused"
 done
+# PRs that the queue dropped on a known flake go back in (tests/flaky.txt).
+"$HERE/requeue-flakes.sh" 2>&1 | grep -v '^hint\|^  - ' || true
