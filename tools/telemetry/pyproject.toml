@@ -7,6 +7,7 @@ dependencies = ["matplotlib>=3.11.2"]
 
 [project.scripts]
 hc-telemetry = "hc_telemetry.cli:main"
+hc-where = "hc_telemetry.where:main"
 
 [dependency-groups]
 dev = ["pytest>=9"]
