@@ -1,0 +1,24 @@
+# Checks the text of a pull request on each edit and push: the "### Decisions" block (scripts/check-pr-text.sh) and the
+# lines of the "### Game tests" block (scripts/ci-test-set.sh). Its own workflow, so that an edit of the text reruns only this
+# check, not the build and the game tests of check.yml. The merge queue checks the text again (ci-test-set.sh --group).
+name: pr-text
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+concurrency:
+  group: pr-text-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  pr-text:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          rc=0
+          scripts/check-pr-text.sh "$PR" || rc=1
+          scripts/ci-test-set.sh "$PR" > set.txt || rc=1
+          cat set.txt
+          exit "$rc"
