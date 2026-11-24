@@ -46,11 +46,13 @@ static class ConvoyTargetPatch
 static class EscortRaiderAttackPatch
 {
     static readonly ID<SimObjectSpawner>[] RaiderTags = [new("hc_escort_raider"), Mechanics.MiningEscortObjective.WaveTag];
+    static readonly ID<SimObjectSpawner> FreighterTag = new("hc_escort_ship");
 
     static void Postfix(Ship sourceShip, Ship targetShip, ref bool __result)
     {
         if (__result || Run.Current is not { } run || !RaiderTags.Any(sourceShip.HasTag)) return;
-        try { __result = EscortHail.IsEscortShip(run, targetShip.UniqueID); }
+        // Spec 2431: the Mayday victim carries the convoy freighter tag.
+        try { __result = targetShip.HasTag(FreighterTag) || EscortHail.IsEscortShip(run, targetShip.UniqueID); }
         catch (Exception ex) { Errors.Report("escort raider attack", ex.Message, ex); }
     }
 }

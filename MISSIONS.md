@@ -10,6 +10,10 @@ On the way, stay close. The escort moves only while one of your ships is within 
 
 **Blind Courier** (requirements 1890 to 1896). Raiders burned out a courier's navigation core, and it can only follow a transponder. After "Ready" it follows your nearest ship, 250 behind its hull, and stops when you stop. Lead it to the jump point; the map ring shows where. The jump point is the one whose direct route passes the most trouble (hostile ships, stations, nebulae), and the offer hints at it ("Traffic control flags raider activity along the direct route."), so lead the courier around. Raiders jump in ahead of it once, halfway, and it has no weapons, shields or armor. It has 3 minutes alone before raiders take it. The pay waits at a station.
 
+## Mayday
+
+Spec 24 (requirements 2430 to 2434). Sometimes a distress call comes after you arrive in a system: "Mayday! <ship> is under attack". It is a real fight, about 2 km from your ships: a civilian ship and the raiders on it, under a red ring. The mission enters your log by itself. The victim flies toward you. Kill every attacker while it lives, and its station pays you. If it dies, or you leave the system, the mission fails, and nothing else happens.
+
 ## Mechanics missions
 
 These missions use the game's own systems: building, tractor beams, mining, crew, surrender, sensors and careful targeting. Each one shows up in half of the systems (`Mechanics.<Name>Chance`, 50 %; BALANCE.md, finding 10). The Mining Escort also needs an asteroid field without pirates or platforms. Rewards use the vanilla tier tables, so the pay rises with the sector tier. The table shows each reward as a multiple of a standard vanilla mission.

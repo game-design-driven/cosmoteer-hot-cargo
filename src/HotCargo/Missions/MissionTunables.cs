@@ -63,6 +63,23 @@ public sealed class MissionTunables
     [Serialize(Optional = true)] public float EscortRaidDistanceMin = 900f;
     [Serialize(Optional = true)] public float EscortRaidDistanceMax = 1300f;
 
+    /// <summary>Spec 2430: the chance that a mayday is due in a system on arrival, and its delay after the arrival.</summary>
+    [Serialize(Optional = true)] public float MaydayChance = 0.35f;
+    [Serialize(Optional = true)] public float MaydayDelaySeconds = 45f;
+    /// <summary>Spec 2431: the fight spawns this far from the nearest player ship, so it is live and in sight.</summary>
+    [Serialize(Optional = true)] public float MaydayDistanceMin = 2000f;
+    [Serialize(Optional = true)] public float MaydayDistanceMax = 2400f;
+    /// <summary>Spec 2431: attackers (scaled for co-op), their tier offset to the sector tier, and the ship tags of victim and attackers.</summary>
+    [Serialize(Optional = true)] public int MaydayRaiders = 2;
+    [Serialize(Optional = true)] public int MaydayRaiderTierOffset = -1;
+    [Serialize(Optional = true)] public string[] MaydayVictimTags = ["trade"];
+    [Serialize(Optional = true)] public string[] MaydayRaiderTags = ["combat"];
+    /// <summary>Spec 2431: the attackers jump in this far from the victim.</summary>
+    [Serialize(Optional = true)] public float MaydayRaiderDistanceMin = 600f;
+    [Serialize(Optional = true)] public float MaydayRaiderDistanceMax = 900f;
+    /// <summary>Spec 2432: the pay, as multiples of the standard money and fame of the tier.</summary>
+    [Serialize(Optional = true)] public float MaydayMoneyFactor = 2f;
+    [Serialize(Optional = true)] public float MaydayFameFactor = 2f;
     /// <summary>Spec 1891: the Blind Courier waits this far from the station center, in a random direction.</summary>
     [Serialize(Optional = true)] public float LeadSpawnDistanceMin = 500f;
     [Serialize(Optional = true)] public float LeadSpawnDistanceMax = 800f;
@@ -94,6 +111,11 @@ public sealed class MissionTunables
         Require(t.EscortRaidSeconds > 0f && t.EscortLostSeconds > t.EscortRaidSeconds, "EscortLostSeconds must be above EscortRaidSeconds, and both above 0");
         Require(t.EscortLostWarnSeconds > 0f && t.EscortLostWarnSeconds < t.EscortLostSeconds, "EscortLostWarnSeconds must be above 0 and below EscortLostSeconds");
         Require(t.EscortRaidShips >= 0 && t.EscortRaidMaxLive >= 0 && t.EscortRaidShipTags.Length > 0, "EscortRaidShips and EscortRaidMaxLive must not be negative, EscortRaidShipTags must not be empty");
+        Require(t.MaydayChance is >= 0f and <= 1f && t.MaydayDelaySeconds >= 0f, "MaydayChance must be 0 to 1, MaydayDelaySeconds not negative");
+        Require(t.MaydayDistanceMin >= 0f && t.MaydayDistanceMax >= t.MaydayDistanceMin && t.MaydayRaiderDistanceMin >= 0f && t.MaydayRaiderDistanceMax >= t.MaydayRaiderDistanceMin,
+            "Mayday distances: each Max must be at least its Min");
+        Require(t.MaydayRaiders >= 1 && t.MaydayVictimTags.Length > 0 && t.MaydayRaiderTags.Length > 0 && t.MaydayMoneyFactor >= 0f && t.MaydayFameFactor >= 0f,
+            "MaydayRaiders must be 1 or more, the Mayday tags not empty, the pay factors not negative");
         Require(t.EscortRaidDistanceMin >= 0f && t.EscortRaidDistanceMax >= t.EscortRaidDistanceMin, "EscortRaidDistanceMax must be at least EscortRaidDistanceMin");
         Require(t.LeadSpawnDistanceMin >= 0f && t.LeadSpawnDistanceMax >= t.LeadSpawnDistanceMin, "LeadSpawnDistanceMax must be at least LeadSpawnDistanceMin");
         Require(t.LeadFollowGap >= 0f && t.LeadFollowSlack > 0f, "LeadFollowGap must not be negative, LeadFollowSlack must be above 0");

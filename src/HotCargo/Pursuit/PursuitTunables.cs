@@ -43,6 +43,7 @@ public sealed class PursuitTunables
         new() { Kind = PacedKinds.RelayLockdown, MaxPerRun = 2, MinGapSeconds = 1200f },
         new() { Kind = PacedKinds.StationAttack, MaxPerRun = 2, MinGapSeconds = 1200f },
         new() { Kind = PacedKinds.Thieves, MaxPerRun = 3, MinGapSeconds = 900f },
+        new() { Kind = PacedKinds.Mayday, MaxPerRun = 3, MinGapSeconds = 900f },
     ];
 
     // ---- Reporting scout (spec 910 to 914)
@@ -140,4 +141,6 @@ public static class PacedKinds
     public const string RelayLockdown = "RelayLockdown";
     public const string StationAttack = "StationAttack";
     public const string Thieves = "Thieves";
+    /// <summary>Spec 2430: a live distress fight (Missions/Mayday.cs).</summary>
+    public const string Mayday = "Mayday";
 }

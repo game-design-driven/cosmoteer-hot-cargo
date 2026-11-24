@@ -1,0 +1,39 @@
+# Mayday (spec 2430 to 2434): a live distress fight. The arrival roll makes one due, and it starts by itself: a civilian ship and its
+# attackers spawn in sight, the attackers go for the victim, and the victim runs to the players. With every attacker dead, the pay waits
+# at the victim's station. In a second mayday the victim dies, and the mission fails.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+# Spec 2430: the arrival roll (chance 1 here); MaydayDelaySeconds (45 s) later it starts through the big event pacer.
+hc_mayday_roll 1
+expect hc_mayday_due == 1
+pause off
+waitfor hc_mayday_active == 1 70
+expect hc_mayday_due == 0
+# Spec 2431, 2433: the fight in sight, the red ring on the victim, and the attackers on the victim.
+expect hc_mayday_attackers >= 2
+expect hc_mayday_ring == 1
+expect hc_mayday_hull > 0
+expect hc_mayday_victim_dist >= 1500
+waitfor hc_mayday_on_victim >= 1 30
+# The victim runs to the players.
+waitfor hc_mayday_victim_dist < 1500 60
+# Spec 2432: every attacker dead and the victim alive: the step completes, the ring goes, and the pay waits at its station.
+hc_mayday_kill_attackers
+wait 3
+expect hc_mayday_done == 1
+expect hc_mayday_ring == 0
+hc_mark
+hc_mayday_collect
+wait 5
+expect hc_money_gain > 0
+# Spec 2432: a second mayday; the victim dies, and the mission fails.
+hc_mayday_start
+wait 2
+expect hc_mayday_active == 1
+hc_mayday_kill_victim
+wait 3
+expect hc_mayday_failed == 1
+expect hc_mayday_active == 0
+quit

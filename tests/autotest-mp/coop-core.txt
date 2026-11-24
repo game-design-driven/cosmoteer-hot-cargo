@@ -237,6 +237,19 @@ on 1 waitfor hc_lead_gap < 450 45
 wait 5
 mp shieldplayers off
 
+step missions.mayday
+# Spec 2434: the mayday starts in the sim on both machines, with the same victim and attackers, and ends the same way.
+mp shieldplayers on
+mp hc_mayday_start
+waitfor hc_mayday_active == 1 15
+on 1 waitfor hc_mayday_active == 1 15
+waitfor hc_mayday_attackers >= 2 15
+on 1 waitfor hc_mayday_attackers >= 2 15
+mp hc_mayday_kill_attackers
+waitfor hc_mayday_done == 1 15
+on 1 waitfor hc_mayday_done == 1 15
+mp shieldplayers off
+
 step core.save-load
 # Back to the game setup with the connection kept, load the save (from before the resync) for both players, start.
 mplobby
