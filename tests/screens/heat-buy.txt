@@ -1,0 +1,30 @@
+# Spec 1817: paid heat cuts. Patrol Chatter at heat 80: the 1st buy shows the full cut, the 3rd a weaker one, and a cold trail
+# with recent buys shows the choice greyed with the reason. RUNNER=mac scripts/screens.sh tests/screens/heat-buy.txt <out-dir>
+render on
+newgame run
+wait 10
+closepanel
+wait 1
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+heat 80
+event hunter_intel
+wait 1
+screenshot heat-buy-1st
+choose 1
+wait 1
+event hunter_intel
+choose 1
+wait 1
+event hunter_intel
+wait 1
+screenshot heat-buy-3rd
+choose 2
+wait 1
+heat -50
+event hunter_intel
+wait 1
+screenshot heat-buy-closed
+quit

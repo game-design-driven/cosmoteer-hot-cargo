@@ -44,6 +44,9 @@ HotCargoEvents
 	WantedCleared = "Wanted cleared"
 	// Spec 922: an event heat gain that the network outage blocked.
 	HeatBlocked = "Heat +0 (network down)"
+	// Spec 1817: paid heat cuts are closed (too many recent buys, or a cold trail).
+	HeatBuyClosed = "Nobody sells you a cleaner trail now"
+	HeatBuyClosedChat = "Word of your paid-off trails gets around. Nobody here sells you patrol logs or clean records for a while."
 	CarrierCallingFmt = "{0} is calling. Fly within comms range to answer, or hail it."
 	CarrierDestroyedFmt = "The {0} was destroyed, and its offer with it."
 	CarrierGone = "The ship was destroyed, and its offer with it."

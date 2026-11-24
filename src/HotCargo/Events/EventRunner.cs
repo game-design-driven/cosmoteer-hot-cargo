@@ -227,6 +227,7 @@ public static class EventRunner
     public static bool Eligible(Run run, EventRules e, Snapshot snapshot)
     {
         var s = State(run);
+        if (e.Need is { HeatBuyOpen: true } && !run.HeatBuyOpen()) return false;
         if (!EventModel.UnderRunLimit(s.Seen.GetValueOrDefault(e.ID), e.MaxPerRun)) return false;
         if (e.Category == EventCategory.Unavoidable)
         {
@@ -317,7 +318,15 @@ public static class EventRunner
         foreach (var pick in picks) ApplyPick(run, sim, playerIndex, pick, p, lines);
         if (picks.Count > 0) MultiChoice.MultiChoices.Clear(run, EventsMultiDomain.Name, serial);
         p.PickedUnits = picks.Sum(k => k.Units);
-        ApplyOutcome(run, sim, playerIndex, outcome, p, lines);
+        // Spec 1817: a paid heat cut works by the shared factor and counts as a buy. The buy that closes the cuts says so in the chat.
+        bool paidCut = IsPaidHeatCut(choice, picks) && outcome.Heat < 0f;
+        ApplyOutcome(run, sim, playerIndex, outcome, p, lines, paidCut ? run.HeatBuyFactor() : 1f);
+        if (paidCut)
+        {
+            run.CountHeatBuy();
+            Log.Info($"heat buy: {e.ID} choice {choiceIndex + 1}; recent buys {run.State.HeatBuys:0.00}, factor now {run.HeatBuyFactor():0.00}");
+            if (!run.HeatBuyOpen()) Run.OnNextFrame(() => Ux.UxKit.ChatLine(run.Game, Cosmoteer.Localization.Strings.GetText("HotCargoEvents/HeatBuyClosedChat")));
+        }
         // Tokens fill after the effects, so a text sees the counts that the choice left.
         string outcomeText = EventText.Fill(outcome.Text, Vaults.CountFleetTech(sim), p);
         if (outcome.Next.Length > 0)
@@ -505,8 +514,18 @@ public static class EventRunner
     /// The first thing a choice lacks, or null. Any choice: its need and sure cost. A submit also: at least one selected option,
     /// enough points, each selected option's need, and the needs and pays of all selected options on top of the choice's own.
     /// </summary>
+    /// <summary>
+    /// Spec 1817: a choice that sells a heat cut for money: an outcome cuts heat, and it costs credits (its own cost, or a submit with a
+    /// picked option that pays money; forged codes are not a payment). Derived from the rules, so a new event of this kind joins the
+    /// shared rule on its own.
+    /// </summary>
+    public static bool IsPaidHeatCut(ChoiceRules c, IReadOnlyList<OptionPick> picks) =>
+        c.Outcomes.Any(o => o.Heat < 0f)
+        && (c.Cost is { } cost && (cost.Money > 0f || cost.MoneyPerHeat > 0f) || c.IsSubmit && picks.Any(k => k.Rules.Pay == PayKind.Money));
+
     public static Unmet? ChoiceUnmet(Run run, ChoiceRules c, PendingEvent p, IReadOnlyList<OptionPick> picks, Snapshot snapshot)
     {
+        if (IsPaidHeatCut(c, picks) && !run.HeatBuyOpen()) return new Unmet(UnmetKind.HeatBuy);
         var need = ChoiceNeed(run, c, p);
         if (!c.IsSubmit) return EventModel.FirstUnmet(need, snapshot);
         if (picks.Count == 0) return new Unmet(UnmetKind.Points);
@@ -576,12 +595,13 @@ public static class EventRunner
     public static readonly Dictionary<string, Action<Run, SimRoot, int, PendingEvent, List<string>>> Effects = new(StringComparer.Ordinal);
 
     /// <summary>Applies the effects of an outcome and adds one result line per effect. Also used by the Chains area for stage results.</summary>
-    internal static void ApplyOutcome(Run run, SimRoot sim, int playerIndex, OutcomeRules o, PendingEvent p, List<string> lines)
+    /// <param name="heatCutFactor">Spec 1817: the share of a heat cut (negative Heat) that works: the shared factor of a paid heat cut, else 1.</param>
+    internal static void ApplyOutcome(Run run, SimRoot sim, int playerIndex, OutcomeRules o, PendingEvent p, List<string> lines, float heatCutFactor = 1f)
     {
         int credits = Credits(run, o.Money, o.MoneyTech, p.Tier, p.TechValue);
         if (credits != 0) ChangeMoney(run, playerIndex, credits, lines);
         if (o.Fame != 0) ChangeFame(run, FameAmount(run, o.Fame, p.Tier), lines);
-        if (o.Heat != 0) ChangeHeat(run, sim, o.Heat * run.T.Events.HeatScale, lines);
+        if (o.Heat != 0) ChangeHeat(run, sim, o.Heat * run.T.Events.HeatScale * (o.Heat < 0f ? heatCutFactor : 1f), lines);
         if (o.Tech > 0 && o.DropNear.Length > 0) DropNear(sim, playerIndex, o.DropNear, Vaults.TechId, o.Tech, lines);
         else if (o.Tech != 0) ChangeTech(sim, o.Tech, lines);
         if (o.Crew != 0) ChangeCrew(sim, o.Crew, p.Seed, lines);

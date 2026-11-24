@@ -20,6 +20,22 @@ public static class HeatModel
 
     public static float Clamp(float heat) => Math.Clamp(heat, 0f, MaxHeat);
 
+    /// <summary>
+    /// Spec 1817: the share of a paid heat cut that works now: trust (fewer recent buys, more trust) × heat share (heat ÷ fullHeat, at most 1).
+    /// </summary>
+    public static float BuyFactor(float recentBuys, float heat, float falloff, float fullHeat)
+    {
+        if (recentBuys < 0f || falloff < 0f || fullHeat <= 0f) throw new ArgumentOutOfRangeException(nameof(recentBuys), $"buys {recentBuys}, falloff {falloff}, full heat {fullHeat}");
+        return 1f / (1f + recentBuys * falloff) * Math.Clamp(heat / fullHeat, 0f, 1f);
+    }
+
+    /// <summary>Spec 1817: paid heat cuts are on offer while the factor is at least closeBelow.</summary>
+    public static bool BuyOpen(float factor, float closeBelow) => factor >= closeBelow;
+
+    /// <summary>Spec 1817: the count of recent paid heat cuts after some game seconds: it halves every halfLifeMinutes.</summary>
+    public static float BuyDecay(float recentBuys, double seconds, float halfLifeMinutes) =>
+        halfLifeMinutes <= 0f ? 0f : (float)(recentBuys * Math.Pow(0.5, seconds / (halfLifeMinutes * 60.0)));
+
     /// <summary>Heat on entry to a system. Jumping back to a hot system does not cool it down.</summary>
     public static float OnEnterSystem(float previousHeat, float storedHeatOfNewSystem, float carryOverFraction) =>
         Clamp(Math.Max(storedHeatOfNewSystem, previousHeat * carryOverFraction));
