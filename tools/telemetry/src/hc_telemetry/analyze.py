@@ -153,28 +153,29 @@ def heat_section(rep: RunReport) -> None:
 ACTIVITIES = ["fight", "build", "trade", "travel", "repair", "idle"]
 
 
-def visit_time_use(sessions: list, visit_of) -> dict[int, dict[str, float]]:
+def visit_sums(sessions: list, visit_of, key: str) -> dict[int, dict[str, float]]:
     """
-    Game seconds by activity for each visit (spec 1762). The sums count per session and per stay, so the last record of a visit in
-    each session (a snapshot, or the system.enter that ends the visit) holds that session's part; the parts add up.
+    The sums of one stay object (time_use, real_use, design) for each visit (spec 1762, 2012). The sums count per session and per
+    stay, so the last record of a visit in each session (a snapshot, or the system.enter that ends the visit) holds that session's
+    part; the parts add up. Limit: the part of the last visit of a session after its last snapshot is missing.
     """
     last: dict[tuple[int, int], dict[str, float]] = {}
     for si, sess in enumerate(sessions):
         for e in sess.events:
-            if e["e"] == "snap" and "time_use" in e:
-                last[(si, visit_of(e))] = e["time_use"]
-            elif e["e"] == "system.enter" and "prev_time_use" in e:
-                last[(si, visit_of(e) - 1)] = e["prev_time_use"]
-    out: dict[int, dict[str, float]] = defaultdict(lambda: dict.fromkeys(ACTIVITIES, 0.0))
+            if e["e"] == "snap" and key in e:
+                last[(si, visit_of(e))] = e[key]
+            elif e["e"] == "system.enter" and f"prev_{key}" in e:
+                last[(si, visit_of(e) - 1)] = e[f"prev_{key}"]
+    out: dict[int, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     for (_, visit), use in last.items():
-        for a in ACTIVITIES:
-            out[visit][a] += use.get(a, 0.0)
+        for k, v in use.items():
+            out[visit][k] += v
     return out
 
 
 def shares(use: dict[str, float] | None) -> list[str]:
     total = sum(use.values()) if use else 0
-    return [f"{100 * use[a] / total:.0f}" if use and total > 0 else "-" for a in ACTIVITIES]
+    return [f"{100 * use.get(a, 0) / total:.0f}" if use and total > 0 else "-" for a in ACTIVITIES]
 
 
 def sector_section(rep: RunReport) -> None:
@@ -214,7 +215,7 @@ def sector_section(rep: RunReport) -> None:
                 per[i]["missions_accepted"] += 1
             case "econ.trade" if e.get("is_tech"):
                 per[i]["tech_sold"] += e["amount"]
-    use = visit_time_use(rep.run.sessions, visit_of)
+    use = visit_sums(rep.run.sessions, visit_of, "time_use")
     rows = []
     for i, v in enumerate(visits):
         c = per[i]
@@ -243,6 +244,68 @@ def sector_section(rep: RunReport) -> None:
         total = {a: sum(u[a] for _, u in rep.sector_time_use) for a in ACTIVITIES}
         whole = sum(total.values())
         rep.findings.append("Time in systems by activity: " + ", ".join(f"{a} {100 * t / whole:.0f} %" for a, t in sorted(total.items(), key=lambda kv: -kv[1])) + ".")
+    real_time_section(rep, visits, visit_of)
+
+
+# ---- Real time (spec 2010 to 2016)
+
+
+def places(uses: list[dict[str, float]]) -> list[str]:
+    """The places that have real time, in the order that the files write them (the game's order)."""
+    seen: dict[str, None] = {}
+    for u in uses:
+        for k, v in u.items():
+            if v > 0:
+                seen.setdefault(k, None)
+    return list(seen)
+
+
+def minutes(use: dict[str, float], cols: list[str]) -> list[str]:
+    return [mmss(use.get(c, 0)) if use.get(c, 0) > 0 else "-" for c in cols]
+
+
+def real_time_section(rep: RunReport, visits: list[dict[str, Any]], visit_of) -> None:
+    """Where the real time of this machine went: per session (session.end) and per sector visit (stays), and the design applies."""
+    sessions = [(s, s.end.get("real_use") or {}, s.end.get("design") or {}) for s in rep.run.sessions if s.end and "real_use" in s.end]
+    per_visit = visit_sums(rep.run.sessions, visit_of, "real_use")
+    design_visit = visit_sums(rep.run.sessions, visit_of, "design")
+    applies = [e for e in rep.run.events if e["e"] == "design.apply"]
+    if not sessions and not per_visit and not applies:
+        return
+    cols = places([u for _, u, _ in sessions] + list(per_visit.values()))
+    note = ("Real time of this machine's frames by place (spec 2010, 2011): the screen first (menu, event page, map, comms, editor, pause), "
+            "then in play the fleet activity. Each frame counts once, so a row adds up to its real time. Design: blueprint edits, "
+            "applies ('make it so') and their parts, of every player (spec 2013).")
+    if sessions:
+        rows = [[s.header.get("session", ""), mmss(sum(u.values())), *minutes(u, cols), d.get("edits", 0), d.get("applies", 0), d.get("applied_parts", 0)]
+                for s, u, d in sessions]
+        rep.tables.append(Table("Real time by session", ["session", "real time", *cols, "edits", "applies", "parts applied"], rows, note))
+    if per_visit:
+        rows = []
+        for i, v in enumerate(visits):
+            if i not in per_visit:
+                continue
+            u, d = per_visit[i], design_visit.get(i, {})
+            iters = [a["iteration_real_s"] for a in applies if visit_of(a) == i and "iteration_real_s" in a]
+            rows.append([v["sec"], v["sys"], mmss(sum(u.values())), *minutes(u, cols), int(d.get("edits", 0)), int(d.get("applies", 0)),
+                         mmss(statistics.median(iters)) if iters else "-"])
+        rep.tables.append(Table("Real time by sector visit", ["sector", "system", "real time", *cols, "edits", "applies", "median iteration"], rows,
+                                "Real time from the entry (or the session start) to the jump. Iteration: real time from the first blueprint edit "
+                                "of a ship after its last apply to the next apply (spec 2014)."))
+    if applies:
+        rows = [[mmss(a["gs"]), a["sec"], a.get("name", ""), a.get("player", ""), a.get("parts_added", 0), a.get("parts_removed", 0),
+                 a.get("edits", 0), a.get("blueprint_parts", 0), mmss(a.get("iteration_real_s"))] for a in applies]
+        rep.tables.append(Table("Design applies", ["game time", "sector", "ship", "player", "parts added", "parts removed", "edits before",
+                                                  "blueprint parts", "iteration"], rows))
+        iters = [a["iteration_real_s"] for a in applies if a.get("edits", 0) > 0]
+        rep.findings.append(f"Design applies: {len(applies)}, {sum(a.get('parts_added', 0) + a.get('parts_removed', 0) for a in applies)} parts changed"
+                            + (f", median iteration {mmss(statistics.median(iters))} (first edit to apply)." if iters else "."))
+    totals: dict[str, float] = defaultdict(float)
+    for _, u, _ in sessions:
+        for k, v in u.items():
+            totals[k] += v
+    if whole := sum(totals.values()):
+        rep.findings.insert(0, "Real time by place: " + ", ".join(f"{k} {100 * v / whole:.0f} % ({mmss(v)})" for k, v in sorted(totals.items(), key=lambda kv: -kv[1]) if v > 0) + ".")
 
 
 # ---- Economy

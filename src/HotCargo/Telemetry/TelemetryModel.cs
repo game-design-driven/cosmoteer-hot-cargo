@@ -403,3 +403,92 @@ public sealed class TimeUse
         w.WriteEndObject();
     }
 }
+
+/// <summary>
+/// Spec 2010: where the real time of this machine goes, one place per frame. The screen states come first (in this order), then,
+/// in play, the fleet activity of the newest time use sample (spec 1760).
+/// </summary>
+public enum RealUse { Menu, Event, Map, Comms, Editor, Paused, Fight, Build, Trade, Travel, Repair, Idle }
+
+/// <summary>Spec 2011: what this machine's screen shows. Menu: a menu or dialog over the game. Event: an event page waits for a choice.</summary>
+public readonly record struct ScreenState(bool Menu, bool Event, bool Map, bool Comms, bool Editor, bool Paused);
+
+/// <summary>Spec 2010: the real seconds of a stay or a session by place. Each frame goes to exactly one place, so the sums add up to the frame time.</summary>
+public sealed class RealTimeUse
+{
+    public static readonly RealUse[] All = Enum.GetValues<RealUse>();
+    readonly double[] _seconds = new double[All.Length];
+
+    public static RealUse Pick(ScreenState s, Activity play) =>
+        s.Menu ? RealUse.Menu : s.Event ? RealUse.Event : s.Map ? RealUse.Map : s.Comms ? RealUse.Comms : s.Editor ? RealUse.Editor
+        : s.Paused ? RealUse.Paused : Of(play);
+
+    public static RealUse Of(Activity a) => a switch
+    {
+        Activity.Fight => RealUse.Fight,
+        Activity.Build => RealUse.Build,
+        Activity.Trade => RealUse.Trade,
+        Activity.Travel => RealUse.Travel,
+        Activity.Repair => RealUse.Repair,
+        Activity.Idle => RealUse.Idle,
+        _ => throw new ArgumentOutOfRangeException(nameof(a), a, null),
+    };
+
+    public void Add(RealUse place, double seconds)
+    {
+        if (seconds > 0) _seconds[(int)place] += seconds;
+    }
+
+    public double this[RealUse place] => _seconds[(int)place];
+    public double Total => _seconds.Sum();
+    public void Reset() => Array.Clear(_seconds);
+
+    public static string Name(RealUse place) => place.ToString().ToLowerInvariant();
+
+    /// <summary>Writes "&lt;prefix&gt;real_use": real seconds by place; they add up to the frame time of the stay or the session.</summary>
+    public void Write(Utf8JsonWriter w, string prefix = "")
+    {
+        w.WriteStartObject(prefix + "real_use");
+        foreach (var p in All) w.WriteNumber(Name(p), Math.Round(this[p], 3));
+        w.WriteEndObject();
+    }
+}
+
+/// <summary>
+/// Spec 2013: the ship design work of a stay or a session, from the ship update inputs of every player. An edit changes the blueprints
+/// of a ship (a part placed, moved or removed in blueprint mode, a load, a clear, an undo); an apply builds the blueprints ("make it
+/// so"); a live edit places or removes real parts outside blueprint mode.
+/// </summary>
+public sealed class DesignCount
+{
+    public int Edits, BlueprintParts, Applies, AppliedParts, LiveEdits, LiveParts;
+
+    public void Reset() => Edits = BlueprintParts = Applies = AppliedParts = LiveEdits = LiveParts = 0;
+
+    public void Add(DesignChange change, int parts)
+    {
+        switch (change)
+        {
+            case DesignChange.Edit: Edits++; BlueprintParts += parts; break;
+            case DesignChange.Apply: Applies++; AppliedParts += parts; break;
+            case DesignChange.Live: LiveEdits++; LiveParts += parts; break;
+            default: throw new ArgumentOutOfRangeException(nameof(change), change, null);
+        }
+    }
+
+    /// <summary>Writes "&lt;prefix&gt;design" with the counts.</summary>
+    public void Write(Utf8JsonWriter w, string prefix = "")
+    {
+        w.WriteStartObject(prefix + "design");
+        w.WriteNumber("edits", Edits);
+        w.WriteNumber("blueprint_parts", BlueprintParts);
+        w.WriteNumber("applies", Applies);
+        w.WriteNumber("applied_parts", AppliedParts);
+        w.WriteNumber("live_edits", LiveEdits);
+        w.WriteNumber("live_parts", LiveParts);
+        w.WriteEndObject();
+    }
+}
+
+/// <summary>Spec 2013: the kind of a ship update input, from its flags.</summary>
+public enum DesignChange { Edit, Apply, Live }

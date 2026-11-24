@@ -291,3 +291,42 @@ public class TimeUseTests
         Assert.Equal(45, copy.Total);
     }
 }
+
+public class RealTimeUseTests
+{
+    static readonly ScreenState Play = new(Menu: false, Event: false, Map: false, Comms: false, Editor: false, Paused: false);
+
+    [Fact]
+    public void The_screen_wins_over_play_in_its_order()
+    {
+        Assert.Equal(RealUse.Menu, RealTimeUse.Pick(new ScreenState(true, true, true, true, true, true), Activity.Fight));
+        Assert.Equal(RealUse.Editor, RealTimeUse.Pick(Play with { Editor = true, Paused = true }, Activity.Fight));
+        Assert.Equal(RealUse.Paused, RealTimeUse.Pick(Play with { Paused = true }, Activity.Travel));
+        Assert.Equal(RealUse.Travel, RealTimeUse.Pick(Play, Activity.Travel));
+        // Every fleet activity has its own place in play.
+        Assert.Equal(TimeUse.All.Length, TimeUse.All.Select(a => RealTimeUse.Pick(Play, a)).Distinct().Count());
+    }
+
+    [Fact]
+    public void Each_frame_counts_once_so_the_places_add_up()
+    {
+        var use = new RealTimeUse();
+        use.Add(RealUse.Editor, 2);
+        use.Add(RealUse.Idle, 1);
+        use.Add(RealUse.Editor, 0.5);
+        use.Add(RealUse.Map, -1);
+        Assert.Equal(2.5, use[RealUse.Editor]);
+        Assert.Equal(3.5, use.Total);
+    }
+
+    [Fact]
+    public void Design_counts_keep_edits_applies_and_live_edits_apart()
+    {
+        var d = new DesignCount();
+        d.Add(DesignChange.Edit, 3);
+        d.Add(DesignChange.Edit, 1);
+        d.Add(DesignChange.Apply, 10);
+        d.Add(DesignChange.Live, 2);
+        Assert.Equal((2, 4, 1, 10, 1, 2), (d.Edits, d.BlueprintParts, d.Applies, d.AppliedParts, d.LiveEdits, d.LiveParts));
+    }
+}

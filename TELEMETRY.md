@@ -41,11 +41,11 @@ Category switches are in the `Telemetry` tunables section. The table names the s
 | Event | Switch | Fields |
 |---|---|---|
 | `session.start` | Run | `schema`, `run`, `session`, `session_no` (unique for the run on this machine, also after a load of an older save), `new_run`, `loaded`, `wall_utc`, `game_version`, `mod_version` (`1.0.0+<commit>`), `tunables_hash` (of the file), `tunables_full_hash` (of the values in effect), `seed`, `map`, `map_size_index`, `combat_difficulty`, `econ_difficulty`, `crew_scarcity`, `ironman`, `pressure` (run mode pressure: `heat_rate`, `hunter_ships`, `hunter_tiers`, `contract_fees`, `tech_value`), `money_reward_factor`, `fame_reward_factor`, `players`, `enemy_scale_setting`, `enemy_scale_factor`, `local_player`, `mp`, `host`, `autotest`, `label`, `cores`, `os`, `tunables` (every tunable value) |
-| `session.end` | Run | `reason` (`game_closed`, `game_closed_after_loss`, `replaced`, `process_exit`, `crash`), `result`, `real_s`, `sim_s`, `paused_s`, `build_s`, `play_s` (real time split, spec 1591), `events`, `dropped`, `overhead_ms`, `overhead_pct_wall`, `writer_ms`, `frames`, `frame_ms`, `ticks`, `tick_ms`, `trace_missing` |
+| `session.end` | Run | `reason` (`game_closed`, `game_closed_after_loss`, `replaced`, `process_exit`, `crash`), `result`, `real_s`, `sim_s`, `real_use` and `design` (real time and design work of the session, see Real time use), `events`, `dropped`, `overhead_ms`, `overhead_pct_wall`, `writer_ms`, `frames`, `frame_ms`, `ticks`, `tick_ms`, `trace_missing` |
 | `run.new`, `run.loaded` | Run | `starting_tech`; `result`, `sessions` |
 | `run.save` | Run | `caller` (who saved: a save, an autosave, a co-op sync) |
-| `run.jump` | Run | `from`, `to`, `kind` (View, RelayWatched, RelayClear, Blind), `heat_kept` (share of heat the jump keeps), `stay_s`, `time_use` and `time_any` (time use of the stay, see below), `open_contracts`, `jumped` and `left` (jump ships, see below). The first tick with player ships in the new system takes a snapshot (`why` = entry). |
-| `system.enter` | Run | `from`, `first_visit`, `prev_stay_s`, `prev_stay_real_s`, `prev_time_use`, `prev_time_any`, `prev_missions_done`, `prev_missions_accepted`, `heat_before`, `jump_kind`, `heat_kept`, `stages`, `peak_tier`, `visited` |
+| `run.jump` | Run | `from`, `to`, `kind` (View, RelayWatched, RelayClear, Blind), `heat_kept` (share of heat the jump keeps), `stay_s`, `stay_real_s` (real seconds from the entry or the session start), `time_use` and `time_any` (time use of the stay, see below), `real_use` and `design` (see Real time use), `open_contracts`, `jumped` and `left` (jump ships, see below). The first tick with player ships in the new system takes a snapshot (`why` = entry). |
+| `system.enter` | Run | `from`, `first_visit`, `prev_stay_s`, `prev_stay_real_s`, `prev_time_use`, `prev_time_any`, `prev_real_use`, `prev_design`, `prev_missions_done`, `prev_missions_accepted`, `heat_before`, `jump_kind`, `heat_kept`, `stages`, `peak_tier`, `visited` |
 | `system.poi` | Run | `poi` |
 | `run.won`, `run.lost` | Run | `reason`, `score`, `delivered`, `notoriety`, `peak_tier`, `money` (per player). A snapshot follows. |
 | `heat.change` | Heat | `src`, `caller`, `amount` (asked), `delta` (applied), `before`, `after`, `stages` |
@@ -86,8 +86,9 @@ Category switches are in the `Telemetry` tunables section. The table names the s
 | `dip.deal` | Diplomacy | AI fields, `player`, `offer` (the hail choice, spec 561 to 596), `amount`, `price`, `chance`, `roll`, `accepted`. Chance, roll and accepted only for a choice with a roll. |
 | `ai.switch` | Ai | `ship`, `name`, `side`, `ai`, `from`, `to` (module types), `integrity`, `dist` |
 | `mission.positions` | Missions | `why` (`accept`, `objective`: an objective of the mission changed), `fleet`, `missions` (see Positions below). At an accept it holds only that mission. |
-| `snap` | Snapshots | `why` (timer, entry, result, test), `fleet` and `missions` (positions, with the Missions switch), `stay_s`, `time_use`, `time_any`, `result`, `stages`, `notoriety`, `peak_tier`, `tech_value`, `buyer_mult`, `heat_mult`, `enemy_scale_factor`, `fame`, `money`, `score`, `delivered`, `open_contracts`, `trail_per_min`, `mission_log`, `pending_informants`, `waiting_hunter_groups`, `events_seen`, `chains`, `crew`, `ships` (value, blueprint, integrity, parts, firepower, vaults, crew of each player ship), `fleet_value`, `fleet_blueprint`, `fleet_firepower`, `fleet_parts`, `vaults`, `live` (ships by side), `stasis`, `ai` (sums, see below) |
-| `perf` | Perf | `window_ms`, `frames`, `fps`, `paused_s`, `build_s`, `play_s` (real time of the frames while paused, in build mode, in play), `frame_mean_ms`, `frame_p50_ms`, `frame_p95_ms`, `frame_p99_ms`, `frame_max_ms`, `frames_over_33ms`, `ticks`, `tick_mean_ms`, `tick_max_ms`, `tick_total_ms`, `tele_ms`, `tele_pct_wall`, `tele_pct_tick`, `tele_writer_ms`, `tele_events`, `tele_bytes`, `tele_pending`, `tele_dropped`, `gc0`, `gc1`, `gc2`, `gc_pause_ms`, `heap_mb`, `working_set_mb` |
+| `design.apply` | Run | A ship design is applied ("make it so", spec 2014), by any player: `ship`, `name`, `player`, `parts_added`, `parts_removed`, `edits` and `blueprint_parts` (blueprint edits of that ship since its last apply), `iteration_real_s` (real seconds from the first of those edits to this apply). |
+| `snap` | Snapshots | `why` (timer, entry, result, test), `fleet` and `missions` (positions, with the Missions switch), `stay_s`, `stay_real_s`, `time_use`, `time_any`, `real_use`, `design`, `result`, `stages`, `notoriety`, `peak_tier`, `tech_value`, `buyer_mult`, `heat_mult`, `enemy_scale_factor`, `fame`, `money`, `score`, `delivered`, `open_contracts`, `trail_per_min`, `mission_log`, `pending_informants`, `waiting_hunter_groups`, `events_seen`, `chains`, `crew`, `ships` (value, blueprint, integrity, parts, firepower, vaults, crew of each player ship), `fleet_value`, `fleet_blueprint`, `fleet_firepower`, `fleet_parts`, `vaults`, `live` (ships by side), `stasis`, `ai` (sums, see below) |
+| `perf` | Perf | `window_ms`, `frames`, `fps`, `real_use` (real time of the window's frames by place), `frame_mean_ms`, `frame_p50_ms`, `frame_p95_ms`, `frame_p99_ms`, `frame_max_ms`, `frames_over_33ms`, `ticks`, `tick_mean_ms`, `tick_max_ms`, `tick_total_ms`, `tele_ms`, `tele_pct_wall`, `tele_pct_tick`, `tele_writer_ms`, `tele_events`, `tele_bytes`, `tele_pending`, `tele_dropped`, `gc0`, `gc1`, `gc2`, `gc_pause_ms`, `heap_mb`, `working_set_mb` |
 | `mp.players` | Coop | `from`, `to` |
 | `mp.desync` | Coop | `input_tick`, `host`, `expected` (a test resync) |
 | `mp.game_loaded` | Coop | `host`, `players`. A co-op game that the host's state rebuilt: a join or a resync. |
@@ -123,6 +124,26 @@ Spec 1760 to 1763. Each system stay splits its game seconds into what the player
 | idle | none of these |
 
 The sums count from the system entry or the session start, like `stay_s`. The build tool is local, so in co-op each file counts its own player's editor.
+
+### Real time use
+
+Spec 2010 to 2016. Each frame's real time on this machine goes to one place: the first screen state that is on, in this order, else the fleet activity of the newest time use sample. So `real_use` adds up to the frame time.
+
+| Place | Signal |
+|---|---|
+| menu | a menu or dialog over the game (escape menu, settings, the note dialog) |
+| event | the event page is open |
+| map | the galaxy map is open |
+| comms | a comms window is open |
+| editor | the build tool is open |
+| paused | the game is paused |
+| fight, build, trade, travel, repair, idle | in play: the fleet activity (Time use) |
+
+The screen is this machine's own, so in co-op each file has its own player's real time. `real_use` comes per stay (`run.jump`, `system.enter` as `prev_real_use`, `snap`), per perf window (`perf`) and per session (`session.end`), also with the Perf switch off.
+
+`design` counts the ship design work of every player, from the ship update inputs that the sim runs (the same on every machine): `edits` (blueprint changes: a part placed, moved or removed in blueprint mode, a load, a clear, an undo) with `blueprint_parts`, `applies` ("make it so") with `applied_parts` (parts added and removed), and `live_edits` with `live_parts` (real parts placed or removed outside blueprint mode). Each apply is also a `design.apply` event.
+
+The report shows "Real time by session", "Real time by sector visit" (with the applies and the median iteration time) and "Design applies", and a finding with the share of each place.
 
 ### AI sums
 

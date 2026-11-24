@@ -7,6 +7,8 @@ namespace HotCargo.Telemetry;
 /// <summary>
 /// Frame time, sim tick time, GC and telemetry overhead. Frames are timed between two FrameEnded events, sim ticks around
 /// SimRoot.FixedUpdate. Every Telemetry.PerfSeconds real seconds one "perf" event sums the window.
+/// Spec 2010: each frame's real time also goes to the place that the screen shows (the session's real time use), also with the
+/// Perf switch off.
 /// </summary>
 static class Perf
 {
@@ -26,35 +28,32 @@ static class Perf
     internal static double SessionFrameMs, SessionTickMs;
     internal static long SessionFrames, SessionTicks;
 
-    /// <summary>Spec 1591: real seconds of frames while the game is paused, in build mode (not paused), or in play. Window and session sums.</summary>
-    static double _pausedMs, _buildMs, _playMs;
-    internal static double SessionPausedMs, SessionBuildMs, SessionPlayMs;
-
-    /// <summary>The local view of this machine: pause and the build tool of its own GUI. Read only.</summary>
-    static void Split(Cosmoteer.Game.GameRoot game, double ms)
-    {
-        if (game.Sim?.IsPaused.Displayed == true) { _pausedMs += ms; SessionPausedMs += ms; }
-        else if (game.Gui?.ShipGui?.BuildButton?.IsSelected == true) { _buildMs += ms; SessionBuildMs += ms; }
-        else { _playMs += ms; SessionPlayMs += ms; }
-    }
+    /// <summary>Spec 2010: real seconds of the window by place.</summary>
+    static readonly RealTimeUse WindowReal = new();
 
     internal static void OnFrameEnded(object? sender, EventArgs e)
     {
-        if (Session.Current is not { } s || !Tele.On(Cat.Perf)) { _lastFrame = 0; return; }
+        if (Session.Current is not { } s) { _lastFrame = 0; return; }
         long now = Stopwatch.GetTimestamp();
+        bool perf = Tele.On(Cat.Perf);
         if (_lastFrame != 0)
         {
             double ms = Stats.Ms(now - _lastFrame);
-            if (_frames < MaxFrames) Frames[_frames++] = ms;
-            _frameCount++;
-            _frameSum += ms;
-            if (ms > _frameMax) _frameMax = ms;
-            if (ms > 33.4) _slowFrames++;
-            SessionFrameMs += ms;
-            SessionFrames++;
-            Split(s.Game, ms);
+            // Read only: local GUI state and the newest activity sample.
+            WindowReal.Add(s.AddReal(RealTime.Screen(s.Run), ms / 1000), ms / 1000);
+            if (perf)
+            {
+                if (_frames < MaxFrames) Frames[_frames++] = ms;
+                _frameCount++;
+                _frameSum += ms;
+                if (ms > _frameMax) _frameMax = ms;
+                if (ms > 33.4) _slowFrames++;
+                SessionFrameMs += ms;
+                SessionFrames++;
+            }
         }
         _lastFrame = now;
+        if (!perf) return;
         if (_windowStart == 0) { StartWindow(now); return; }
         if (Stats.Ms(now - _windowStart) < s.Run.T.Telemetry.PerfSeconds * 1000) return;
         long t0 = Stats.Enter();
@@ -68,7 +67,7 @@ static class Perf
         _windowStart = now;
         _frames = _frameCount = _slowFrames = 0;
         _frameSum = _frameMax = 0;
-        _pausedMs = _buildMs = _playMs = 0;
+        WindowReal.Reset();
         _ticks = 0;
         _tickMs = _tickMaxMs = 0;
         _overheadAtStart = Interlocked.Read(ref Stats.OverheadTicks);
@@ -100,9 +99,7 @@ static class Perf
             Tele.Num(w, "frame_p95_ms", P(0.95));
             Tele.Num(w, "frame_p99_ms", P(0.99));
             Tele.Num(w, "frame_max_ms", max);
-            Tele.Num(w, "paused_s", _pausedMs / 1000);
-            Tele.Num(w, "build_s", _buildMs / 1000);
-            Tele.Num(w, "play_s", _playMs / 1000);
+            WindowReal.Write(w);
             w.WriteNumber("frames_over_33ms", slow);
             w.WriteNumber("ticks", _ticks);
             Tele.Num(w, "tick_mean_ms", _ticks > 0 ? _tickMs / _ticks : 0);
@@ -130,7 +127,7 @@ static class Perf
         _windowStart = _lastFrame = 0;
         SessionFrameMs = SessionTickMs = 0;
         SessionFrames = SessionTicks = 0;
-        SessionPausedMs = SessionBuildMs = SessionPlayMs = 0;
+        WindowReal.Reset();
     }
 
     [HarmonyPatch(typeof(SimRoot), "FixedUpdate")]

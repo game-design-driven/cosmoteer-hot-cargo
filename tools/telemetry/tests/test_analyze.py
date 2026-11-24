@@ -105,6 +105,28 @@ def test_time_use_splits_each_visit_and_adds_session_parts(tmp_path: Path) -> No
     assert any(f.startswith("Time in systems by activity: repair 38 %") for f in rep.findings)
 
 
+def test_real_time_by_session_and_visit_with_design_applies(tmp_path: Path) -> None:
+    snap = {"why": "timer", "money": {"0": 0}, "fleet_value": 1, "tech_value": 1, "fleet_firepower": 1, "fleet_parts": 1, "crew": 1, "notoriety": 0}
+    write(tmp_path / "r__s1.jsonl", [
+        ev("session.start", 0, run="r", session="s1", wall_utc="1"),
+        ev("design.apply", 50, ship="1", name="Mother", player=0, parts_added=12, parts_removed=3, edits=9, blueprint_parts=20, iteration_real_s=300),
+        ev("system.enter", 100, sys="B", sec=2, prev_real_use={"editor": 600, "paused": 0, "idle": 60}, prev_design={"edits": 9, "applies": 1}),
+        ev("snap", 150, sys="B", sec=2, **snap, real_use={"editor": 0, "map": 30, "idle": 30}),
+        ev("session.end", 160, sys="B", sec=2, real_s=720, real_use={"editor": 600, "map": 30, "paused": 0, "idle": 90}, design={"edits": 9, "applies": 1, "applied_parts": 15}),
+    ])
+    rep = analyze(load(tmp_path)[0])
+    titles = {t.title: t for t in rep.tables}
+    # Columns: the places with real time, in file order.
+    assert titles["Real time by session"].columns[2:5] == ["editor", "map", "idle"]
+    assert titles["Real time by session"].rows[0][1] == "12:00"
+    visits = titles["Real time by sector visit"].rows
+    assert [(r[0], r[2]) for r in visits] == [(1, "11:00"), (2, "1:00")]
+    assert visits[0][-1] == "5:00"
+    assert titles["Design applies"].rows[0][4:6] == [12, 3]
+    assert rep.findings[0].startswith("Real time by place: editor 83 %")
+    assert any(f.startswith("Design applies: 1, 15 parts changed, median iteration 5:00") for f in rep.findings)
+
+
 def test_notes_list_in_play_order_with_nearby_events(tmp_path: Path) -> None:
     write(tmp_path / "r__s.jsonl", [
         ev("session.start", 0, run="r", session="s", wall_utc="x"),
