@@ -15,7 +15,7 @@ HotCargoMechanics
 	ClaimJumpers = "Claim Jumpers"
 	ClaimJumpersDesc = "Guard the mining barge <b>{target_ship}</b> from raiders for {hold_minutes} min.\nThe raiders go for the barge: kill them first. Any ship of yours near it keeps the clock running, also a drone or a gun platform. Leave early to keep partial pay."
 	MiningEscort = "Mining Escort"
-	MiningEscortDesc = "Escort the miner <b>{target_ship}</b> to the asteroid field. It mines {resource_icon} {resource_type_plural} while raiders come in two waves.\nDrop {resource_type_plural} near it to help. You get paid when it docks back here."
+	MiningEscortDesc = "Escort the miner <b>{target_ship}</b> to the asteroid field. It mines {resource_icon} {resource_type_plural} while raiders come in two waves. It waits while you are away.\nDrop {resource_type_plural} near it to help. You get paid when it docks back here."
 	MiningToFieldFmt = "Escort {0} to the asteroid field"
 	MiningFmt = "{0} mines {1}: {2}/{3}. Drop yours near it to help"
 	MiningReturnFmt = "Escort {0} back to {1}"

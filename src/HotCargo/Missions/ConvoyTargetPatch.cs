@@ -35,3 +35,21 @@ static class ConvoyTargetPatch
         catch (Exception ex) { Errors.Report("convoy raider target", ex.Message, ex); }
     }
 }
+
+/// <summary>
+/// Spec 1885. Vanilla career AI attacks only ships within the radar of the human team (CareerSimModeManager.AllowAIToAttack), so raiders
+/// never fired on an escort that no player saw, even live next to it. Raiders of an escort mission (convoy, chain and guard raids, Mining
+/// Escort waves) may attack the escort of an accepted escort mission anywhere. Sim state only, so co-op stays in step.
+/// </summary>
+[HarmonyPatch(typeof(CareerSimModeManager), nameof(CareerSimModeManager.AllowAIToAttack))]
+static class EscortRaiderAttackPatch
+{
+    static readonly ID<SimObjectSpawner>[] RaiderTags = [new("hc_escort_raider"), Mechanics.MiningEscortObjective.WaveTag];
+
+    static void Postfix(Ship sourceShip, Ship targetShip, ref bool __result)
+    {
+        if (__result || Run.Current is not { } run || !RaiderTags.Any(sourceShip.HasTag)) return;
+        try { __result = EscortHail.IsEscortShip(run, targetShip.UniqueID); }
+        catch (Exception ex) { Errors.Report("escort raider attack", ex.Message, ex); }
+    }
+}

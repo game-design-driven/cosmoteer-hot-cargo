@@ -21,10 +21,9 @@ using HotCargo.Ux;
 namespace HotCargo.Factions;
 
 /// <summary>
-/// Spec 650 to 653: relay jumps, blind jumps and jumps in combat. Vanilla has one way to change system: the ships fly to a
-/// Hyper-Jump Relay, spin up their hyperdrives and pay hyperium (GameRoot.DoHumanPlayersFtlJump). Every jump removes a share of the heat:
-/// less when hunters are near the relay at the jump start, more when none are, most for a blind jump. A blind jump costs more fuel,
-/// spins up longer and can damage parts on arrival. The switch (FactionsState.BlindJump) is sim state, set through BlindJumpInput.
+/// Spec 650 and 653: relay jumps and jumps in combat. Vanilla has one way to change system: the ships fly to a Hyper-Jump Relay, spin
+/// up their hyperdrives and pay hyperium (GameRoot.DoHumanPlayersFtlJump). Every jump removes a share of the heat: less when hunters are
+/// near the relay at the jump start, more when none are.
 /// </summary>
 static class Jumps
 {
@@ -45,8 +44,6 @@ static class Jumps
 
     internal static JumpKind PendingKind(Run run) => _pending is { } p && p.Run == run ? p.Kind : JumpKind.View;
 
-    static bool BlindOn(Run run) => run.PressureActive && run.State.Factions.BlindJump;
-
     /// <summary>Spec 650: hunters (live or in stasis) within RelayWatchRadius of the relay that leads toward the destination.</summary>
     internal static int HuntersNearRelay(Run run, SimRoot sim, MapNode destination)
     {
@@ -59,7 +56,7 @@ static class Jumps
 
     /// <summary>Spec 650: the kind of a jump to the destination if it started now. Sim state only.</summary>
     internal static JumpKind KindNow(Run run, SimRoot sim, MapNode destination) =>
-        BlindOn(run) ? JumpKind.Blind : HuntersNearRelay(run, sim, destination) > 0 ? JumpKind.RelayWatched : JumpKind.RelayClear;
+        HuntersNearRelay(run, sim, destination) > 0 ? JumpKind.RelayWatched : JumpKind.RelayClear;
 
     /// <summary>
     /// Spec 653: vanilla drops a jump while game saving is blocked (multi-step explosions, self-destructing parts, jump-in invulnerability),
@@ -119,147 +116,6 @@ static class Jumps
         }
     }
 
-    /// <summary>
-    /// Spec 651: after a blind jump, each jumping ship rolls BlindDamageChance. A hit takes BlindDamageFraction of the maximum health
-    /// from BlindDamageParts random parts, never below 1 health. The roll is seeded by the ship and the sector index. Runs in the system switch.
-    /// </summary>
-    internal static void DamageOnArrival(Run run)
-    {
-        if (_pending is not { } p || p.Run != run) return;
-        var t = run.T.Factions;
-        var hurt = new List<string>();
-        foreach (var id in p.Ships.Order())
-        {
-            if (run.Game.Sim.Ships.AllShips.FirstOrDefault(s => s.UniqueID.Equals(id)) is not { } ship) continue;
-            var rand = new FastRand(0x424C_494E_4444UL ^ (uint)id.GetHashCode(), (ulong)run.State.SectorIndex);
-            if (rand.Single() >= t.BlindDamageChance) continue;
-            var parts = ship.Parts.OrderBy(x => x.Location.Y).ThenBy(x => x.Location.X).ToList();
-            for (int i = 0; i < t.BlindDamageParts && parts.Count > 0; i++)
-            {
-                var part = parts[rand.Int32(new Halfling.Range<int>(0, parts.Count - 1))];
-                part.Health = Math.Max(1, part.Health - (int)(part.Rules.MaxHealth * t.BlindDamageFraction));
-            }
-            hurt.Add(ship.Metadata.XmlShipName);
-            Log.Info($"blind jump damaged {t.BlindDamageParts} parts of {ship.Name}");
-        }
-        if (hurt.Count == 0) return;
-        string line = FactionsArea.Format("BlindDamageFmt", string.Join(", ", hurt));
-        Run.OnNextFrame(() => UxKit.Guard("blind damage line", () => { UxKit.CenterText(run.Game, line); UxKit.ChatLine(run.Game, line); }));
-    }
-
-    /// <summary>
-    /// Spec 651: the blind spin-up clock of each human ship, in the sim tick. It runs while the ship prepares a relay jump with all drives on,
-    /// and notes when the drives are full (the vanilla spin-up). A drive that goes off (damage, no power) resets the clock.
-    /// </summary>
-    internal static void OnTick(Run run, SimRoot sim, double dt)
-    {
-        var s = run.State.Factions;
-        if (!BlindOn(run))
-        {
-            if (s.SpinSeconds.Count > 0) { s.SpinSeconds.Clear(); s.FullAtSeconds.Clear(); }
-            return;
-        }
-        var spinning = new HashSet<ObjectID>();
-        foreach (var ship in sim.Ships.HumanPlayerSignificantShips)
-        {
-            var ftl = ship.Ftl;
-            if (!ftl.HasFtlDrives || !ftl.IsPreparingToGateJump || !ftl.All(d => d.IsToggleOn)) continue;
-            var id = ship.UniqueID;
-            spinning.Add(id);
-            float spin = s.SpinSeconds.GetValueOrDefault(id) + (float)dt;
-            s.SpinSeconds[id] = spin;
-            if (!s.FullAtSeconds.ContainsKey(id) && ftl.All(d => d.IsReadyToJump)) s.FullAtSeconds[id] = spin;
-        }
-        foreach (var id in s.SpinSeconds.Keys.Where(k => !spinning.Contains(k)).ToList())
-        {
-            s.SpinSeconds.Remove(id);
-            s.FullAtSeconds.Remove(id);
-        }
-    }
-
-    static (float Spin, float? FullAt) Spin(Run run, Ship ship)
-    {
-        var s = run.State.Factions;
-        return (s.SpinSeconds.GetValueOrDefault(ship.UniqueID), s.FullAtSeconds.TryGetValue(ship.UniqueID, out float at) ? at : null);
-    }
-
-    static Run? BlindRunFor(FtlManager ftl) =>
-        ftl.Ship.IsHumanPlayerShip && Run.Current is { } run && run.Game.Sim == ftl.Ship.Sim && BlindOn(run) ? run : null;
-
-    /// <summary>Spec 651: with the blind switch on, a ship is ready only after BlindSpinUpFactor × its vanilla spin-up time.</summary>
-    [HarmonyPatch(typeof(FtlManager), nameof(FtlManager.IsReadyToJump), MethodType.Getter)]
-    static class ReadyPatch
-    {
-        static void Postfix(FtlManager __instance, ref bool __result)
-        {
-            if (!__result || BlindRunFor(__instance) is not { } run) return;
-            var (spin, fullAt) = Spin(run, __instance.Ship);
-            __result = FactionsModel.BlindSpinDone(spin, fullAt, run.T.Factions.BlindSpinUpFactor);
-        }
-    }
-
-    [HarmonyPatch(typeof(FtlManager), nameof(FtlManager.FtlReadinessProgress), MethodType.Getter)]
-    static class ProgressPatch
-    {
-        static void Postfix(FtlManager __instance, ref float __result)
-        {
-            if (BlindRunFor(__instance) is not { } run) return;
-            var (spin, fullAt) = Spin(run, __instance.Ship);
-            __result = FactionsModel.BlindSpinProgress(__result, spin, fullAt, run.T.Factions.BlindSpinUpFactor);
-        }
-    }
-
-    /// <summary>Spec 651: the per-ship fuel of a map jump, the one source of the fuel labels, the spin-up check and the charge.</summary>
-    [HarmonyPatch(typeof(FtlManager), nameof(FtlManager.GetTotalFtlMapJumpFuelCost))]
-    static class FuelPatch
-    {
-        static void Postfix(FtlManager __instance, ref int __result)
-        {
-            if (__result <= 0 || BlindRunFor(__instance) is not { } run) return;
-            __result = FactionsModel.Scale(__result, run.T.Factions.BlindFuelFactor);
-        }
-    }
-
-    /// <summary>Spec 652: a blind jump switch under the ENGAGE button of the spin-up window, with the heat cut in its text and the risks in its tooltip.</summary>
-    [HarmonyPatch(typeof(FtlJumpGui), MethodType.Constructor, typeof(GameRoot), typeof(GameGui))]
-    static class GuiPatch
-    {
-        static void Postfix(FtlJumpGui __instance, GameRoot game) => UxKit.Guard("blind jump button", () =>
-        {
-            // The column that holds ENGAGE and Cancel. Widget.Parent is the children list, not the box, so a "Parent is LayoutBox"
-            // check never matched and the button was never added (2026-11-24). Single() fails loudly if the game changes the window.
-            var column = __instance.DockedChildren.OfType<LayoutBox>().Single(b => b.Children.Any(w => w == __instance._jumpBtn));
-            // At least the height of vanilla Cancel (30), taller when the text wraps in the narrow column ("Relay jump: heat -85%").
-            var button = new Button { Height = 30f };
-            button.AutoSize.AutoHeightMode = AutoSizeMode.Enable;
-            button.AutoSize.MinHeight = 30f;
-            foreach (var r in new[] { button.StateNormalTextRenderer, button.StateHighlightedTextRenderer, button.StatePressedTextRenderer, button.StateDisabledTextRenderer })
-            {
-                r.XmlFormatting = true;
-                r.OversizeMode = OversizeMode.Wrap;
-            }
-            button.ToolTips.TextProvider = new LiveText(() => Run.Current is { } run && run.Game == game ? Tooltip(run) : "");
-            button.Clicked += (_, _) =>
-            {
-                if (Run.Current is { PressureActive: true } run && run.Game == game) game.NetManager.EnqueueInput(new BlindJumpInput(!run.State.Factions.BlindJump));
-            };
-            column.AddChild(button);
-            Buttons.Add(__instance, new BlindButton(button, __instance.AutoSize.MinHeight, column.Children.WidgetPadding.Y + column.Children.BorderPadding.Bottom));
-        });
-    }
-
-    /// <summary>
-    /// The blind jump button of a spin-up window. The window's minimum height (vanilla 155) fits only ENGAGE and Cancel, so the window
-    /// grows by the button's height and Spacing (its gap and the column's bottom padding) while the button shows, or the button sits
-    /// below the window's edge.
-    /// </summary>
-    sealed record BlindButton(Button Button, float BaseMinHeight, float Spacing);
-
-    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FtlJumpGui, BlindButton> Buttons = new();
-
-    /// <summary>Autotests: the jump windows that got a blind jump button, with it.</summary>
-    internal static IEnumerable<(FtlJumpGui Window, Button Button)> BlindButtons => Buttons.Select(kv => (kv.Key, kv.Value.Button));
-
     [HarmonyPatch(typeof(FtlJumpGui), "OnUpdatingUIState")]
     static class GuiUpdatePatch
     {
@@ -277,65 +133,7 @@ static class Jumps
                     __instance._jumpBtn.SelfInputActive = canAfford && !game.PlayersReadyToJump.Contains(game.NetManager.LocalPlayerID)
                         && game.Sim.Ships.HumanPlayerSignificantShips.Any(s => s.Ftl.IsReadyToJump);
                 }
-                if (!Buttons.TryGetValue(__instance, out var blind)) throw new InvalidOperationException("the spin-up window has no blind jump button");
-                bool show = run.PressureActive;
-                blind.Button.SelfActive = show;
-                float minHeight = blind.BaseMinHeight + (show ? blind.Button.Height + blind.Spacing : 0f);
-                if (__instance.AutoSize.MinHeight != minHeight) __instance.AutoSize.MinHeight = minHeight;
-                if (show) blind.Button.Text = ButtonText(run);
             });
         }
-    }
-
-    internal static string ButtonText(Run run)
-    {
-        if (run.State.Factions.BlindJump) return $"<good>{FactionsArea.Format("BlindOnFmt", FactionsArea.HeatCut(run, JumpKind.Blind) * 100f)}</good>";
-        var kind = run.Game.DestinationMapNode.Confirmed is { } dest ? KindNow(run, run.Game.Sim, dest) : JumpKind.RelayClear;
-        return FactionsArea.Format(kind == JumpKind.RelayWatched ? "RelayWatchedFmt" : "RelayClearFmt", FactionsArea.HeatCut(run, kind) * 100f);
-    }
-
-    internal static string Tooltip(Run run)
-    {
-        var t = run.T.Factions;
-        return FactionsArea.Format("BlindTipFmt",
-            FactionsArea.HeatCut(run, JumpKind.RelayWatched) * 100f, FactionsArea.HeatCut(run, JumpKind.RelayClear) * 100f,
-            FactionsArea.HeatCut(run, JumpKind.Blind) * 100f, t.BlindFuelFactor, t.BlindSpinUpFactor,
-            t.BlindDamageChance * 100f, t.BlindDamageParts, t.BlindDamageFraction * 100f);
-    }
-}
-
-/// <summary>
-/// Spec 650, 651: any player switches the next jump between relay and blind. Runs in lockstep on every machine.
-/// Switching to blind turns the drives of the human ships off for one tick, so a spin-up starts again and takes the blind time.
-/// </summary>
-[ReflectiveSerialization(Explicit = true)]
-[SerialDerivedType(TypeName = "HotCargoBlindJump")]
-internal sealed class BlindJumpInput : MPInput
-{
-    [Serialize] public bool On { get; private set; }
-
-    public BlindJumpInput(bool on) => On = on;
-
-    BlindJumpInput() { }
-
-    public override void Execute(GameRoot game, int playerIndex, MessengerID playerID, bool force = false)
-    {
-        if (Run.Current is not { } run || run.Game != game || game.Sim is not { } sim) return;
-        bool was = run.State.Factions.BlindJump;
-        run.State.Factions.BlindJump = On;
-        if (On && !was)
-            foreach (var ship in sim.Ships.HumanPlayerSignificantShips)
-                foreach (var drive in ship.Ftl)
-                    drive.IsToggleOn = false;
-        Log.Info($"blind jump {(On ? "on" : "off")} (player {playerIndex})");
-    }
-}
-
-[HarmonyPatch(typeof(CareerGameModeManager), nameof(CareerGameModeManager.AllowMPInput))]
-static class AllowBlindJumpPatch
-{
-    static void Postfix(MPInput mpInput, ref bool __result)
-    {
-        if (mpInput is BlindJumpInput) __result = true;
     }
 }

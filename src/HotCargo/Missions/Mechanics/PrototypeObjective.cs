@@ -184,6 +184,18 @@ internal sealed class PrototypeObjective : Objective, IMissionMarkers
     }
 
     /// <summary>
+    /// Puts the core on the hull at a spot that the crew reach (a door, so they repair it), else at any free spot: the core has no function
+    /// and only needs to survive (its rules ask for no door access). Limit: on the fallback spot the crew cannot repair the core; revisit if
+    /// players see cores break where crew could have repaired them.
+    /// </summary>
+    internal static void PutCore(Ship holder)
+    {
+        var rules = holder.Rules.PartsByID[CoreId];
+        if (Tech.StartingVault.PlaceOutside(holder, rules, requireCrewPath: true) is null)
+            Tech.StartingVault.PlaceOutside(holder, rules, requireCrewPath: false);
+    }
+
+    /// <summary>
     /// Puts the core on the carrier's hull. A carrier that is already a wreck (the players broke it before they accepted) cannot take it,
     /// so the mission fails at once.
     /// Limit: the instant build also repairs other damage on the carrier. Revisit if players see a damaged carrier heal when they arrive.
@@ -191,8 +203,7 @@ internal sealed class PrototypeObjective : Objective, IMissionMarkers
     void Install(SimRoot sim, Ship holder)
     {
         if (holder.IsJunk || holder.IsHumanPlayerShip) { Lose("the carrier was wrecked before the core was aboard"); return; }
-        PartRules rules = holder.Rules.PartsByID[CoreId];
-        Tech.StartingVault.PlaceOutside(holder, rules, requireCrewPath: false);
+        PutCore(holder);
         Part core = holder.Parts.Where(p => p.Rules.ID == CoreId).OrderBy(p => p.Location.Y).ThenBy(p => p.Location.X).LastOrDefault()
             ?? throw new InvalidOperationException($"prototype core did not build on {holder.Metadata.PlainShipName}");
         CoreCell = core.Location;

@@ -34,7 +34,7 @@ static class JumpWarnings
         return float.IsPositiveInfinity(nodes.FindPathTo(dest, path, requireJumpable: true)) || path.Count < 2 ? null : path;
     }
 
-    /// <summary>Spec 1560: the facts of the planned jump. The cost goes through FtlManager.GetTotalFtlMapJumpFuelCost, so the blind factor counts.</summary>
+    /// <summary>Spec 1560: the facts of the planned jump. The cost goes through FtlManager.GetTotalFtlMapJumpFuelCost.</summary>
     static JumpFacts Facts(GameRoot game, Ship ship)
     {
         var ftl = ship.Ftl;

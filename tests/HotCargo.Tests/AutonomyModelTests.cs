@@ -144,6 +144,49 @@ public class AutonomyModelTests
         Assert.False(ShipAiModel.Holds(new Term(Cond.CargoAbove, 0), f with { Cargo = null }));
     }
 
+    static readonly ShipFacts Calm = new(1f, null, new HashSet<PartKind>(), float.PositiveInfinity, false, false, null, null, new HashSet<ShipClass>(), 0, false, false);
+
+    [Fact]
+    public void Fleet_health_above_needs_every_other_ship_above_the_threshold_and_holds_without_others()
+    {
+        Assert.True(ShipAiModel.Holds(new Term(Cond.FleetHealthAbove, 90), Calm with { OthersHealth = 0.95f }));
+        Assert.False(ShipAiModel.Holds(new Term(Cond.FleetHealthAbove, 90), Calm with { OthersHealth = 0.9f }));
+        Assert.True(ShipAiModel.Holds(new Term(Cond.FleetHealthAbove, 90), Calm with { OthersHealth = null }));
+        // Spec 418: a percent threshold, so a ship that drops just under it does not make the looter turn back at once.
+        TacticRow[] rows = [new(Cond.FleetHealthAbove, 90, Act.CollectLoot, 0)];
+        var h = new Hysteresis(0.03f, 0);
+        var on = ShipAiModel.Evaluate(rows, Calm with { OthersHealth = 0.95f }, _ => true, null, 0, h);
+        Assert.Equal(0, ShipAiModel.Evaluate(rows, Calm with { OthersHealth = 0.88f }, _ => true, on.Memory, 1, h).MoveRow);
+        Assert.Equal(-1, ShipAiModel.Evaluate(rows, Calm with { OthersHealth = 0.86f }, _ => true, on.Memory, 1, h).MoveRow);
+    }
+
+    [Theory]
+    [InlineData(0.5f, float.PositiveInfinity, 0.3f, "ReturnToFleet", 5)]  // a ship needs repair: wait with the fleet, keep the loot for it
+    [InlineData(0.95f, float.PositiveInfinity, 0.3f, "CollectLoot", 3)]   // repaired: collect
+    [InlineData(0.95f, float.PositiveInfinity, 0.97f, "GoToStation", 2)]  // full: sell
+    [InlineData(0.95f, 1000f, 0.3f, "ReturnToFleet", 0)]                   // an enemy near: flee to the fleet
+    public void Looter_waits_for_repair_collects_sells_and_flees(float others, float enemy, float cargo, string act, int row)
+    {
+        var rows = ShipAiModel.PresetRows(Preset.Looter);
+        var f = Calm with { OthersHealth = others, NearestEnemy = enemy, Cargo = cargo, CargoToSell = true, NearestLoot = 500f };
+        var d = ShipAiModel.Evaluate(rows, f, _ => true);
+        Assert.Equal(row, d.MoveRow);
+        Assert.Equal(Enum.Parse<Act>(act), rows[d.MoveRow].Act);
+    }
+
+    [Fact]
+    public void Path_is_clear_only_when_the_whole_line_and_both_ends_keep_the_clearance()
+    {
+        // From (0, 0) to (1000, 0), ship radius 50, clearance 300: an enemy hull (radius 100) must stay more than 450 from the line.
+        bool Clear(float x, float y) => AutonomyModel.PathClear(0f, 0f, 1000f, 0f, 50f, [(x, y, 100f)], 300f);
+        Assert.False(Clear(500f, 400f));   // beside the middle of the path
+        Assert.True(Clear(500f, 500f));
+        Assert.False(Clear(1300f, 0f));    // just past the goal: the loot or station lies within the clearance
+        Assert.False(Clear(-400f, 0f));    // just behind the start: the ship is within the clearance already
+        Assert.True(Clear(-500f, 0f));
+        Assert.True(AutonomyModel.PathClear(0f, 0f, 1000f, 0f, 50f, [], 300f));
+    }
+
     [Fact]
     public void Trade_rows_are_their_own_kind_and_the_first_matching_one_wins()
     {

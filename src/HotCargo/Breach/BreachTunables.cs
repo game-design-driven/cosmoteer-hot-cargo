@@ -14,6 +14,6 @@ public sealed class BreachTunables
     [Serialize(Optional = true)] public float CutSeconds = 5f;
     /// <summary>Spec 1610: a crew member counts as waiting only within this distance of its home ship's hull.</summary>
     [Serialize(Optional = true)] public float Range = 100f;
-    /// <summary>Spec 1612: the breach sites nearest to the crew member that the cut tries.</summary>
+    /// <summary>Spec 1612: on a ship where no site allows a door, the breach sites nearest to the crew member that may get a forced door.</summary>
     [Serialize(Optional = true)] public int MaxSites = 12;
 }

@@ -1,0 +1,5 @@
+# Every ship design that Hot Cargo makes or changes passes the ship editor checks (Core/ShipCheck.cs): the built designs (scavenger,
+# thieves of every tier, Ore Tender), the starter presets and the vanilla starters after Fit Tech Vaults. On the main menu.
+shipcheck_all
+expect ship_failures == 0
+quit

@@ -2,7 +2,7 @@
 
 A career mod for [Cosmoteer](https://store.steampowered.com/app/799600/Cosmoteer_Starship_Architect__Commander/) that turns the open-ended career into a short, tense run, like FTL.
 
-You stole corporate tech, and the corporation wants it back. Haul it across about 8 systems to the Buyer at the edge of the map. Every minute you stay, the heat rises and the hunters get closer. Sell a unit to buy a better ship, or hold it all for a bigger score. Talk your way past a hunter, hire a mercenary, hide your tech on a friendly freighter, or jump blind and hope.
+You stole corporate tech, and the corporation wants it back. Haul it across about 8 systems to the Buyer at the edge of the map. Every minute you stay, the heat rises and the hunters get closer. Sell a unit to buy a better ship, or hold it all for a bigger score. Talk your way past a hunter, hire a mercenary, or hide your tech on a friendly freighter.
 
 Vanilla Cosmoteer lets you build forever. Hot Cargo gives you a goal, a clock and an enemy that learns where you are. A run takes 2 to 3 hours, alone or in co-op.
 
@@ -66,9 +66,9 @@ Spec: [Tech value and selling](spec/08-tech-value-and-selling.md), [Win and loss
 </details>
 
 <details>
-<summary><b>Jumps cool you down</b>: reach a quiet relay first, or jump blind</summary>
+<summary><b>Jumps cool you down</b>: reach a quiet relay first</summary>
 
-Every jump to another system leaves most of the heat behind. A relay with no hunter near it cuts more heat than a watched one. A blind jump cuts the most, but it costs more fuel, takes longer to spin up and can damage your ships on arrival. Ships that cannot make the jump get a warning before you leave, so nobody is stranded by surprise. The jump dialog also says when a ship that stays carries your tech.
+Every jump to another system leaves most of the heat behind. A relay with no hunter near it cuts more heat than a watched one. Ships that cannot make the jump get a warning before you leave, so nobody is stranded by surprise. The jump dialog also says when a ship that stays carries your tech.
 
 <img src="docs/screenshots/jump-warnings.jpg" width="60%" alt="The jump window names the ships that stay behind">
 <img src="docs/screenshots/jump-carrier.jpg" width="38%" alt="The jump dialog warns that all your tech stays behind">
@@ -232,7 +232,7 @@ Spec: [Factions, jumps and station prices](spec/38-factions-jumps-and-station-pr
 <details>
 <summary><b>Relay lockdowns</b>: a closed relay, a toll, or pirates at the gate</summary>
 
-Now and then a system next to you locks its relays. The galaxy map shows it before you jump: closed, a toll, or pirates who want a bribe. A blind jump always gets through.
+Now and then a system next to you locks its relays. The galaxy map shows it before you jump: closed, a toll, or pirates who want a bribe. Pay or fight your way out; a closed relay opens after a while.
 
 <img src="docs/screenshots/relays-bribe.jpg" width="70%" alt="Pirates hold a relay and ask for a bribe">
 

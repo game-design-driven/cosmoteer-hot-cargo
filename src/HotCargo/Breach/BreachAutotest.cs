@@ -11,10 +11,19 @@ namespace HotCargo.Breach;
 static class BreachAutotest
 {
     static ObjectID? _me, _hulk;
+    /// <summary>The ship editor problems of each ship at br_mark (ShipCheck), so a field can count the problems that the breach adds.</summary>
+    static readonly Dictionary<string, List<string>> Before = new();
 
     static SimRoot Sim() => Autotest.RequireRun().Game.Sim;
     static Ship Get(string name) => (name switch { "me" => _me, "hulk" => _hulk, _ => throw new InvalidOperationException($"unknown ship '{name}' (me or hulk)") }) is { } id
         ? Sim().Ships[id] ?? throw new InvalidOperationException($"the {name} ship is gone") : throw new InvalidOperationException("br_mark first");
+    static int NewProblems(string name)
+    {
+        var added = ShipCheck.Problems(Get(name)).Except(Before[name]).ToList();
+        if (added.Count > 0) Log.Info($"AUTOTEST breach: new ship editor problems on {name}: {string.Join("; ", added)}");
+        return added.Count;
+    }
+
     static int BreachParts(Ship ship) => ship.Parts.Count(p => p.Rules.ID == BreachArea.PartId);
 
     internal static void Register()
@@ -24,6 +33,8 @@ static class BreachAutotest
         {
             _me = Sim().Ships.HumanPlayerSignificantShips.OrderBy(s => s.UniqueID).First().UniqueID;
             _hulk = Sim().Ships.Where(s => s.HasLabel(Events.Abandoned.Label)).OrderBy(s => s.UniqueID).First().UniqueID;
+            Before["me"] = ShipCheck.Problems(Get("me"));
+            Before["hulk"] = ShipCheck.Problems(Get("hulk"));
         };
         // br_noairlocks me|hulk: destroys every airlock of the ship.
         Autotest.Commands["br_noairlocks"] = arg =>
@@ -58,6 +69,9 @@ static class BreachAutotest
         Autotest.Fields["br_parts_hulk"] = () => BreachParts(Get("hulk"));
         Autotest.Fields["br_cutting"] = () => Autotest.RequireRun().State.Breach.Cuts.Count;
         Autotest.Fields["br_made"] = () => Autotest.RequireRun().State.Breach.Made;
+        // Ship editor problems that the ship has now and did not have at br_mark (the breach must make no design worse).
+        Autotest.Fields["br_new_problems_me"] = () => NewProblems("me");
+        Autotest.Fields["br_new_problems_hulk"] = () => NewProblems("hulk");
         Autotest.Fields["br_hulk_junk"] = () => Get("hulk").IsJunk ? 1 : 0;
     }
 }

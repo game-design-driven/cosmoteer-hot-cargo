@@ -34,14 +34,15 @@ internal static class ThiefShip
 
     /// <summary>
     /// One kit: a segment Rows tall. Storage and Reactor are Rows × Rows; the energy weapon lies sideways (WeaponLength wide, WeaponHeight
-    /// tall), stacked Rows / WeaponHeight per side; the crew quarters are QuartersWidth × QuartersHeight, at most Rows tall.
+    /// tall), stacked Rows / WeaponHeight per side; the crew quarters are QuartersWidth × QuartersHeight, at most Rows tall, at rotation
+    /// QuartersRot, so that a door faces the spine on their right (crew_quarters_med has doors on one side only).
     /// </summary>
-    sealed record Kit(int Rows, string Storage, string Weapon, int WeaponLength, int WeaponHeight, string Reactor, string Quarters, int QuartersWidth, int QuartersHeight);
+    sealed record Kit(int Rows, string Storage, string Weapon, int WeaponLength, int WeaponHeight, string Reactor, string Quarters, int QuartersWidth, int QuartersHeight, int QuartersRot);
     static readonly Kit[] Kits =
     [
-        new(2, "cosmoteer.storage_2x2", "cosmoteer.laser_blaster_large", 5, 2, "cosmoteer.reactor_small", "cosmoteer.crew_quarters_med", 2, 2),
-        new(3, "cosmoteer.storage_3x3", "cosmoteer.laser_blaster_large", 5, 2, "cosmoteer.reactor_med", "cosmoteer.crew_quarters_med", 2, 2),
-        new(4, "cosmoteer.storage_4x4", "cosmoteer.ion_beam_emitter", 5, 2, "cosmoteer.reactor_large", "cosmoteer.crew_quarters_large", 3, 4),
+        new(2, "cosmoteer.storage_2x2", "cosmoteer.laser_blaster_large", 5, 2, "cosmoteer.reactor_small", "cosmoteer.crew_quarters_med", 2, 2, 1),
+        new(3, "cosmoteer.storage_3x3", "cosmoteer.laser_blaster_large", 5, 2, "cosmoteer.reactor_med", "cosmoteer.crew_quarters_med", 2, 2, 1),
+        new(4, "cosmoteer.storage_4x4", "cosmoteer.ion_beam_emitter", 5, 2, "cosmoteer.reactor_large", "cosmoteer.crew_quarters_large", 3, 4, 0),
     ];
 
     /// <summary>The number of tiers: the length of the vanilla tier value table.</summary>
@@ -60,11 +61,13 @@ internal static class ThiefShip
         for (int y = -2; y < coreRows; y++) parts.Add(new("cosmoteer.corridor", 0, y, 0));
         parts.Add(new("cosmoteer.manipulator_beam_emitter", 1, -2, 0));
         parts.Add(new("cosmoteer.control_room_small", 1, 0, 0));
-        parts.Add(new(k.Quarters, -k.QuartersWidth, 0, 0));
+        parts.Add(new(k.Quarters, -k.QuartersWidth, 0, k.QuartersRot));
         parts.Add(new(k.Storage, 1, r, 0));
-        parts.Add(new(k.Quarters, -k.QuartersWidth, r, 0));
+        parts.Add(new(k.Quarters, -k.QuartersWidth, r, k.QuartersRot));
         // A third crew quarters beside the funnel at the nose: the funnel alone takes 4 crew.
-        parts.Add(new(k.Quarters, -k.QuartersWidth, -k.QuartersHeight, 0));
+        parts.Add(new(k.Quarters, -k.QuartersWidth, -k.QuartersHeight, k.QuartersRot));
+        // The ship editor's vital parts include a fire extinguisher: on the nose of the spine, its door down into it.
+        parts.Add(new("cosmoteer.fire_extinguisher", 0, -3, 0));
         // Segments in a cycle of three: weapons (storage on both sides, energy weapons outside), power (a reactor and crew quarters), armor
         // (storage on both sides, a 2-deep armor shell outside). Every design has at least one of the first two.
         for (int i = 0; i < segments; i++)
@@ -73,7 +76,7 @@ internal static class ThiefShip
             for (int y = y0; y < y0 + r; y++) parts.Add(new("cosmoteer.corridor", 0, y, 0));
             bool power = i % 3 == 1;
             parts.Add(new(power ? k.Reactor : k.Storage, 1, y0, 0));
-            parts.Add(power ? new(k.Quarters, -k.QuartersWidth, y0, 0) : new(k.Storage, -r, y0, 0));
+            parts.Add(power ? new(k.Quarters, -k.QuartersWidth, y0, k.QuartersRot) : new(k.Storage, -r, y0, 0));
             if (i % 3 == 0)
             {
                 for (int y = y0; y + k.WeaponHeight <= y0 + r; y += k.WeaponHeight)
@@ -93,8 +96,16 @@ internal static class ThiefShip
                     }
             }
         }
-        // Tail: an airlock on the spine (the crew fetch loot through it), thrusters across the width.
+        // Tail: a corridor across the width, so crew reach every thruster with batteries (the rooms of the last segment may let no crew
+        // through), then an airlock on the spine (the crew fetch loot through it) and thrusters across the width.
         int tail = coreRows + segments * r;
+        parts.Add(new("cosmoteer.corridor", 0, tail, 0));
+        for (int x = 1; x <= r; x++)
+        {
+            parts.Add(new("cosmoteer.corridor", x, tail, 0));
+            parts.Add(new("cosmoteer.corridor", -x, tail, 0));
+        }
+        tail++;
         parts.Add(new("cosmoteer.airlock", 0, tail, 2));
         for (int x = 1; x <= r; x++)
         {
@@ -149,7 +160,7 @@ internal static class ThiefShip
     static readonly Dictionary<int, byte[]> DesignBytes = new();
 
     /// <summary>The saved design of a tier, built once per process.</summary>
-    static byte[] Bytes(int tier)
+    internal static byte[] Bytes(int tier)
     {
         tier = Math.Clamp(tier, 1, TierCount);
         if (DesignBytes.TryGetValue(tier, out var cached)) return cached;

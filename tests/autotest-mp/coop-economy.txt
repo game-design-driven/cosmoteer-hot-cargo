@@ -253,12 +253,6 @@ on 1 fa_buy 5
 on 1 waitfor fa_spent > 0 120
 on 1 expect fa_buygap == 0
 
-step factions.blind
-on 1 fa_blind on
-waitfor fa_blind == 1 30
-on 1 fa_blind off
-waitfor fa_blind == 0 30
-
 step debt.loan
 # Spec 1401, 1403, 1405, 1413: the client takes a loan from its machine and pays part of it. It is the client's debt; the host's
 # money does not change. The same balance on both machines, no desync.
@@ -323,10 +317,10 @@ waitfor share_on == 1 10
 on 1 waitfor share_on == 1 10
 expect share_p1_usable_gain >= 100
 on 1 expect share_p1_usable_gain >= 100
-on 1 waitfor share_hud == 1 5
-# The players can see the switch (on screen, under no vanilla panel or window) with no ship selected, a ship selected and the comms
-# box open. The result page of an earlier step covers the middle of the small test screen, so the client closes it first.
+# The players can see the switch (on screen, under no vanilla panel or window) as it is, with no ship selected, a ship selected and the
+# comms box open. The result page of an earlier step covers the middle of the small test screen (800 x 600), so the client closes it first.
 on 1 ev_dismiss
+on 1 waitfor share_hud == 1 5
 on 1 deselect
 on 1 waitfor share_hud == 1 5
 on 1 select

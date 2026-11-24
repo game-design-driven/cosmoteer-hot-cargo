@@ -143,6 +143,8 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
     [Serialize(Optional = true)] public int WavesSent { get; private set; }
     /// <summary>Game seconds until the next work step.</summary>
     [Serialize(Optional = true)] public double StepIn { get; private set; }
+    /// <summary>Spec 1881 to 1884: the guard rule after "Ready", in every phase.</summary>
+    [Serialize(Optional = true)] public EscortGuardState Guard { get; private set; } = new();
 
     public bool Waiting => Completion == CompletionState.InProgress && Phase == MiningEscortPhase.Meet;
 
@@ -175,6 +177,8 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
         Mined.GetIntegrityHash(iHash);
         WavesSent.GetIntegrityHash(iHash);
         Hailed.GetIntegrityHash(iHash);
+        Guard.Raided.GetIntegrityHash(iHash);
+        Guard.Guarded.GetIntegrityHash(iHash);
     }
 
     static MiningEscortTunables Settings(GameRoot game) => MechanicsArea.TunablesFor(game).MiningEscort;
@@ -229,6 +233,7 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
             _ => throw new InvalidOperationException($"unknown phase {Phase}"),
         };
         lines.Add(new DisplayLine { Text = text, State = Completion, CanFocus = CanFocusDisplayLine, OnFocused = OnDisplayLineFocused });
+        if (Phase != MiningEscortPhase.Meet && Completion == CompletionState.InProgress && EscortGuard.AloneLine(Guard, name) is { } alone) lines.Add(alone);
     }
 
     public override void RegisterEvents(GameRoot game, bool isLoading)
@@ -277,6 +282,9 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
             OnMinerKilled(null, EventArgs.Empty);
             return;
         }
+        // Spec 1881 to 1883: after the answer the guard rule runs in every phase, also in stasis, where only its clock can lose the miner.
+        bool guarded = Phase == MiningEscortPhase.Meet || EscortGuard.Tick(sim, Escort, Guard, Tier, WaveTag, OnDisplayLinesChanged);
+        if (Completion != CompletionState.InProgress) return;
         // In stasis the miner does not move or mine, like every ship far from the players.
         if (Escort.TargetShip is not { } ship) return;
         var t = Settings(sim.RequireGame());
@@ -291,6 +299,13 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
         {
             if (EscortMeeting.Step(sim, ship, Start, ref HailIn, ref Hailed, out bool firstHail) is { } spot) MoveTo(ship, spot, null, MeetSlack);
             if (firstHail) OnDisplayLinesChanged();
+            return;
+        }
+        // Spec 1881: alone, the miner stops work and holds. Mining stops too: the waves follow the mined ore (spec 1863), so a miner that
+        // mined alone would also send its waves to where no player is.
+        if (!guarded)
+        {
+            if (Guard.HoldAt is { } hold) MoveTo(ship, hold, null, MeetSlack);
             return;
         }
         StepIn -= sim.FixedUpdater.Interval.Seconds;

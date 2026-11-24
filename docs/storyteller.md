@@ -109,7 +109,7 @@ ST31. **Telemetry.** New events `story.profile`, `story.plan`, `story.intel` and
 | Fleet strength | firepower and fleet value per player ÷ the tier reference | `Ai/Firepower.cs` (spec 1533), `Diplomacy/Situation.Strength` (spec 1520), `Pursuit/Director.FleetFactor` (spec 902) | snapshots (spec 538), combat census (spec 537) |
 | Wealth (beat weights only) | money per player, carried tech × tech value, debt balance (negative) | `GameRoot.GetPlayerState(i, deterministic: true).Money`, `RunState.FleetTech`, tech value (spec 19), `RunState.Debt` | economy (spec 535), snapshots |
 | Risk taken | heat at arrival, time at the Strike stage, tech held instead of sold, open informants, contract trail | `RunState.Heat`, `SecondsSinceStrikeWave`, `FleetTech`, `DeliveredUnits`, `ContractsState.Informants` and `Terms` (spec 100 to 104), `RunState.Notoriety` | heat (spec 534), missions (spec 536) |
-| Pace (beat weights and section 8 only) | game time per sector, systems visited, blind jumps | `RunState.GameSeconds`, `SectorIndex`, `VisitedNodes`, jump kinds (spec 650, 651) | `run.jump` (spec 1582) |
+| Pace (beat weights and section 8 only) | game time per sector, systems visited, jump kinds | `RunState.GameSeconds`, `SectorIndex`, `VisitedNodes`, jump kinds (spec 650) | `run.jump` (spec 1582) |
 | Faction anger | reputation, wanted, debt stage, rival role, per faction | vanilla `GetFactionReputation`, vanilla `WantedManager` (crew-wide in vanilla), `Lenders.StageOf` (spec 1407 and later), `FactionsArea.Roles` (spec 640) | reputation changes (spec 535) |
 | Condition (lowers only) | fleet health share, crew share, ships lost in the sector | `HunterOrders.HealthFraction`, crew counts, fleet changes | `combat.captured` and fleet changes (spec 1581) |
 

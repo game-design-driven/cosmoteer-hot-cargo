@@ -16,6 +16,9 @@ Part : <./Data/ships/terran/base_part_terran.rules>/Part
 	]
 	Size = [2, 2]
 	IsRotateable = false
+	// The core needs no crew. A carrier hull may have no spot where a door fits (the code takes a spot with a door when one exists), so the
+	// build tool must not mark it "No Door Access" (BaseBuildState.GetCrewPathInfo).
+	DoorAccessWarningLevel = None
 	// About two vanilla storage bays: a few careless hits break it, a stray volley does not.
 	MaxHealth = 8000
 	TypeCategories = []

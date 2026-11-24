@@ -21,6 +21,9 @@ HotCargoAi
 	// Co-op resource sharing (spec 1318). {0} is the player name.
 	ShareButtonOn = "Share resources: ON"
 	ShareButtonOff = "Share resources: OFF"
+	// The switch tooltip, under the state line above.
+	ShareTipOn = "All players' ships within 400 build and repair from each other's stock. Click to stop sharing."
+	ShareTipOff = "Each player builds and repairs from their own ships. Click to share resources with the other players."
 	ShareOnFmt = "{0} turned resource sharing on. All players' ships within 400 build and repair from each other's stock."
 	ShareOffFmt = "{0} turned resource sharing off. Each player builds from their own ships again."
 

@@ -653,6 +653,23 @@ internal static class ShipAiController
 
     static bool HasVault(Ship s) => Vaults.VaultParts(s).Any();
 
+    /// <summary>
+    /// Spec 1083: the share of the hull that stands: each part's cost times its health fraction, over the cost of the parts and of the
+    /// destroyed parts that wait for a rebuild. Parts that the player only added to the blueprint do not count, so a planned build that
+    /// lacks materials does not hold a looter forever. 1 for a ship without parts.
+    /// </summary>
+    static float HullHealth(Ship ship)
+    {
+        float have = 0f, full = 0f;
+        foreach (var part in ship.Parts)
+        {
+            have += part.Rules.Cost * (float)part.Health / Math.Max(1, part.Rules.MaxHealth);
+            full += part.Rules.Cost;
+        }
+        foreach (var dp in ship.DestroyedParts) full += dp.Rules.Cost;
+        return full > 0f ? have / full : 1f;
+    }
+
     /// <summary>What one ship sees in one tick: enemies on its team's radar, enemies with an attack order, and friendly human ships.</summary>
     sealed class View
     {
@@ -802,7 +819,8 @@ internal static class ShipAiController
                 NearestWreck: _uses.Contains(Cond.WreckWithin) && Wreck is { } wreck ? Distance(wreck) : float.PositiveInfinity,
                 NearestFleet: _uses.Contains(Cond.FleetBeyond) && NearestCrewed is { } home ? Distance(home) : float.PositiveInfinity,
                 NearestAlly: NearestAlly is { } ally ? Distance(ally) : float.PositiveInfinity,
-                AllyInLineOfFire: _uses.Contains(Cond.AllyInLineOfFire) && AllyInLine());
+                AllyInLineOfFire: _uses.Contains(Cond.AllyInLineOfFire) && AllyInLine(),
+                OthersHealth: _uses.Contains(Cond.FleetHealthAbove) && Allies.Count > 0 ? Allies.Min(HullHealth) : null);
         }
 
         // ---- Autonomous ship facts (spec 1066). Each one is read once per tick, when a row needs it.
@@ -811,14 +829,28 @@ internal static class ShipAiController
 
         float LootDistance(Nugget n) => _self.DetWorldBoundingCircle.DistanceTo(n.DetWorldLocation);
 
+        /// <summary>
+        /// Spec 1083: the straight path from this ship to the point keeps EnemyClearance from every enemy on radar, the point included.
+        /// Always true when EnemyClearance is 0.
+        /// </summary>
+        bool Clear(Vector2 to)
+        {
+            float clearance = Autonomy.EnemyClearance;
+            if (clearance <= 0f || _enemies.Count == 0) return true;
+            var from = _self.DetWorldCenter;
+            return HotCargo.Autonomy.AutonomyModel.PathClear(from.X, from.Y, to.X, to.Y, _self.WorldBoundingRadius,
+                _enemies.Select(e => (e.DetWorldCenter.X, e.DetWorldCenter.Y, e.WorldBoundingRadius)), clearance);
+        }
+
         List<Nugget>? _loot;
-        public List<Nugget> Loot => _loot ??= HotCargo.Autonomy.AutonomyWorld.AcceptedLoot(_self, Cargo);
+        /// <summary>Spec 1068, 1083: accepted loot in sight that the ship can reach clear of enemies.</summary>
+        public List<Nugget> Loot => _loot ??= HotCargo.Autonomy.AutonomyWorld.AcceptedLoot(_self, Cargo).Where(n => Clear(n.DetWorldLocation)).ToList();
         public Nugget? NearestLoot => Loot.MinBy(LootDistance);
 
         readonly Dictionary<StationPick, HotCargo.Autonomy.StationRef?> _stations = [];
         public HotCargo.Autonomy.StationRef? Station(StationPick pick)
         {
-            if (!_stations.TryGetValue(pick, out var s)) _stations[pick] = s = HotCargo.Autonomy.AutonomyWorld.PickStation(_self, pick, Cargo);
+            if (!_stations.TryGetValue(pick, out var s)) _stations[pick] = s = HotCargo.Autonomy.AutonomyWorld.PickStation(_self, pick, Cargo, st => Clear(st.Center));
             return s;
         }
 
