@@ -190,7 +190,7 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
         return Phase switch
         {
             MiningEscortPhase.Meet => Escort.DetLocation() is { } at ? new Circle(at, MissionArea.TunablesFor(game).EscortMarkerRadius) : null,
-            MiningEscortPhase.Return => Station.DetLocation() is { } s ? new Circle(s, Settings(game).DockedGap) : null,
+            MiningEscortPhase.Return => Station.TargetShip is { } st ? ShipDelivery.Area(game, st.DetWorldBoundingCircle) : Station.DetLocation() is { } s ? ShipDelivery.Area(game, new Circle(s, 0f)) : null,
             _ => new Circle(Field, Settings(game).FieldRadius),
         };
     }
@@ -371,18 +371,18 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
         if (AutonomyWorld.EdgeDistance(ship, live.DetWorldCenter) - live.WorldBoundingRadius <= a.MineDistance * 3f) AutonomyWorld.OrderSalvage(ship, live, mine, a.SalvageJobs);
     }
 
-    /// <summary>Spec 1865: flies DockGap from the station's hull; docked within DockedGap completes the objective, and the pay waits at the station.</summary>
+    /// <summary>Spec 1865, 1877: flies DockGap from the station's hull; arrival (ShipDelivery) completes the objective, and the pay waits at the station.</summary>
     void Dock(Ship ship, MiningEscortTunables t)
     {
         if (Station.TargetShip is not { } station)
         {
-            if (Station.DetLocation() is { } far) MoveTo(ship, far, null, t.DockedGap);
+            if (Station.DetLocation() is { } far) MoveTo(ship, far, null, ShipDelivery.Gap(ship.Sim!.RequireGame()));
             return;
         }
         Circle s = station.DetWorldBoundingCircle, m = ship.DetWorldBoundingCircle;
         Vector2 dir = Vector2.FromAngle(s.Center.DirectionTo(m.Center));
         MoveTo(ship, s.Center + dir * (s.Radius + m.Radius + t.DockGap), null, t.DockGap);
-        if (MechanicsModel.Gap(s.Center.DistanceTo(m.Center), s.Radius, m.Radius) > t.DockedGap) return;
+        if (!ShipDelivery.Arrived(ship.Sim!.RequireGame(), m, s)) return;
         Log.Info($"mining escort: {ship.Metadata.PlainShipName} docked with {Mined} {Ore}");
         Complete();
     }

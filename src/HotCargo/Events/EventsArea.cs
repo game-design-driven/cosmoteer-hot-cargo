@@ -350,6 +350,8 @@ public static class EventsArea
             return found.Single().Completion switch { CompletionState.Completed => 1, CompletionState.Failed => -1, _ => 0 };
         };
         // 1: the latest hand-over objective in the log (any mission) is done, 0: open, -1: failed, -2: none.
+        // 1 while an open ship delivery arrived but waits for the players' crew to leave the ship (spec 1110).
+        Autotest.Fields["ev_ship_wait"] = () => OpenHandOvers().Any(o => o.ShipWait(RequireSim()) is not null) ? 1 : 0;
         Autotest.Fields["ev_handover"] = () =>
         {
             var found = new List<HandOverObjective>();
@@ -752,9 +754,26 @@ public static class EventsArea
             var o = RequireTow();
             var towed = o.Towed.TargetShip ?? throw new InvalidOperationException("the towed ship is not live");
             var sim = RequireSim();
-            Vector2 at = o.Destination + new Vector2(o.ArrivalRadius * 0.5f, 0);
-            Autotest.Teleport(towed, at);
-            foreach (var s in sim.Ships.HumanPlayerSignificantShips.ToList()) Autotest.Teleport(s, at + new Vector2(towed.WorldBoundingRadius + s.WorldBoundingRadius + 100f, 0));
+            // The station must be live to measure its hull (spec 1877). The towed ship comes with the players (alone it would go into stasis),
+            // then goes alongside once the station is live.
+            Vector2 near = o.Destination + new Vector2(1500f, 0);
+            Autotest.Teleport(towed, near);
+            foreach (var s in sim.Ships.HumanPlayerSignificantShips.ToList()) Autotest.Teleport(s, near + new Vector2(towed.WorldBoundingRadius + s.WorldBoundingRadius + 100f, 0));
+            // Needs sim time: run it with the game unpaused.
+            Autotest.WaitFor(() => Missions.ShipDelivery.StationAt(sim, o.Destination) is not null, 15, "the tow station is live", () =>
+            {
+                var station = Missions.ShipDelivery.StationAt(sim, o.Destination)!.DetWorldBoundingCircle;
+                Autotest.Teleport(towed, station.Center + new Vector2(station.Radius + towed.WorldBoundingRadius + 200f, 0));
+                Autotest.Wait(2);
+            });
+        };
+        // ev_tow_collect: the receive payment button at the tow's destination station (spec 1877: a delivery pays at a station). Test only.
+        Autotest.Commands["ev_tow_collect"] = _ =>
+        {
+            var o = RequireTow();
+            var m = o.Mission ?? throw new InvalidOperationException("the tow has no mission");
+            var station = Missions.ShipDelivery.StationAt(RequireSim(), o.Destination) ?? throw new InvalidOperationException("the tow station is not live; run ev_tow_arrive first");
+            RequireRun().Game.NetManager.EnqueueInput(new Cosmoteer.Modes.Career.Comms.CommMissionsTab.MPMissionPaymentInput(station, m));
             Autotest.Wait(2);
         };
         Autotest.Commands["ev_tow_kill"] = _ =>

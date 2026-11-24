@@ -19,10 +19,9 @@ using HotCargo.Core;
 namespace HotCargo.Events;
 
 /// <summary>
-/// Rules type "HotCargoTow" (spec 88): completes when the towed ship is within ArrivalRadius of the destination station: the nearest
+/// Rules type "HotCargoTow" (spec 88): completes when the towed ship arrives at the destination station (spec 1877, ShipDelivery): the nearest
 /// station at least MinStationDistance away when the mission started. Fails when the towed ship is destroyed. The towed ship has no AI, so it moves only when the players
 /// pull it (tractor beam) or push it.
-/// Limit: self-contained distance check. The gameplay area plans its own tow logic; revisit to share it once that is merged.
 /// </summary>
 [ReflectiveSerialization(Explicit = true)]
 [SerialDerivedType(TypeName = "HotCargoTow")]
@@ -39,7 +38,6 @@ internal sealed class TowObjective : Objective
         [Serialize, PortableHash] public ID<SimObjectSpawner> StationTag;
         /// <summary>The destination is the nearest tagged station at least this far from the towed ship, so a tow is never trivial.</summary>
         [Serialize(Optional = true), PortableHash] public float MinStationDistance = 3000f;
-        [Serialize(Optional = true), PortableHash] public float ArrivalRadius = 1200f;
         /// <summary>Spec 1147: only stations whose owner is not hostile to the towed ship. None: the objective is invalid.</summary>
         [Serialize(Optional = true), PortableHash] public bool FriendlyOnly;
 
@@ -61,7 +59,7 @@ internal sealed class TowObjective : Objective
             // Nearest station beyond MinStationDistance; when every station is closer, the farthest one.
             var byDistance = stations!.Select(st => st.Location.Center).OrderBy(c => c.DistanceTo(from)).ToList();
             Vector2 destination = byDistance.FirstOrDefault(c => c.DistanceTo(from) >= MinStationDistance, byDistance[^1]);
-            return LastCreated = new TowObjective(new ObjectiveTargetShip(sim.RequireGame(), sim.NodeId(), towedId), destination, ArrivalRadius)
+            return LastCreated = new TowObjective(new ObjectiveTargetShip(sim.RequireGame(), sim.NodeId(), towedId), destination)
             {
                 Tier = Math.Max(1, ((Cosmoteer.Modes.Career.CareerSimModeManager)sim.Mode).TierFields.GetTier(destination)),
             };
@@ -76,17 +74,14 @@ internal sealed class TowObjective : Objective
 
     [Serialize] public ObjectiveTargetShip Towed { get; private set; }
     [Serialize] public Vector2 Destination { get; private set; }
-    [Serialize] public float ArrivalRadius { get; private set; }
     [Serialize(Optional = true)] public int Tier { get; private set; } = 1;
 
     public override string ScriptTypeName => "HotCargoTow";
 
-    public TowObjective(ObjectiveTargetShip towed, Vector2 destination, float arrivalRadius)
+    public TowObjective(ObjectiveTargetShip towed, Vector2 destination)
     {
         Towed = towed ?? throw new ArgumentNullException(nameof(towed));
-        if (arrivalRadius <= 0f) throw new ArgumentOutOfRangeException(nameof(arrivalRadius), arrivalRadius, "must be above 0");
         Destination = destination;
-        ArrivalRadius = arrivalRadius;
     }
 
     [GenericConstructor]
@@ -107,7 +102,9 @@ internal sealed class TowObjective : Objective
     public override MapNode? GetFirstMapNode(GameRoot game) => Towed.MapNode;
 
     public override Circle? GetAreaLocation(GameRoot game) =>
-        Completion == CompletionState.InProgress && game.Sim?.MapNode?.UniqueID == Towed.MapNodeID ? new Circle(Destination, ArrivalRadius) : null;
+        Completion == CompletionState.InProgress && game.Sim is { } sim && sim.MapNode?.UniqueID == Towed.MapNodeID
+            ? Missions.ShipDelivery.Area(game, Missions.ShipDelivery.StationAt(sim, Destination)?.DetWorldBoundingCircle ?? new Circle(Destination, 0f))
+            : null;
 
     public override bool IsShipAssociated(MetaShip ship) => Completion == CompletionState.InProgress && Towed.TargetMetaShip == ship;
 
@@ -155,7 +152,8 @@ internal sealed class TowObjective : Objective
             p.PatrolOrigin = at;
             ai.Parameters = p;
         }
-        if (at.DistanceTo(Destination) > ArrivalRadius) return;
+        // By ID: the vanilla target tracker drops a ship that it counts as insignificant (a dead freighter), and DetLocation reads it by ID too.
+        if (sim.Ships[Towed.ShipID] is not { } towed || !Missions.ShipDelivery.ArrivedAtStation(Mission.Game, sim, towed, Destination)) return;
         Log.Info($"towed ship {Towed.GetPlainTargetName(sim)} reached the station");
         Complete();
     }

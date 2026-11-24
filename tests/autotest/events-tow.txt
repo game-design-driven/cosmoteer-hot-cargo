@@ -23,10 +23,14 @@ expecttagged hc_ev_towed == 2
 expect ev_tow_state == 0
 expect ev_tow_dist > 2500
 ev_mark
+pause off
 ev_tow_arrive
 pause off
 wait 2
 expect ev_tow_state == 1
+# Spec 1877: the pay waits at a station of the system.
+expect ev_money_gain == 0
+ev_tow_collect
 expect ev_money_gain > 0
 # A second tow: the mission fails when the towed ship is destroyed.
 ev_spawn TowJob

@@ -21,8 +21,8 @@ using HotCargo.Core;
 namespace HotCargo.Missions.Mechanics;
 
 /// <summary>
-/// Rules type "HotCargoSalvageTow" (spec 134): bring a derelict hulk to a station. Completes when the hulk's hull is within
-/// Mechanics.DeliveryRadius of the station's hull. The players tow it with tractor beams, push it, or claim it with crew and fly it.
+/// Rules type "HotCargoSalvageTow" (spec 134): bring a derelict hulk to a station. Completes when the hulk arrives at the station
+/// (spec 1877, ShipDelivery). The players tow it with tractor beams, push it, or claim it with crew and fly it.
 /// Fails when the hulk is gone (destroyed or salvaged to nothing) or the station dies.
 /// </summary>
 [ReflectiveSerialization(Explicit = true)]
@@ -141,8 +141,7 @@ internal sealed class TowObjective : Objective
             return;
         }
         if (Hulk.Live(sim) is not { } hulk || Station.TargetShip is not { } station) return;
-        Circle a = hulk.DetWorldBoundingCircle, b = station.DetWorldBoundingCircle;
-        if (MechanicsModel.Gap(a.Center.DistanceTo(b.Center), a.Radius, b.Radius) > MechanicsArea.TunablesFor(sim.RequireGame()).DeliveryRadius) return;
+        if (!ShipDelivery.Arrived(sim.RequireGame(), hulk.DetWorldBoundingCircle, station.DetWorldBoundingCircle)) return;
         Log.Info($"tow mission: {hulk.Metadata.PlainShipName} delivered to {station.Metadata.PlainShipName}");
         Complete();
     }

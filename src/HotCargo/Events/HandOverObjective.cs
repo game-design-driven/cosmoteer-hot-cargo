@@ -63,10 +63,9 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
         /// <summary>A ship that the players deliver to the contact, which takes it (spec 1110). A choice with Need { HandOverReady } waits for it.</summary>
         [Serialize(Optional = true), PortableHash] public SpawnedObjectSearch? ShipTag;
         /// <summary>Hull-to-hull gap between the delivered ship and the contact.</summary>
-        [Serialize(Optional = true), PortableHash] public float DeliveryRadius = 800f;
         [Serialize, PortableHash] public SpawnedObjectSearch ContactShipTag = null!;
-        /// <summary>The Hail event (events.rules) that the contact's comms show for this exchange.</summary>
-        [Serialize, PortableHash] public string Page = "";
+        /// <summary>The Hail event (events.rules) that the contact's comms show for this exchange. None for a ship delivery (spec 1877).</summary>
+        [Serialize(Optional = true), PortableHash] public string Page = "";
         /// <summary>Objective line, a string key with {0} = the contact. Needed without a ResourceType.</summary>
         [Serialize(Optional = true), PortableHash] public string? LineKey;
         /// <summary>A POI area around the contact. The map marks it until a player ship has the contact on radar, like vanilla GotoShip.</summary>
@@ -74,7 +73,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
 
         public override Objective? CreateObjectiveImpl(SimRoot sim, Mission mission, Rand rand, SpawnedObjectCollection objects, Vector2 loc, out bool invalid)
         {
-            if (Page.Length == 0) throw new InvalidDataException("a HotCargoHandOver needs a Page (a Hail event with HailTarget = Contact)");
+            if (Page.Length == 0 && ShipTag is null) throw new InvalidDataException("a HotCargoHandOver needs a Page (a Hail event with HailTarget = Contact), or a ShipTag");
             if (ResourceType is null && LineKey is null) throw new InvalidDataException("a HotCargoHandOver without a ResourceType needs a LineKey");
             invalid = !objects.TryFindObject(ContactShipTag, loc, rand, out var contact);
             if (invalid) return null;
@@ -98,7 +97,6 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
                 SourceName = sourceName,
                 DeliveredShipId = ShipTag is null ? null : objects.FindObject(ShipTag, loc, rand).UniqueID
                     ?? throw new InvalidOperationException($"ship tag {ShipTag} found an object without an ID"),
-                DeliveryRadius = DeliveryRadius,
                 AreaDoodadID = ContactAreaTag is null ? null : objects.FindObject(ContactAreaTag, loc, rand).UniqueID,
                 Tier = Math.Max(1, ((Cosmoteer.Modes.Career.CareerSimModeManager)sim.Mode).TierFields.GetTier(contact.Location.Center)),
             };
@@ -145,22 +143,18 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
         return new(src.MapNodeID, live, null, live?.DetWorldCenter ?? sim.Stasis[src.ShipID]?.Location);
     }
     [Serialize(Optional = true)] public ObjectID? DeliveredShipId { get; private set; }
-    [Serialize(Optional = true)] public float DeliveryRadius { get; private set; } = 800f;
+
+    /// <summary>Spec 1110, 1877: the delivered ship has arrived at the contact (ShipDelivery), live in this sim.</summary>
+    bool ShipArrived(SimRoot sim, Ship ship) =>
+        Contact.TargetShip is { } contact && Missions.ShipDelivery.Arrived(sim.RequireGame(), ship.DetWorldBoundingCircle, contact.DetWorldBoundingCircle);
 
     /// <summary>
-    /// Why the delivered ship cannot be handed over yet, or null when it can (or there is none). Sim state only, so every machine agrees.
+    /// Spec 1110: why the delivered ship that arrived still waits (player crew aboard: the contact takes the ship), or null. Sim state only.
     /// </summary>
-    internal string? Blocker(SimRoot sim)
-    {
-        if (DeliveredShipId is not { } id) return null;
-        if (sim.Ships[id] is not { } ship) return Strings.GetText("HotCargoEventMissions/DeliverGone");
-        string name = ship.Metadata.PlainShipName;
-        if (Contact.TargetShip is not { } contact) return Strings.FormatText("HotCargoEventMissions/DeliverFarFmt", name, DeliveryRadius);
-        Circle a = ship.DetWorldBoundingCircle, b = contact.DetWorldBoundingCircle;
-        if (a.Center.DistanceTo(b.Center) - a.Radius - b.Radius > DeliveryRadius) return Strings.FormatText("HotCargoEventMissions/DeliverFarFmt", name, DeliveryRadius);
-        if (PlayerCrewAboard(sim, ship)) return Strings.FormatText("HotCargoEventMissions/DeliverCrewFmt", name);
-        return null;
-    }
+    internal string? ShipWait(SimRoot sim) =>
+        DeliveredShipId is { } id && sim.Ships[id] is { } ship && ShipArrived(sim, ship) && PlayerCrewAboard(sim, ship)
+            ? Strings.FormatText("HotCargoEventMissions/DeliverCrewFmt", ship.Metadata.PlainShipName)
+            : null;
 
     /// <summary>Human crew whose home is the ship, or who stand on it now.</summary>
     static bool PlayerCrewAboard(SimRoot sim, Ship ship) =>
@@ -205,7 +199,8 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     {
         ResourceType = resourceType;
         Contact = contact ?? throw new ArgumentNullException(nameof(contact));
-        Page = page.Length > 0 ? page : throw new ArgumentException("needs a page", nameof(page));
+        // Empty for a ship delivery: it completes on arrival, with no comms step (spec 1877).
+        Page = page ?? throw new ArgumentNullException(nameof(page));
     }
 
     [GenericConstructor]
@@ -217,7 +212,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     }
 
     /// <summary>The active hand-over whose contact is this ship, or null.</summary>
-    public static HandOverObjective? ForContact(Run run, ObjectID shipId) => Open(run).FirstOrDefault(o => o.Contact.ShipID == shipId);
+    public static HandOverObjective? ForContact(Run run, ObjectID shipId) => Open(run).FirstOrDefault(o => o.Contact.ShipID == shipId && o.Page.Length > 0);
 
     public static IEnumerable<HandOverObjective> Open(Run run)
     {
@@ -240,13 +235,6 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
                 reward.Money = Missions.MissionModel.ScaleReward(reward.Money, payFactor, EventModel.HandOverPayRoundTo);
                 Log.Info($"hand-over: pay {before} x {payFactor} = {reward.Money}");
             }
-        if (o.DeliveredShipId is { } shipId && run.Game.Sim is { } sim)
-        {
-            if (o.Blocker(sim) is { } why) throw new InvalidOperationException($"hand-over {o.Page} ran while blocked: {why}");
-            var ship = sim.Ships[shipId] ?? throw new InvalidOperationException("the delivered ship is gone");
-            Log.Info($"hand-over: {o.Contact.GetPlainTargetName(sim)} takes {ship.Metadata.PlainShipName}");
-            sim.Ships.Remove(ship, dispose: true, handleLostShip: false);
-        }
         o.Complete();
     }
 
@@ -461,7 +449,15 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
             Fail();
             return;
         }
-        if (Run.Current is { } run && run.Game == game && LineBlock(run, sim) is var block && block != _lineBlock)
+        // Spec 1110, 1877: a ship delivery completes on arrival once no player crew is aboard; the contact takes the ship.
+        if (DeliveredShipId is { } deliveredId && sim.Ships[deliveredId] is { } delivered && ShipArrived(sim, delivered) && !PlayerCrewAboard(sim, delivered))
+        {
+            Log.Info($"hand-over: {Contact.GetPlainTargetName(sim)} takes {delivered.Metadata.PlainShipName}");
+            sim.Ships.Remove(delivered, dispose: true, handleLostShip: false);
+            Complete();
+            return;
+        }
+        if (Run.Current is { } run && run.Game == game && (ShipWait(sim) ?? LineBlock(run, sim)) is var block && block != _lineBlock)
         {
             _lineBlock = block;
             Log.Info($"hand-over: {Page} line {(block is null ? "shows" : $"blocked: {block}")}");

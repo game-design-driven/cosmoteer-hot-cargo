@@ -221,7 +221,6 @@ ChainEscort
 									Type = HotCargoEscort
 									EscortTag = { Mode=Latest; Tag=hc_ch_escort; }
 									DestinationTag = { Mode=Latest; Tag=hc_ch_dest; }
-									ArrivalRadius = 400
 									// The route keeps the route sun clearance of the smaller systems (spec 36, spec 105).
 									SunClearance = "(&<../contracts/system_scale.rules>/RouteSunClearance)"
 								}
