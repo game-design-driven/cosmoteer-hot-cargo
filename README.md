@@ -445,7 +445,7 @@ Windows, Cosmoteer from Steam, game version 0.30.5a.
 3. In Cosmoteer, open **Mods**, turn on **Hot Cargo**, and restart the game when it asks.
 4. Start a new career. The map size "Hot Cargo run" is the default.
 
-In co-op, every player needs the same version. Run `install.bat` again after a Cosmoteer update. `uninstall.bat` restores the game. `INSTALL.md` in the zip has the details.
+In co-op, every player needs the same version. Run `install.bat` again after a Cosmoteer update. `uninstall.bat` restores the game and keeps your files (tunables, telemetry, screenshots). `INSTALL.md` in the zip has the details.
 
 Releases marked "dev" are built for every change and are not game tested. For a tested build, use the latest release without "dev".
 

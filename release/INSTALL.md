@@ -37,7 +37,7 @@ With the mod turned off in the Mods menu, the game plays vanilla.
 
 ## Uninstall
 
-Close Cosmoteer and double-click `uninstall.bat`. It deletes the whole `hot_cargo` folder, with your tunables and telemetry: copy them first if you want to keep them.
+Close Cosmoteer and double-click `uninstall.bat` (on a Mac: `bash <unzipped folder>/uninstall-mac.sh`). It restores the game and removes the mod files that the release installed. Your own files stay in the `hot_cargo` folder: `tunables.rules`, `telemetry`, `screenshots` and the log. Delete that folder to remove them too.
 
 ## Keys
 
