@@ -146,4 +146,14 @@ public class WorldsModelTests
         Assert.Equal(5f, WorldsModel.DistanceToSegment(13f, 4f, 0f, 0f, 10f, 0f), 4);
         Assert.Equal(5f, WorldsModel.DistanceToSegment(3f, 4f, 0f, 0f, 0f, 0f), 4); // a zero-length band is a point
     }
+
+    [Fact]
+    public void A_convoy_enters_on_the_far_side_of_the_pass_and_leaves_on_the_near_side()
+    {
+        var (entry, exit) = WorldsModel.PassRun(new System.Numerics.Vector2(8000, 0), 1700);
+        Assert.Equal(new System.Numerics.Vector2(9700, 0), entry);
+        Assert.Equal(new System.Numerics.Vector2(6300, 0), exit);
+        Assert.False(WorldsModel.PastCenter(entry, new(8000, 0), exit));
+        Assert.True(WorldsModel.PastCenter(new(7900, 0), new(8000, 0), exit));
+    }
 }

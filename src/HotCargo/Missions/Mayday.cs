@@ -105,7 +105,7 @@ internal static class Mayday
         int tier = Math.Max(1, mode.TierFields.GetTier(player.DetWorldCenter));
 
         Vector2 at = WaveSpawns.Location(sim, player.DetWorldCenter, sim.Rand.Direction(), t.MaydayDistanceMin, t.MaydayDistanceMax);
-        var hull = NearestTierShip(sim, [.. t.MaydayVictimTags.Select(s => new ID<BuiltinShipTag>(s))], tier);
+        var hull = WaveSpawns.PickShipNearTier(sim, [.. t.MaydayVictimTags.Select(s => new ID<BuiltinShipTag>(s))], tier);
         var spawner = new StasisShipSpawner(sim, hull.ID, at, SpawnedShipFeatures.None, sim.Rand.UInt64(), [FreighterTag, VictimTag])
         {
             AI = new ID<ShipAIRules>("Normal"),
@@ -148,18 +148,5 @@ internal static class Mayday
             Log.Info($"mayday skipped: {why}");
             return null;
         }
-    }
-
-    /// <summary>
-    /// A random built-in ship with the tags at the tier, else at the nearest tier that has one, lower first. Vanilla trade ships start above
-    /// tier 1, so a downward search alone finds none early in a run. Sim tick only (sim.Rand).
-    /// </summary>
-    static BuiltinShipRules NearestTierShip(SimRoot sim, ID<BuiltinShipTag>[] tags, int tier)
-    {
-        for (int step = 0; step <= GameData.TierCount; step++)
-            foreach (int wanted in step == 0 ? [tier] : new[] { tier - step, tier + step })
-                if (wanted >= 1 && GameApp.Rules.BuiltinShips.GetRandomMatchingShip(sim.Rand, null, new Halfling.Range<int>(wanted, wanted), null, tags) is { } ship)
-                    return ship;
-        throw new InvalidOperationException($"no built-in ship with tags [{string.Join(", ", tags)}] at any tier");
     }
 }

@@ -1,0 +1,47 @@
+# Close the Pass (spec 2440 to 2445): Hold the Pass in reverse. After the accept a clock runs; a player ship in the ring brings the raider
+# convoy, its freighters fly through the pass toward the exit, and every freighter dead completes the step; the pay waits at the station.
+# Then a freighter that reaches the exit fails it, and a clock that runs out with nobody near fails it too.
+newgame run
+wait 8
+godmode
+worlds jumpto hc_mining_belt
+pause off
+worlds generate closepass
+worlds accept closepass
+expect worlds_closepass_running == 0
+# Spec 2441: a player ship in the ring brings the convoy.
+worlds goto closepass
+waitfor worlds_closepass_running == 1 10
+expect worlds_closepass_freighters >= 2
+expect worlds_closepass_escorts >= 2
+expect worlds_closepass_exit_ring == 1
+# Spec 2442: the freighters fly through the pass toward the exit (they start 2 x 1,700 = 3,400 from it). Trade hulls are slow to
+# speed up, so the check asks for 400 of progress.
+waitfor worlds_closepass_lead_to_exit < 3000 90
+closepass_diag
+# Spec 2443: every freighter dead completes the step, and the exit ring goes.
+worlds kill hc_closepass_freighter
+wait 2
+expect worlds_closepass_done == 1
+expect worlds_closepass_exit_ring == 0
+# The pay waits at the station (spec 2252).
+hc_mark
+worlds collect
+wait 5
+expect hc_money_gain > 0
+# A second run: a freighter at the exit fails it.
+worlds generate closepass
+worlds accept closepass
+worlds goto closepass
+waitfor worlds_closepass_running == 1 10
+worlds closepass_exit
+expect worlds_closepass_failed == 1
+# A third run: nobody near the pass when the clock runs out: the convoy runs unseen, and the step fails.
+worlds set ClosePassDeadlineSeconds 4
+worlds generate closepass
+worlds accept closepass
+worlds goto closepass_far
+wait 6
+expect worlds_closepass_running == 0
+expect worlds_closepass_failed == 1
+quit

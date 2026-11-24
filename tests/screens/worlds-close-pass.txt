@@ -1,0 +1,29 @@
+# Close the Pass (spec 2441 to 2444): the convoy runs the pass; the pass ring, the red exit ring, the banner and the objective line.
+# Windowed test slot or RUNNER=mac (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+reveal on
+closepanel
+wait 1
+ev_set Enabled false
+godmode
+worlds jumpto hc_mining_belt
+pause off
+worlds generate closepass
+worlds accept closepass
+worlds goto closepass
+wait 4
+pause on
+worlds closepass_camera 5200
+wait 1
+worlds closepass_camera 5200
+wait 1
+screenshot close-pass-convoy
+pause off
+wait 10
+pause on
+worlds closepass_camera 4200
+wait 1
+screenshot close-pass-run
+quit

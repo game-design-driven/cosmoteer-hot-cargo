@@ -6,6 +6,8 @@ using Cosmoteer.Generators.Simulation;
 using Cosmoteer.Modes.Career;
 using Cosmoteer.Modes.Career.Map;
 using Cosmoteer.Modes.Career.Missions;
+using Cosmoteer.Modes.Career.Missions.Objectives;
+using Cosmoteer.Ships.Special;
 using Cosmoteer.Ships;
 using Cosmoteer.Simulation;
 using Cosmoteer.Simulation.Doodads;
@@ -24,6 +26,7 @@ static class WorldsAutotest
     static readonly Dictionary<string, string> Metatypes = new(StringComparer.OrdinalIgnoreCase)
     {
         ["pass"] = "HotCargoHoldPass",
+        ["closepass"] = "HotCargoClosePass",
         ["sundive"] = "HotCargoSundive",
         ["lair"] = "HotCargoLairRaid",
     };
@@ -94,6 +97,30 @@ static class WorldsAutotest
         Autotest.Fields["worlds_lairs"] = () => SimQueries.TaggedShips(Sim(), Lair).Count;
         Autotest.Fields["worlds_hc_sector"] = () => SectorId().StartsWith("hc_", StringComparison.Ordinal) ? 1 : 0;
         Autotest.Fields["worlds_pass_held"] = () => Objective<HoldPassObjective>().HeldSeconds;
+        // Spec 2440 to 2445, Close the Pass.
+        Autotest.Fields["worlds_closepass_running"] = () => Objective<ClosePassObjective>().Running ? 1 : 0;
+        Autotest.Fields["worlds_closepass_freighters"] = () => Objective<ClosePassObjective>().Freighters.Count(f => f.IsAlive);
+        Autotest.Fields["worlds_closepass_done"] = () => Objective<ClosePassObjective>().Completion == CompletionState.Completed ? 1 : 0;
+        Autotest.Fields["worlds_closepass_failed"] = () => Objective<ClosePassObjective>().Completion == CompletionState.Failed ? 1 : 0;
+        Autotest.Fields["worlds_closepass_exit_ring"] = () => Objective<ClosePassObjective>().ExitRingId is { } id && Sim().Doodads[id] is not null ? 1 : 0;
+        Autotest.Fields["worlds_closepass_escorts"] = () => SimQueries.TaggedShips(Sim(), new ID<SimObjectSpawner>("hc_closepass_escort")).Count;
+        // closepass_diag: one log line for each freighter (place, distance to the exit, speed, order, AI origin).
+        Autotest.Commands["closepass_diag"] = _ =>
+        {
+            var o = Objective<ClosePassObjective>();
+            foreach (var f in o.Freighters)
+                Log.Info(f.TargetShip is { } s
+                    ? $"AUTOTEST CLOSEPASS {s.Metadata.PlainShipName} at {s.DetWorldCenter} to exit {s.DetWorldCenter.DistanceTo(o.Exit):0} speed {s.Physics.Body?.LinearVelocity.Length():0} cmd {s.Commands.CurConfirmedCommand?.GetType().Name} origin {s.AI?.Parameters?.PatrolOrigin} canExec {s.Commands.CanExecuteCommands}"
+                    : $"AUTOTEST CLOSEPASS freighter {f.ShipID} not live (alive {f.IsAlive})");
+        };
+        // The live freighter nearest to the exit: its distance to it (the convoy starts 2 x the run length away).
+        Autotest.Fields["worlds_closepass_lead_to_exit"] = () =>
+        {
+            var o = Objective<ClosePassObjective>();
+            var live = o.Freighters.Where(f => f.TargetShip is not null).Select(f => f.TargetShip!).ToList();
+            if (live.Count == 0) throw new InvalidOperationException("no live freighter");
+            return live.Min(s => s.DetWorldCenter.DistanceTo(o.Exit));
+        };
         Autotest.Fields["worlds_pass_waves"] = () => Objective<HoldPassObjective>().WavesSpawned;
         // Objective states of the latest accepted mission: 1 completed, -1 failed, 0 in progress. A completed mission still waits
         // for its reward at the station (ReceiveRewards), so these read the Worlds objective, not the mission.
@@ -263,6 +290,55 @@ static class WorldsAutotest
             case ["goto", "pass"]:
                 Teleport(Objective<HoldPassObjective>().Center);
                 break;
+            // collect: the receive payment button of the station that pays the accepted mission.
+            case ["collect"]:
+                MissionArea.CollectAt(_accepted ?? throw new InvalidOperationException("no mission accepted with worlds accept"));
+                break;
+            // closepass_here: a Close the Pass mission in this system, its pass 3,000 from the first player ship away from the system center
+            // (and its sun), in the log (no pass ring). For co-op sessions, which do not jump to a Mining Belt ("mp" there).
+            case ["closepass_here"]:
+            {
+                var sim = Sim();
+                var game = Autotest.RequireRun().Game;
+                Vector2 me = Ship().DetWorldCenter;
+                Vector2 center = me + me.Normalize() * 3000f;
+                var mission = new Mission(game, new ID<MissionMetatype>(Metatypes["closepass"]), null);
+                var objective = new ClosePassObjective(sim.NodeId(), center, 800f);
+                var station = SpaceStation.GetStations(sim, onlyOperating: true).OrderBy(st => st.DetWorldCenter.DistanceTo(me)).ThenBy(st => st.StationID).First();
+                mission.AddObjective(new SequentialObjective([objective, new ReceiveRewardsObjective(new ObjectiveTargetShip(sim, station.MetaShip))]));
+                Autotest.RequireRun().Mode.Missions.AddMission(mission, track: true);
+                _accepted = mission;
+                Log.Info($"AUTOTEST close pass here at {center}");
+                break;
+            }
+            // closepass_camera <size>: the camera on the pass, this many units wide (screenshots).
+            case ["closepass_camera", var size]:
+            {
+                var c = Objective<ClosePassObjective>().Center;
+                Autotest.Commands["camera"](string.Create(CultureInfo.InvariantCulture, $"{c.X} {c.Y} {size}"));
+                break;
+            }
+            // goto closepass: every significant player ship into the pass ring (the ring check counts those, not a captured hulk).
+            case ["goto", "closepass"]:
+                MissionArea.TeleportPlayers(Objective<ClosePassObjective>().Center);
+                break;
+            // goto closepass_far: 3,300 from the pass toward the system center, beyond its live range (spec 2443: the convoy runs unseen)
+            // and clear of the sun.
+            case ["goto", "closepass_far"]:
+            {
+                var c = Objective<ClosePassObjective>().Center;
+                Teleport(c - c.Normalize() * 3300f);
+                break;
+            }
+            // closepass_exit: the lead freighter at the exit point (spec 2443: the convoy got through).
+            case ["closepass_exit"]:
+            {
+                var o = Objective<ClosePassObjective>();
+                var lead = o.Freighters.FirstOrDefault(f => f.TargetShip is not null)?.TargetShip ?? throw new InvalidOperationException("no live freighter");
+                Autotest.Teleport(lead, o.Exit);
+                Autotest.Wait(2);
+                break;
+            }
             case ["goto", "away"]:
                 Teleport(Objective<HoldPassObjective>().Center + new Vector2(Objective<HoldPassObjective>().Radius + 1500f, 0f));
                 break;

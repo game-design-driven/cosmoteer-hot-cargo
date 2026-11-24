@@ -132,7 +132,8 @@ internal static class EscortGuard
 
     /// <summary>
     /// The red warning ring of EscortMarkerRadius at the point: spawned when <paramref name="id"/> names none, moved when it does, removed
-    /// when the point is null. Returns the ring's ID, or null. Sim tick only (sim.Rand for a new ID). Also the Mayday victim's ring (spec 2433).
+    /// when the point is null. Returns the ring's ID, or null. Sim tick only (sim.Rand for a new ID). Also the Mayday victim's ring (spec 2433)
+    /// and the Close the Pass exit ring (spec 2442).
     /// </summary>
     internal static ObjectID? WarningRing(SimRoot sim, ObjectID? id, Vector2? at)
     {
