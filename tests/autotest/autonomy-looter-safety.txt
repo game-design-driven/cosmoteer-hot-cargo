@@ -1,0 +1,39 @@
+# Looter scenario (spec 1076, 1083): the looter waits while another ship needs repair, collects after, sells at a known station,
+# and leaves loot near an enemy alone.
+newgame run
+wait 8
+ev_set Enabled false
+shipai Log on
+# No hostile world ship: the looter flees from enemies and takes no loot near them (spec 1083).
+aialone
+# A second autonomous ship at half hull, far from the crew of the first ship, so nobody repairs it. No godmode yet: godmode repairs it.
+auto_build Hurt 0,-3000 yarden_zamir.computer@2,0 yarden_zamir.targeted_reactor@2,1 cosmoteer.storage_2x2@0,0 yarden_zamir.funnel@0,2 cosmoteer.thruster_small@0,4 cosmoteer.thruster_small@3,3
+auto_damage all 0.5
+auto_build Looter player yarden_zamir.computer@2,0 yarden_zamir.targeted_reactor@2,1 cosmoteer.storage_2x2@0,0 yarden_zamir.funnel@0,2 cosmoteer.thruster_small@0,4 cosmoteer.thruster_small@3,3 cosmoteer.thruster_small@0,-2,2 cosmoteer.thruster_small@3,-2,2 cosmoteer.thruster_small@-2,0,1 cosmoteer.thruster_small@-2,2,1 cosmoteer.thruster_small@4,0,3 cosmoteer.thruster_small@4,1,3
+tactics_ship Looter
+tactics Looter
+tacticsauto on
+auto_mark
+# Loot near the first ship, in its sight.
+auto_loot gold 1 12 200 home
+wait 10
+# Row 5: Always → ReturnToFleet. The loot waits for the repair.
+expect tactics_move_row == 5
+expect auto_cargo == 0
+expect auto_loot_near >= 1
+# Godmode repairs the second ship: the looter collects, then sells at the nearest station that the players know.
+godmode on
+waitfor auto_cargo > 0 120
+waitfor auto_money_gain > 0 300
+waitfor auto_cargo == 0 30
+waitfor auto_home_dist < 600 300
+# A still enemy 900 from the first ship: the new loot lies within the enemy clearance (1,500), so the looter leaves it alone.
+auto_enemy 900
+auto_loot gold 1 12 200 home
+wait 10
+expect auto_cargo == 0
+expect auto_loot_near >= 1
+# The same loot without the enemy: the looter collects it.
+auto_enemy_remove
+waitfor auto_cargo > 0 120
+quit

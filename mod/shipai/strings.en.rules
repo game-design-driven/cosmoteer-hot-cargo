@@ -112,6 +112,7 @@ HotCargoShipAi
 	Cond_AsteroidWithin = "Asteroid (my ores) within"
 	Cond_WreckWithin = "Wreck within"
 	Cond_FleetBeyond = "My crewed ship is further than"
+	Cond_FleetHealthAbove = "Every other ship's hull above"
 	Cond_AllyWithin = "An ally within"
 	Cond_AllyInLineOfFire = "An ally is in my line of fire"
 
