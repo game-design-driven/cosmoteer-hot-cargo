@@ -20,7 +20,8 @@ gh pr merge "$n" --auto >/dev/null
 # gh pr checks exits 8 while checks run; the buckets say it all.
 buckets="$(gh pr checks "$n" --required --json bucket -q '[.[].bucket] | unique | join(",")' || true)"
 case "$buckets" in
-  "") fail "no required checks reported" ;;
+  # Right after a push or a new PR, GitHub lists no checks for some seconds: the same as running checks.
+  "") echo "queue-pr: PR $n: auto-merge on, no required checks reported yet; it queues when they pass"; exit 0 ;;
   *fail*|*cancel*) fail "required checks failed ($buckets): gh pr checks $n" ;;
   *pending*) echo "queue-pr: PR $n: auto-merge on, required checks still run; it queues when they pass"; exit 0 ;;
 esac

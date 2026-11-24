@@ -39,7 +39,7 @@ The whole workflow and which parts are generic: `docs/WORKFLOW.md`. Each rule be
 ## Merges and failures
 
 - Agents merge their own PRs (`hot-cargo-pr-flow`). The GitHub merge queue of `main` orders the merges. No agent runs a merge queue of its own.
-- When you add a PR to the merge queue, call `watch_pull_request` on it. When a watched PR leaves the queue, add it again if its failure is a known flake. Reason: on 2026-11-16 a PR left the queue on a flake, and nobody noticed it for 7 hours.
+- When you add a PR to the merge queue, call `watch_pull_request` on it. `scripts/agent-watch.sh` puts a PR back into the queue once per commit when the queue dropped it only for tests in `tests/flaky.txt` or for an infrastructure failure (`scripts/requeue-flakes.sh`, with a PR comment). Add a test to `tests/flaky.txt` only after you checked it on `main`, with the reason; remove it when its cause is fixed. Reason: on 2026-11-16 a PR left the queue on a flake, and nobody noticed it for 7 hours.
 - A flaky or infrastructure failure in a test that the PR does not touch counts as passing, after a check of the same test on `main` (`hot-cargo-pr-flow`). Reason: slow, flaky gates blocked merges for hours, and one PR merged with 4 real regressions that its owner called unrelated without that check.
 - Admin merge: when the only failure is a known flake unrelated to the PR and every other check passed, cancel the pending rerun and merge with `gh pr merge <n> --admin --merge`. Only the coordinator does this; never tell an agent to. Reason: agents act through the owner's account, and each admin merge needs a judgment call.
 - After admin merges, cancel the `merge_group` runs whose `gh-readonly-queue/...` branch no longer exists. Reason: each direct merge moves `main`, the queue rebuilds its groups, and the old group runs keep runners busy.
@@ -47,6 +47,7 @@ The whole workflow and which parts are generic: `docs/WORKFLOW.md`. Each rule be
 - Never post a commit status by hand. Reason: the owner rejected it; checks come only from CI.
 - Note each flake you accept. `../.state/flaky.log` lists the local ones.
 - Releases: `hot-cargo-release`.
+- After a batch of merges, remove merged worktrees: `scripts/prune-worktrees.sh` (`--dry-run` lists them). It keeps detached, dirty, busy and fresh worktrees. Reason: old worktrees filled the disk.
 
 ## The player hold
 
