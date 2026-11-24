@@ -14,8 +14,6 @@ HotCargoEventMissions
 	HandOverWaitAtFmt = "First answer \"{0}\" in the comms of {1}: one page at a time"
 	OkaforPickupFmt = "Get Okafor off {0}: hail it"
 	OffBooksLineFmt = "Hand the crates to {0}: hail it"
-	DeliverGone = "The ship is gone"
-	DeliverFarFmt = "Bring {0} within {1:0} of the station"
 	DeliverCrewFmt = "Take your crew off {0} first"
 	SealedCase = "Sealed Case"
 	SealedCasePlural = "Sealed Cases"

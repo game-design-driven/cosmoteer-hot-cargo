@@ -97,7 +97,7 @@
 | `WeakSideEnabled`, `VulnerableParts`, `WeakSideCover`, `ArmorCoverWeight`, `WeaponSideWeight` | on, [command, reactor, yarden_zamir.tech_vault], 4, 3, 1 | 1030 to 1034 |
 | `Mechanics.<Mission>Chance` | 0.5 | 131 |
 | `Mechanics.Siege`, `Guard`, `Scan` (hold-out profiles) | see MISSIONS.md | 132, 137, 140 |
-| `Mechanics.DeliveryRadius` | 800 | 134 |
+| `Mechanics.DeliveryRadius` | 800 | 134, 1877 |
 | `Mechanics.SurveyScanSeconds` | 15 s | 136 |
 | `Mechanics.ScanRange`, `IntensivePayBonus`, `MaxIntensivePerWave` | 3500, 0.25, 2 | 140 |
 | Archetype weights | rules values in `mod/worlds/archetypes.rules`, restart needed | 220 |

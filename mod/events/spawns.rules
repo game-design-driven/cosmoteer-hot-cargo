@@ -582,12 +582,21 @@ TowJob
 					OkayIfFactionTagNotFound = true
 					Objectives
 					[
+						// Spec 88, 1877: arrival at the station completes the tow; the pay waits at a station of the system (vanilla ReceiveRewards).
 						{
-							Type = HotCargoTow
-							TowedTag = { Mode=Latest; Tag=hc_ev_towed; }
-							StationTag = trade_station
-							MinStationDistance = 3000
-							ArrivalRadius = 1200
+							Type = Sequential
+							SubObjectives
+							[
+								{
+									Type = HotCargoTow
+									TowedTag = { Mode=Latest; Tag=hc_ev_towed; }
+									StationTag = trade_station
+									MinStationDistance = 3000
+								}
+								{
+									Type = ReceiveRewards
+								}
+							]
 						}
 					]
 					Rewards
@@ -705,12 +714,21 @@ TowMission
 			OkayIfFactionTagNotFound = true
 			Objectives
 			[
+				// Spec 88, 1877: arrival at the station completes the tow; the pay waits at a station of the system (vanilla ReceiveRewards).
 				{
-					Type = HotCargoTow
-					TowedTag = { Mode=Nearest; Tag=hc_ev_towed; }
-					StationTag = trade_station
-					MinStationDistance = 3000
-					ArrivalRadius = 1200
+					Type = Sequential
+					SubObjectives
+					[
+						{
+							Type = HotCargoTow
+							TowedTag = { Mode=Nearest; Tag=hc_ev_towed; }
+							StationTag = trade_station
+							MinStationDistance = 3000
+						}
+						{
+							Type = ReceiveRewards
+						}
+					]
 				}
 			]
 			Rewards
@@ -750,13 +768,22 @@ RescueMission
 			SpawnAt = Player
 			Objectives
 			[
+				// Spec 88, 1877: arrival at the station completes the tow; the pay waits at a station of the system (vanilla ReceiveRewards).
 				{
-					Type = HotCargoTow
-					TowedTag = { Mode=Nearest; Tag=hc_rescue_towed; }
-					StationTag = trade_station
-					MinStationDistance = 0
-					ArrivalRadius = 1200
-					FriendlyOnly = true
+					Type = Sequential
+					SubObjectives
+					[
+						{
+							Type = HotCargoTow
+							TowedTag = { Mode=Nearest; Tag=hc_rescue_towed; }
+							StationTag = trade_station
+							MinStationDistance = 0
+							FriendlyOnly = true
+						}
+						{
+							Type = ReceiveRewards
+						}
+					]
 				}
 			]
 			Rewards

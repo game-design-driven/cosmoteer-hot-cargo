@@ -396,7 +396,6 @@ public static class EventRunner
         VaultSpace = n.VaultSpace,
         Crew = n.Crew,
         Bunks = n.Bunks,
-        HandOverReady = n.HandOverReady,
         MinHeat = n.MinHeat,
         MaxHeat = n.MaxHeat,
         MinSector = n.MinSector,
@@ -423,12 +422,8 @@ public static class EventRunner
     public static int CostCredits(Run run, CostRules cost, PendingEvent p) =>
         Credits(run, EventModel.HeatScaledUnits(cost.Money, cost.MoneyPerHeat, p.Heat), 0f, p.Tier, p.TechValue);
 
-    /// <summary>The fleet as a pending page's choices see it: Snap, plus the state of the hand-over on the page's ship (spec 1110).</summary>
-    public static Snapshot PageSnap(Run run, SimRoot sim, int money, PendingEvent p) =>
-        Snap(run, sim, money, p.Tier, p.TechValue) with
-        {
-            HandOverBlock = p.Carrier is { } c && HandOverObjective.ForContact(run, c) is { } h ? h.Blocker(sim) : null,
-        };
+    /// <summary>The fleet as a pending page's choices see it: Snap with the page's tier and tech value.</summary>
+    public static Snapshot PageSnap(Run run, SimRoot sim, int money, PendingEvent p) => Snap(run, sim, money, p.Tier, p.TechValue);
 
     /// <summary>The fleet as conditions see it. Money is the given player's; everything else is the whole human fleet in this system.</summary>
     public static Snapshot Snap(Run run, SimRoot sim, int money, int tier, long techValue)

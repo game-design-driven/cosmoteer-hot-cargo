@@ -53,7 +53,7 @@ public sealed class MechanicsTunables
     [Serialize(Optional = true)] public float IntensiveExtraTier = 1f;
     [Serialize(Optional = true)] public int MaxIntensivePerWave = 2;
 
-    /// <summary>Spec 134: a hulk counts as delivered when its hull is this close to the station hull.</summary>
+    /// <summary>Spec 1877: a delivered ship (a tow, a repossessed freighter, an escort, the miner) arrives when its hull is this close to the target hull.</summary>
     [Serialize(Optional = true)] public float DeliveryRadius = 800f;
 
     /// <summary>Spec 136: seconds that a ship with a working sensor must stay at each storm marker.</summary>
@@ -77,8 +77,8 @@ public sealed class MechanicsTunables
         Require(t.SurveyScanSeconds > 0f, "SurveyScanSeconds must be above 0");
         var m = t.MiningEscort;
         Require(m.SpawnDistanceMin >= 0f && m.SpawnDistanceMax >= m.SpawnDistanceMin, "MiningEscort: SpawnDistanceMax must be at least SpawnDistanceMin");
-        Require(m.OreGoal > 0 && m.FieldRadius > 0f && m.HostileRadius >= 0f && m.CollectRadius > 0f && m.StepSeconds > 0f && m.DockGap >= 0f && m.DockedGap > m.DockGap,
-            "MiningEscort: OreGoal, FieldRadius, CollectRadius and StepSeconds must be above 0, and DockedGap above DockGap");
+        Require(m.OreGoal > 0 && m.FieldRadius > 0f && m.HostileRadius >= 0f && m.CollectRadius > 0f && m.StepSeconds > 0f && m.DockGap >= 0f && t.DeliveryRadius > m.DockGap,
+            "MiningEscort: OreGoal, FieldRadius, CollectRadius and StepSeconds must be above 0, and DeliveryRadius above DockGap");
         Require(m.WaveShares.Length > 0 && m.WaveShares.All(s => s is > 0f and < 1f), "MiningEscort.WaveShares must hold shares between 0 and 1");
         Require(m.ShipsBase >= 0f && m.ShipsPerTier >= 0f && m.MaxLiveShips >= 0 && m.ShipTierMax >= 1 && m.ShipTags.Length > 0,
             "MiningEscort: ship counts must not be negative, ShipTierMax must be 1 or more, ShipTags must not be empty");
@@ -148,7 +148,5 @@ public sealed class MiningEscortTunables
     [Serialize(Optional = true)] public string[] ShipTags = ["combat"];
     /// <summary>On the way back, the miner stops this far from the station's hull.</summary>
     [Serialize(Optional = true)] public float DockGap = 200f;
-    /// <summary>The miner counts as docked, and the job is done, when its hull is this close to the station's hull.</summary>
-    [Serialize(Optional = true)] public float DockedGap = 500f;
 }
 

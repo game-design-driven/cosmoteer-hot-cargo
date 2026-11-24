@@ -23,7 +23,7 @@ using HotCargo.Core;
 namespace HotCargo.Missions;
 
 /// <summary>
-/// Rules type "HotCargoEscort" (spec requirement 36): completes when the escorted AI ship is within ArrivalRadius of the destination.
+/// Rules type "HotCargoEscort" (spec requirement 36): completes when the escorted AI ship arrives at the destination (spec 1877, ShipDelivery).
 /// While the mission is active and the escort is live (near a player), the objective points the escort AI at the destination.
 /// The escort does not move in stasis, so it waits when the players leave it behind.
 /// Put it in an AnyOrder next to a ProtectShips on the same ship: ProtectShips fails the mission if the escort dies.
@@ -46,7 +46,6 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
         [Serialize, PortableHash] public SpawnedObjectSearch EscortTag = null!;
         /// <summary>A POI doodad that marks the destination. The objective reveals it on acceptance.</summary>
         [Serialize, PortableHash] public SpawnedObjectSearch DestinationTag = null!;
-        [Serialize(Optional = true), PortableHash] public float ArrivalRadius = 400f;
         [Serialize(Optional = true), PortableHash] public int TierOffset;
         /// <summary>The straight route keeps this distance from every sun.</summary>
         [Serialize(Optional = true), PortableHash] public float SunClearance = 6000f;
@@ -68,7 +67,7 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
             }
             poi.Location = destination;
             var mode = (CareerSimModeManager)sim.Mode;
-            return new EscortObjective(new ObjectiveTargetShip(sim.RequireGame(), sim.NodeId(), escortId), destination, ArrivalRadius)
+            return new EscortObjective(new ObjectiveTargetShip(sim.RequireGame(), sim.NodeId(), escortId), destination)
             {
                 DestinationPoiID = poiId,
                 Start = start,
@@ -104,7 +103,6 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
 
     [Serialize] public ObjectiveTargetShip Escort { get; private set; }
     [Serialize] public Vector2 Destination { get; private set; }
-    [Serialize] public float ArrivalRadius { get; private set; }
     [Serialize(Optional = true)] public ObjectID? DestinationPoiID { get; private set; }
 
     IEnumerable<ObjectID> IMissionMarkers.MarkerIds => DestinationPoiID is { } id ? [id] : [];
@@ -129,12 +127,10 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
 
     public override string ScriptTypeName => "HotCargoEscort";
 
-    public EscortObjective(ObjectiveTargetShip escort, Vector2 destination, float arrivalRadius)
+    public EscortObjective(ObjectiveTargetShip escort, Vector2 destination)
     {
         Escort = escort ?? throw new ArgumentNullException(nameof(escort));
-        if (arrivalRadius <= 0f) throw new ArgumentOutOfRangeException(nameof(arrivalRadius), arrivalRadius, "must be above 0");
         Destination = destination;
-        ArrivalRadius = arrivalRadius;
     }
 
     [GenericConstructor]
@@ -162,7 +158,7 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
     public override Circle? GetAreaLocation(GameRoot game)
     {
         if (Completion != CompletionState.InProgress || game.Sim?.MapNode?.UniqueID != Escort.MapNodeID) return null;
-        if (Ready) return new Circle(Destination, ArrivalRadius);
+        if (Ready) return ShipDelivery.Area(game, new Circle(Destination, 0f));
         return Escort.DetLocation() is { } at ? new Circle(at, MissionArea.TunablesFor(game).EscortMarkerRadius) : null;
     }
 
@@ -233,13 +229,15 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
             Meet(sim);
             return;
         }
-        if (Via is { } via && at.DistanceTo(via) <= ArrivalRadius) Via = null;
+        // Spec 1877: the shared arrival rule, for the stop and for the destination (points, so no hull).
+        bool AtPoint(Vector2 point) => Escort.TargetShip is { } ship && ShipDelivery.Arrived(sim.RequireGame(), ship.DetWorldBoundingCircle, new Circle(point, 0f));
+        if (Via is { } via && AtPoint(via)) Via = null;
         if (Escort.TargetShip?.AI is { } ai) SteerTo(ai, Via ?? Destination, 0f);
         float left = at.DistanceTo(Destination);
         if (!AmbushSprung && Escort.TargetShip is not null
             && MissionModel.RouteProgress(Start.DistanceTo(Destination), left) >= MissionArea.TunablesFor(sim.RequireGame()).EscortAmbushAt)
             SpringAmbush(sim, at);
-        if (left <= ArrivalRadius)
+        if (AtPoint(Destination))
         {
             Log.Info($"escort {Escort.GetPlainTargetName(sim)} arrived");
             Complete();

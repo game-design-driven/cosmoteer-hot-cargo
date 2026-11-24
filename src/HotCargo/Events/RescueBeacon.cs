@@ -26,7 +26,6 @@ public sealed class RescueTowState
     [Serialize(Optional = true)] public double LeaveAt = -1;
     /// <summary>The station that the tow objective picked.</summary>
     [Serialize] public Vector2 Destination;
-    [Serialize] public float ArrivalRadius;
     /// <summary>True once the rescue mission is in the log. The mission spawner adds it a step after the beacon fires.</summary>
     [Serialize(Optional = true)] public bool InLog;
 }
@@ -111,7 +110,7 @@ public static class RescueBeacon
             EventLibrary.Spawn(TugSpawn).Generate(sim, new FastRand(sim.Rand.UInt64()), loadInstantly: true, rootLoc: ship.DetWorldCenter, addExistingSpawnTags: true);
             var tug = sim.Ships.Where(x => x.HasTag(TugTag) && !tugs.Contains(x.UniqueID)).MinBy(x => x.UniqueID)
                 ?? throw new InvalidOperationException($"{TugSpawn} made no live tug");
-            s.Rescues.Add(new RescueTowState { Towed = ship.UniqueID, Tug = tug.UniqueID, Destination = tow.Destination, ArrivalRadius = tow.ArrivalRadius });
+            s.Rescues.Add(new RescueTowState { Towed = ship.UniqueID, Tug = tug.UniqueID, Destination = tow.Destination });
             Move(tug, ship.DetWorldCenter);
             Log.Info($"rescue: {ship.Metadata.PlainShipName} fired the beacon; player {playerIndex} paid {paid}, heat {heat}, tug {tug.Metadata.PlainShipName}");
             return new(Text("RescueFiredFmt", name, paid.ToString("N0"), heat), Used: true);
@@ -169,8 +168,8 @@ public static class RescueBeacon
             if (towed is null || (tow is null && r.InLog))
             {
                 // Done (arrived) or ended (the ship is gone, or the mission failed): the tug flies off and leaves the sim.
-                // A completed mission leaves the log at once, so arrival is the tow objective's own rule: within its radius of the station.
-                if (towed is not null && towed.DetWorldCenter.DistanceTo(r.Destination) <= r.ArrivalRadius)
+                // A completed mission leaves the log at once, so arrival is the tow objective's own rule (spec 1877).
+                if (towed is not null && Missions.ShipDelivery.ArrivedAtStation(run.Game, sim, towed, r.Destination))
                 {
                     Arrivals++;
                     Say(run.Game, Text("RescueArrivedFmt", towed.Metadata.XmlShipName));
