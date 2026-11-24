@@ -8,14 +8,14 @@ using HotCargo.Core;
 
 namespace HotCargo.Missions;
 
-/// <summary>What a click on an objective line shows (spec 1873). None: nothing to show.</summary>
+/// <summary>What a click on an objective line shows (spec 2292). None: nothing to show.</summary>
 internal enum FocusStep { None, Map, Ship, Marker, Place }
 
 /// <summary>Where an objective is: its system, its ship when live, its area marker, and its place in the system (null in another system).</summary>
 internal readonly record struct FocusTarget(ObjectID NodeId, Ship? Live, ObjectID? PoiId, Vector2? Location);
 
 /// <summary>
-/// Spec 1873: a click on a Hot Cargo objective line shows where it is, in the order of the vanilla objectives
+/// Spec 2292: a click on a Hot Cargo objective line shows where it is, in the order of the vanilla objectives
 /// (ObjectiveTargetShip.OnFocused, DefeatShipsObjective.OnDisplayLineFocused): in another system the galaxy map opens on that system;
 /// in the system, the target ship when it is on radar, else the mission's area marker, else the target's place (also in stasis).
 /// UI only: it moves the camera and changes no sim state.

@@ -244,7 +244,7 @@ Events
 			{
 				Text = "Sell the copy to the broker."
 				// Playtest 2026-11-23: about half the chain's mission pay (2.5 standard missions; about 12,500 at tier 1 on a 200 % money
-				// difficulty). The button shows the amount (spec 1816).
+				// difficulty). The button shows the amount (spec 2270).
 				Outcomes [ { Text = "The broker pays without haggling, which tells you it was worth more."; Money = 2.5; ChainResult = sold } ]
 			}
 			{

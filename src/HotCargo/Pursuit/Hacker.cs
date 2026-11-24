@@ -83,7 +83,7 @@ public sealed class Hacker : IHailProvider, ISharedChoiceDomain
         if (now >= s.HackerLeaveAt) Leave(run, ship);
     }
 
-    /// <summary>Spec 930, 1323: spawns the proxy ship near the ship that the pursuit hunts. Test commands call it too.</summary>
+    /// <summary>Spec 930, 2240: spawns the proxy ship near the ship that the pursuit hunts. Test commands call it too.</summary>
     internal static bool Spawn(Run run, SimRoot sim)
     {
         var s = run.State.Pursuit;

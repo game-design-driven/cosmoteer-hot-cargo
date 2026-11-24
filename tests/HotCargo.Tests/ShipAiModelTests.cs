@@ -239,7 +239,7 @@ public class ShipAiModelTests
     [InlineData("HC1:Always>Face=4")]
     public void Bad_chain_text_throws(string text) => Assert.Throws<FormatException>(() => ShipAiModel.Decode(text));
 
-    /// <summary>Whether the conditions in text form hold (spec 1830), for example "Always&(HealthBelow=40|CarryingTech)".</summary>
+    /// <summary>Whether the conditions in text form hold (spec 2320), for example "Always&(HealthBelow=40|CarryingTech)".</summary>
     static bool Holds(ShipFacts f, string conditions) =>
         ShipAiModel.Evaluate(ShipAiModel.Decode($"HC1:{conditions}>Kite"), f, _ => true).Matched[0];
 

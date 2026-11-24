@@ -9,7 +9,7 @@ using HotCargo.Core;
 namespace HotCargo.Ux;
 
 /// <summary>
-/// Spec 1129: a left-click on a mission's name in the Nearby Missions list (vanilla MissionsHud) opens the mission log with that
+/// Spec 2341: a left-click on a mission's name in the Nearby Missions list (vanilla MissionsHud) opens the mission log with that
 /// mission selected. The log shows the vanilla mission info panel, the same panel as the station's offer screen, without Accept.
 /// Everything is vanilla: the log button's handler opens the log, the missions tab and the item selection are the vanilla widgets.
 /// GUI only: no sim state changes.

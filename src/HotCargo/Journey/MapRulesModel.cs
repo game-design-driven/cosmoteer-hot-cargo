@@ -1,6 +1,6 @@
 namespace HotCargo.Journey;
 
-/// <summary>Spec 1983: pure rules for the galaxy tunables (no game types).</summary>
+/// <summary>Spec 2414: pure rules for the galaxy tunables (no game types).</summary>
 public static class MapRulesModel
 {
     /// <summary>

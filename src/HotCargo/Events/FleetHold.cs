@@ -11,7 +11,7 @@ using HotCargo.Tech;
 namespace HotCargo.Events;
 
 /// <summary>
-/// Spec 1103, 1875: what the players hold of a resource, the one rule for event needs, event costs, hand-over lines and the lost check.
+/// Spec 1103, 2382: what the players hold of a resource, the one rule for event needs, event costs, hand-over lines and the lost check.
 /// Units in the storage of human ships, plus units that the players' crew carry: aboard, on another ship, or in space, also with no home ship.
 /// A carried unit stays carried when no storage takes it and no airlock is near: career mode never deletes a storable resource
 /// (vanilla SimModeManager.AllowDeleteCarriedResource).

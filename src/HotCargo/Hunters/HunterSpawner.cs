@@ -164,19 +164,19 @@ public static class HunterSpawner
         });
         // OrderBy is stable, so groups with the same due time keep their order on every client.
         run.State.Hunters.Pending = run.State.Hunters.Pending.Concat(later).OrderBy(w => w.Due).ToList();
-        // Spec 1595: the count before and after the co-op scale. Each group rolls its own rounding when it spawns, so the scaled total is a mean.
+        // Spec 2310: the count before and after the co-op scale. Each group rolls its own rounding when it spawns, so the scaled total is a mean.
         double factor = Scaling.EnemyScale.Factor(sim);
         Log.Info($"hunters: stage {stageName} sends {ships} ships of tier {tier} in groups [{string.Join(", ", groups)}] before the co-op scale; x{factor:0.##} gives about {ships * factor:0.#}");
         SpawnWave(run, sim, groups[0], tier, stageName, firstOfStage: true);
     }
 
     /// <summary>
-    /// Spec 1538: the player ship that the pursuit hunts, the one that carries the most stolen tech. Carried tech sets the heat
-    /// multiplier, so the corporation goes after that ship. Hunter waves and the hacker (spec 1323) spawn near it.
+    /// Spec 2242: the player ship that the pursuit hunts, the one that carries the most stolen tech. Carried tech sets the heat
+    /// multiplier, so the corporation goes after that ship. Hunter waves and the hacker (spec 2240) spawn near it.
     /// </summary>
     internal static Ship? PursuitTarget(SimRoot sim) => SimQueries.AnchorShip(sim, s => Tech.Vaults.ShipTech(s));
 
-    /// <summary>Spawns one group near one player ship (spec 1538). Each ship spawns physically at once, so the AI owns it from the first tick.
+    /// <summary>Spawns one group near one player ship (spec 2242). Each ship spawns physically at once, so the AI owns it from the first tick.
     /// Also used by the contract informant sell-out (Contracts/ContractBook.SellOut).</summary>
     internal static void SpawnWave(Run run, SimRoot sim, int wanted, int tier, string stageName, bool firstOfStage)
     {
@@ -278,7 +278,7 @@ public static class HunterSpawner
     }
 
     /// <summary>
-    /// Spec 1511. A hunter ship that the players took over (a claimed wreck) becomes a normal player ship: it loses the hunter tag,
+    /// Spec 2280. A hunter ship that the players took over (a claimed wreck) becomes a normal player ship: it loses the hunter tag,
     /// its held fuel and the hunter AI. So no hunter rule (pursuit, stasis, waves, fuel, relay watch, telemetry) counts it again.
     /// Runs inside the sim tick, so every machine releases the ship at the same tick. Saves from before this rule heal at load.
     /// </summary>

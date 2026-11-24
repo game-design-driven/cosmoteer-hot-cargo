@@ -35,6 +35,6 @@ Players of the mod likely know the base game. So the Hot Cargo mechanics join th
 734. The autotest `onboarding-log` checks each line kind, the tab rows and that the log loads with the save.
 Playtest 2026-11-14: a sale at a rival station logged 15,000 per unit, but the station paid 22,500.
 
-1594. A sale or buy-back line names the unit price that the trade paid: the price of the crew job, or without the job the current station price with every price patch (faction markup, rival fence premium of requirement 644). `SimQueries.TradeUnitPrice` is the one source, for the run log and for telemetry (`econ.trade`).
+2330. A sale or buy-back line names the unit price that the trade paid: the price of the crew job, or without the job the current station price with every price patch (faction markup, rival fence premium of requirement 644). `SimQueries.TradeUnitPrice` is the one source, for the run log and for telemetry (`econ.trade`).
 
 Screenshots (`tests/screens/onboarding.txt`): `docs/screenshots/onboarding-howtoplay.jpg`, `onboarding-page.jpg`, `onboarding-careerlog.jpg`.

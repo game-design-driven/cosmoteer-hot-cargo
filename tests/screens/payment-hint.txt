@@ -1,4 +1,4 @@
-# Payment hint (spec 1600): a chain stage paid at a station shows its title without raw color tags in the banner and the chat line.
+# Payment hint (spec 2400): a chain stage paid at a station shows its title without raw color tags in the banner and the chat line.
 # Windowed test slot or RUNNER=mac (needs graphics): see the hot-cargo-screenshots skill.
 render on
 newgame run 0

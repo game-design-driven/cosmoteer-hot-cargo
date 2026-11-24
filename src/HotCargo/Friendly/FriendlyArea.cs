@@ -171,7 +171,7 @@ public static class FriendlyArea
                 if (sim.Ships.Where(s => !s.IsJunk && s.IsSignificant && s.IsEnemiesWith(p)).MinBy(s => s.DetWorldCenter.DistanceSquaredTo(p.DetWorldCenter)) is { } e)
                     Hunters.HunterOrders.Attack(p, e);
         };
-        // fr_wayfarers_far: the Wayfarers spawn 20,000 from the player ships, out of the live range (spec 1536). fr_wayfarer_stasis:
+        // fr_wayfarers_far: the Wayfarers spawn 20,000 from the player ships, out of the live range (spec 2390). fr_wayfarer_stasis:
         // Wayfarer ships that wait in stasis.
         Autotest.Commands["fr_wayfarers_far"] = _ =>
         {

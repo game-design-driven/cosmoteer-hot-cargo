@@ -97,8 +97,8 @@ internal sealed class TowObjective : Objective
         args["station"] = Station.GetXmlTargetName(game.Sim);
     }
 
-    /// <summary>Spec 1873: a click shows the hulk or its place, also while it is in stasis or in another system.</summary>
-    /// <summary>Spec 1873: where the objective is, for the click on its line.</summary>
+    /// <summary>Spec 2292: a click shows the hulk or its place, also while it is in stasis or in another system.</summary>
+    /// <summary>Spec 2292: where the objective is, for the click on its line.</summary>
     internal FocusTarget Where(GameRoot game) => new(Hulk.NodeId, Hulk.Live(game.Sim), null, Hulk.Location(game.Sim));
 
     public override bool CanFocusDisplayLine(GameRoot game) => MissionFocus.CanFocus(game, Where(game));

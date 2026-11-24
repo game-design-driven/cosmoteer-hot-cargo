@@ -37,7 +37,7 @@ public sealed class EventsState
     [Serialize(Optional = true)] public PatrolListenState? Listen;
     /// <summary>Faction ships that a patrol listen already finished on: once per ship (spec 1122).</summary>
     [Serialize(Optional = true)] public HashSet<ObjectID> Listened = new();
-    /// <summary>Running rescue tows (spec 1148), in start order.</summary>
+    /// <summary>Running rescue tows (spec 2352), in start order.</summary>
     [Serialize(Optional = true)] public List<RescueTowState> Rescues = [];
     /// <summary>The running station attack or rebuild (spec 90 to 98), or null. One at a time.</summary>
     [Serialize(Optional = true)] public StationAttackState? Attack;
@@ -60,7 +60,7 @@ public sealed class EventsState
     /// <summary>The event page that waits for a choice, or null.</summary>
     [Serialize(Optional = true)] public PendingEvent? Pending;
     /// <summary>
-    /// Spec 1876: the page that waited when a player opened a hand-over line. It waits on, hidden, and comes back when the hand-over page
+    /// Spec 2383: the page that waited when a player opened a hand-over line. It waits on, hidden, and comes back when the hand-over page
     /// closes (EventRunner.RestoreParked). Null: no page parked.
     /// </summary>
     [Serialize(Optional = true)] public PendingEvent? Parked;

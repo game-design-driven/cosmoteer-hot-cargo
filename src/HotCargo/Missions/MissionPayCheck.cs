@@ -7,7 +7,7 @@ using HotCargo.Dev;
 namespace HotCargo.Missions;
 
 /// <summary>
-/// Spec 1879: every mission that pays a reward pays it at a station (vanilla ReceiveRewards), like vanilla missions. A mission whose
+/// Spec 2252: every mission that pays a reward pays it at a station (vanilla ReceiveRewards), like vanilla missions. A mission whose
 /// rewards are only contract terms (HotCargoContract: a page trade such as Off the Books, the Buyer sale) pays nothing at a station.
 /// The rules decide which missions those are: this check reads every mission spawner that the game loaded (sector generator, events,
 /// chains, worlds).

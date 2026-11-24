@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Checks that the player installers and uninstallers keep the player's files (spec 1989): installs a fake release over a mod
+# Checks that the player installers and uninstallers keep the player's files (spec 2260): installs a fake release over a mod
 # folder that holds telemetry, a screenshot, a log and tunables, checks that those stay and that the shipped files are new,
 # then uninstalls and checks that those still stay, the shipped files and the loader are gone and the game is restored.
 # Runs release/install-mac.sh and uninstall-mac.sh on macOS (they need plutil) and release/install.ps1 and uninstall.ps1

@@ -263,7 +263,7 @@ public sealed class DiplomacyHail : IHailProvider
         if (held > 0) Button(run, sim, player, caller, ship, page, Offer.Return, 0, DipText.Format("ReturnAskFmt", held));
         bool mercRow = merc && !s.HiredBefore(ship.UniqueID);
         bool hireRow = !merc && Situation.Hireable(ship) && hire is null && !s.WasUsed(ship.UniqueID, Offer.Hire);
-        // Spec 1818: after the first paid hire, a page with a hire row says how much trust is left.
+        // Spec 2224: after the first paid hire, a page with a hire row says how much trust is left.
         if ((mercRow || hireRow) && Quotes.HireTrust(run) is var trust && trust < 1f)
             page.AddText(DipText.Format("HireTrustFmt", s.PaidHires, s.HireShipsLost, trust, 1f / trust));
         if (mercRow)
@@ -282,7 +282,7 @@ public sealed class DiplomacyHail : IHailProvider
             Row(run, sim, player, caller, ship, page, Offer.Hire, spec, steps =>
                 DipText.Format("HireFmt", Cost(run, steps * step), (int)Math.Ceiling(run.T.Diplomacy.HireSeconds / 60.0), Pct(Quotes.Hire(run, sim, player, ship, steps * step))));
         }
-        // Spec 1800: asking to hold tech is the last option row, below hire and merc time. Limit: rows show above the page's buttons
+        // Spec 2223: asking to hold tech is the last option row, below hire and merc time. Limit: rows show above the page's buttons
         // (Return, event hail lines), so a button can still come after it; revisit if the user wants it below those too.
         int stock = Situation.VaultTech(sim);
         if (stock > 0 && Situation.MayHold(run, ship))

@@ -545,7 +545,7 @@ Capture
 							AreaTag = { Mode=Latest; Tag=hc_capture_area; }
 							TierOffset = 1
 						}
-						// Deliver the freighter to the bank at the station (spec 1110, 1877): arrival completes it once no player crew is aboard.
+						// Deliver the freighter to the bank at the station (spec 2380, 1877): arrival completes it once no player crew is aboard.
 						{
 							Type = HotCargoHandOver
 							ContactShipTag = { Mode=Nearest; Tag=trade_station; }

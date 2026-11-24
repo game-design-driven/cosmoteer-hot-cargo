@@ -60,7 +60,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
         /// fills every storage tile, so it cannot give exactly one). Salvage or capture it to get the unit out.
         /// </summary>
         [Serialize(Optional = true), PortableHash] public SpawnedObjectSearch? SourceShipTag;
-        /// <summary>A ship that the players deliver to the contact, which takes it (spec 1110). A choice with Need { HandOverReady } waits for it.</summary>
+        /// <summary>A ship that the players deliver to the contact, which takes it (spec 2380). A choice with Need { HandOverReady } waits for it.</summary>
         [Serialize(Optional = true), PortableHash] public SpawnedObjectSearch? ShipTag;
         /// <summary>Hull-to-hull gap between the delivered ship and the contact.</summary>
         [Serialize, PortableHash] public SpawnedObjectSearch ContactShipTag = null!;
@@ -113,16 +113,16 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     [Serialize(Optional = true)] public ObjectiveTargetShip? Source { get; private set; }
     /// <summary>The source ship got its one unit.</summary>
     [Serialize(Optional = true)] public bool Seeded { get; private set; }
-    /// <summary>Spec 1874: the source ship's name at creation, for the objective line. Null in saves from before.</summary>
+    /// <summary>Spec 2381: the source ship's name at creation, for the objective line. Null in saves from before.</summary>
     [Serialize(Optional = true)] public string? SourceName { get; private set; }
 
-    /// <summary>Spec 1874: the step reads "Recover": the players must still get the unit out of the source ship.</summary>
+    /// <summary>Spec 2381: the step reads "Recover": the players must still get the unit out of the source ship.</summary>
     internal bool Recovering => Completion == CompletionState.InProgress && !Held && Source is not null && ResourceType is not null;
 
     /// <summary>The source ship when it is live in this sim, else null.</summary>
     internal Ship? LiveSource(SimRoot sim) => Source is { } src && sim.NodeId() == src.MapNodeID ? sim.Ships[src.ShipID] : null;
 
-    /// <summary>Spec 1874: loose units of the item in this sim (the source broke and spilled it), lowest ID first.</summary>
+    /// <summary>Spec 2381: loose units of the item in this sim (the source broke and spilled it), lowest ID first.</summary>
     internal IEnumerable<Nugget> LooseUnits(SimRoot sim)
     {
         if (ResourceType is not { } item) return [];
@@ -131,7 +131,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     }
 
     /// <summary>
-    /// Spec 1874: where the unit to recover is. A loose unit first (the players must pick it up), else the source ship, live or in stasis.
+    /// Spec 2381: where the unit to recover is. A loose unit first (the players must pick it up), else the source ship, live or in stasis.
     /// Only while <see cref="Recovering"/>.
     /// </summary>
     internal Missions.FocusTarget RecoverWhere(GameRoot game)
@@ -145,7 +145,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     [Serialize(Optional = true)] public ObjectID? DeliveredShipId { get; private set; }
 
     /// <summary>
-    /// Spec 1880: a goods delivery. The players gather a common resource (ore, iron, processors) and hand it over on the shared page
+    /// Spec 2384: a goods delivery. The players gather a common resource (ore, iron, processors) and hand it over on the shared page
     /// <see cref="GoodsPage"/>, in one or more trips (a small hold carries less than MinAmount). The job completes once the units handed over
     /// reach MinAmount, at most MaxAmount in all. No lost check and no take-back: the resource is the players' own.
     /// </summary>
@@ -156,13 +156,13 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     [Serialize(Optional = true)] public int Delivered { get; private set; }
     /// <summary>Units that one trip can still hand over.</summary>
     internal int Remaining => MaxAmount - Delivered;
-    /// <summary>Spec 1880: a POI where the resource is found (vanilla SuggestedCollectionAreaTag). The map marks it while the fleet holds none.</summary>
+    /// <summary>Spec 2384: a POI where the resource is found (vanilla SuggestedCollectionAreaTag). The map marks it while the fleet holds none.</summary>
     [Serialize(Optional = true)] public ObjectID? CollectionDoodadID { get; private set; }
 
     /// <summary>The Hail event (events.rules) of every goods delivery.</summary>
     internal const string GoodsPage = "deliver_goods";
 
-    /// <summary>Spec 1880: a goods delivery of MinAmount to MaxAmount units of the resource to the contact ship of this system.</summary>
+    /// <summary>Spec 2384: a goods delivery of MinAmount to MaxAmount units of the resource to the contact ship of this system.</summary>
     /// <param name="contactAt">Where the contact is: at generation it is not in the sim yet, so the caller gives its place for the tier.</param>
     internal static HandOverObjective NewGoods(SimRoot sim, ID<ResourceRules> resource, int minAmount, int maxAmount, ObjectiveTargetShip contact, Vector2 contactAt, ObjectID? collectionPoi)
     {
@@ -186,7 +186,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     }
 
     /// <summary>
-    /// Spec 1880: the pay of a goods delivery is linear in the total amount: the job's money reward × total / MaxAmount, so MaxAmount pays the
+    /// Spec 2384: the pay of a goods delivery is linear in the total amount: the job's money reward × total / MaxAmount, so MaxAmount pays the
     /// full reward. Asked for a trip that completes the job; 0 for any other hand-over (no change).
     /// </summary>
     internal float GoodsPayFactor(float units)
@@ -196,17 +196,17 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
         return (Delivered + units) / MaxAmount;
     }
 
-    /// <summary>Spec 1880: what a completing trip of this many units pays: each money reward of the job × <see cref="GoodsPayFactor"/>, rounded like the delivery.</summary>
+    /// <summary>Spec 2384: what a completing trip of this many units pays: each money reward of the job × <see cref="GoodsPayFactor"/>, rounded like the delivery.</summary>
     internal int GoodsPay(float units) =>
         Mission?.Rewards.OfType<Cosmoteer.Modes.Career.Missions.Rewards.MoneyReward>()
             .Sum(r => Missions.MissionModel.ScaleReward(r.Money, GoodsPayFactor(units), EventModel.HandOverPayRoundTo)) ?? 0;
 
-    /// <summary>Spec 1110, 1877: the delivered ship has arrived at the contact (ShipDelivery), live in this sim.</summary>
+    /// <summary>Spec 2380, 1877: the delivered ship has arrived at the contact (ShipDelivery), live in this sim.</summary>
     bool ShipArrived(SimRoot sim, Ship ship) =>
         Contact.TargetShip is { } contact && Missions.ShipDelivery.Arrived(sim.RequireGame(), ship.DetWorldBoundingCircle, contact.DetWorldBoundingCircle);
 
     /// <summary>
-    /// Spec 1110: why the delivered ship that arrived still waits (player crew aboard: the contact takes the ship), or null. Sim state only.
+    /// Spec 2380: why the delivered ship that arrived still waits (player crew aboard: the contact takes the ship), or null. Sim state only.
     /// </summary>
     internal string? ShipWait(SimRoot sim) =>
         DeliveredShipId is { } id && sim.Ships[id] is { } ship && ShipArrived(sim, ship) && PlayerCrewAboard(sim, ship)
@@ -218,7 +218,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
         (sim.Mode.IsHumanPlayerShip(ship) && ship.Crew.Assigned.Count > 0)
         || Tech.Vaults.HumanShips(sim).SelectMany(s => s.Crew.Assigned).Any(c => c.CurrentShip == ship);
 
-    /// <summary>A surrendered delivered ship stays in the system and flies to the contact (spec 1110). Sim tick.</summary>
+    /// <summary>A surrendered delivered ship stays in the system and flies to the contact (spec 2380). Sim tick.</summary>
     internal void SteerSurrendered(SimRoot sim)
     {
         if (DeliveredShipId is not { } id || sim.Ships[id] is not { } ship || Contact.DetLocation() is not { } at) return;
@@ -230,7 +230,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
         Log.Info($"hand-over: surrendered {ship.Metadata.PlainShipName} flies to its contact");
     }
 
-    /// <summary>True for the delivered ship of any open hand-over: vanilla must not fly it out of the system (spec 1110).</summary>
+    /// <summary>True for the delivered ship of any open hand-over: vanilla must not fly it out of the system (spec 2380).</summary>
     internal static bool IsHeld(Run run, ObjectID shipId)
     {
         var found = new List<HandOverObjective>();
@@ -284,7 +284,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     public static void Deliver(Run run, ObjectID? contact, float payFactor = 0f, float units = 0f)
     {
         var o = Require(run, contact);
-        // Spec 1880: a goods trip that does not reach MinAmount counts and keeps the job open; the completing trip pays for the total.
+        // Spec 2384: a goods trip that does not reach MinAmount counts and keeps the job open; the completing trip pays for the total.
         if (o.Goods)
         {
             if (!o.Completes(units))
@@ -359,7 +359,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     /// <summary>False while no human ship is in this system, for example during a jump. Item counts then read 0 without a loss.</summary>
     public static bool FleetHere(SimRoot sim) => Tech.Vaults.HumanShips(sim).Any();
 
-    /// <summary>Units that the players hold: stored in their ships or carried by their crew (<see cref="FleetHold"/>, spec 1875).</summary>
+    /// <summary>Units that the players hold: stored in their ships or carried by their crew (<see cref="FleetHold"/>, spec 2382).</summary>
     public static int FleetUnits(SimRoot sim, ID<ResourceRules> resource) => FleetHold.Units(sim, resource);
 
     /// <summary>
@@ -398,7 +398,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     public override Circle? GetAreaLocation(GameRoot game)
     {
         if (Completion != CompletionState.InProgress) return null;
-        // Spec 1874: the unit to recover. Radius 0 for a point, as vanilla MetaShip gives a ship in stasis.
+        // Spec 2381: the unit to recover. Radius 0 for a point, as vanilla MetaShip gives a ship in stasis.
         if (Recovering)
             return RecoverWhere(game) switch
             {
@@ -433,7 +433,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     bool ContactGone(SimRoot sim) =>
         sim.NodeId() == Contact.MapNodeID && sim.Ships[Contact.ShipID] is null && !sim.Stasis.Any(st => st.ReservedObjectID == Contact.ShipID);
 
-    /// <summary>Spec 1873, 1874: the click shows the unit to recover while the step reads "Recover", else the contact.</summary>
+    /// <summary>Spec 2292, 2381: the click shows the unit to recover while the step reads "Recover", else the contact.</summary>
     public override bool CanFocusDisplayLine(GameRoot game) =>
         Recovering ? Missions.MissionFocus.CanFocus(game, RecoverWhere(game)) : Missions.MissionFocus.CanFocus(game, Contact);
 
@@ -465,11 +465,11 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
             lines.Add(new DisplayLine { Text = new Halfling.Gui.Components.Text.SimpleTextProvider(Halfling.StringTools.EscapeForXml(why), null), State = CompletionState.InProgress });
     }
 
-    /// <summary>Why the contact's comms do not show this exchange's line, as of the last tick, or null (spec 1875).</summary>
+    /// <summary>Why the contact's comms do not show this exchange's line, as of the last tick, or null (spec 2382).</summary>
     string? _lineBlock;
 
     /// <summary>
-    /// Spec 1875, 1876: why the contact's comms do not show this exchange's line now, or null when they show it (or the step still reads
+    /// Spec 2382, 2383: why the contact's comms do not show this exchange's line now, or null when they show it (or the step still reads
     /// "Recover"). The line shows over a waiting page (it parks that page), but only one page parks at a time: while another hand-over
     /// page is open with a page parked behind it, the line waits. A page in the contact's own comms shows there, so it is no block.
     /// Sim state only.
@@ -477,7 +477,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     internal string? LineBlock(Run run, SimRoot sim)
     {
         if (ResourceType is not null && !Held) return null;
-        // Spec 1876: the line shows over a waiting page; it hides only while another hand-over page is open with a page parked behind it.
+        // Spec 2383: the line shows over a waiting page; it hides only while another hand-over page is open with a page parked behind it.
         if (run.State.Events.Parked is null || run.State.Events.Pending is not { } p || p.Carrier == Contact.ShipID) return null;
         string title = EventLibrary.Get(p.EventId).Title;
         string? carrier = p.Carrier is { } c ? sim.Ships[c]?.Metadata.PlainShipName ?? sim.Stasis[c]?.ObjectName : null;
@@ -522,7 +522,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
             Fail();
             return;
         }
-        // Spec 1110, 1877: a ship delivery completes on arrival once no player crew is aboard; the contact takes the ship.
+        // Spec 2380, 1877: a ship delivery completes on arrival once no player crew is aboard; the contact takes the ship.
         if (DeliveredShipId is { } deliveredId && sim.Ships[deliveredId] is { } delivered && ShipArrived(sim, delivered) && !PlayerCrewAboard(sim, delivered))
         {
             Log.Info($"hand-over: {Contact.GetPlainTargetName(sim)} takes {delivered.Metadata.PlainShipName}");
@@ -539,7 +539,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
         if (ResourceType is not { } item) return;
         // During a jump the ships are in limbo: no human ship is in any system, so the fleet holds 0 units. Not a loss (spec 1103).
         if (!FleetHere(sim)) return;
-        // Spec 1880: goods have no lost check. Held follows the fleet: it holds some of the resource or not.
+        // Spec 2384: goods have no lost check. Held follows the fleet: it holds some of the resource or not.
         if (Goods)
         {
             bool enough = FleetUnits(sim, Forms(item)) >= 1;
@@ -668,7 +668,7 @@ public static class MissionCargo
     });
 }
 
-/// <summary>Spec 1110: a surrendered ship that a running hand-over must deliver does not leave the system until the mission ends.</summary>
+/// <summary>Spec 2380: a surrendered ship that a running hand-over must deliver does not leave the system until the mission ends.</summary>
 [HarmonyLib.HarmonyPatch(typeof(Cosmoteer.Ships.AI.StrategyModules.AIExitSectorModule), nameof(Cosmoteer.Ships.AI.StrategyModules.AIExitSectorModule.OnAITick))]
 static class HeldShipExitPatch
 {

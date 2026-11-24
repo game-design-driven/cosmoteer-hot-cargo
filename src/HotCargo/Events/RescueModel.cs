@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace HotCargo.Events;
 
-/// <summary>Pure rules of the rescue tow (spec 1148).</summary>
+/// <summary>Pure rules of the rescue tow (spec 2352).</summary>
 public static class RescueModel
 {
     /// <summary>

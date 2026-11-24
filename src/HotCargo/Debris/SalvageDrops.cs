@@ -95,7 +95,7 @@ static class SalvageDrops
         ((ulong)BitConverter.SingleToUInt32Bits(worldRect.Center.X) << 32) | BitConverter.SingleToUInt32Bits(worldRect.Center.Y);
 
     /// <summary>
-    /// Spec 1814: cargo comes back in full. While a storage bay tile (vanilla FlexResourceGrid) breaks, its contents drop 1:1, on every
+    /// Spec 2370: cargo comes back in full. While a storage bay tile (vanilla FlexResourceGrid) breaks, its contents drop 1:1, on every
     /// ship (thieves, pirates, hunters, scavengers, players). Resources that killed crew carry drop 1:1 too. Vanilla drops half
     /// (StorageDestroyed 50 %). Tech keeps its own rules (spec 65, 1549): it is left out. Part internals (batteries, ammo, factory buffers,
     /// typed grids) stay vanilla: they are not cargo. Spec 1835: a resource that vanilla never drops from a bay that weapons break

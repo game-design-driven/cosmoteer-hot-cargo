@@ -9,7 +9,7 @@ using HotCargo.Core;
 namespace HotCargo.Ux;
 
 /// <summary>
-/// V22, spec 1600: a mission paid by "any station in a system" (vanilla Visit missions) stays open until the players press the receive
+/// V22, spec 2400: a mission paid by "any station in a system" (vanilla Visit missions) stays open until the players press the receive
 /// payment button in the comms of a station there. The vanilla line does not say to call a station. While the payment waits in the current
 /// system, the mission line says so, and one chat line and one banner tell the players once per mission. GUI only.
 /// </summary>

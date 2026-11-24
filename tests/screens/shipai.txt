@@ -47,7 +47,7 @@ tactics_editor actparam 7 1
 tactics_editor savepreset Tech runner
 wait 2
 screenshot shipai-editor-chains
-# Spec 1831: brackets. Row 1 becomes: IF Always AND (NOT CarryingTech OR HealthBelow 30) OR EnemiesAtLeast 4.
+# Spec 2321: brackets. Row 1 becomes: IF Always AND (NOT CarryingTech OR HealthBelow 30) OR EnemiesAtLeast 4.
 tactics_editor bracket 1 2
 tactics_editor insertterm 1 2
 tactics_editor cond 1 HealthBelow 3

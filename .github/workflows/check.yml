@@ -39,12 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-      # New numbers count against the base of the PR or of the queue group (spec/blocks.txt); other runs check main itself.
+      # Every requirement in a block of its own file (spec/blocks.txt), and no reference to a missing requirement.
       - run: scripts/check-spec-numbers.sh
-        env:
-          SPEC_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
   build:
     runs-on: ubuntu-latest
     # Pull requests from forks get no secrets, so they cannot read the private game references.
@@ -101,7 +97,7 @@ jobs:
         env:
           CosmoteerBin: ${{ github.workspace }}/.game-refs/Bin
       - run: dotnet run --project tests/HotCargo.Tests
-      # The Windows player installer keeps the player's files (spec 1989). The runner has pwsh; install-mac.sh needs a Mac.
+      # The Windows player installer keeps the player's files (spec 2260). The runner has pwsh; install-mac.sh needs a Mac.
       - run: scripts/test-install-keep.sh
   # The game tests of the set, split over a few full jobs (scripts/ci-sim-tests.sh). A runner has 4 cores and 16 GB, and one
   # sim takes about one core and 2 GB, so each job runs 4 sims at once. The set decides the job count, at most 6

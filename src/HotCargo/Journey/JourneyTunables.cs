@@ -23,10 +23,10 @@ public sealed class JourneyTunables
     /// <summary>Spec 301: blueprint prices × this, so that unlocks stay a choice in a short run. The faction reputation factor applies too.</summary>
     [Serialize(Optional = true)] public float TechCostScale = 2.5f;
     /// <summary>
-    /// Spec 1983: the highest low tier of a normal system; the main route reaches it after about 6 jumps. Faction home systems sit
+    /// Spec 2414: the highest low tier of a normal system; the main route reaches it after about 6 jumps. Faction home systems sit
     /// TierSpread + 1 tiers higher. New runs only (the galaxy is made once per run); in co-op the galaxy uses the default.
     /// </summary>
     [Serialize(Optional = true)] public int FinalSectorTier = 12;
-    /// <summary>Spec 1983: star systems in the run galaxy. New runs only; in co-op the galaxy uses the default.</summary>
+    /// <summary>Spec 2414: star systems in the run galaxy. New runs only; in co-op the galaxy uses the default.</summary>
     [Serialize(Optional = true)] public int MapSystems = 50;
 }

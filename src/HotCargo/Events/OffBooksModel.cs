@@ -1,6 +1,6 @@
 namespace HotCargo.Events;
 
-/// <summary>Pure rules of Off the Books (spec 1801 to 1812). No game types, so the unit tests cover them.</summary>
+/// <summary>Pure rules of Off the Books (spec 1801 to 1809). No game types, so the unit tests cover them.</summary>
 public static class OffBooksModel
 {
     /// <summary>

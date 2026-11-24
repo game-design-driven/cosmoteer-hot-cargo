@@ -122,8 +122,8 @@ internal sealed class PrototypeObjective : Objective, IMissionMarkers
         args["target_ship"] = Holder.XmlName(game);
     }
 
-    /// <summary>Spec 1873: a click shows the carrier, its area marker or its place, also while it is in stasis or in another system.</summary>
-    /// <summary>Spec 1873: where the objective is, for the click on its line.</summary>
+    /// <summary>Spec 2292: a click shows the carrier, its area marker or its place, also while it is in stasis or in another system.</summary>
+    /// <summary>Spec 2292: where the objective is, for the click on its line.</summary>
     internal FocusTarget Where(GameRoot game) => new(Holder.NodeId, Holder.Live(game.Sim), AreaPoiId, Holder.Location(game.Sim));
 
     public override bool CanFocusDisplayLine(GameRoot game) => MissionFocus.CanFocus(game, Where(game));

@@ -496,12 +496,12 @@ internal sealed class TacticsEditor : WindowBox
     // smallest window (1100) the lists then keep about a third of spare room. "tactics_editor fit" checks it in a game with graphics.
     const float ColMarker = 0f, ColJoin = 3f, ColNot = 9f, ColChoice = 15f, ChoiceWidth = 40f, ColParam = 55f, ParamWidth = 22f, ColEnd = 77f;
 
-    // Spec 1831: each bracket level indents the term line by IndentStep. Limit: the indent stops at MaxIndent levels, so the
+    // Spec 2321: each bracket level indents the term line by IndentStep. Limit: the indent stops at MaxIndent levels, so the
     // condition list keeps room for the longest name; deeper levels show only their brackets. Revisit if players nest deeper.
     const float IndentStep = 2.5f, BracketWidth = 2f;
     const int MaxIndent = 4;
 
-    /// <summary>Spec 419, 1831. outer: the bracket depth before the brackets that this term opens.</summary>
+    /// <summary>Spec 419, 2321. outer: the bracket depth before the brackets that this term opens.</summary>
     void BuildTerm(SimpleBox line, int i, int j, int outer)
     {
         var row = _rows[i];

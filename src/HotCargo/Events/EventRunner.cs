@@ -318,7 +318,7 @@ public static class EventRunner
         foreach (var pick in picks) ApplyPick(run, sim, playerIndex, pick, p, lines);
         if (picks.Count > 0) MultiChoice.MultiChoices.Clear(run, EventsMultiDomain.Name, serial);
         p.PickedUnits = picks.Sum(k => k.Units);
-        // Spec 1817: a paid heat cut works by the shared factor and counts as a buy. The buy that closes the cuts says so in the chat.
+        // Spec 2230: a paid heat cut works by the shared factor and counts as a buy. The buy that closes the cuts says so in the chat.
         bool paidCut = IsPaidHeatCut(choice, picks) && outcome.Heat < 0f;
         ApplyOutcome(run, sim, playerIndex, outcome, p, lines, paidCut ? run.HeatBuyFactor() : 1f);
         if (paidCut)
@@ -343,7 +343,7 @@ public static class EventRunner
         RestoreParked(run);
     });
 
-    /// <summary>Spec 1876: once no page waits, the page that a hand-over line parked comes back. Sim logic.</summary>
+    /// <summary>Spec 2383: once no page waits, the page that a hand-over line parked comes back. Sim logic.</summary>
     internal static void RestoreParked(Run run)
     {
         var s = State(run);
@@ -438,7 +438,7 @@ public static class EventRunner
     public static Snapshot Snap(Run run, SimRoot sim, int money, int tier, long techValue)
     {
         var ships = Vaults.HumanShips(sim).ToList();
-        // Spec 1875: stored or carried by the players' crew, the same rule as the cost (ChangeResource) and the hand-over checks.
+        // Spec 2382: stored or carried by the players' crew, the same rule as the cost (ChangeResource) and the hand-over checks.
         var resources = FleetHold.AllUnits(sim);
         var vaults = Vaults.All(sim);
         return new Snapshot
@@ -478,7 +478,7 @@ public static class EventRunner
     }
 
     /// <summary>
-    /// Spec 1880: the page's options, with Resource = "@handover" resolved from the open goods hand-over of the page's contact: its
+    /// Spec 2384: the page's options, with Resource = "@handover" resolved from the open goods hand-over of the page's contact: its
     /// resource, from 1 to the units still open. Throws when such a page waits without one.
     /// </summary>
     public static OptionRules[] OptionsOf(Run run, EventRules e, int serial)
@@ -515,7 +515,7 @@ public static class EventRunner
     /// enough points, each selected option's need, and the needs and pays of all selected options on top of the choice's own.
     /// </summary>
     /// <summary>
-    /// Spec 1817: a choice that sells a heat cut for money: an outcome cuts heat, and it costs credits (its own cost, or a submit with a
+    /// Spec 2230: a choice that sells a heat cut for money: an outcome cuts heat, and it costs credits (its own cost, or a submit with a
     /// picked option that pays money; forged codes are not a payment). Derived from the rules, so a new event of this kind joins the
     /// shared rule on its own.
     /// </summary>
@@ -595,7 +595,7 @@ public static class EventRunner
     public static readonly Dictionary<string, Action<Run, SimRoot, int, PendingEvent, List<string>>> Effects = new(StringComparer.Ordinal);
 
     /// <summary>Applies the effects of an outcome and adds one result line per effect. Also used by the Chains area for stage results.</summary>
-    /// <param name="heatCutFactor">Spec 1817: the share of a heat cut (negative Heat) that works: the shared factor of a paid heat cut, else 1.</param>
+    /// <param name="heatCutFactor">Spec 2230: the share of a heat cut (negative Heat) that works: the shared factor of a paid heat cut, else 1.</param>
     internal static void ApplyOutcome(Run run, SimRoot sim, int playerIndex, OutcomeRules o, PendingEvent p, List<string> lines, float heatCutFactor = 1f)
     {
         int credits = Credits(run, o.Money, o.MoneyTech, p.Tier, p.TechValue);
@@ -736,7 +736,7 @@ public static class EventRunner
     {
         var rid = new ID<ResourceRules>(id);
         int left = Math.Abs(amount);
-        // A cost takes from any player's ships, then from the players' crew who carry it (spec 1875).
+        // A cost takes from any player's ships, then from the players' crew who carry it (spec 2382).
         if (amount < 0) left -= FleetHold.Take(sim, rid, left);
         else
             foreach (var ship in Vaults.HumanShips(sim).OrderBy(sh => sh.Metadata.PlayerIndex).ThenBy(sh => sh.UniqueID))
@@ -750,7 +750,7 @@ public static class EventRunner
     }
 
     /// <summary>
-    /// Spec 1141, 1323: a gain drifts loose beside the ship with the tag that is nearest to a ship of the player who chose: live, a wreck
+    /// Spec 1141, 2240: a gain drifts loose beside the ship with the tag that is nearest to a ship of the player who chose: live, a wreck
     /// (it keeps its tags), or in stasis. With no such ship in the system (all of it gone), the crates drift beside that player ship, and
     /// the log says so.
     /// </summary>
@@ -795,7 +795,7 @@ public static class EventRunner
     }
 
     /// <summary>
-    /// Runs a generator from spawns.rules around a ship of the player who chose (spec 1537). Existing tags (player_ship and others) are
+    /// Runs a generator from spawns.rules around a ship of the player who chose (spec 2241). Existing tags (player_ship and others) are
     /// visible to its spawners.
     /// </summary>
     static void Spawn(Run run, SimRoot sim, string name, ulong seed, int playerIndex)

@@ -33,7 +33,7 @@ if (Get-SlotProcess) { throw "Cosmoteer is running in slot $slot. Stop it before
 
 New-Item -ItemType Directory -Force $mods | Out-Null
 
-# Mod folder. The player's slot (main) follows the player installers (spec 1989): the build is copied over it and nothing is
+# Mod folder. The player's slot (main) follows the player installers (spec 2260): the build is copied over it and nothing is
 # deleted, so telemetry, screenshots and other files of the player stay. A test slot is replaced but for the live tunables,
 # their backups and the telemetry files (TELEMETRY.md), so one test cannot leave files for the next.
 $keep = Join-Path $env:TEMP ("hot_cargo_tunables_keep_" + $slot + ".rules"); if (Test-Path $keep) { Remove-Item $keep -Force }

@@ -131,7 +131,7 @@ public static class RunLog
                 long Paid(long fallback) => SimQueries.TradeUnitPrice(__instance, tradeType, resourceType, crew, sourceShip, sinkShip) ?? fallback;
                 if (tradeType == TradeType.Sell && sinkShip is not null && Buyer.IsBuyer(sinkShip))
                     Add(run, RunLogKind.Delivery, Format("DeliveryFmt", amount, Buyer.UnitPrice(run).ToString("N0")));
-                // Spec 1594: the price that the station paid, with the faction prices (rival fence premium), not the base tech value.
+                // Spec 2330: the price that the station paid, with the faction prices (rival fence premium), not the base tech value.
                 else if (tradeType == TradeType.Sell)
                     Add(run, RunLogKind.Sale, Format("SaleFmt", amount, Paid(TechPrice.Sell(run)).ToString("N0"), Escape(sinkShip?.Metadata.PlainShipName ?? "")));
                 else if (tradeType == TradeType.Buy)

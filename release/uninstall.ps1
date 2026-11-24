@@ -1,5 +1,5 @@
 # Removes Hot Cargo: restores Cosmoteer.runtimeconfig.json, removes the loader and the mod files that this release ships.
-# The player's files in the mod folder stay (spec 1989): tunables.rules, telemetry\, screenshots\, testships\ and the log.
+# The player's files in the mod folder stay (spec 2260): tunables.rules, telemetry\, screenshots\, testships\ and the log.
 # The list of mod files is the install's list: every file of the hot_cargo folder next to this script, but tunables.rules.
 # Limit: a file that only an older release shipped stays behind. Nothing loads it without mod.rules. Revisit if one must go.
 param([string]$GameDir = "", [string]$ModsDir = "")

@@ -21,7 +21,7 @@ public static class HeatModel
     public static float Clamp(float heat) => Math.Clamp(heat, 0f, MaxHeat);
 
     /// <summary>
-    /// Spec 1817: the share of a paid heat cut that works now: trust (fewer recent buys, more trust) × heat share (heat ÷ fullHeat, at most 1).
+    /// Spec 2230: the share of a paid heat cut that works now: trust (fewer recent buys, more trust) × heat share (heat ÷ fullHeat, at most 1).
     /// </summary>
     public static float BuyFactor(float recentBuys, float heat, float falloff, float fullHeat)
     {
@@ -29,17 +29,17 @@ public static class HeatModel
         return Trust(recentBuys, falloff) * Math.Clamp(heat / fullHeat, 0f, 1f);
     }
 
-    /// <summary>Spec 1817, 1818: the trust left after some uses of a paid deal: 1 ÷ (1 + uses × falloff). Each use lowers it less.</summary>
+    /// <summary>Spec 2230, 2224: the trust left after some uses of a paid deal: 1 ÷ (1 + uses × falloff). Each use lowers it less.</summary>
     public static float Trust(float uses, float falloff)
     {
         if (uses < 0f || falloff < 0f) throw new ArgumentOutOfRangeException(nameof(uses), $"uses {uses}, falloff {falloff}");
         return 1f / (1f + uses * falloff);
     }
 
-    /// <summary>Spec 1817: paid heat cuts are on offer while the factor is at least closeBelow.</summary>
+    /// <summary>Spec 2230: paid heat cuts are on offer while the factor is at least closeBelow.</summary>
     public static bool BuyOpen(float factor, float closeBelow) => factor >= closeBelow;
 
-    /// <summary>Spec 1817: the count of recent paid heat cuts after some game seconds: it halves every halfLifeMinutes.</summary>
+    /// <summary>Spec 2230: the count of recent paid heat cuts after some game seconds: it halves every halfLifeMinutes.</summary>
     public static float BuyDecay(float recentBuys, double seconds, float halfLifeMinutes) =>
         halfLifeMinutes <= 0f ? 0f : (float)(recentBuys * Math.Pow(0.5, seconds / (halfLifeMinutes * 60.0)));
 

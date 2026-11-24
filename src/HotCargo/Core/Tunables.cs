@@ -41,17 +41,17 @@ public sealed class HeatTunables
         new() { Name = "Strike", Heat = 100f },
     ];
 
-    // ---- Paid heat cuts (spec 1817): every comms choice that sells a heat cut for money shares one factor.
+    // ---- Paid heat cuts (spec 2230): every comms choice that sells a heat cut for money shares one factor.
     /// <summary>
-    /// Spec 1817: each recent paid heat cut makes the next one weaker: trust = 1 / (1 + recent buys × this). 0.5: the 2nd cut gives 67 %,
+    /// Spec 2230: each recent paid heat cut makes the next one weaker: trust = 1 / (1 + recent buys × this). 0.5: the 2nd cut gives 67 %,
     /// the 3rd 50 %, the 4th 40 %.
     /// </summary>
     [Serialize(Optional = true)] public float HeatBuyFalloff = 0.5f;
-    /// <summary>Spec 1817: game minutes in which the count of recent paid heat cuts halves (word of the buys fades).</summary>
+    /// <summary>Spec 2230: game minutes in which the count of recent paid heat cuts halves (word of the buys fades).</summary>
     [Serialize(Optional = true)] public float HeatBuyHalfLifeMinutes = 20f;
-    /// <summary>Spec 1817: a paid heat cut works fully at this heat or more, and less below it (heat ÷ this): a cold trail needs no cleaning.</summary>
+    /// <summary>Spec 2230: a paid heat cut works fully at this heat or more, and less below it (heat ÷ this): a cold trail needs no cleaning.</summary>
     [Serialize(Optional = true)] public float HeatBuyFullHeat = 60f;
-    /// <summary>Spec 1817: paid heat cuts close below this factor (trust × heat share): nobody sells a clean trail to a captain who bought too many.</summary>
+    /// <summary>Spec 2230: paid heat cuts close below this factor (trust × heat share): nobody sells a clean trail to a captain who bought too many.</summary>
     [Serialize(Optional = true)] public float HeatBuyCloseBelow = 0.25f;
 }
 

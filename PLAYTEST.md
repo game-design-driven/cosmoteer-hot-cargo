@@ -66,7 +66,7 @@ Each hunter uses only the tactics of its personality (spec 361). To see every ta
 Switch a behavior off to compare: `Tactics { CallEnabled = false }` for hunters, `Tactics { CallOnVanilla = false }` for pirates and other vanilla AIs (same for `Flee`, `Focus`, `Regroup`).
 
 1. Sector 1, low FTL fuel: raise heat to 100 (F9). Strike sends one ship now and one 45 s later. Can you destroy the first one, pick up or salvage its fuel, and jump before the second one arrives? Is it "by the skin of your teeth", or too easy, or impossible? Tune `Hunters.Stages` Strike `EarlyScale`, `WaveGapSeconds` and `Hunters.MinFuel`.
-2. Destroy a hunter's hyperdrive or storage. Do hyperium nuggets drop (storage bays drop all their fuel, spec 1814)? Does salvaging the wreck give the rest?
+2. Destroy a hunter's hyperdrive or storage. Do hyperium nuggets drop (storage bays drop all their fuel, spec 2370)? Does salvaging the wreck give the rest?
 3. Last sector: three strike ships of tier + 2, one at a time. Is the last sector a real threat but still survivable?
 4. Call for help: a hunter calls when it first sees you while another group waits. Is the red ring and "CALLING HELP n%" label easy to notice in a fight? Is 15 s the right window to jam or kill the caller?
 5. Hit a calling ship with a disruptor, an EMP missile or an ion beam. Does the call stop at once, with the "call was cut off" log line? Does that feel like a reward for carrying disruptors?
@@ -263,4 +263,4 @@ The autotests `onboarding-hints` and `onboarding-log` cover each trigger, the or
 3. Hail a faction patrol ship at heat 10+. Does "Ask about hunters nearby" show?
 4. Shoot the freighter while its page is open. Does the page close with "The ship is gone"?
 5. Co-op: both players open the same ship's comms. One chooses. Does the other's window update, with no double effect?
-6. Rescue Beacon (spec 1146 to 1148): buy one at a station, fly off, lose your engines, and fire it. Is the fee in the tooltip clear? Does the tug reach you, tow you around stars, and drop you at the station? Does the tow feel like a recovery, not a punishment?
+6. Rescue Beacon (spec 2350 to 2352): buy one at a station, fly off, lose your engines, and fire it. Is the fee in the tooltip clear? Does the tug reach you, tow you around stars, and drop you at the station? Does the tow feel like a recovery, not a punishment?

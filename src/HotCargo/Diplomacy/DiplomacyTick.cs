@@ -45,7 +45,7 @@ static class DiplomacyTick
 
     /// <summary>
     /// Hunters that agreed to leave: the FTL jump-out effect at Due, then removal, like a fleeing hunter (spec 195).
-    /// A leaving ship that becomes a wreck stays; a wreck that the players claim is their ship (spec 1511).
+    /// A leaving ship that becomes a wreck stays; a wreck that the players claim is their ship (spec 2280).
     /// </summary>
     static void TickLeaving(Run run, SimRoot sim)
     {
@@ -146,7 +146,7 @@ static class DiplomacyTick
                 hires.RemoveAt(i--);
                 continue;
             }
-            // Spec 1818: damage counts once a check (CheckSeconds) and when a fleeing hire quits. Limit: damage in the last check
+            // Spec 2224: damage counts once a check (CheckSeconds) and when a fleeing hire quits. Limit: damage in the last check
             // before a jump does not count. Revisit if jumps often come right after heavy hits on hired ships.
             CountDamage(run, h, ship);
             if (now < h.Until || h.Fleeing) continue;
@@ -156,7 +156,7 @@ static class DiplomacyTick
         }
     }
 
-    /// <summary>Spec 1818: adds the health that a paid hire lost since its last count to the run's hired ship losses. Repairs do not count.</summary>
+    /// <summary>Spec 2224: adds the health that a paid hire lost since its last count to the run's hired ship losses. Repairs do not count.</summary>
     internal static void CountDamage(Run run, Hire h, Ship ship)
     {
         if (!h.Paid) return;

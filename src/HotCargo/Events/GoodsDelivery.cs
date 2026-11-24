@@ -16,7 +16,7 @@ using HotCargo.Core;
 namespace HotCargo.Events;
 
 /// <summary>
-/// Spec 1880: every resource delivery is a goods hand-over at its contact (HandOverObjective.NewGoods), never a sale in the trade tab.
+/// Spec 2384: every resource delivery is a goods hand-over at its contact (HandOverObjective.NewGoods), never a sale in the trade tab.
 /// Both ways that the game makes a DeliverResources objective become one: a rules spawner (vanilla or Hot Cargo: Salvage Race, Sunside Ore,
 /// Reactor Shielding) and the vanilla Resource Delivery offers that career mode builds in code. A DeliverResources objective from an older
 /// save stays a trade delivery until it ends.

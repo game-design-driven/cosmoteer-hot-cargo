@@ -11,7 +11,7 @@ godmode on
 fr_set PayForwardChance 1
 fr_set PayForwardOutclassRatio 0.01
 expect fr_wayfarers == 0
-# A spawn out of the live range goes into stasis: no help, no error, and no Wayfarer left in stasis (spec 1536).
+# A spawn out of the live range goes into stasis: no help, no error, and no Wayfarer left in stasis (spec 2390).
 fr_wayfarers_far
 expect fr_wayfarers == 0
 expect fr_forward_done == 0

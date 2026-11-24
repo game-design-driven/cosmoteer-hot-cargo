@@ -119,7 +119,7 @@ static class PayItForward
         Log.Info($"friendly: outclassed (players {players:0}, enemies {enemies:0}); help roll {roll:0.000} vs {t.PayForwardChance:0.000}");
         if (roll < t.PayForwardChance)
         {
-            // Spec 1370, 1537: the player ship with the most enemy strength within PayForwardRadius. A qualifying fight has a player ship.
+            // Spec 1370, 2241: the player ship with the most enemy strength within PayForwardRadius. A qualifying fight has a player ship.
             float r = t.PayForwardRadius;
             var anchor = SimQueries.AnchorShip(sim, p => enemyShips.Where(e => e.DetWorldCenter.DistanceTo(p.DetWorldCenter) <= r).Sum(Situation.Strength))
                 ?? throw new InvalidOperationException("a qualifying fight with no player ship");
@@ -128,7 +128,7 @@ static class PayItForward
     }
 
     /// <summary>
-    /// Spec 1370, 1536. Spawns the Wayfarers around a point and hires them. Vanilla puts ships that spawn out of the live range of every
+    /// Spec 1370, 2390. Spawns the Wayfarers around a point and hires them. Vanilla puts ships that spawn out of the live range of every
     /// stasis root into stasis, not into the sim; then no help comes, and the stasis ships are removed so they never load as strays.
     /// </summary>
     internal static void Arrive(Run run, SimRoot sim, Vector2 at)

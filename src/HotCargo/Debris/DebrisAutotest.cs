@@ -126,7 +126,7 @@ static class DebrisAutotest
             }
             Log.Info($"AUTOTEST debris_spawn: {count} pieces of {parts} {partId}, speed {speed}");
         };
-        // debris_cargo <units> [resource]: one junk piece (named like debris_spawn's) made of a storage bay that holds this much of the resource (default steel; spec 1814, 1835).
+        // debris_cargo <units> [resource]: one junk piece (named like debris_spawn's) made of a storage bay that holds this much of the resource (default steel; spec 2370, 1835).
         Autotest.Commands["debris_cargo"] = arg =>
         {
             var p = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);

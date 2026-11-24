@@ -21,7 +21,7 @@ wait 20
 mech_survey_next
 wait 20
 expect mech_goal_survey == 1
-# Sun mining: ore deposits sit on the seam asteroids. Spec 1880: the ore goes over on the shared delivery page at the station, in trips
+# Sun mining: ore deposits sit on the seam asteroids. Spec 2384: the ore goes over on the shared delivery page at the station, in trips
 # (a small hold carries less than 30): 20, then 10. The job completes at the rules' minimum of 30 of 45, and the pay follows the total.
 mech_generate sunmining
 mech_accept sunmining

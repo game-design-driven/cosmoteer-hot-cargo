@@ -37,7 +37,7 @@ public static class Abandoned
         SpawnRelic(run, run.Game.Sim);
     }
 
-    /// <summary>Spawns the relic ship 5,000 to 8,000 from the first player ship (spec 1323). Public for the autotest.</summary>
+    /// <summary>Spawns the relic ship 5,000 to 8,000 from the first player ship (spec 2240). Public for the autotest.</summary>
     public static void SpawnRelic(Run run, SimRoot sim)
     {
         var at = SimQueries.AnchorShip(sim)?.DetWorldCenter ?? throw new InvalidOperationException("no human ships to place the relic near");

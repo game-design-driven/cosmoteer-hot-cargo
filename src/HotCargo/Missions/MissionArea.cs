@@ -48,7 +48,7 @@ public static class MissionArea
             Autotest.Fields[$"hc_active_{name}"] = () => RequireRun().Mode.Missions.Count(m => m.MetatypeID.Equals(id) && m.Completion == CompletionState.InProgress);
             Autotest.Fields[$"hc_completed_{name}"] = () => RequireRun().Mode.Missions.Count(m => m.MetatypeID.Equals(id) && m.Completion == CompletionState.Completed);
         }
-        // Spec 1145. hc_markers_mark <metatype ID>: remembers the markers of the latest mission of that type in the log; the field
+        // Spec 2250. hc_markers_mark <metatype ID>: remembers the markers of the latest mission of that type in the log; the field
         // hc_markers_left counts how many of them are in the current system. hc_abandon <metatype ID>: abandons that mission (MP input).
         Autotest.Commands["hc_markers_mark"] = arg =>
         {
@@ -68,7 +68,7 @@ public static class MissionArea
             RequireRun().Game.NetManager.EnqueueInput(new Cosmoteer.Modes.Career.Missions.MissionLogTab.MPAbandonMissionInput(LatestOfType(arg.Trim())));
             Autotest.Wait(2);
         };
-        // Spec 1596: a vanilla Visit mission through the real inputs. hc_visit_accept: the galaxy offer for the neighbor that "jump" takes.
+        // Spec 2251: a vanilla Visit mission through the real inputs. hc_visit_accept: the galaxy offer for the neighbor that "jump" takes.
         // hc_visit_collect: the receive payment button of the nearest station. Field hc_visit: 0 none, 1 on the way, 2 arrived and the
         // reward waits at the stations of the system, 3 paid and out of the log, 4 other.
         Autotest.Commands["hc_visit_accept"] = _ => VisitAccept();

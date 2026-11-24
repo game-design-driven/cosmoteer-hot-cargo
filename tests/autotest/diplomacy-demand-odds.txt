@@ -1,4 +1,4 @@
-# Surrender odds (spec 1525, 1530): a badly damaged enemy does not demand the surrender of a stronger player fleet.
+# Surrender odds (spec 1525, 2222): a badly damaged enemy does not demand the surrender of a stronger player fleet.
 # Playtest bug: a half-destroyed ship hailed six player ships and asked them to surrender for a big fee.
 newgame run
 wait 8

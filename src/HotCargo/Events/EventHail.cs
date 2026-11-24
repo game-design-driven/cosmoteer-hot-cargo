@@ -29,13 +29,13 @@ public static class EventHail
     public static bool IsCarried(PendingEvent p) => p.Carrier is not null;
 
     /// <summary>
-    /// Spec 1537, 1813: a carrier can spawn only near a working player ship. With none (a lost fight, stranded, all ships derelict), an
+    /// Spec 2241, 1813: a carrier can spawn only near a working player ship. With none (a lost fight, stranded, all ships derelict), an
     /// event with a carrier does not open.
     /// </summary>
     internal static bool CanSpawnCarrier(SimRoot sim) => SimQueries.AnchorShip(sim) is not null;
 
     /// <summary>
-    /// Spawns the event's carrier near the first player ship (spec 1537) and returns its ID, or null when the players have no working ship
+    /// Spawns the event's carrier near the first player ship (spec 2241) and returns its ID, or null when the players have no working ship
     /// (spec 1813). The generator must tag one ship hc_ev_carrier.
     /// </summary>
     internal static ObjectID? SpawnCarrier(SimRoot sim, EventRules e, ulong seed)
@@ -89,7 +89,7 @@ public static class EventHail
         // The contact of an active hand-over shows its own page's line until the hand-over ends, so a "not yet" can come back (spec 1102).
         // A mission step, so it works with random events turned off.
         var handOver = HandOverObjective.ForContact(run, callee.UniqueID);
-        // Spec 1876: one page waits at a time, but a hand-over line shows anyway: opening it parks the waiting page. Not while a page is
+        // Spec 2383: one page waits at a time, but a hand-over line shows anyway: opening it parks the waiting page. Not while a page is
         // parked already, and not at a contact whose own comms show the waiting page.
         if (s.Pending is { } waiting && (handOver is null || s.Parked is not null || waiting.Carrier == callee.UniqueID)) return [];
         if (handOver is null && !run.T.Events.Enabled) return [];
@@ -118,7 +118,7 @@ public static class EventHail
         var s = run.State.Events;
         if (s.Pending is { } waiting)
         {
-            // Lines offered this line with a page waiting only for a hand-over (spec 1876).
+            // Lines offered this line with a page waiting only for a hand-over (spec 2383).
             if (e.HailTarget != HailTarget.Contact || s.Parked is not null) throw new InvalidOperationException($"hail line {eventId} opened while page {waiting.EventId} waits");
             s.Parked = waiting;
             Log.Info($"hand-over line {eventId}: page {waiting.EventId} serial {waiting.Serial} waits behind it");

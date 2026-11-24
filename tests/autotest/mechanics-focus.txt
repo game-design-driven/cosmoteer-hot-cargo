@@ -1,4 +1,4 @@
-# Spec 1873: a click on a mission line shows where the mission is, before and after the players reach its system.
+# Spec 2292: a click on a mission line shows where the mission is, before and after the players reach its system.
 # Playtest 2026-11-23 (dev.239): the Repossession line had no click while the freighter was far away, so the players could not find it.
 # The focus fields give the FocusStep value: 0 none, 1 galaxy map (another system), 2 target ship, 3 area marker, 4 target place.
 # missions: random

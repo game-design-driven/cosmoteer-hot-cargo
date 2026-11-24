@@ -1,4 +1,4 @@
-# Tow (spec 134) and capture (spec 135, 1110: the bank takes the freighter at the station).
+# Tow (spec 134) and capture (spec 135, 2380: the bank takes the freighter at the station).
 # missions: random
 newgame run
 wait 8
@@ -39,7 +39,7 @@ expect mech_capture_hostile == 1
 mech_capture_surrender
 wait 2
 expect mech_goal_capture == 1
-# The surrendered freighter stays in the system (spec 1110). Alongside the bank's station it is delivered at once, with no comms step
+# The surrendered freighter stays in the system (spec 2380). Alongside the bank's station it is delivered at once, with no comms step
 # (spec 1877: the shared arrival rule of ship deliveries).
 wait 10
 expect ev_handover == 0

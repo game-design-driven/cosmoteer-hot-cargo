@@ -44,7 +44,7 @@ HotCargoEvents
 	WantedCleared = "Wanted cleared"
 	// Spec 922: an event heat gain that the network outage blocked.
 	HeatBlocked = "Heat +0 (network down)"
-	// Spec 1817: paid heat cuts are closed (too many recent buys, or a cold trail).
+	// Spec 2230: paid heat cuts are closed (too many recent buys, or a cold trail).
 	HeatBuyClosed = "Nobody sells you a cleaner trail now"
 	HeatBuyClosedChat = "Word of your paid-off trails gets around. Nobody here sells you patrol logs or clean records for a while."
 	CarrierCallingFmt = "{0} is calling. Fly within comms range to answer, or hail it."
@@ -75,7 +75,7 @@ HotCargoItems
 	SpaceTracerTip = "Throw the tracer beacon out of the airlock. It stops calling home."
 	SpacedTracerFmt = "{0} spaced the tracer beacon."
 	TracerPingFmt = "The tracer beacon calls home: heat +{0}."
-	// Spec 1147, 1148. {0} = the ship.
+	// Spec 2351, 2352. {0} = the ship.
 	RescueBeacon = "Rescue Beacon"
 	RescueBeaconPlural = "Rescue Beacons"
 	RescueBeaconDesc = "Fire it when your ship cannot fly on. A tug tows the ship to the nearest friendly station, for a fee. The whole sector hears the call."

@@ -315,7 +315,7 @@ Events do not only pop up. Ships carry them and talk:
 The dock officer quotes a price per crate (0.85 × tech value, less with heat and hunters, more with good standing) and an informant chance per crate (4 % + 10 % per 100 heat, less with good standing). "Set up the meet": a fence waits 3,000 to 4,000 out for 5 minutes. Fly the crates there and hand over 1 to 3 in its comms. Corporate ships near the fence add 15 % each. Clean: the money and heat −10 per crate. Sting: the same money, but heat +15 and corporate ships jump in. Against the trade screen (full price, no heat cut) and the Buyer (the best price, at the end).
 
 #### 34. Patrol Chatter (Hail line, faction ships; heat 10+)
-Pay 0.2 money units for patrol logs (heat −8, less after recent paid heat cuts or at low heat; spec 1817), or never mind. A clear deal only. The line hides while paid heat cuts are closed.
+Pay 0.2 money units for patrol logs (heat −8, less after recent paid heat cuts or at low heat; spec 2230), or never mind. A clear deal only. The line hides while paid heat cuts are closed.
 
 The gamble is in the world (spec 1122, 1123): select a sensor array and press "Listen to patrol chatter" while a faction ship is within 1,500. A bar above the sensor array fills for 8 seconds. Distance over 1,500, weapons fire within 800 (the listening ship's own shots too), a lost sensor array or a channel that goes dead (the ship leaves or turns hostile) stop it. Success: heat −4. Failure, "they log your question": heat +5. The chance falls in a line from 100 % at heat 0 to 60 % at heat 100. Each faction ship is heard once; a stopped listen can start again.
 
@@ -323,7 +323,7 @@ Hunter demands ("hand over the tech") are the diplomacy area's, through the same
 
 Page options (spec 810 to 812): the "options" above are rows of a multiselect page. Players select them and set their amounts, then pick the submit choice. The old choices cost the same for the same result.
 
-#### 35. Rescue Beacon (an item; trade stations sell it; spec 1146 to 1148)
+#### 35. Rescue Beacon (an item; trade stations sell it; spec 2350 to 2352)
 Trade stations stock 1 or 2 and sell it in their trade window, like other goods, for 0.3 money units (times the station's heat markup). In the hold, select its storage and press "Fire the beacon". The button tooltip shows the fee (0.4 money units in credits) and the heat (+10). A tug comes, takes the ship on a tow line and tows it to the nearest trade station that is not hostile, around the heat zones of stars. The mission log shows the Rescue Tow. Too little money: the tug takes what there is and comes anyway. No friendly station in the system: nothing happens, and the beacon stays. The tug destroyed: the tow stops, and the mission stays for the players.
 
 All catalog items are implemented.

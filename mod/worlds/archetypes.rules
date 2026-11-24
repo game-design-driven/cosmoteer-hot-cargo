@@ -1,7 +1,7 @@
 // System types of the Hot Cargo run map (spec 220). mod/journey/galaxy.rules uses this spawner instead of the vanilla one.
 // It is the vanilla RandomSectorTypes spawner: each system that has no sector type yet gets one by weight.
 // The starting system stays basic (StartingNodePicker in galaxy.rules sets it first).
-// The weights are the tunables Worlds.SystemTypeWeights (spec 1983): Journey/MapRules.cs writes them here when a new galaxy is
+// The weights are the tunables Worlds.SystemTypeWeights (spec 2414): Journey/MapRules.cs writes them here when a new galaxy is
 // made. This file holds the types and their tier limits.
 
 SectorTypes

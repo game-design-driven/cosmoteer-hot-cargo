@@ -14,7 +14,7 @@ using HotCargo.Core;
 
 namespace HotCargo.Events;
 
-/// <summary>A running rescue tow (spec 1148). Saved in EventsState.</summary>
+/// <summary>A running rescue tow (spec 2352). Saved in EventsState.</summary>
 [ReflectiveSerialization(Explicit = true)]
 public sealed class RescueTowState
 {
@@ -31,7 +31,7 @@ public sealed class RescueTowState
 }
 
 /// <summary>
-/// Spec 1147, 1148: the Rescue Beacon. Its item action (handler "rescue") starts a rescue tow mission (the tow objective of requirement 88,
+/// Spec 2351, 2352: the Rescue Beacon. Its item action (handler "rescue") starts a rescue tow mission (the tow objective of requirement 88,
 /// with the firing ship as the towed ship), takes the fee from the player who fired it, adds heat and spawns a tug. The sim tick
 /// flies the tug to the ship, then to the station, and drags the ship on a tow line. Everything runs in the sim, so co-op stays in step.
 /// </summary>
@@ -48,11 +48,11 @@ public static class RescueBeacon
 
     public static readonly ID<Cosmoteer.Resources.ResourceRules> Id = new("yarden_zamir.rescue_beacon");
 
-    /// <summary>Spec 1147: the beacon's price in a station's trade window: Events.RescueBeaconPrice money units at the current tier.</summary>
+    /// <summary>Spec 2351: the beacon's price in a station's trade window: Events.RescueBeaconPrice money units at the current tier.</summary>
     public static int Price(Run run) => EventRunner.Credits(run, run.T.Events.RescueBeaconPrice, 0f, run.CurrentTier, 0);
 
     /// <summary>
-    /// Spec 1147: stations sell the beacon at its price and buy it back at half, like fuel. All inputs are sim state, so every client
+    /// Spec 2351: stations sell the beacon at its price and buy it back at half, like fuel. All inputs are sim state, so every client
     /// computes the same price. The Factions heat markup runs after this (lower priority), as for every good.
     /// </summary>
     [HarmonyLib.HarmonyPatch(typeof(Cosmoteer.Modes.Career.CareerSimModeManager))]

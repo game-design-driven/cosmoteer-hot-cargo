@@ -10,7 +10,7 @@
 | `Debris.SalvageComponentDropFactor`, `SalvageComponentPrice` | 0.85, 1000 | 1832 |
 | `Debris.LaserDropShare`, `LaserBaseDropFactor`, `LaserBaseResources` | 0.9, 0.75, steel and coil | 1834 |
 | `Debris.LaserBayAmmoShare` | 0 | 1835 |
-| `Balance.BuildStackSize`, `BuildStackResources` | 80, steel and coil | 1836 |
+| `Balance.BuildStackSize`, `BuildStackResources` | 80, steel and coil | 2410 |
 | `Debris.MiningYieldFactor`, `LaserMiningYieldFactor` | 1.2, 1.3 | 1248 |
 | `Journey.TechCostScale` | 2.5 | 301 |
 | `BuyerPriceFactor` | 4 | 7 |
@@ -54,7 +54,7 @@
 | `Events.RelicEnabled`, `RelicMinSector`, `RelicMessageDistance`, `RelicBoardDistance` | true, 2, 2000, 900 | 765 |
 | `Events.ListenSeconds`, `ListenRange`, `ListenChanceAtNoHeat`, `ListenChanceAtMaxHeat` | 8 s, 1500, 1, 0.6 | 1122, 1123 |
 | `Events.ListenSuccessHeat`, `ListenFailHeat`, `ListenCombatRadius`, `ListenCombatSeconds` | -4, 5, 800, 5 s | 1123 |
-| `Events.RescueFee`, `RescueHeat`, `RescueTowLength`, `RescueTowPull`, `RescueSunMargin`, `RescueTugLeaveSeconds` | 0.4, 10, 150, 1, 300, 20 s | 1147, 1148 |
+| `Events.RescueFee`, `RescueHeat`, `RescueTowLength`, `RescueTowPull`, `RescueSunMargin`, `RescueTugLeaveSeconds` | 0.4, 10, 150, 1, 300, 20 s | 2351, 2352 |
 | `Events.StationAttackChance`, `StationAttackMinSector`, `StationAttackDelaySeconds`, `StationAttackTriggerDistance`, `StationAttackGunsDown` | 0.2, 2, 40 s, 1500, 0.9 | 90, 91 |
 | `Events.StationAttackInTheWayRange`, `StationAttackFallHealth`, `StationAttackMaxSeconds`, `StationAttackReward`, `StationAttackReputation` | 150, 0.8, 240 s, 1, 1 | 93 to 95 |
 | `Events.StationRebuildRadius`, `StationRebuildPullSpeed`, `StationRebuildReach`, `StationRebuildStepSeconds`, `StationRebuildPartsPerStep`, `StationRebuildPerDebrisPart`, `StationRebuildWaitSeconds` | 1000, 40, 20, 1 s, 3, 2, 60 s | 96, 97 |

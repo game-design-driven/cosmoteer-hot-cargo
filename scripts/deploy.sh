@@ -4,7 +4,7 @@
 # - The PC keeps one unpacked copy of each build in %USERPROFILE%\HotCargoSlots\_builds\<hash> (the 30 newest).
 #   A build that the PC has already is not uploaded again; the slot gets a copy of the cached build.
 # - scripts/slot-install.ps1 (shipped in the build) does the install: in slot main it copies the build over the mod folder and
-#   deletes nothing (spec 1989, the player installers' rule); a test slot's mod folder is replaced but for telemetry. It keeps
+#   deletes nothing (spec 2260, the player installers' rule); a test slot's mod folder is replaced but for telemetry. It keeps
 #   the player's tunables file in slot main, installs the startup hook loader and the test slot settings.
 # Autotest mode (AUTOTEST_SCRIPT=<file>, used by autotest-lib.sh start_slot): the same PC call also stops the test slot's
 # game first, installs the file as autotest.txt and starts the game. It never stops the main slot: it fails if that game runs.

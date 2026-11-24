@@ -898,7 +898,7 @@ Events
 	// A right answer halves heat (effect halve_heat); a wrong one adds a little heat. The riddle and its answers are the page.
 	{
 		ID = riddle_hole
-		// Spec 1816: the effects stay off the buttons, or a wrong answer would show its heat.
+		// Spec 2270: the effects stay off the buttons, or a wrong answer would show its heat.
 		HideEffects = true
 		Trigger = Arrival
 		Weight = 1
@@ -929,7 +929,7 @@ Events
 
 	{
 		ID = riddle_keys
-		// Spec 1816: the effects stay off the buttons, or a wrong answer would show its heat.
+		// Spec 2270: the effects stay off the buttons, or a wrong answer would show its heat.
 		HideEffects = true
 		Trigger = Arrival
 		Weight = 1
@@ -960,7 +960,7 @@ Events
 
 	{
 		ID = riddle_dark
-		// Spec 1816: the effects stay off the buttons, or a wrong answer would show its heat.
+		// Spec 2270: the effects stay off the buttons, or a wrong answer would show its heat.
 		HideEffects = true
 		Trigger = Arrival
 		Weight = 1
@@ -991,7 +991,7 @@ Events
 
 	{
 		ID = riddle_stamp
-		// Spec 1816: the effects stay off the buttons, or a wrong answer would show its heat.
+		// Spec 2270: the effects stay off the buttons, or a wrong answer would show its heat.
 		HideEffects = true
 		Trigger = Arrival
 		Weight = 1
@@ -1022,7 +1022,7 @@ Events
 
 	{
 		ID = riddle_egg
-		// Spec 1816: the effects stay off the buttons, or a wrong answer would show its heat.
+		// Spec 2270: the effects stay off the buttons, or a wrong answer would show its heat.
 		HideEffects = true
 		Trigger = Arrival
 		Weight = 1
@@ -1216,7 +1216,7 @@ Events
 		HailTarget = FactionShip
 		HailLine = "Ask about hunters nearby."
 		MaxPerRun = 0
-		// Spec 1817: the line only sells a heat cut, so it hides while the paid heat cuts are closed.
+		// Spec 2230: the line only sells a heat cut, so it hides while the paid heat cuts are closed.
 		Need { MinHeat = 10; HeatBuyOpen = true }
 		Title = "Patrol Chatter"
 		Text = "The pilot shrugs. \"Corporate ships? We see them. Information costs, though.\""
@@ -1321,7 +1321,7 @@ Events
 		]
 	}
 
-	// Goods delivery (spec 1880): every delivery of a common resource (every DeliverResources objective, vanilla and Hot Cargo) ends on
+	// Goods delivery (spec 2384): every delivery of a common resource (every DeliverResources objective, vanilla and Hot Cargo) ends on
 	// this page at its contact. The option takes the hand-over's resource in its amount range; the pay follows the amount.
 	{
 		ID = deliver_goods

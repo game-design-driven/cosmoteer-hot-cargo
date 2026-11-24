@@ -49,7 +49,7 @@ else
   [[ -d "$SRC/hot_cargo" ]] || fail "the zip has no hot_cargo folder: $URL"
 fi
 
-# Mod folder (spec 1989): copy the release files over it and delete nothing, so the player's files stay: telemetry/ (sessions,
+# Mod folder (spec 2260): copy the release files over it and delete nothing, so the player's files stay: telemetry/ (sessions,
 # notes.jsonl, note screenshots, players/), screenshots/, testships/ and the log. The release's tunables.rules is only a
 # template: it goes in only when the player has none. Same rule as release/install.ps1.
 # Limit: a file that an older release shipped and this one does not stays behind. Nothing loads such a file: mod.rules names

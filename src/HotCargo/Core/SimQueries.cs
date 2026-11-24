@@ -86,7 +86,7 @@ public static class SimQueries
     }
 
     /// <summary>
-    /// Spec 1537. The player ship that a spawn for the players goes near: the highest weight, then the lowest player index, then the
+    /// Spec 2241. The player ship that a spawn for the players goes near: the highest weight, then the lowest player index, then the
     /// lowest ID. Not the fleet center: in co-op the players can be far apart, and vanilla puts what spawns far from every player ship
     /// into stasis (out of the live range). Null when the players have no ship in this system.
     /// </summary>

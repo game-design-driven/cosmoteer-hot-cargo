@@ -151,7 +151,7 @@ expect ev_res_yarden_zamir.sealed_case_gain == 0
 on 1 waitfor ev_res_yarden_zamir.sealed_case_gain == 0 30
 
 step events.rescue
-# Spec 1147, 1148: the client fires a rescue beacon from its machine (the item action MP input). The client pays the fee; the tug and
+# Spec 2351, 2352: the client fires a rescue beacon from its machine (the item action MP input). The client pays the fee; the tug and
 # the tow run in the sim on both machines. A lost tug ends the tow on both.
 # The beacon needs a free slot in the client's hold.
 mp ev_storage_room 2

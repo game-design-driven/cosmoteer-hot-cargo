@@ -1,4 +1,4 @@
-# Spec 579, 1818: the help offer before and after paid hires. The slider runs from 60 % of the sure price to the sure price,
+# Spec 579, 2224: the help offer before and after paid hires. The slider runs from 60 % of the sure price to the sure price,
 # and after a hire with damage the page shows the trust line. RUNNER=mac scripts/screens.sh tests/screens/hire-trust.txt <out-dir>
 render on
 newgame run

@@ -355,7 +355,7 @@ ChainCourierHit
 		}
 		: ~/PlayerMission
 		{
-			// Spec 1879: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
+			// Spec 2252: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
 			Objectives [ { Type = Sequential; SubObjectives [ &~/CarefulObjective, { Type = ReceiveRewards } ] } ]
 			Rewards = &~/BountyRewards
 		}
@@ -652,7 +652,7 @@ ChainStationRaid
 		{
 			Objectives
 			[
-				// Spec 1879: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
+				// Spec 2252: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
 				{
 					Type = Sequential
 					SubObjectives
@@ -697,7 +697,7 @@ ChainAmbush
 		{
 			Objectives
 			[
-				// Spec 1879: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
+				// Spec 2252: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
 				{
 					Type = Sequential
 					SubObjectives
@@ -780,7 +780,7 @@ ChainDepot
 		{
 			Objectives
 			[
-				// Spec 1879: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
+				// Spec 2252: the pay waits at a station (vanilla ReceiveRewards), like vanilla missions.
 				{
 					Type = Sequential
 					SubObjectives

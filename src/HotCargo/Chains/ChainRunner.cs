@@ -298,7 +298,7 @@ public static class ChainRunner
     }
 
     /// <summary>
-    /// Spec 1127: the ships of a station stage that would fight the players stay neutral (vanilla Neutral, friends with every ship)
+    /// Spec 2300: the ships of a station stage that would fight the players stay neutral (vanilla Neutral, friends with every ship)
     /// while the stage is an offer, so a guard cannot attack before the players accept. Ship IDs come from this spawn's hc_ch_ tags.
     /// </summary>
     static void HoldShips(Run run, SimRoot sim, ChainInstance c, SpawnedObjectCollection objects)
@@ -317,7 +317,7 @@ public static class ChainRunner
         if (c.HeldShips.Count > 0) Log.Info($"chain {c.ChainId} stage {c.Stage}: {c.HeldShips.Count} ships held neutral until the accept");
     }
 
-    /// <summary>Spec 1127: the players accepted the stage. Its held ships get their hostile allegiance back.</summary>
+    /// <summary>Spec 2300: the players accepted the stage. Its held ships get their hostile allegiance back.</summary>
     static void ReleaseShips(Run run, SimRoot sim, ChainInstance c)
     {
         foreach (var (id, hostile) in c.HeldShips.OrderBy(kv => kv.Key))

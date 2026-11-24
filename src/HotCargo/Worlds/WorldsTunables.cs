@@ -4,7 +4,7 @@ namespace HotCargo.Worlds;
 
 /// <summary>
 /// Numbers of the system archetypes (WORLDS.md, spec 220 to 229). The archetype weights apply when the galaxy is made, once
-/// per run (Journey/MapRules.cs writes them into the rules spawner of mod/worlds/archetypes.rules, spec 1983).
+/// per run (Journey/MapRules.cs writes them into the rules spawner of mod/worlds/archetypes.rules, spec 2414).
 /// </summary>
 [ReflectiveSerialization(Explicit = true)]
 public sealed class WorldsTunables
@@ -45,7 +45,7 @@ public sealed class WorldsTunables
     /// <summary>Spec 225: seconds after the jump before the arrival line shows. The jump shows the system name first.</summary>
     [Serialize(Optional = true)] public float ArrivalLineDelaySeconds = 4f;
     /// <summary>
-    /// Spec 220, 1983: the chance of each system type when the galaxy is made: its weight ÷ the sum of the weights that the system's
+    /// Spec 220, 2414: the chance of each system type when the galaxy is made: its weight ÷ the sum of the weights that the system's
     /// tier allows (MinTier in mod/worlds/archetypes.rules). A type that this list leaves out does not appear. New runs only; in
     /// co-op the galaxy uses the defaults. With the defaults, about 3 of 4 systems are archetypes.
     /// </summary>

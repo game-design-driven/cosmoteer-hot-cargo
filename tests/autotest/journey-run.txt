@@ -44,7 +44,7 @@ log won
 heat -100
 wait 10
 expect heat == 0
-# Spec 1983: the galaxy tunables apply to the next new galaxy: fewer systems, a lower final tier, only basic systems.
+# Spec 2414: the galaxy tunables apply to the next new galaxy: fewer systems, a lower final tier, only basic systems.
 tunablesfile Journey { FinalSectorTier = 6; MapSystems = 30 }; Worlds { SystemTypeWeights = [ { Type = basic; Weight = 1 } ] }
 newgame
 wait 8

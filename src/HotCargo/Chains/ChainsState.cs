@@ -35,7 +35,7 @@ public sealed class ChainInstance
     /// <summary>The stage mission (an offer in the station's list, or a mission in the log), or null.</summary>
     [Serialize(Optional = true)] public ObjectID? MissionId;
     /// <summary>
-    /// Spec 1127: ships of the stage offer that would fight the players, held neutral until the players accept the stage. The value is
+    /// Spec 2300: ships of the stage offer that would fight the players, held neutral until the players accept the stage. The value is
     /// the hostile allegiance that the accept gives back.
     /// </summary>
     [Serialize(Optional = true)] public Dictionary<ObjectID, int> HeldShips = new();

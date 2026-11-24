@@ -38,7 +38,7 @@ internal sealed class TowObjective : Objective
         [Serialize, PortableHash] public ID<SimObjectSpawner> StationTag;
         /// <summary>The destination is the nearest tagged station at least this far from the towed ship, so a tow is never trivial.</summary>
         [Serialize(Optional = true), PortableHash] public float MinStationDistance = 3000f;
-        /// <summary>Spec 1147: only stations whose owner is not hostile to the towed ship. None: the objective is invalid.</summary>
+        /// <summary>Spec 2351: only stations whose owner is not hostile to the towed ship. None: the objective is invalid.</summary>
         [Serialize(Optional = true), PortableHash] public bool FriendlyOnly;
 
         public override Objective? CreateObjectiveImpl(SimRoot sim, Mission mission, Rand rand, SpawnedObjectCollection objects, Vector2 loc, out bool invalid)
@@ -67,7 +67,7 @@ internal sealed class TowObjective : Objective
     }
 
     /// <summary>
-    /// The objective that the spawner made last, in sim logic (spec 1147). The mission spawner adds the mission to the log a step
+    /// The objective that the spawner made last, in sim logic (spec 2351). The mission spawner adds the mission to the log a step
     /// later (SimRoot.EnqueueDeterministic), so a caller of the spawn reads the result here, at once.
     /// </summary>
     internal static TowObjective? LastCreated;

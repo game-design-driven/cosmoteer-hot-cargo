@@ -166,7 +166,7 @@ static class DebtTick
         DebtHelp.Tick(run, sim, now);
     }
 
-    /// <summary>Spec 1323 and 1401: the collector comes to a ship of the player who owes the debt. Null while that player has no ship here.</summary>
+    /// <summary>Spec 2240 and 1401: the collector comes to a ship of the player who owes the debt. Null while that player has no ship here.</summary>
     static Ship? CollectorAnchor(SimRoot sim, int player) =>
         SimQueries.AnchorShip(sim, s => s.Metadata.PlayerIndex == player ? 1f : 0f) is { } ship && ship.Metadata.PlayerIndex == player ? ship : null;
 
