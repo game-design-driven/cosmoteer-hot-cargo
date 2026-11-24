@@ -10,6 +10,8 @@ HotCargoEventMissions
 	TowFmt = "Tow {0} to the nearest station"
 	HandOverFmt = "Hand the {0} {1} to {2}: hail it"
 	HandOverLostFmt = "The {0} is lost. The job failed."
+	HandOverWaitFmt = "First answer the open page \"{0}\": one page at a time"
+	HandOverWaitAtFmt = "First answer \"{0}\" in the comms of {1}: one page at a time"
 	OkaforPickupFmt = "Get Okafor off {0}: hail it"
 	OffBooksLineFmt = "Hand the crates to {0}: hail it"
 	DeliverGone = "The ship is gone"

@@ -421,9 +421,8 @@ public static class EventRunner
     public static Snapshot Snap(Run run, SimRoot sim, int money, int tier, long techValue)
     {
         var ships = Vaults.HumanShips(sim).ToList();
-        var resources = new Dictionary<string, int>();
-        foreach (ResourceRules r in GameApp.Rules.Resources)
-            resources[r.ID.ToString()] = ships.Sum(sh => sh.Resources.GetResourceTotal(r.ID, includeStored: true, includeCarried: false));
+        // Spec 1875: stored or carried by the players' crew, the same rule as the cost (ChangeResource) and the hand-over checks.
+        var resources = FleetHold.AllUnits(sim);
         var vaults = Vaults.All(sim);
         return new Snapshot
         {
@@ -693,11 +692,14 @@ public static class EventRunner
     {
         var rid = new ID<ResourceRules>(id);
         int left = Math.Abs(amount);
-        foreach (var ship in Vaults.HumanShips(sim).OrderBy(sh => sh.Metadata.PlayerIndex).ThenBy(sh => sh.UniqueID))
-        {
-            if (left == 0) break;
-            left -= amount > 0 ? ship.Resources.AddResources(rid, left, excludeConstructionSinks: true) : ship.Resources.RemoveResources(rid, left);
-        }
+        // A cost takes from any player's ships, then from the players' crew who carry it (spec 1875).
+        if (amount < 0) left -= FleetHold.Take(sim, rid, left);
+        else
+            foreach (var ship in Vaults.HumanShips(sim).OrderBy(sh => sh.Metadata.PlayerIndex).ThenBy(sh => sh.UniqueID))
+            {
+                if (left == 0) break;
+                left -= ship.Resources.AddResources(rid, left, excludeConstructionSinks: true);
+            }
         int done = Math.Sign(amount) * (Math.Abs(amount) - left);
         if (done != 0) lines.Add(EventText.Resource(rid, done));
         if (amount > 0 && left > 0) lines.Add(EventText.NoStorage(rid, left));

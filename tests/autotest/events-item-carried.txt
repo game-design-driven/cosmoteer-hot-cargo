@@ -1,0 +1,36 @@
+# Spec 1875: one "fleet holds the item" rule for the hand-over line, its cost and the lost check: stored or carried by the players' crew.
+# Playtest 2026-11-23 (dev.239): the broker showed no "Hand over the flight recorder." line. An open event page hid it, and a carried unit
+# did not count for the line. The co-op case (the item in the other player's ship) is the coop-economy step events.courier.
+# missions: random
+newgame run
+wait 8
+ev_set CourierChance 1
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+worlds jumpto hc_trade_hub
+ev_tostation
+wait 2
+ev_courier_accept
+expect ev_courier_handover == 0
+# The first teleport loads the contact out of stasis, the second one puts the ships next to its live position.
+ev_courier_goto
+pause off
+ev_courier_goto
+pause off
+waitfor ev_courier_seen == 1 20
+# A crew member carries the case: it still counts as held, for the line, the needs and the cost (checked in one tick).
+ev_carry_check yarden_zamir.sealed_case
+expect ev_courier_handover == 0
+expectcomms contact Hand over the case. 1
+# Another page waits for an answer: no hail line shows, and the objective line says why.
+event the_fence
+wait 1
+expect ev_handover_block == 1
+expectcomms contact Hand over the case. 0
+choose 2 1
+wait 1
+expect ev_handover_block == 0
+ev_comms contact Hand over the case.
+ev_comms carrier Hand over the sealed case.
+expect ev_courier_handover == 1
+quit
