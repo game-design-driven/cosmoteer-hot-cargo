@@ -1,7 +1,8 @@
 """Spec requirement numbers: the block registry check, references, and renumbering.
 
   python3 tools/spec_refs.py check            the rules below; exit code 1 with one line per problem and its fix
-  python3 tools/spec_refs.py renumber <map>   applies "<old> <new>" lines to definitions and references in every tracked file
+  python3 tools/spec_refs.py renumber <map>   applies "<old> <new>" lines to definitions and references in every tracked file;
+                                              add the lines to spec/renumbered.txt, so the check names the new number
   python3 tools/spec_refs.py blocks           prints a registry made from the current numbers and the stated ranges
 
 Rules (check):
@@ -22,6 +23,7 @@ from pathlib import Path
 
 SPEC = Path("spec")
 BLOCKS = SPEC / "blocks.txt"
+RENUMBERED = SPEC / "renumbered.txt"
 TABLE = SPEC / "16-default-tunables.md"
 NUM = r"\d+(?![\d.,]\d)"
 PHRASE = re.compile(rf"(?i)\b(?:specs?|requirements?|req\.)\s+({NUM}(?:\s*(?:,|and|or|to|–)\s*{NUM})*)")
@@ -78,8 +80,17 @@ def read_blocks() -> list[tuple[int, int, str]]:
     return sorted(out)
 
 
+def read_map(path: Path) -> dict[int, int]:
+    """"<old> <new>" lines; "#" starts a comment. spec/renumbered.txt keeps the moves for branches that cite an old number."""
+    if not path.exists():
+        return {}
+    pairs = (line.split("#")[0].split() for line in path.read_text(encoding="utf-8").splitlines())
+    return {int(p[0]): int(p[1]) for p in pairs if p}
+
+
 def check() -> int:
     problems = []
+    renumbered = read_map(RENUMBERED)
     names = [f.name for f in SPEC.glob("*.md") if f.name[0].isdigit()]
     dup_sec = sorted({n.split("-")[0] for n in names if sum(m.split("-")[0] == n.split("-")[0] for m in names) > 1})
     if dup_sec:
@@ -113,7 +124,9 @@ def check() -> int:
         text = path.read_text(encoding="utf-8", errors="replace")
         for no, _, _, first, last in references(path, text):
             if last is None:
-                if first not in reqs and first not in secs:
+                if first not in reqs and first not in secs and first in renumbered:
+                    problems.append(f"{path}:{no}: requirement {first} was renumbered to {renumbered[first]}. Fix: python3 tools/spec_refs.py renumber spec/renumbered.txt (it rewrites every old number), or write {renumbered[first]}.")
+                elif first not in reqs and first not in secs:
                     problems.append(f"{path}:{no}: references requirement {first}, which does not exist. Fix: point it at the right requirement, or drop it.")
             elif not (first in reqs and last in reqs) and not (owner(first) and all(owner(k) == owner(first) for k in range(first, last + 1))):
                 problems.append(f"{path}:{no}: the range {first} to {last} has an end that is no requirement and does not lie inside the blocks of one spec file. Fix: use the first and last requirement it means, or register the block in spec/blocks.txt.")
@@ -125,7 +138,7 @@ def check() -> int:
 
 
 def renumber(map_file: str) -> int:
-    mapping = {int(a): int(b) for a, b in (line.split() for line in Path(map_file).read_text().splitlines() if line.strip())}
+    mapping = read_map(Path(map_file))
     flagged = []
     for path in tracked():
         text = path.read_text(encoding="utf-8", errors="replace")
