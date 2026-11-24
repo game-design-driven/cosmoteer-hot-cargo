@@ -32,6 +32,20 @@ public sealed class WorldsTunables
     /// <summary>Spec 222: distance from the pass center at which a wave appears.</summary>
     [Serialize(Optional = true)] public float PassWaveDistance = 2500f;
 
+    /// <summary>Spec 2441: seconds after the accept before the convoy runs the pass, if no player ship came into the ring first.</summary>
+    [Serialize(Optional = true)] public float ClosePassDeadlineSeconds = 300f;
+    /// <summary>
+    /// Spec 2442: the convoy enters and leaves this far from the pass center. Keep it at most the game's StasisLiveRange (2,500) minus the
+    /// pass radius (800): then a player ship in the ring keeps the whole run live.
+    /// </summary>
+    [Serialize(Optional = true)] public float ClosePassRunLength = 1700f;
+    /// <summary>Spec 2442: freighters and escorts (scaled for co-op), their tier offset, and the ship tags of each.</summary>
+    [Serialize(Optional = true)] public int ClosePassFreighters = 2;
+    [Serialize(Optional = true)] public int ClosePassEscorts = 2;
+    [Serialize(Optional = true)] public int ClosePassTierOffset = -1;
+    [Serialize(Optional = true)] public string[] ClosePassFreighterTags = ["trade"];
+    [Serialize(Optional = true)] public string[] ClosePassEscortTags = ["combat"];
+
     /// <summary>Spec 223: seconds a player ship must stay at the sundive wreck.</summary>
     [Serialize(Optional = true)] public float SundiveSalvageSeconds = 5f;
     /// <summary>Spec 223: heat zone depth (0 = edge, 1 = kill radius) above which the HUD line turns red.</summary>

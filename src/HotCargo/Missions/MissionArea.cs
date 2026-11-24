@@ -602,7 +602,7 @@ public static class MissionArea
     /// only at the station that offered the mission (Mission.SpawnedAt); a mission without one (a galaxy offer) pays at the nearest station
     /// that gives missions.
     /// </summary>
-    static void CollectAt(Mission m)
+    internal static void CollectAt(Mission m)
     {
         var sim = RequireSim();
         var me = sim.Ships.HumanPlayerSignificantShips.First();

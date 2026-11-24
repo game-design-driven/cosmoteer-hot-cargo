@@ -131,6 +131,9 @@ public static class TunablesFile
         Require(t.Journey.MapSystems is >= 10 and <= 200, "Journey.MapSystems must be 10 to 200");
         Require(t.Worlds.SystemTypeWeights.All(w => w.Type.Length > 0 && w.Weight >= 0) && t.Worlds.SystemTypeWeights.Any(w => w.Weight > 0),
             "Worlds.SystemTypeWeights entries need a Type and a weight of 0 or more, and one weight above 0");
+        Require(t.Worlds.ClosePassDeadlineSeconds > 0f && t.Worlds.ClosePassRunLength > 0f && t.Worlds.ClosePassFreighters >= 1 && t.Worlds.ClosePassEscorts >= 0
+                && t.Worlds.ClosePassFreighterTags.Length > 0 && t.Worlds.ClosePassEscortTags.Length > 0,
+            "Worlds.ClosePass: the deadline and run length must be above 0, at least 1 freighter, escorts not negative, the tags not empty");
         Require(t.Chains.MaxNewChainsPerSystem >= 0, "Chains.MaxNewChainsPerSystem must not be negative");
         Missions.MissionTunables.Validate(t.Missions);
         Missions.Mechanics.MechanicsTunables.Validate(t.Mechanics);

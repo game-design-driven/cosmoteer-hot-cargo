@@ -127,4 +127,19 @@ public static class WorldsModel
         z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
         return z ^ (z >> 31);
     }
+
+    /// <summary>
+    /// Spec 2442: where a convoy enters and leaves a pass of the belt: <paramref name="runLength"/> from the pass center, entry on the far side
+    /// from the system center (0, 0), exit on the near side.
+    /// </summary>
+    public static (System.Numerics.Vector2 Entry, System.Numerics.Vector2 Exit) PassRun(System.Numerics.Vector2 passCenter, float runLength)
+    {
+        if (runLength <= 0f) throw new ArgumentOutOfRangeException(nameof(runLength), runLength, "must be above 0");
+        var outward = passCenter == System.Numerics.Vector2.Zero ? System.Numerics.Vector2.UnitX : System.Numerics.Vector2.Normalize(passCenter);
+        return (passCenter + outward * runLength, passCenter - outward * runLength);
+    }
+
+    /// <summary>Spec 2442: a freighter flies to the pass center first, and to the exit once it is nearer the exit than the center is.</summary>
+    public static bool PastCenter(System.Numerics.Vector2 freighter, System.Numerics.Vector2 passCenter, System.Numerics.Vector2 exit) =>
+        System.Numerics.Vector2.Distance(freighter, exit) < System.Numerics.Vector2.Distance(passCenter, exit);
 }

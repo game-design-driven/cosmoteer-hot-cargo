@@ -39,6 +39,12 @@
 				DescriptionKey = "HotCargoWorlds/HoldPassDesc"
 				CategoryID = faction_wars
 			}
+			HotCargoClosePass
+			{
+				NameKey = "HotCargoWorlds/ClosePass"
+				DescriptionKey = "HotCargoWorlds/ClosePassDesc"
+				CategoryID = faction_wars
+			}
 			HotCargoSundive
 			{
 				NameKey = "HotCargoWorlds/Sundive"

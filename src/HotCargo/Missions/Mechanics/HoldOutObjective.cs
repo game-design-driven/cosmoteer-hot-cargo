@@ -484,6 +484,19 @@ internal static class WaveSpawns
         throw new InvalidOperationException($"no built-in ship with tags [{string.Join(", ", tags)}] at tier {tier} or below");
     }
 
+    /// <summary>
+    /// A random built-in ship with the tags at the tier, else at the nearest tier that has one, lower first. Vanilla trade ships start above
+    /// tier 1, so a downward search alone (<see cref="PickShip"/>) finds none early in a run. Sim tick only (sim.Rand).
+    /// </summary>
+    public static BuiltinShipRules PickShipNearTier(SimRoot sim, ID<BuiltinShipTag>[] tags, int tier)
+    {
+        for (int step = 0; step <= GameData.TierCount; step++)
+            foreach (int wanted in step == 0 ? [tier] : new[] { tier - step, tier + step })
+                if (wanted >= 1 && GameApp.Rules.BuiltinShips.GetRandomMatchingShip(sim.Rand, null, new Range<int>(wanted, wanted), null, tags) is { } ship)
+                    return ship;
+        throw new InvalidOperationException($"no built-in ship with tags [{string.Join(", ", tags)}] at any tier");
+    }
+
     /// <summary>A point at a random distance in [min, max] from center, near the direction. Same sun check as police spawns.</summary>
     public static Vector2 Location(SimRoot sim, Vector2 center, float direction, float min, float max)
     {

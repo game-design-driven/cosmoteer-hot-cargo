@@ -268,6 +268,22 @@ on 1 waitfor active == 1 60
 on 1 expectevent smuggler_den
 on 1 expect hc_trap_state == 2
 
+step worlds.close-pass
+# Spec 2445: Close the Pass in co-op. The clock, the convoy spawn and the win run in the sim on both machines. Built in this system
+# (worlds closepass_here), because the session does not jump to a Mining Belt.
+mp shieldplayers on
+mp worlds closepass_here
+mp worlds goto closepass
+waitfor worlds_closepass_running == 1 15
+on 1 waitfor worlds_closepass_running == 1 15
+waitfor worlds_closepass_freighters >= 2 15
+on 1 waitfor worlds_closepass_freighters >= 2 15
+mp worlds kill hc_closepass_freighter
+waitfor worlds_closepass_done == 1 15
+on 1 waitfor worlds_closepass_done == 1 15
+mp worlds kill hc_closepass_escort
+mp shieldplayers off
+
 step runmodes.difficulty
 # Spec 680 to 685: the host changes the difficulty through the vanilla settings inputs. The client sees the same effective
 # heat rate, hunter count and tier, tech value and fees. The state hash compares the heat that time adds at the new rate.

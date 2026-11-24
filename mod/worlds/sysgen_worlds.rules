@@ -212,6 +212,74 @@ MiningBelt
 				}
 			]
 		}
+
+		// Close the pass (spec 2440 to 2445): Hold the Pass in reverse. A raider convoy runs the belt through a pass; the players stop it.
+		// The objective (Worlds/ClosePassObjective.cs) spawns the convoy when a player ship is in the ring or its clock runs out.
+		{
+			Type = None
+			// hc_own_stream (spec 1897): its rolls come from its own random stream, so adding it moved no roll of the Mining Belt systems.
+			Tags = [hc_group_closepass, hc_own_stream]
+			SpawnChance = 60%
+			RootLocation = Tag
+			RootLocationTag = hc_pass
+			SubSpawners
+			[
+				{
+					Type = Mission
+					Metatype = HotCargoClosePass
+					SpawnAt = Tag
+					SpawnAtTag = { Mode=Nearest; Tag=trade_station; }
+					Faction = OwnerOfTag
+					FactionTag = &SpawnAtTag
+					OkayIfFactionTagNotFound = true
+					Objectives
+					[
+						{
+							Type = Sequential
+							SubObjectives
+							[
+								{
+									Type = HotCargoClosePass
+									PassTag = { Mode=Nearest; Tag=hc_pass; }
+									Radius = &~/PassRadius
+								}
+								{
+									Type = ReceiveRewards
+								}
+							]
+						}
+					]
+					// Like Hold the Pass (spec 228).
+					Rewards
+					[
+						{
+							Type = Money
+							MoneyPerHighTier = &/TIER_TABLES/StandardMoneyPerTier
+							MoneyPerTierMultiplier = 2
+							RoundToMultiple = 500
+						}
+						{
+							Type = Fame
+							FamePerHighTier = &/TIER_TABLES/StandardFamePerTier
+							MaxFamePerHighTier = &/TIER_TABLES/StandardMaxFamePerTier
+							FamePerTierMultiplier = 2
+						}
+						{
+							Type = Reputation
+							ReputationPerHighTier = &/TIER_TABLES/StandardReputationPerTier
+							ReputationPerTierMultiplier = 3
+						}
+						{
+							Type = HotCargoContract
+							AcceptFee = 0
+							FlatHeat = 6
+							TrailWeight = 1
+							InformantChance = 10%
+						}
+					]
+				}
+			]
+		}
 	]
 }
 
