@@ -149,6 +149,8 @@ public static class TunableTiming
         ["PursuitTunables.HackerOutageSeconds"] = Applies.NextUse,
         // Spec 1980 to 1983: values of the vanilla rules files.
         ["BalanceTunables.FuelStackSize"] = Applies.NextGame,
+        ["BalanceTunables.BuildStackSize"] = Applies.NextGame,
+        ["BalanceTunables.BuildStackResources"] = Applies.NextGame,
         ["BalanceTunables.StationFuelTypedMin"] = Applies.NextSystem,
         ["BalanceTunables.StationFuelTypedMax"] = Applies.NextSystem,
         ["BalanceTunables.StationFuelUntypedMin"] = Applies.NextSystem,

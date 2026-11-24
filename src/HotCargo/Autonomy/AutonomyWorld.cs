@@ -110,6 +110,21 @@ internal static class AutonomyWorld
         return result;
     }
 
+    /// <summary>
+    /// Spec 1068: the point lies inside the hull circle of another live ship (a station, a trader, an own ship). A Funnel cannot fly over
+    /// it, so a crate there is no loot target: a Looter that picked it waited forever. Wrecks do not count: their loot is the point.
+    /// </summary>
+    internal static bool InsideOtherHull(Ship ship, Vector2 point)
+    {
+        var ships = HunterOrders.Sim(ship).Ships;
+        for (int i = 0; i < ships.Count; i++)
+        {
+            var other = ships[i];
+            if (other != ship && !other.IsJunk && other.DetWorldBoundingCircle.Contains(in point)) return true;
+        }
+        return false;
+    }
+
     internal static float EdgeDistance(Ship ship, Vector2 point) => ship.DetWorldBoundingCircle.DistanceTo(point);
 
     /// <summary>The world point that the ship center flies to, so that its first Funnel (or its center) passes over the point.</summary>

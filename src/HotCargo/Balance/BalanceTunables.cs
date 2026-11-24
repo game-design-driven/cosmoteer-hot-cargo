@@ -19,6 +19,10 @@ public sealed class BalanceTunables
     [Serialize(Optional = true)] public int FuelPrice = 150;
     /// <summary>Spec 300: hyperium in one storage tile or one crew trip. Applies at the next new or loaded game. Vanilla: 20.</summary>
     [Serialize(Optional = true)] public int FuelStackSize = 10;
+    /// <summary>Spec 1836: units of steel and coil (BuildStackResources) in one storage tile or factory buffer tile. Applies at the next new or loaded game. Vanilla: 40.</summary>
+    [Serialize(Optional = true)] public int BuildStackSize = 80;
+    /// <summary>Spec 1836: the resources whose stack is BuildStackSize: the build materials that fights drop the most.</summary>
+    [Serialize(Optional = true)] public string[] BuildStackResources = ["steel", "coil"];
     /// <summary>Spec 300: hyperium of a jump between systems, per ship mass and light year, at 100 % drive efficiency. Vanilla: 0.001.</summary>
     [Serialize(Optional = true)] public float MapJumpFuelCostPerMassDistance = 0.002f;
     /// <summary>Spec 300: hyperium of a jump inside a system, per ship mass and distance. Vanilla: 0.0000004.</summary>

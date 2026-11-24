@@ -40,7 +40,7 @@ Fields not listed in the "Not now" column apply Now.
 | RunModes | `Combat`, `Economy`, `Crew` rows: `HunterShips`, `HunterTiers`: next spawned ships. `ContractFees`: next mission offers | `HeatRate`, `TechValue` and `StrikeMusic` apply now. A change of the vanilla difficulty level in the game settings follows the same timing (spec 680). |
 | Storyteller | Every stage response, Strike interval and other hostile spawn (`AllFightsEnabled`, spec 1732) reads the pressure from the saved adapt minutes. `AdaptPerMinute`, `AdaptLossShip` and `AdaptLossCrew` apply at the next update (each game second); a curve or impact change applies at the next read. |
 | Pursuit | `OutageMinSector`, `OutageChance`, `OutageDelayMin`, `OutageDelayMax`, `HackerMinSector`, `HackerChance`, `HackerDelayMin`, `HackerDelayMax`: next new system. `EarlyShipFactor`, `LateShipFactor`, `FleetReferenceShare`, `FleetFactorPerDoubling`, `FleetFactorMax`: next spawned ships | A rolled outage or hacker keeps its time. `OutageSeconds`, `HackerOutageSeconds`: next outage (tagged "next use"). The pacer limits and gaps, the scout and blockade values and the interval factors apply now. |
-| Balance | `FuelStackSize`: next new or loaded game. `StationFuelTypedMin`/`Max`, `StationFuelUntypedMin`/`Max`: next new system | A higher fuel floor tops up the live stations at once (spec 852). A lower floor takes no fuel away. Trade ships use the new floor at once. `FuelPrice` and the jump fuel costs apply to the next trade and the next jump (spec 1980). |
+| Balance | `FuelStackSize`, `BuildStackSize`, `BuildStackResources`: next new or loaded game. `StationFuelTypedMin`/`Max`, `StationFuelUntypedMin`/`Max`: next new system | A higher fuel floor tops up the live stations at once (spec 852). A lower floor takes no fuel away. Trade ships use the new floor at once. `FuelPrice` and the jump fuel costs apply to the next trade and the next jump (spec 1980). |
 | Debug | (none) | |
 
 ## Why some values stay delayed
@@ -52,7 +52,7 @@ A value stays delayed only when an earlier change would be wrong or would break 
 - Next mission offers: an offer keeps its terms, so the price that the offer showed is the price that the players pay.
 - Next new system: the roll for a system happened (missions, events, chains, the arrival line). Rolling again would change a system that the players already see.
 - New runs only: the value sets up the run start (starting tech, starting research, relic sector) or the galaxy, which is made once per run (`FinalSectorTier`, `MapSystems`, `SystemTypeWeights`).
-- Next new or loaded game: `Balance.FuelStackSize`. Storage tiles that hold more fuel than a smaller stack would break, so the stack changes only when a game starts or loads (spec 1981).
+- Next new or loaded game: `Balance.FuelStackSize`, `Balance.BuildStackSize` and `Balance.BuildStackResources`. Storage tiles that hold more than a smaller stack would break, so a stack changes only when a game starts or loads (spec 1981, 1836).
 - Next time it shows: an open window or alert keeps its layout until it closes.
 - `Diplomacy.PunishSeconds`: a waiting punishment keeps the end time that all players saw.
 

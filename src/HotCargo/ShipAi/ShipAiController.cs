@@ -844,7 +844,8 @@ internal static class ShipAiController
 
         List<Nugget>? _loot;
         /// <summary>Spec 1068, 1083: accepted loot in sight that the ship can reach clear of enemies.</summary>
-        public List<Nugget> Loot => _loot ??= HotCargo.Autonomy.AutonomyWorld.AcceptedLoot(_self, Cargo).Where(n => Clear(n.DetWorldLocation)).ToList();
+        public List<Nugget> Loot => _loot ??= HotCargo.Autonomy.AutonomyWorld.AcceptedLoot(_self, Cargo)
+            .Where(n => Clear(n.DetWorldLocation) && !HotCargo.Autonomy.AutonomyWorld.InsideOtherHull(_self, n.DetWorldLocation)).ToList();
         public Nugget? NearestLoot => Loot.MinBy(LootDistance);
 
         readonly Dictionary<StationPick, HotCargo.Autonomy.StationRef?> _stations = [];
