@@ -21,6 +21,12 @@
 			DescriptionKey = "HotCargoMissions/EscortDesc"
 			CategoryID = stations
 		}
+		HotCargoLead
+		{
+			NameKey = "HotCargoMissions/Lead"
+			DescriptionKey = "HotCargoMissions/LeadDesc"
+			CategoryID = stations
+		}
 		HotCargoFleetAssault
 		{
 			NameKey = "HotCargoMissions/FleetAssault"

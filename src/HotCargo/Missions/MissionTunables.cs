@@ -63,6 +63,29 @@ public sealed class MissionTunables
     [Serialize(Optional = true)] public float EscortRaidDistanceMin = 900f;
     [Serialize(Optional = true)] public float EscortRaidDistanceMax = 1300f;
 
+    /// <summary>Spec 1891: the Blind Courier waits this far from the station center, in a random direction.</summary>
+    [Serialize(Optional = true)] public float LeadSpawnDistanceMin = 500f;
+    [Serialize(Optional = true)] public float LeadSpawnDistanceMax = 800f;
+    /// <summary>Spec 1892: the courier follows this far behind the hull of the nearest player ship.</summary>
+    [Serialize(Optional = true)] public float LeadFollowGap = 250f;
+    /// <summary>Spec 1892: the courier's move order follows a moving player ship only past this distance, so it does not re-plan every tick.</summary>
+    [Serialize(Optional = true)] public float LeadFollowSlack = 150f;
+    /// <summary>Spec 1893: the share of the route at which the one ambush comes.</summary>
+    [Serialize(Optional = true)] public float LeadAmbushAt = 0.5f;
+    /// <summary>Spec 1890: encounters within this distance of the straight route count for the jump point pick and the hint.</summary>
+    [Serialize(Optional = true)] public float LeadEncounterRange = 2000f;
+    /// <summary>Spec 1890: a jump point with a hostile ship this close does not fit.</summary>
+    [Serialize(Optional = true)] public float LeadDestinationClear = 2000f;
+    /// <summary>Spec 1890: weights of a hostile ship, a hostile station, and a nebula cell of LeadNebulaGridStep near the route.</summary>
+    [Serialize(Optional = true)] public float LeadEncounterShipWeight = 1f;
+    [Serialize(Optional = true)] public float LeadEncounterStationWeight = 3f;
+    [Serialize(Optional = true)] public float LeadEncounterNebulaWeight = 0.25f;
+    /// <summary>Spec 1890: nebulae count on a grid with this step.</summary>
+    [Serialize(Optional = true)] public float LeadNebulaGridStep = 1000f;
+    /// <summary>Spec 1893: ambush ships jump in this far ahead of the courier, toward the jump point.</summary>
+    [Serialize(Optional = true)] public float LeadAmbushDistanceMin = 1300f;
+    [Serialize(Optional = true)] public float LeadAmbushDistanceMax = 1700f;
+
     /// <summary>Called by TunablesFile.Validate, so a bad file keeps the last valid values (spec 53).</summary>
     public static void Validate(MissionTunables t)
     {
@@ -72,5 +95,11 @@ public sealed class MissionTunables
         Require(t.EscortLostWarnSeconds > 0f && t.EscortLostWarnSeconds < t.EscortLostSeconds, "EscortLostWarnSeconds must be above 0 and below EscortLostSeconds");
         Require(t.EscortRaidShips >= 0 && t.EscortRaidMaxLive >= 0 && t.EscortRaidShipTags.Length > 0, "EscortRaidShips and EscortRaidMaxLive must not be negative, EscortRaidShipTags must not be empty");
         Require(t.EscortRaidDistanceMin >= 0f && t.EscortRaidDistanceMax >= t.EscortRaidDistanceMin, "EscortRaidDistanceMax must be at least EscortRaidDistanceMin");
+        Require(t.LeadSpawnDistanceMin >= 0f && t.LeadSpawnDistanceMax >= t.LeadSpawnDistanceMin, "LeadSpawnDistanceMax must be at least LeadSpawnDistanceMin");
+        Require(t.LeadFollowGap >= 0f && t.LeadFollowSlack > 0f, "LeadFollowGap must not be negative, LeadFollowSlack must be above 0");
+        Require(t.LeadAmbushAt is > 0f and < 1f, "LeadAmbushAt must be between 0 and 1");
+        Require(t.LeadEncounterRange > 0f && t.LeadDestinationClear >= 0f && t.LeadNebulaGridStep > 0f, "LeadEncounterRange and LeadNebulaGridStep must be above 0, LeadDestinationClear not negative");
+        Require(t.LeadEncounterShipWeight >= 0f && t.LeadEncounterStationWeight >= 0f && t.LeadEncounterNebulaWeight >= 0f, "LeadEncounter weights must not be negative");
+        Require(t.LeadAmbushDistanceMin >= 0f && t.LeadAmbushDistanceMax >= t.LeadAmbushDistanceMin, "LeadAmbushDistanceMax must be at least LeadAmbushDistanceMin");
     }
 }

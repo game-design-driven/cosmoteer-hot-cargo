@@ -1,0 +1,33 @@
+# Blind Courier (spec 1890 to 1896): the courier close up, then following the player ship with the mission line.
+# Windowed test slot or RUNNER=mac (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+reveal on
+closepanel
+wait 1
+ev_set Enabled false
+godmode
+hc_generate lead
+hc_accept lead
+hc_guard_goto 1800
+pause off
+waitfor hc_lead_hailed == 1 60
+wait 2
+pause on
+hc_guard_camera 60
+wait 1
+hc_guard_camera 60
+wait 1
+screenshot lead-courier-ship
+pause off
+hc_lead_ready
+hc_lead_lead 700
+pause off
+waitfor hc_lead_gap < 450 45
+wait 4
+pause on
+hc_guard_camera 1600
+wait 1
+screenshot lead-courier-follows
+quit

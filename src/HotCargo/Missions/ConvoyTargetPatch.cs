@@ -27,7 +27,8 @@ static class ConvoyTargetPatch
         if (Run.Current is not { } run) return;
         try
         {
-            float focus = sourceShip.HasTag(RaiderTag) && targetShip.HasTag(FreighterTag)
+            // Spec 1893: the escorts that the mod spawns in code (the Blind Courier, the Ore Tender) have no tags.
+            float focus = sourceShip.HasTag(RaiderTag) && (targetShip.HasTag(FreighterTag) || EscortHail.IsEscortShip(run, targetShip.UniqueID))
                 ? MissionArea.TunablesFor(run.Game).EscortRaiderFocus
                 : Mechanics.HoldOutObjective.FocusOn(run, sourceShip, targetShip);
             if (focus > 0f) value = Math.Max(value, Firepower.Of(sourceShip) * focus);

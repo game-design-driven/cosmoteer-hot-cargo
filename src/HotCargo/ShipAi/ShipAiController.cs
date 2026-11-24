@@ -122,7 +122,8 @@ internal static class ShipAiController
         if (mask != t.Matched || d.TargetRow != t.TargetRow || d.MoveRow != t.MoveRow || d.FacingRow != t.FacingRow || d.TradeRow != t.TradeRow
             || target?.UniqueID != t.Target)
             Trace(ship, tun, $"target row {d.TargetRow} ({target?.Metadata.PlainShipName ?? "-"}) move row {d.MoveRow} ({move?.ToString() ?? "-"}) " +
-                             $"facing row {d.FacingRow} trade row {d.TradeRow} matched {Convert.ToString(mask, 2)}");
+                             $"facing row {d.FacingRow} trade row {d.TradeRow} matched {Convert.ToString(mask, 2)} " +
+                             $"nearest enemy {(view.NearestEnemy is { } e ? $"{e.Metadata.PlainShipName} p{e.Metadata.PlayerIndex} at {e.DetWorldCenter.DistanceTo(ship.DetWorldCenter):0}" : "-")}");
         t.TargetRow = d.TargetRow;
         t.MoveRow = d.MoveRow;
         t.FacingRow = d.FacingRow;

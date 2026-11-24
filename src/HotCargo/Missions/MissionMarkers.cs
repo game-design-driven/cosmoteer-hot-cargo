@@ -33,6 +33,7 @@ internal static class MissionMarkers
         {
             Watch(run);
             Errors.Guard("mission markers sweep", () => Sweep(run, sim));
+            Errors.Guard("mission markers withdrawn offers", () => SweepWithdrawn(run, sim));
         };
         Run.Hooks.SystemEntered += (run, _) => Errors.Guard("mission markers arrival", () => OnSystemEntered(run));
     }
@@ -112,6 +113,36 @@ internal static class MissionMarkers
             if (live.Contains(id) || sim.Doodads[id] is not POIDoodad poi) continue;
             sim.Doodads.Remove(poi, dispose: true);
             Log.Info($"mission {m.MetatypeID} {m.MissionID}: objective ended, marker {id} removed");
+        }
+    }
+
+    /// <summary>Missions that left a list other than the mission log since the last tick: offers that the players took, or that went away.</summary>
+    static readonly List<Mission> Withdrawn = [];
+
+    /// <summary>
+    /// Spec 996: vanilla takes an offer out of its list when the offer expires (AIMissionProviderModule: Mission.CheckExpired, for example
+    /// when its escort ship died). A taken offer moves into the log, and a provider that enters stasis moves its offers to another list.
+    /// One tick later, an offer that is in neither the log nor an offer list went away, and its markers go with it.
+    /// </summary>
+    [HarmonyLib.HarmonyPatch(typeof(MissionList), nameof(MissionList.RemoveMission))]
+    static class OfferRemoved
+    {
+        static void Postfix(MissionList __instance, Mission m)
+        {
+            if (Run.Current is { } run && !ReferenceEquals(__instance, run.Mode.Missions)) Withdrawn.Add(m);
+        }
+    }
+
+    static void SweepWithdrawn(Run run, SimRoot sim)
+    {
+        if (Withdrawn.Count == 0) return;
+        var gone = Withdrawn.Distinct().ToList();
+        Withdrawn.Clear();
+        var offered = Contracts.ContractBook.Offers(sim).Select(o => o.Mission.MissionID).ToHashSet();
+        foreach (var m in gone.Where(m => !run.Mode.Missions.ContainsMission(m) && !offered.Contains(m.MissionID)).OrderBy(m => m.MissionID))
+        {
+            Log.Info($"mission {m.MetatypeID} {m.MissionID}: offer withdrawn (expired {m.CheckExpired()})");
+            RemoveOf(run, sim, m, "offer withdrawn");
         }
     }
 

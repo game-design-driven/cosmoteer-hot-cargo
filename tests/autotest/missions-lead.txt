@@ -1,0 +1,57 @@
+# Blind Courier (spec 1890 to 1896): a weak courier meets the players, follows the nearest player ship and stops where it stops,
+# raiders jump in ahead once at half the route, arrival at the jump point completes the step, and the pay waits at the station.
+# missions: random
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+hc_generate lead
+hc_accept lead
+expect hc_active_lead == 1
+expect hc_lead_marker == 1
+# Spec 1890: the convoy route, at least 0.65 of the inner gate ring.
+expect hc_lead_route >= 6000
+# Spec 1890: the jump point that passes the most encounters; a mood line by the main danger (it depends on the system).
+expect hc_lead_danger >= 0
+# Spec 1886: the courier's rules give it 3 minutes alone.
+expect hc_guard_lost_after == 180
+# Spec 1850, 1852: it comes to the players and hails, like every escort.
+hc_guard_goto 1800
+pause off
+waitfor hc_lead_hailed == 1 60
+expect hc_lead_waiting == 1
+# Spec 1891: a small live courier without weapons.
+expect hc_lead_parts >= 10
+expect hc_lead_parts <= 20
+expect hc_lead_weapons == 0
+hc_lead_ready
+expect hc_lead_waiting == 0
+# Spec 1895: after "Ready" the map ring marks the jump point.
+expect hc_lead_area_on_dest == 1
+# Spec 1892: the players 700 ahead (inside EscortGuardRadius): it follows to LeadFollowGap (250) behind the nearest hull and stops there.
+hc_lead_lead 700
+pause off
+waitfor hc_lead_gap < 450 45
+wait 8
+expect hc_lead_speed < 30
+expect hc_lead_gap > 100
+# Spec 1893: just before LeadAmbushAt (0.5). Following the players past it brings raiders in ahead, once.
+hc_lead_advance 0.48
+pause off
+wait 2
+hc_lead_lead 700
+pause off
+waitfor hc_lead_ambushes >= 1 45
+waitfor hc_guard_raiders >= 2 10
+# Spec 1877, 1894: arrival completes the step, the marker goes, and the pay waits at the station.
+hc_guard_clear_raiders
+hc_lead_arrive
+wait 3
+expect hc_lead_done == 1
+expect hc_lead_marker == 0
+expect hc_lead_ambushes == 1
+hc_mark
+hc_lead_collect
+wait 5
+expect hc_money_gain > 0
+quit

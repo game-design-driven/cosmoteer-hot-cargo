@@ -4,6 +4,7 @@ using Cosmoteer.Generators.Simulation;
 using Cosmoteer.Modes.Career;
 using Cosmoteer.Modes.Career.Missions;
 using Cosmoteer.Ships;
+using Cosmoteer.Ships.Commands;
 using Cosmoteer.Ships.Special;
 using Cosmoteer.Simulation;
 using Cosmoteer.Simulation.Stasis;
@@ -23,6 +24,7 @@ public static class MissionArea
     static readonly Dictionary<string, string> Metatypes = new(StringComparer.OrdinalIgnoreCase)
     {
         ["escort"] = "HotCargoEscort",
+        ["lead"] = "HotCargoLead",
         ["assault"] = "HotCargoFleetAssault",
         ["shady"] = "HotCargoShadyBounty",
     };
@@ -237,6 +239,99 @@ public static class MissionArea
             Vector2 at = RequireGuarded().Escort.DetLocation() ?? throw new InvalidOperationException("escort is not in this system");
             Autotest.Commands["camera"](string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{at.X} {at.Y} {arg.Trim()}"));
         };
+        // Spec 1890 to 1897, the Blind Courier. hc_lead_ready: the "Ready" pick (shared choice input of the acting player).
+        Autotest.Commands["hc_lead_ready"] = _ =>
+        {
+            RequireRun().Game.NetManager.EnqueueInput(EscortHail.Pick(RequireLead().Escort.ShipID));
+            Autotest.Wait(2);
+        };
+        Autotest.Fields["hc_lead_hailed"] = () => RequireLead().Hailed ? 1 : 0;
+        Autotest.Fields["hc_lead_waiting"] = () => RequireLead().Waiting ? 1 : 0;
+        Autotest.Fields["hc_lead_ambushes"] = () => RequireLead().Ambushed ? 1 : 0;
+        // Spec 1890: the main danger of the direct route (0 quiet, 1 raiders, 2 a base, 3 rough space); logs the mood line.
+        Autotest.Fields["hc_lead_danger"] = () =>
+        {
+            var o = RequireLead();
+            Log.Info($"AUTOTEST lead route hint: {LeadRoute.Hint(o.RouteDanger)}");
+            return (int)o.RouteDanger;
+        };
+        Autotest.Fields["hc_lead_done"] = () => RequireLead().Completion == CompletionState.Completed ? 1 : 0;
+        Autotest.Fields["hc_lead_marker"] = () => RequireLead().DestinationPoiID is { } id && RequireSim().Doodads[id] is not null ? 1 : 0;
+        Autotest.Fields["hc_lead_area_on_dest"] = () => RequireLead() is var o && o.GetAreaLocation(RequireRun().Game) is { } c && c.Center == o.Destination ? 1 : 0;
+        Autotest.Fields["hc_lead_route"] = () => RequireLead() is var o ? o.Start.DistanceTo(o.Destination) : 0f;
+        Autotest.Fields["hc_lead_parts"] = () => RequireLead().Escort.TargetShip?.Parts.Count ?? -1;
+        Autotest.Fields["hc_lead_weapons"] = () => RequireLead().Escort.TargetShip?.Weapons.GetTotalFirePower() ?? -1f;
+        // Hull gap from the courier to the nearest player ship, and the courier's speed.
+        Autotest.Fields["hc_lead_gap"] = () =>
+        {
+            Ship c = RequireLead().Escort.TargetShip ?? throw new InvalidOperationException("courier is not live");
+            return RequireSim().Ships.HumanPlayerSignificantShips.Min(h => h.DetWorldCenter.DistanceTo(c.DetWorldCenter) - h.DetWorldBoundingCircle.Radius - c.DetWorldBoundingCircle.Radius);
+        };
+        Autotest.Fields["hc_lead_speed"] = () => (RequireLead().Escort.TargetShip ?? throw new InvalidOperationException("courier is not live")).Physics.Body?.LinearVelocity.Length() ?? 0f;
+        // hc_lead_lead <distance>: the players this much farther along the route than the courier (toward the jump point), so it follows them.
+        Autotest.Commands["hc_lead_lead"] = arg =>
+        {
+            var o = RequireLead();
+            Vector2 at = o.Escort.DetLocation() ?? throw new InvalidOperationException("courier is not in this system");
+            TeleportPlayers(at + (o.Destination - at).Normalize() * float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture));
+        };
+        // hc_lead_advance <share>: the live courier at this share of its route, the players next to it on the jump point side.
+        Autotest.Commands["hc_lead_advance"] = arg =>
+        {
+            var o = RequireLead();
+            Ship c = o.Escort.TargetShip ?? throw new InvalidOperationException("courier is not live; run hc_guard_goto and wait first");
+            Vector2 at = o.Start + (o.Destination - o.Start) * float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture);
+            Autotest.Teleport(c, at);
+            TeleportPlayers(at + (o.Destination - at).Normalize() * 300f);
+        };
+        // hc_lead_arrive: the live courier and the players at the jump point.
+        Autotest.Commands["hc_lead_arrive"] = _ =>
+        {
+            var o = RequireLead();
+            Ship c = o.Escort.TargetShip ?? throw new InvalidOperationException("courier is not live; run hc_guard_goto and wait first");
+            Autotest.Teleport(c, o.Destination);
+            TeleportPlayers(o.Destination);
+        };
+        // hc_lead_diag: one log line with the courier's place, order, speed and the players' places.
+        Autotest.Commands["hc_lead_diag"] = _ =>
+        {
+            var o = RequireLead();
+            Ship? c = o.Escort.TargetShip;
+            string players = string.Join(" ", RequireSim().Ships.HumanPlayerSignificantShips.Select(h => $"{h.DetWorldCenter}"));
+            Log.Info($"AUTOTEST LEAD live={c is not null} at={o.Escort.DetLocation()} cmd={c?.Commands.CurConfirmedCommand?.GetType().Name} to={(c?.Commands.CurConfirmedCommand as MoveCommand)?.Location} " +
+                     $"speed={c?.Physics.Body?.LinearVelocity.Length():0} canExec={c?.Commands.CanExecuteCommands} cp={c?.Commands.CommandPointsProvided}/{c?.Commands.CommandPointsUsed} crew={c?.Crew.Assigned.Count} doors={c?.Doors.Count} ready={o.Ready} hailed={o.Hailed} start={o.Start} dest={o.Destination} players={players}");
+        };
+        // Screenshots only. hc_lead_route_dots: small vanilla target area rings every 400 along the straight route from the courier's start to
+        // its jump point, so a picture shows the direct route. hc_lead_route_camera: the camera on the whole route.
+        Autotest.Commands["hc_lead_route_dots"] = _ =>
+        {
+            var o = RequireLead();
+            var sim = RequireSim();
+            var rules = (Cosmoteer.Simulation.Doodads.POIDoodadRules)Cosmoteer.GameApp.Rules.GetDoodadRules(MissionMarkers.TargetArea);
+            float length = o.Start.DistanceTo(o.Destination);
+            for (float d = 400f; d < length; d += 400f)
+                rules.SpawnAt(sim, o.Start + (o.Destination - o.Start).Normalize() * d, Halfling.Geometry.Direction.Zero, sim.Rand, null, null, null, loadInstantly: true, scaleFactor: 60f);
+        };
+        // hc_lead_route_encounters: a small red ring on each encounter near the direct route (screenshots only).
+        Autotest.Commands["hc_lead_route_encounters"] = _ =>
+        {
+            var o = RequireLead();
+            var sim = RequireSim();
+            var rules = (Cosmoteer.Simulation.Doodads.POIDoodadRules)Cosmoteer.GameApp.Rules.GetDoodadRules(new ID<Cosmoteer.Simulation.Doodads.DoodadRules>("yarden_zamir.poi_escort_alone"));
+            var near = LeadRoute.Near(sim, o.Start, o.Destination);
+            foreach (var e in near)
+                rules.SpawnAt(sim, new Vector2(e.At.X, e.At.Y), Halfling.Geometry.Direction.Zero, sim.Rand, null, null, null, loadInstantly: true, scaleFactor: 180f);
+            Log.Info($"AUTOTEST lead route encounters marked: {near.Count}");
+        };
+        Autotest.Commands["hc_lead_route_camera"] = _ =>
+        {
+            var o = RequireLead();
+            Vector2 mid = (o.Start + o.Destination) * 0.5f;
+            float size = o.Start.DistanceTo(o.Destination) * 1.35f;
+            Autotest.Commands["camera"](string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{mid.X} {mid.Y} {size}"));
+        };
+        // hc_lead_collect: the receive payment button of the nearest station for the courier mission.
+        Autotest.Commands["hc_lead_collect"] = _ => CollectAt(RequireLead().Mission ?? throw new InvalidOperationException("the courier objective has no mission"));
         // hc_guard_clear_raiders: removes the live raid ships of the newest escort (sim; "mp" in co-op), so a later step is not a fight.
         Autotest.Commands["hc_guard_clear_raiders"] = _ =>
         {
@@ -436,14 +531,23 @@ public static class MissionArea
         Log.Info($"AUTOTEST Visit {next.Name} offered, fame prerequisite {_visit.FamePrereq}");
     }
 
-    /// <summary>Moves the players next to the nearest station that gives missions, then presses its receive payment button.</summary>
-    static void VisitCollect()
+    static void VisitCollect() => CollectAt(_visit ?? throw new InvalidOperationException("no Visit mission; run hc_visit_accept first"));
+
+    /// <summary>
+    /// Moves the players next to the station that pays the mission, then presses its receive payment button. Vanilla ReceiveRewards pays
+    /// only at the station that offered the mission (Mission.SpawnedAt); a mission without one (a galaxy offer) pays at the nearest station
+    /// that gives missions.
+    /// </summary>
+    static void CollectAt(Mission m)
     {
-        var m = _visit ?? throw new InvalidOperationException("no Visit mission; run hc_visit_accept first");
         var sim = RequireSim();
         var me = sim.Ships.HumanPlayerSignificantShips.First();
-        var station = SpaceStation.GetStations(sim, onlyOperating: true).Where(st => st.GetProvidedMissions() is not null)
-            .OrderBy(st => st.DetWorldCenter.DistanceTo(me.DetWorldCenter)).ThenBy(st => st.StationID).Select(st => (MetaSpaceStation?)st).FirstOrDefault();
+        // The offering station can be in stasis (far from the players): it wakes when they arrive.
+        var station = m.SpawnedAt is { } at0
+            ? SpaceStation.GetStations(sim, onlyOperating: false).Where(st => st.StationID == at0.ShipID).Select(st => (MetaSpaceStation?)st).FirstOrDefault()
+              ?? throw new InvalidOperationException($"the station that offered {m.MetatypeID} is not in this system")
+            : SpaceStation.GetStations(sim, onlyOperating: true).Where(st => st.GetProvidedMissions() is not null)
+                .OrderBy(st => st.DetWorldCenter.DistanceTo(me.DetWorldCenter)).ThenBy(st => st.StationID).Select(st => (MetaSpaceStation?)st).FirstOrDefault();
         if (station is not { } st0) throw new InvalidOperationException("no station that gives missions in this system");
         var id = st0.StationID;
         var at = Autotest.ClearSpotNear(sim, st0.DetWorldCenter, 900f, me.WorldBoundingRadius);
@@ -451,7 +555,7 @@ public static class MissionArea
         Autotest.WaitFor(() => sim.Ships[id] is not null, 20, "the station to leave stasis", then: () =>
         {
             RequireRun().Game.NetManager.EnqueueInput(new Cosmoteer.Modes.Career.Comms.CommMissionsTab.MPMissionPaymentInput(sim.Ships[id]!, m));
-            Log.Info($"AUTOTEST Visit payment at {sim.Ships[id]!.Metadata.PlainShipName}");
+            Log.Info($"AUTOTEST payment of {m.MetatypeID} at {sim.Ships[id]!.Metadata.PlainShipName}");
         });
     }
 
@@ -499,6 +603,7 @@ public static class MissionArea
         FindObjective<T>() ?? throw new InvalidOperationException($"no accepted mission has a {typeof(T).Name}");
 
     static EscortObjective RequireEscort() => RequireObjective<EscortObjective>();
+    static LeadObjective RequireLead() => RequireObjective<LeadObjective>();
 
     /// <summary>The newest objective that meets the players and then runs the guard rule.</summary>
     static IMeetingEscort RequireGuarded()

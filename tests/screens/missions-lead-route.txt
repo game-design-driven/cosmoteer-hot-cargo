@@ -1,0 +1,24 @@
+# Blind Courier route (spec 1890): the whole system around the direct route (dotted rings, drawn by this script only) from the courier
+# to its jump point, and a red ring on each encounter near it (also drawn by this script only). The pick puts hostile ships and
+# nebulae near that line, so the players must lead the courier around them.
+# Windowed test slot or RUNNER=mac (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+reveal on
+closepanel
+wait 1
+ev_set Enabled false
+godmode
+hc_generate lead
+hc_accept lead
+expect hc_lead_danger >= 0
+hc_lead_route_dots
+hc_lead_route_encounters
+pause on
+hc_lead_route_camera
+wait 1
+hc_lead_route_camera
+wait 2
+screenshot lead-route
+quit

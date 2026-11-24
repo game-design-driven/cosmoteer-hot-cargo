@@ -34,20 +34,63 @@ public static class MissionModel
     /// <paramref name="reach"/> of the center and the straight route keeps <paramref name="sunClearance"/> from every sun.
     /// Null when no direction fits.
     /// </summary>
-    public static Vector2? ConvoyDestination(Vector2 start, Vector2 preferredDirection, float length, float reach, float sunClearance, IReadOnlyList<Vector2> suns)
+    public static Vector2? ConvoyDestination(Vector2 start, Vector2 preferredDirection, float length, float reach, float sunClearance, IReadOnlyList<Vector2> suns) =>
+        RouteCandidates(start, preferredDirection, length, reach, sunClearance, suns) is [var first, ..] ? first : null;
+
+    /// <summary>
+    /// Spec 36, 1890: every destination that fits the convoy route rules, in the order that ConvoyDestination tries them: the preferred
+    /// direction, then turns of RouteTurnStep to each side in turn.
+    /// </summary>
+    public static List<Vector2> RouteCandidates(Vector2 start, Vector2 preferredDirection, float length, float reach, float sunClearance, IReadOnlyList<Vector2> suns)
     {
         if (length <= 0f) throw new ArgumentOutOfRangeException(nameof(length), length, "must be above 0");
         if (preferredDirection == Vector2.Zero) throw new ArgumentException("must not be zero", nameof(preferredDirection));
         double baseAngle = Math.Atan2(preferredDirection.Y, preferredDirection.X);
         int steps = (int)Math.Round(2 * Math.PI / RouteTurnStep);
+        var fits = new List<Vector2>();
         for (int i = 0; i < steps; i++)
         {
             int turn = (i + 1) / 2 * (i % 2 == 0 ? -1 : 1); // 0, +1, -1, +2, -2, ...
             double angle = baseAngle + turn * RouteTurnStep;
             Vector2 dest = start + length * new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
-            if (dest.Length() <= reach && suns.All(s => SegmentDistance(start, dest, s) >= sunClearance)) return dest;
+            if (dest.Length() <= reach && suns.All(s => SegmentDistance(start, dest, s) >= sunClearance)) fits.Add(dest);
         }
-        return null;
+        return fits;
+    }
+
+    /// <summary>
+    /// Spec 1890: the encounters within <paramref name="range"/> of the straight route from start to destination, and the sum of their
+    /// weights. A blocking encounter (a hostile ship) within <paramref name="clear"/> of the destination rules the destination out (null):
+    /// the courier must be able to arrive.
+    /// </summary>
+    public static (float Score, List<RouteEncounter> Past)? RouteEncounters(Vector2 start, Vector2 dest, IReadOnlyList<RouteEncounter> encounters, float range, float clear)
+    {
+        if (range <= 0f) throw new ArgumentOutOfRangeException(nameof(range), range, "must be above 0");
+        if (encounters.Any(e => e.Blocks && Vector2.Distance(e.At, dest) < clear)) return null;
+        var past = encounters.Where(e => SegmentDistance(start, dest, e.At) <= range).ToList();
+        return (past.Sum(e => e.Weight), past);
+    }
+
+    /// <summary>Spec 1890: the group with the most encounter weight (a tie goes to the lower name), or null when there is none.</summary>
+    public static string? MainGroup(IReadOnlyList<RouteEncounter> encounters) =>
+        encounters.GroupBy(e => e.Group).OrderByDescending(g => g.Sum(e => e.Weight)).ThenBy(g => g.Key, StringComparer.Ordinal).Select(g => g.Key).FirstOrDefault();
+
+    /// <summary>
+    /// Spec 1890: the candidate whose straight route passes the most encounter weight; a tie goes to the earlier candidate (closer to the
+    /// preferred direction). Null when every candidate is ruled out.
+    /// </summary>
+    public static (Vector2 Destination, List<RouteEncounter> Past)? BestEncounterRoute(Vector2 start, IReadOnlyList<Vector2> candidates,
+        IReadOnlyList<RouteEncounter> encounters, float range, float clear)
+    {
+        (Vector2, List<RouteEncounter>)? best = null;
+        float bestScore = -1f;
+        foreach (var dest in candidates)
+            if (RouteEncounters(start, dest, encounters, range, clear) is { } r && r.Score > bestScore)
+            {
+                best = (dest, r.Past);
+                bestScore = r.Score;
+            }
+        return best;
     }
 
     /// <summary>Distance from a point to the segment from a to b.</summary>
@@ -75,6 +118,18 @@ public static class MissionModel
         Vector2 spot = player + away * (playerRadius + escortRadius + Math.Min(gap, reachGap));
         Vector2 fromStart = spot - start;
         return fromStart.Length() <= meetRange ? spot : start + Vector2.Normalize(fromStart) * meetRange;
+    }
+
+    /// <summary>
+    /// Spec 1892: where a following ship goes. It is on the line from the lead ship to the follower, <paramref name="gap"/> from the lead's
+    /// hull, so it stops where the lead stops.
+    /// </summary>
+    public static Vector2 FollowSpot(Vector2 lead, float leadRadius, Vector2 follower, float followerRadius, float gap)
+    {
+        if (gap < 0f) throw new ArgumentOutOfRangeException(nameof(gap), gap, "must not be negative");
+        Vector2 away = follower - lead;
+        away = away == Vector2.Zero ? Vector2.UnitY : Vector2.Normalize(away);
+        return lead + away * (leadRadius + followerRadius + gap);
     }
 
     /// <summary>Spec 1852: true when the straight route keeps <paramref name="clearance"/> from every sun.</summary>
@@ -137,3 +192,9 @@ public enum EscortGuardEvent
     /// <summary>The clock ran out: raiders take the escort, so the mission fails.</summary>
     Lost = 8,
 }
+
+/// <summary>Spec 1890: something near a route that the players must deal with or go around: a hostile ship or a nebula cell.</summary>
+/// <param name="Group">What the hint names it by, for example a faction and whether it is a station. Equal groups count together.</param>
+/// <param name="Blocks">A destination this close to it does not fit (hostile ships; a nebula does not block).</param>
+public readonly record struct RouteEncounter(Vector2 At, float Weight, string Group, bool Blocks);
+
