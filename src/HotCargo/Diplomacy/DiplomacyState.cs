@@ -44,10 +44,14 @@ public sealed class DiplomacyState
     [Serialize(Optional = true)] public int Serial;
     /// <summary>Spec 2220: run game seconds at which each AI ship first came within AreaRadius of a human ship that it is an enemy of, by ship.</summary>
     [Serialize(Optional = true)] public Dictionary<ObjectID, double> FightSince = new();
-    /// <summary>Spec 2224: paid hires this run: hired help, and new mercenary contracts (not the extensions).</summary>
-    [Serialize(Optional = true)] public int PaidHires;
+    /// <summary>Spec 2224, 2225: paid hires (hired help, and new mercenary contracts, not the extensions). Halves every HireHalfLifeMinutes.</summary>
+    [Serialize(Optional = true)] public float PaidHires;
     /// <summary>Spec 2224: health that ships on a paid hire lost this run, in whole ships (0.5 is half a ship).</summary>
     [Serialize(Optional = true)] public float HireShipsLost;
+    /// <summary>Spec 2226: paid hires whose ship came back unhurt (the contract ended by time or a jump, with no damage). Halves every HireHalfLifeMinutes.</summary>
+    [Serialize(Optional = true)] public float HireCleanReturns;
+    /// <summary>Spec 2225: run game seconds of the last decay of the hire counts.</summary>
+    [Serialize(Optional = true)] public double HireDecayAt;
     /// <summary>Spec 2224: ships that took a paid contract this run. A ship is never hired again after its contract ends.</summary>
     [Serialize(Optional = true)] public HashSet<ObjectID> EverHired = new();
 
@@ -95,6 +99,8 @@ public sealed class Hire
     [Serialize(Optional = true)] public bool Paid;
     /// <summary>Spec 2224: the ship's health share at the last hire check, for the damage it takes.</summary>
     [Serialize(Optional = true)] public float LastHealth;
+    /// <summary>Spec 2226: the ship took damage during this paid contract, so its end is no clean return.</summary>
+    [Serialize(Optional = true)] public bool Hurt;
     /// <summary>The area that made the hire shows its own ship label (Friendly: apprentice, debtor, Wayfarers), so the hired label stays off.</summary>
     [Serialize(Optional = true)] public bool HideLabel;
 }

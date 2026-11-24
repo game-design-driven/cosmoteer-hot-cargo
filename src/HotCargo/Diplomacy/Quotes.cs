@@ -94,8 +94,8 @@ public static class Quotes
             t.BetrayChanceBase, t.BetrayPerHeat, t.BetrayPerHunter, t.BetrayPerReputation, t.BetrayFeePaid);
     }
 
-    /// <summary>Spec 579: credits per step of the help offer slider: a tenth of the sure price. The slider ends at the sure price.</summary>
-    public static int HireStep(Run run) => Math.Max(1, Money(run, T(run).HireSureUnits) / DiplomacyModel.HireSteps);
+    /// <summary>Spec 579, 2226: credits per step of the help offer slider: a tenth of the sure price after the clean return cut. The slider ends at the sure price.</summary>
+    public static int HireStep(Run run) => Math.Max(1, Money(run, T(run).HireSureUnits * (1f - HireDiscount(run))) / DiplomacyModel.HireSteps);
 
     /// <summary>Spec 579: the sure hire price in credits: the last slider step.</summary>
     public static int HireSure(Run run) => HireStep(run) * DiplomacyModel.HireSteps;
@@ -110,6 +110,13 @@ public static class Quotes
         return DiplomacyModel.HireTrust(s.PaidHires, s.HireShipsLost, t.HireUseFalloff, t.HireLossFalloff);
     }
 
+    /// <summary>Spec 2226: the price cut from this run's recent clean returns.</summary>
+    public static float HireDiscount(Run run)
+    {
+        var t = T(run);
+        return DiplomacyModel.HireDiscount(run.State.Diplomacy.HireCleanReturns, t.HireCleanDiscount, t.HireMaxDiscount);
+    }
+
     public static float Hire(Run run, SimRoot sim, int player, Ship ship, int offer)
     {
         var t = T(run);
@@ -117,11 +124,11 @@ public static class Quotes
             HireTrust(run), t.HirePerReputation, t.HirePerHeat);
     }
 
-    /// <summary>Spec 583, 2224: MercPriceShare of the hire rate (HireSureUnits per HireSeconds) per minute, ÷ trust.</summary>
+    /// <summary>Spec 583, 2224, 2226: MercPriceShare of the hire rate (HireSureUnits per HireSeconds) per minute, ÷ trust, minus the clean return cut.</summary>
     public static int MercPrice(Run run, int minutes)
     {
         var t = T(run);
-        return Money(run, t.MercPriceShare * t.HireSureUnits * 60f / t.HireSeconds * minutes / HireTrust(run));
+        return Money(run, t.MercPriceShare * t.HireSureUnits * 60f / t.HireSeconds * minutes / HireTrust(run) * (1f - HireDiscount(run)));
     }
 
     // ---- Pay them off (spec 594 to 597)

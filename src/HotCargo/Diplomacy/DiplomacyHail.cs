@@ -264,8 +264,8 @@ public sealed class DiplomacyHail : IHailProvider
         bool mercRow = merc && !s.HiredBefore(ship.UniqueID);
         bool hireRow = !merc && Situation.Hireable(ship) && hire is null && !s.WasUsed(ship.UniqueID, Offer.Hire);
         // Spec 2224: after the first paid hire, a page with a hire row says how much trust is left.
-        if ((mercRow || hireRow) && Quotes.HireTrust(run) is var trust && trust < 1f)
-            page.AddText(DipText.Format("HireTrustFmt", s.PaidHires, s.HireShipsLost, trust, 1f / trust));
+        if ((mercRow || hireRow) && (Quotes.HireTrust(run), Quotes.HireDiscount(run)) is var (trust, cut) && (trust < 1f || cut > 0f))
+            page.AddText(DipText.Format("HireTrustFmt", s.PaidHires, s.HireShipsLost, s.HireCleanReturns, trust, 1f - cut, (1f - cut) / trust));
         if (mercRow)
         {
             int max = Math.Max(1, run.T.Diplomacy.MercMaxMinutes);

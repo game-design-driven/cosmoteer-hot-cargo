@@ -57,6 +57,15 @@ public class DiplomacyModelTests
     }
 
     [Fact]
+    public void Clean_returns_cut_hire_prices_by_up_to_the_max()
+    {
+        Assert.Equal(0f, DiplomacyModel.HireDiscount(0f, 0.05f, 0.2f));
+        Assert.Equal(0.1f, DiplomacyModel.HireDiscount(2f, 0.05f, 0.2f), 4);
+        Assert.Equal(0.2f, DiplomacyModel.HireDiscount(10f, 0.05f, 0.2f));
+        Assert.Throws<ArgumentOutOfRangeException>(() => DiplomacyModel.HireDiscount(-1f, 0.05f, 0.2f));
+    }
+
+    [Fact]
     public void Hire_chance_is_the_share_of_the_sure_price_between_the_floor_and_the_sure_price()
     {
         Assert.Equal(0f, DiplomacyModel.HireChance(1_000, 1_000, 0.6f, 1f, 0f, wanted: true, 1f, 0.3f, 0.4f));
@@ -76,6 +85,8 @@ public class DiplomacyModelTests
         Assert.Equal(1f, DiplomacyModel.HireTrust(0, 0f, 0.15f, 0.5f));
         Assert.Equal(1f / 1.15f, DiplomacyModel.HireTrust(1, 0f, 0.15f, 0.5f), 4);
         Assert.Equal(1f / 1.6f / 1.5f, DiplomacyModel.HireTrust(4, 1f, 0.15f, 0.5f), 4);
+        // Spec 2225: counts decay, so trust uses fractions of a hire.
+        Assert.Equal(1f / 1.075f, DiplomacyModel.HireTrust(0.5f, 0f, 0.15f, 0.5f), 4);
         Assert.Equal(6, DiplomacyModel.HireMinStep(0.6f));
         Assert.Equal(7, DiplomacyModel.HireMinStep(0.65f));
         Assert.Equal(10, DiplomacyModel.HireMinStep(1f));

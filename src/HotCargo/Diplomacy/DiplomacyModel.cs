@@ -99,8 +99,15 @@ public static class DiplomacyModel
     }
 
     /// <summary>Spec 2224: mercenaries talk. Trust after paid hires and after the health that hired ships lost (in whole ships).</summary>
-    public static float HireTrust(int hires, float shipsLost, float perHire, float perShipLost) =>
+    public static float HireTrust(float hires, float shipsLost, float perHire, float perShipLost) =>
         Core.HeatModel.Trust(hires, perHire) * Core.HeatModel.Trust(shipsLost, perShipLost);
+
+    /// <summary>Spec 2226: the price cut from paid hires that came back unhurt: perReturn each, at most max.</summary>
+    public static float HireDiscount(float cleanReturns, float perReturn, float max)
+    {
+        if (cleanReturns < 0f || perReturn < 0f || max is < 0f or > 1f) throw new ArgumentOutOfRangeException(nameof(cleanReturns), $"returns {cleanReturns}, per return {perReturn}, max {max}");
+        return Math.Min(max, cleanReturns * perReturn);
+    }
 
     /// <summary>Spec 579: the first slider step of a hire offer, in tenths of the sure price: minShare × 10, rounded up.</summary>
     public static int HireMinStep(float minShare) => Math.Clamp((int)Math.Ceiling(minShare * HireSteps - 1e-4f), 0, HireSteps);

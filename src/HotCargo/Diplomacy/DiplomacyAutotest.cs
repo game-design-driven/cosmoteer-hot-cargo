@@ -305,6 +305,9 @@ static class DiplomacyAutotest
         Autotest.Fields["dip_trust"] = () => Quotes.HireTrust(R());
         Autotest.Fields["dip_paidhires"] = () => R().State.Diplomacy.PaidHires;
         Autotest.Fields["dip_shipslost"] = () => R().State.Diplomacy.HireShipsLost;
+        // Spec 2226: recent clean returns and the price cut they give.
+        Autotest.Fields["dip_cleanreturns"] = () => R().State.Diplomacy.HireCleanReturns;
+        Autotest.Fields["dip_discount"] = () => Quotes.HireDiscount(R());
         // dip_endhire <target>: test only. The target's contract ends now, as if its time ran out (the next hire check removes it).
         Autotest.Commands["dip_endhire"] = arg =>
         {

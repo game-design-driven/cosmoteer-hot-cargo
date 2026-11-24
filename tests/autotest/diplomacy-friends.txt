@@ -80,6 +80,8 @@ wait 2
 # The first paid hire at the sure price (spec 579) always works with no heat and reputation factors.
 dip_set HirePerHeat 0
 dip_set HirePerReputation 0
+# The counts stay exact until the decay check at the end (spec 2225).
+dip_set HireHalfLifeMinutes 0
 dip_page friend
 expect dip_pageslider >= 1
 expect dip_trust == 1
@@ -129,6 +131,9 @@ dip merc friend 2
 wait 1
 expect dip_friendhired == 0
 expect dip_paidhires == 2
+# Spec 2226: the mercenary came back unhurt, so hires are 5 % cheaper.
+expect dip_cleanreturns == 1
+expect dip_discount == 0.05
 # A military ship of the corporation's ally faction never holds tech (spec 574). A friendly military ship answers only while it has
 # a real option: after its help offer is used, it keeps the vanilla behavior (spec 560).
 dip_set MercChance 0
@@ -160,4 +165,9 @@ dip_expect hire friend 10 == 0
 dip hire friend 10
 wait 1
 expect dip_friendhired == 0
+# Spec 2225: trust comes back. With a half-life of 3 s, the counts halve every 3 s.
+dip_set HireHalfLifeMinutes 0.05
+wait 10
+expect dip_paidhires < 0.5
+expect dip_cleanreturns < 0.25
 quit
