@@ -26,6 +26,7 @@ expect br_airlocks_me == 0
 br_send 2 hulk me
 waitfor br_made == 1 90
 expect br_parts_me == 1
+expect br_new_problems_me == 0
 waitfor br_out_me == 0 60
 expect br_made == 1
 quit

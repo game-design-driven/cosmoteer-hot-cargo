@@ -131,8 +131,9 @@ public static class BreachArea
 
     /// <summary>
     /// Spec 1612: the breach site nearest to a point. A site is a cell next to a walkable tile of the ship (crew speed above 0) that is empty
-    /// or holds a part that is not walkable, where the breach part fits. It prefers a site where both sides allow the door; with none in the
-    /// nearest MaxSites, it takes the nearest site where the part fits and forces the door. Sim state only; ties go by cell.
+    /// or holds a part that is not walkable, where the breach part fits. It takes the nearest site of the whole ship where both sides allow
+    /// the door: a forced door is invalid in the design (the ship editor shows it red). Only a ship with no such site gets a forced door, at
+    /// the nearest of the MaxSites nearest sites where the part fits. Sim state only; ties go by cell.
     /// </summary>
     internal static (IntVector2 Cell, IntVector2 Walk)? Site(Ship ship, Vector2 near, int maxSites)
     {
@@ -145,10 +146,11 @@ public static class BreachArea
                     if (Walkable(ship.Parts[cell])) continue;
                     sites.Add((cell, walk, ship.DetTransformPointToWorld(new Vector2(cell.X + 0.5f, cell.Y + 0.5f)).DistanceSquaredTo(near)));
                 }
-        var nearest = sites.OrderBy(x => x.D).ThenBy(x => x.Cell.X).ThenBy(x => x.Cell.Y).ThenBy(x => x.Walk.X).ThenBy(x => x.Walk.Y).Take(maxSites).ToList();
-        foreach (bool force in new[] { false, true })
-            foreach (var (cell, walk, _) in nearest)
-                if (Fit(ship, cell, walk, force) is not null) return (cell, walk);
+        var ordered = sites.OrderBy(x => x.D).ThenBy(x => x.Cell.X).ThenBy(x => x.Cell.Y).ThenBy(x => x.Walk.X).ThenBy(x => x.Walk.Y).ToList();
+        foreach (var (cell, walk, _) in ordered)
+            if (Fit(ship, cell, walk, force: false) is not null) return (cell, walk);
+        foreach (var (cell, walk, _) in ordered.Take(maxSites))
+            if (Fit(ship, cell, walk, force: true) is not null) return (cell, walk);
         return null;
     }
 
@@ -170,9 +172,18 @@ public static class BreachArea
         var door = ship.Rules.DefaultDoor ?? throw new InvalidOperationException($"ship rules {ship.Rules.ID} have no default door");
         var (doorCell, horizontal) = BreachModel.Door((cell.X, cell.Y), (walk.X, walk.Y));
         var loc = new DoorLocation(new IntVector2(doorCell.X, doorCell.Y), horizontal ? DoorOrientation.Horizontal : DoorOrientation.Vertical);
+        // The game's door check (BlueprintDoorsManager.CanAddDoorAt) sees the part that the breach replaces (armor, or no part), not the breach.
+        // So the door is checked here with the rule of the door validity (BlueprintDoor.UpdateValidity) for the breach, and added past the
+        // game's check. A walkable tile with no blueprint part (not built from the design) allows no valid door.
+        var other = ship.BlueprintParts[walk];
+        bool breachFirst = loc.Cell == cell;
+        bool allowed = other is not null && PartRules.AllowsDoorBetween(loc,
+            breachFirst ? rules : other.Rules, breachFirst ? cell : other.Location, breachFirst ? rot : other.Rotation, !breachFirst && other.FlipX,
+            breachFirst ? other.Rules : rules, breachFirst ? other.Location : cell, breachFirst ? other.Rotation : rot, breachFirst && other.FlipX);
+        if (!allowed && !force) return null;
         var info = ShipUpdateInfo.Alloc(ship);
         if (info.TryAddBlueprintPart(rules, cell, rot, flipX: false, mirrorPhysical: true, allowOverwrite: true, addDoors: false, hireCrew: false, out _)
-            && info.TryAddBlueprintDoor(door, loc, mirrorPhysical: true, allowOverwrite: true, force: force))
+            && info.TryAddBlueprintDoor(door, loc, mirrorPhysical: true, allowOverwrite: true, force: true))
             return info;
         ((IDisposable)info).Dispose();
         return null;

@@ -43,10 +43,14 @@ internal static class ShipBuilder
         return ship;
     }
 
-    /// <summary>The saved design of a layout, in the rules that hold its parts. <paramref name="decorate"/> can paint the design before it is saved.</summary>
+    /// <summary>
+    /// The saved design of a layout, in the rules that hold its parts. <paramref name="decorate"/> can paint the design before it is saved.
+    /// Throws when the design fails the ship editor checks (<see cref="ShipCheck"/>), so a layout change that cuts a crew path shows at once.
+    /// </summary>
     internal static byte[] DesignBytes(IReadOnlyList<PartAt> layout, string name, string what, Action<Ship>? decorate = null)
     {
         using var ship = Build(RulesFor(layout, what), layout, name, what);
+        ShipCheck.Require(ship, $"{what} design {name}");
         decorate?.Invoke(ship);
         using var stream = new MemoryStream();
         ship.SaveDesign(stream);

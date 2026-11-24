@@ -24,6 +24,7 @@ expect br_aboard_hulk == 0
 waitfor br_made == 1 20
 expect br_parts_hulk == 1
 expect br_airlocks_hulk == 1
+expect br_new_problems_hulk == 0
 # Spec 1614: all of them get in through the breach. One breach is enough.
 waitfor br_aboard_hulk >= 2 60
 expect br_out_hulk == 0

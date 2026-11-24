@@ -61,7 +61,7 @@ internal static class StartingVault
     /// Builds enough empty vaults into the ship for the units (spec 441), only inside the hull and only where crew can walk to them.
     /// The tiles of the smallest storage bay come first; when none of them gets a vault, the bay goes back.
     /// Then come corridor tiles and enclosed empty tiles, nearest to the ship center first. allowCell (tests) can rule out cells.
-    /// Each vault must keep a crew path to every part that had one. Returns the vault cells.
+    /// Each vault must keep a crew path to every part that had one, and the design gets no new ship editor problem (ShipCheck). Returns the vault cells.
     /// Throws NoRoomException when the hull has too few such tiles; the caller then keeps the old design.
     /// </summary>
     internal static List<IntVector2> BuildVaults(Ship ship, int units, Func<IntVector2, bool>? allowCell = null)
@@ -73,6 +73,7 @@ internal static class StartingVault
         var corridors = ship.Rules.Parts.Select(p => p.CreatePartPerTileWhenGrabbed).Where(id => id != default).Distinct()
             .Select(id => ship.Rules.PartsByID.TryGetValue(id, out var r) ? r.ID : throw new InvalidOperationException($"no part {id} (CreatePartPerTileWhenGrabbed)")).ToHashSet();
         if (corridors.Count == 0) throw new InvalidOperationException("no part rules name a corridor part (CreatePartPerTileWhenGrabbed)");
+        var before = ShipCheck.Problems(ship);
         var placed = new List<IntVector2>();
         if (GrabStorage(ship) is { } bay)
         {
@@ -84,6 +85,7 @@ internal static class StartingVault
         var interior = InteriorCells(ship, corridors).OrderBy(c => Distance2(new IntRect(c.X, c.Y, 1, 1), center)).ThenBy(c => c.Y).ThenBy(c => c.X).Distinct().ToList();
         Place(ship, vault, interior, corridors, count, placed, allowCell);
         if (placed.Count < count) throw new NoRoomException($"room inside the hull for {placed.Count} of {count} vaults with a crew path");
+        ShipCheck.RequireNoNew(ship, before, "Tech Vaults");
         return placed;
     }
 

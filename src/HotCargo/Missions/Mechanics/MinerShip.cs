@@ -24,9 +24,11 @@ internal static class MinerShip
 
     /// <summary>
     /// Nose: a mining laser on each side, their 270 degree arcs forward, and the manipulator beam (the collector) between them on the
-    /// center line. Behind them the control room and crew quarters, with a braking thruster on each flank. Then two storage bays (the hold:
-    /// about 2.5 to 3 minutes of mining, spec 1870) with an airlock on each flank close to where the ore falls (the crew fetch it through
-    /// them), a reactor and more quarters with side thrusters, and six medium thrusters at the tail. Each part touches one placed before it.
+    /// center line. Behind them the control room and the reactor, with a braking thruster on each flank. Then two storage bays (the hold:
+    /// about 2.5 to 3 minutes of mining, spec 1870) with an airlock and a side thruster on each flank close to where the ore falls (the crew
+    /// fetch it through them), two crew quarters with their doors into the bays, a fire extinguisher on the spine, and six medium thrusters
+    /// at the tail. Each part touches one placed before it. Every small thruster touches a room that crew walk (control room, reactor, bay),
+    /// so crew bring it batteries: quarters let no crew through, and crew_quarters_med has doors on its top side only.
     /// </summary>
     internal static readonly PartAt[] Layout = BuildLayout();
 
@@ -35,12 +37,13 @@ internal static class MinerShip
         var parts = new List<PartAt>();
         for (int y = -4; y <= 1; y++)
         {
-            parts.Add(new("cosmoteer.corridor", 0, y, 0));
+            // The spine's last tile on the left holds the fire extinguisher, its door up into the spine.
+            parts.Add(y == 1 ? new("cosmoteer.fire_extinguisher", 0, y, 2) : new("cosmoteer.corridor", 0, y, 0));
             parts.Add(new("cosmoteer.corridor", 1, y, 0));
         }
         parts.Add(new("cosmoteer.manipulator_beam_emitter", 0, -6, 0));
         parts.Add(new("cosmoteer.control_room_small", -2, -4, 0));
-        parts.Add(new("cosmoteer.crew_quarters_med", 2, -4, 0));
+        parts.Add(new("cosmoteer.reactor_small", 2, -4, 0));
         parts.Add(new("cosmoteer.mining_laser_small", -2, -7, 0));
         parts.Add(new("cosmoteer.mining_laser_small", 2, -7, 0));
         parts.Add(new("cosmoteer.thruster_small", -3, -4, 2));
@@ -49,12 +52,12 @@ internal static class MinerShip
         parts.Add(new("cosmoteer.storage_2x2", 2, -2, 0));
         parts.Add(new("cosmoteer.airlock", -3, -2, 3));
         parts.Add(new("cosmoteer.airlock", 4, -2, 1));
-        parts.Add(new("cosmoteer.armor", -3, -1, 0));
-        parts.Add(new("cosmoteer.armor", 4, -1, 0));
-        parts.Add(new("cosmoteer.reactor_small", -2, 0, 0));
+        parts.Add(new("cosmoteer.thruster_small", -4, -1, 1));
+        parts.Add(new("cosmoteer.thruster_small", 4, -1, 3));
+        parts.Add(new("cosmoteer.crew_quarters_med", -2, 0, 0));
         parts.Add(new("cosmoteer.crew_quarters_med", 2, 0, 0));
-        parts.Add(new("cosmoteer.thruster_small", -4, 0, 1));
-        parts.Add(new("cosmoteer.thruster_small", 4, 0, 3));
+        parts.Add(new("cosmoteer.armor", -3, 0, 0));
+        parts.Add(new("cosmoteer.armor", 4, 0, 0));
         for (int x = -2; x <= 3; x++) parts.Add(new("cosmoteer.thruster_med", x, 2, 0));
         return [.. parts];
     }
@@ -62,7 +65,7 @@ internal static class MinerShip
     static byte[]? _design;
 
     /// <summary>The saved design, built once per process from the rules.</summary>
-    static byte[] Design() => _design ??= ShipBuilder.DesignBytes(Layout, "Ore Tender", "miner", Decorate);
+    internal static byte[] Design() => _design ??= ShipBuilder.DesignBytes(Layout, "Ore Tender", "miner", Decorate);
 
     /// <summary>
     /// Spec 1869: the roof pattern, vanilla decals in the three decal colors of the faction's paint (MinerShip.Paint): light panels on the

@@ -59,6 +59,8 @@ Part : <./Data/ships/terran/base_part_terran.rules>/Part
 			Storage = Storage
 			DefaultPriority = &/PRIORITIES/Storage_Supply
 			ConsumptionToggleButtonOffset = [0, -.4]
+			// No part supplies tech: crew bring it. Without this the build tool marks every vault "No Stolen Tech" (BaseBuildState.GetCrewPathInfo).
+			AccessWarningLevel = None
 		}
 
 		Graphics
