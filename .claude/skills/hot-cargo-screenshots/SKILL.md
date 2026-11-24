@@ -18,6 +18,10 @@ A PR agent takes its own screenshots. Never use slot main on the PC: it is the p
   - It needs the cosmoteer-macos checkout next to this repo (`<container>/../cosmoteer-macos/main`, or `COSMOTEER_MACOS=<worktree>`) with `tools/hotcargo-screens.sh`. Without it, `screens.sh` stops with a message.
   - Differences from the PC: the text rasterizer differs a little. On 2026-11-15 the same scripts gave the same UI; `systems` differed in 1% of pixels, `map-consequences` in about 9% (animated map background).
   - The default timeout is 900 s: loading game data takes minutes on a busy Mac.
+  - Use the up-to-date `cosmoteer-macos/main` (the default), not an older worktree. Reason: an old runner drew the UI at half scale and put the camera off-centre, which looked like a script bug.
+  - The first `auto_frame` after `auto_interior on`, or after damage that shows a hint, does not hold: call it twice, with a wait between.
+  - `auto_frame` sizes under about 13 do not zoom closer on the Mac: crop the 2560x1440 shot instead.
+  - `auto_cargo` fills only flexible storage (`FlexResourceGrid`). Fill vaults with `tech add <n>`.
 - **PC (default, `RUNNER=pc`):** use it for the final look of a Windows-only detail, or when the Mac runner is missing.
 
 While `.state/player-hold` exists, `screens.sh` refuses (exit 3): a window in a test slot could take focus or GPU time from the player. Headless tests stay allowed. Try again when the hold ends, or ask the coordinator.

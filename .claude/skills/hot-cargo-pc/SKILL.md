@@ -43,3 +43,4 @@ Every PC script sources `scripts/pc.sh`. Its header names the settings: `PC_MACH
 - Never kill Cosmoteer processes by hand. Use `SLOT=tN scripts/stop.sh`.
 - Never print process command lines.
 - PC calls work only while your turn is active (CLAUDE.md, Agents).
+- The T3 link to the PC drops when the PC's display turns off, even when the PC does not sleep. The display, sleep and hibernate timeouts on AC are "never" for that reason. If the link drops after some idle minutes, check them first (`powercfg /q`).
