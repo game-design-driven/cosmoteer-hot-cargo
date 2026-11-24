@@ -9,24 +9,24 @@ HotCargoRelays
 	TagClosed = "RELAY CLOSED"
 	TagFee = "RELAY TOLL"
 	TagPirates = "PIRATE RELAY"
-	TipClosedFmt = "<bad>Relay lockdown:</bad> the local faction closes the relays for about {1} min. Blind jump, or wait."
-	TipFeeFmt = "<bad>Relay toll:</bad> the local faction wants {0} to let you out. Pay at its station, or blind jump."
-	TipPiratesFmt = "<bad>Pirates hold the relays.</bad> They want about {0}. Bribe them, fight them, or blind jump."
+	TipClosedFmt = "<bad>Relay lockdown:</bad> the local faction closes the relays for about {1} min. Wait it out."
+	TipFeeFmt = "<bad>Relay toll:</bad> the local faction wants {0} to let you out. Pay at its station."
+	TipPiratesFmt = "<bad>Pirates hold the relays.</bad> They want about {0}. Bribe them, or fight them."
 
 	// Chat lines.
 	MarkedFmt = "Word on the relay net: in {0}, {1}."
 	ArriveToast = "RELAY LOCKDOWN"
-	ArriveClosedFmt = "<bad>The relays are closed.</bad> Blind jump, or wait it out."
-	ArriveFeeFmt = "<bad>Relay toll: {0}.</bad> Pay at a faction station, or blind jump."
-	ArrivePiratesFmt = "<bad>Pirates hold the relays.</bad> Hail them to bribe (about {0}), fight, or blind jump."
+	ArriveClosedFmt = "<bad>The relays are closed.</bad> Wait it out."
+	ArriveFeeFmt = "<bad>Relay toll: {0}.</bad> Pay at a faction station."
+	ArrivePiratesFmt = "<bad>Pirates hold the relays.</bad> Hail them to bribe (about {0}), or fight."
 	ClosedOpens = "The relays open again."
 	GuardsGone = "The relay guards are gone. The relays are open."
 	FeePaidFmt = "Toll paid: {0}. The relays are open."
 
 	// Spin-up window and blocked jumps.
-	BlockedClosed = "RELAY CLOSED: blind jump only"
-	BlockedFee = "RELAY TOLL: pay at a station, or blind jump"
-	BlockedPirates = "PIRATES HOLD THE RELAY: bribe, fight, or blind jump"
+	BlockedClosed = "RELAY CLOSED: wait it out"
+	BlockedFee = "RELAY TOLL: pay at a station"
+	BlockedPirates = "PIRATES HOLD THE RELAY: bribe or fight"
 
 	// Comms pages. {0} is the ship name, {1} the price.
 	FeeAskFmt = "{0}: \"Relay toll is {1}. No toll, no jump.\""

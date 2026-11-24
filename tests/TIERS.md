@@ -87,7 +87,7 @@ The prune of 2026-11-14 classified every game test with evidence: git history (f
 | events-wanted | KEEP | Vanilla wanted with heat stages and hunters. | 52 |
 | factions-combat-jump | KEEP | Jumps: a jump in a fight. | 45 |
 | factions-controller | KEEP | Seed-dependent station placement. | 267 |
-| factions-jumps | KEEP | Jumps and heat: relay and blind jumps. | 249 |
+| factions-jumps | KEEP | Jumps and heat: clear and watched relay jumps. | 249 |
 | factions-peace | KEEP | Ally peace in game AI; kept over the co-op step (3 fix commits). | 82 |
 | factions-prices | KEEP | Smoke test; station refusals. | 52 |
 | factions-watch | KEEP | Watch marks: a heat mechanic; kept over the co-op step. | 89 |
@@ -126,7 +126,6 @@ The prune of 2026-11-14 classified every game test with evidence: git history (f
 | pursuit-hacker | KEEP | Heat deal and money; fix b94d6bd. | 71 |
 | pursuit-outage | KEEP | Heat: the outage blocks gains, losses apply. | 56 |
 | pursuit-scout | KEEP | Heat source through AI movement. | 55 |
-| relays-blind | KEEP | Jumps: the blind jump out of a closed relay (#96). | 51 |
 | relays-closed | KEEP | Jumps; bug history (#96). | 64 |
 | relays-fee | KEEP | Jumps: the toll opens the relays. | 60 |
 | relays-map | KEEP | Only test of a real rolled lockdown. | 90 |
@@ -226,4 +225,4 @@ The policy above, applied to every game test with the evidence that the Audit se
 | Co-op steps removed | | 29 (core 7, combat 8, economy 9, friendly 4, autonomy 1) |
 | Unit tests | 344 | 345 (one new: `RemoveTerm` keeps the OR with its term) |
 
-Kept on purpose, against a shorter suite: tests of new complex features with their own spec (`ai-flee-station`, `relays-blind`), and single-player tests whose co-op step went instead (`factions-peace`, `factions-watch`, `missions-offers`, `missions-shady`, `tech-count`). Not done yet: the shorten proposals (long fixed waits in kept tests), and the moves of the rules in `contracts-value` and `mechanics-listening` into models so that those tests can go.
+Kept on purpose, against a shorter suite: tests of new complex features with their own spec (`ai-flee-station`), and single-player tests whose co-op step went instead (`factions-peace`, `factions-watch`, `missions-offers`, `missions-shady`, `tech-count`). Not done yet: the shorten proposals (long fixed waits in kept tests), and the moves of the rules in `contracts-value` and `mechanics-listening` into models so that those tests can go.

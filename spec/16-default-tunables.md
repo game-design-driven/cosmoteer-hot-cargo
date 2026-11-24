@@ -124,8 +124,7 @@
 | `Factions.ShelterReputation`, `ShelterHeatFactor` | 500, 0.6 | 643 |
 | `Factions.WatchHeatFactor` | 1.1 | 664 |
 | `Factions.RivalFencePremium` | 1.5 | 644 |
-| `Factions.RelayWatchedHeatCut`, `RelayClearHeatCut`, `BlindHeatCut`, `RelayWatchRadius` | 0.75, 0.85, 0.9, 3500 | 650 |
-| `Factions.BlindFuelFactor`, `BlindSpinUpFactor`, `BlindDamageChance`, `BlindDamageParts`, `BlindDamageFraction` | 1.5, 2, 0.35, 3, 0.4 | 651 |
+| `Factions.RelayWatchedHeatCut`, `RelayClearHeatCut`, `RelayWatchRadius` | 0.75, 0.85, 3500 | 650 |
 | `Factions.MarkupStartHeat`, `MarkupMaxFactor`, `PriceHeatStep` | 75, 2, 5 | 655 |
 | `Factions.CrewPriceAtMaxHeat` | 2 | 656 |
 | `Factions.RefuseHeat`, `RefuseChance` | 90, 0.5 | 657 |

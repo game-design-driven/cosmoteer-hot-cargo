@@ -10,7 +10,7 @@ namespace HotCargo.Pursuit;
 
 /// <summary>
 /// Spec 915 to 919: the relay blockade. At a blockade stage the stage's first group parks at the relay that the players need.
-/// A ship chases when players come close or hit it, so players can fight through, lure the ships away or jump blind.
+/// A ship chases when players come close or hit it, so players can fight through, or lure the ships away.
 /// </summary>
 public static class Blockade
 {

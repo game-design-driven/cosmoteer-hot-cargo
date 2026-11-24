@@ -327,6 +327,9 @@ static class UxAutotest
             .OrderBy(s => JumpWarnings.PlannedReason(run.Game, s) != StayReason.TooBig).ThenBy(s => s.UniqueID).FirstOrDefault()
         ?? throw new InvalidOperationException("no own ship stays behind");
 
+    /// <summary>The vanilla map jump fuel rules that jw_fuelcost scales, by ship rules.</summary>
+    static readonly Dictionary<Cosmoteer.Ships.ShipRules, (float PerMass, float PerMassDistance)> BaseFuelRules = new();
+
     /// <summary>Spec 1569: jump warnings. A copy of the starter ship stands in for a captured ship (the starter ships have no hyperdrive).</summary>
     static void RegisterJumpWarnings()
     {
@@ -355,6 +358,18 @@ static class UxAutotest
                 foreach (var ship in ships) Factions.FactionsAutotest.OrderGateJump(ship);
                 Log.Info($"AUTOTEST ux: {ships.Count} ships with a hyperdrive ordered to jump");
             });
+        };
+        // jw_fuelcost <factor>: test only. Scales the vanilla map jump fuel rules of the own ships (1 restores them), so a jump costs more
+        // than a drive holds. The rules are shared game data, so a test sets 1 again before it jumps.
+        Autotest.Commands["jw_fuelcost"] = arg =>
+        {
+            float factor = float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture);
+            foreach (var ship in Autotest.RequireRun().Game.Sim.Ships.LocalPlayerSignificantShips)
+            {
+                var rules = ship.Rules;
+                var (perMass, perMassDistance) = BaseFuelRules.TryGetValue(rules, out var b) ? b : BaseFuelRules[rules] = (rules.MapJumpFuelCostPerMass, rules.MapJumpFuelCostPerMassDistance);
+                (rules.MapJumpFuelCostPerMass, rules.MapJumpFuelCostPerMassDistance) = (perMass * factor, perMassDistance * factor);
+            }
         };
         Autotest.Fields["jw_ready"] = () => Autotest.RequireRun().Game.Sim.Ships.LocalPlayerSignificantShips.Count(s => s.Ftl.IsReadyToJump);
         // jw_twin save|spawn: single player. save keeps the design of the acting ship; spawn adds a crewed copy of it as an own ship nearby.
