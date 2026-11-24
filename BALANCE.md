@@ -60,7 +60,7 @@ Heat sources and sinks in one sector (8 units held, multiplier 1.2, after the ch
 
 | Source or sink | Rule | Heat per sector |
 |---|---|---|
-| Carried in | a jump removes 75 % (watched relay), 85 % (clear relay) or 90 % (blind) of the heat (requirement 650) | about +25, +15 or +10 |
+| Carried in | a jump removes 75 % (watched relay) or 85 % (clear relay) of the heat (requirement 650) | about +25 or +15 |
 | Missions | 6 × 3.4 std fame × 1.425 × 1.2 | +35 |
 | Time | 17.5 min × 1.14 × 1.2 | +24 |
 | Contracts | 6 × (flat heat 1.5 + informant 0.75 × 10 % × 15) | +16 |
@@ -69,30 +69,30 @@ Heat sources and sinks in one sector (8 units held, multiplier 1.2, after the ch
 | Convoy cover | −8 per completed Convoy Duty (45 % of systems) | −4 on average |
 | **Total at the end of the sector** | | **about 96: the Strike after about 6.4 missions in 18.5 minutes** |
 
-Heat stages and missions. One typical mission adds about 11.8 heat: 5.8 from fame, 2.7 from its contract, 4.0 from its 2.9 minutes, −0.7 from convoy cover. Missions before a stage = (stage heat − carried heat) ÷ 11.8. The charts in `docs/balance.html` leave out convoy cover, so they show the Strike after 6.0 missions, not 6.4. The jump kind sets the carried heat (requirement 650): a jump from heat 100 keeps 25, 15 or 10.
+Heat stages and missions. One typical mission adds about 11.8 heat: 5.8 from fame, 2.7 from its contract, 4.0 from its 2.9 minutes, −0.7 from convoy cover. Missions before a stage = (stage heat − carried heat) ÷ 11.8. The charts in `docs/balance.html` leave out convoy cover, so they show the Strike after 6.0 missions, not 6.4. The jump kind sets the carried heat (requirement 650): a jump from heat 100 keeps 25 or 15.
 
-| Stage (heat) | Watched relay (75 % cut, 25 kept) | Clear relay (85 % cut, 15 kept) | Blind jump (90 % cut, 10 kept) |
-|---|---|---|---|
-| Warning (40) | 1.3 missions, 4 min | 2.1 missions, 6 min | 2.5 missions, 7 min |
-| Hunt (75) | 4.2 missions, 12 min | 5.1 missions, 15 min | 5.5 missions, 16 min |
-| Strike (100) | 6.4 missions, 18.5 min | 7.2 missions, 21 min | 7.6 missions, 22 min |
-| With no missions: Warning, Hunt, Strike | 11, 37, 55 min | 18, 44, 62 min | 22, 48, 66 min |
+| Stage (heat) | Watched relay (75 % cut, 25 kept) | Clear relay (85 % cut, 15 kept) |
+|---|---|---|
+| Warning (40) | 1.3 missions, 4 min | 2.1 missions, 6 min |
+| Hunt (75) | 4.2 missions, 12 min | 5.1 missions, 15 min |
+| Strike (100) | 6.4 missions, 18.5 min | 7.2 missions, 21 min |
+| With no missions: Warning, Hunt, Strike | 11, 37, 55 min | 18, 44, 62 min |
 
 - Three stages give three clear steps: scouts (Warning), a real fight (Hunt), then repeat waves until the players jump (Strike). Warning is above the highest carried heat (25), so the scouts always come after the players arrive. Hunt starts with the station markup (75, requirement 655).
-- Before the 5 % cut, the Strike came after 6.1, 6.9 and 7.3 missions. The cut gives about 0.3 more missions in each sector. A very fast player who picks low-fame missions (bounties, 2.5 std fame) does about 8.
-- A clear relay and a blind jump are earned (a relay without hunters near it, or 1.5 × fuel, a slower spin-up and a damage risk), and they stay inside "about 6, a fast player more".
+- Before the 5 % cut, the Strike came after 6.1 and 6.9 missions. The cut gives about 0.3 more missions in each sector. A very fast player who picks low-fame missions (bounties, 2.5 std fame) does about 8.
+- A clear relay is earned (a relay without hunters near it), and it stays inside "about 6, a fast player more".
 - **Smaller systems** (requirement 105, `SystemScale` 0.5, was about 0.7). Measured in `worlds-rings`: trade stations at 4,200 to 6,800 from the center (was 7,500 to 11,000), gates at 9,400 to 11,250 (was 13,500 to 16,000), sites from the center at half the vanilla radius. A trip between stations is about 0.6 as long; a trip from a station to a gate is about 4,000 (was about 5,500), because the stations moved in with the gates. Short hops next to a station keep their length. If travel is half of a mission's 2.9 minutes and gets 0.4 shorter, a mission takes about 2.3 minutes and adds about 0.8 less heat (11.0), so the Strike after a watched relay comes after about 6.8 missions (was 6.4). That stays inside "about 6, a fast player more". No retune; check it with telemetry.
 - **Changes:** `HeatPerStandardMission` 15 → **1.5** (per std fame unit). `HeatPerGameMinute` 2 → **1.2**. `EscortHeatChange` −15 → **−8** (the old value was one old mission; it would now be three). Later: both heat rates −5 % (`HeatPerStandardMission` **1.425**, `HeatPerGameMinute` **1.14**), and 3 heat stages in place of 4 (Patrol removed).
 - **Boards.** Each system offers 20 to 26 missions on its station boards (about 4 per station), plus 50 galaxy "visit" offers in a separate list. Hot Cargo adds 4 to 6 of them; the largest share was story chains (2 to 3 per system, one at every station). With 6 missions per sector, a board of about 3 × 6 = 18 to 24 offers is enough choice. **Change:** chains start at 60 % of stations and at most 2 per system (`Chains.StationChance` 1 → 0.6, new `Chains.MaxNewChainsPerSystem` = 2). Measured after: 0 to 2 chains and 3 to 4 Hot Cargo offers per system, 20 to 25 offers in total. Mechanics missions already average under 1 per system (they need asteroids, storms or a single sun). No other cut. Since finding 10, Hot Cargo shows about twice as many offers: 4 to 10 per system (24 to 43 % of the board) on the measured route.
 
 ### 5. Fuel
 
-- **Every jump to another system costs fuel.** The ships fly to a relay (gate), and a human ship needs FTL drives and the map jump fuel (`FtlManager`: the spin-up checks `GetTotalFtlMapJumpFuelCost` for a gate jump of a human ship). Cost: about mass × light years ÷ 1,000 (vanilla). A blind jump (factions, requirement 651) costs 1.5 ×. So fuel is the travel currency and the escape from a Strike, and a fleet without fuel is stuck.
+- **Every jump to another system costs fuel.** The ships fly to a relay (gate), and a human ship needs FTL drives and the map jump fuel (`FtlManager`: the spin-up checks `GetTotalFtlMapJumpFuelCost` for a gate jump of a human ship). Cost: about mass × light years ÷ 1,000 (vanilla). So fuel is the travel currency and the escape from a Strike, and a fleet without fuel is stuck.
 - Vanilla fuel was not a decision: a tier 12 jump cost about 17 fuel = 850 credits, 0.2 % of a mission. Stations sold 180 to 1,900 fuel per system.
 - **Changes** (requirement 300, `mod/balance/actions.rules`): price 50 → **150**; stack 20 → **10** (a tile or a crew trip holds half); station stock 80–90 % → **25–40 %** of typed fuel tiles and 0–10 % → **0–2 %** of untyped tiles; jump fuel cost **× 2**; hunters carry **60** fuel (was 40).
 - Vanilla stations hold less than their trade target: after the target, `CareerSimModeManager.OnShipSpawned` scales every NPC fuel storage by 25 % to 75 % (`NpcSpawnedResourceFractions`).
 - Measured after, same map seed, before the floor below: stations hold **19 to 300 fuel per system** (was 180 to 1,940). A tier 12 jump of 7.5 LY costs about 33 fuel at full drive efficiency (more with poor drive coverage). A destroyed hunter drops about 30 fuel, a salvaged wreck 60. So late in the run a station sells 1 to 9 jumps, and each hunter kill pays about one jump.
-- **Fuel floor** (requirement 304, `Balance.StationFuelPerMillion` 100, `StationFuelMinimum` 10): every trade station keeps at least one worst-case relay jump for sale: a fleet of the next tier, 10 LY, 70 % drive efficiency. That is 10 fuel at tier 1, 30 at tier 7 and 100 at tier 12. A system has 2 or 3 trade stations (the start 1), so it always sells enough for the next jump, and the random stock adds more. Trade ships do not take the floor away; players can buy all of it. So a run never gets stuck on fuel, and fuel above the floor (an escape, a blind jump, a spare) still comes from hunters, mining and lucky stations.
+- **Fuel floor** (requirement 304, `Balance.StationFuelPerMillion` 100, `StationFuelMinimum` 10): every trade station keeps at least one worst-case relay jump for sale: a fleet of the next tier, 10 LY, 70 % drive efficiency. That is 10 fuel at tier 1, 30 at tier 7 and 100 at tier 12. A system has 2 or 3 trade stations (the start 1), so it always sells enough for the next jump, and the random stock adds more. Trade ships do not take the floor away; players can buy all of it. So a run never gets stuck on fuel, and fuel above the floor (an escape, a spare) still comes from hunters, mining and lucky stations.
 - Money is not the limit (a jump costs about 2 % of a mission); the stock is. Hunters and hyperium asteroids are now the best sources above the floor.
 - Factions (requirements 655 and 657): from heat 75, stations charge up to 2 × for fuel, and from heat 90 each station refuses with chance 0.5. A player who stays until heat 90 can lose the floor of a refusing station. Buy the next jump before the Hunt stage (75).
 - Hyperium events cost 20 + 5 per tier fuel (80 at tier 12, about 2.5 jumps). That is now a real price. No change.
@@ -121,7 +121,7 @@ Modelled with the numbers of section 4 (8 units, multiplier 1.2: one typical mis
 | Natural outage | 120 s without gains: time 2.7 + about 0.7 missions (6 missions in 17.5 min) × 8.5 (fame and contract) = about −9 in the sector where it runs. 1.9 per run (`PursuitModel.ExpectedCapped(6, 0.5, 2)`), so about −2 per sector on average. | −9 there | +0.7 there |
 | Hacker outage | 240 s: about −17 in that sector. It comes in 82 % of runs (1 − 0.75⁶), at most once, and costs 0.5 × TVM: 1 to 1.5 typical missions of money. | −17 there | +1.5 there, if bought |
 | Ramp and fleet factor | Fewer hunters early (× 0.75 in sector 1, × 1 at the Buyer), ± 15 % by fleet value. Hunters give no fame, so no heat change. | 0 | 0 |
-| Blockade | No heat change. Parked ships make the relay a watched relay (−75 % instead of −85 %): about +10 heat in the next sector if the players do not lure them away or jump blind. At most 2 per run. | +10 next sector, rare | −0.8 there |
+| Blockade | No heat change. Parked ships make the relay a watched relay (−75 % instead of −85 %): about +10 heat in the next sector if the players do not lure them away. At most 2 per run. | +10 next sector, rare | −0.8 there |
 
 - Run average: scouts (+3.75 per sector) and outages (−2 per sector) leave about +1.7 heat per sector. The Strike comes about 0.15 missions earlier than in the section 4 table: about 6.3 missions after a watched relay. A sector with an outage gives about 0.7 more, a sector with an escaped scout about 1.3 fewer. That is the spread that the Pursuit wants: the heat clock varies, the budget holds.
 - Limit: the escape share of scouts and the hacker buy rate are guesses. Check them against telemetry (`TELEMETRY.md`, heat events by source) when real runs exist.
@@ -131,8 +131,8 @@ Modelled with the numbers of section 4 (8 units, multiplier 1.2: one typical mis
 Units as above: one event money unit is about one standard mission's pay before `MissionMoneyScale` (requirement 73; since finding 11, two thirds of a mission's pay); a typical mission pays 3.6 std.
 
 - **Lockdowns are rare:** `ChancePerSystem` 0.15 per unvisited neighbour, at most 2 per run and 1,200 game seconds apart (the Pursuit pacer), from sector 2. With 2 to 3 unvisited neighbours per system, a mark comes about every 2 to 3 sectors, so a run of 8 sectors sees 1 or 2. The players see the mark and can route around it.
-- **Closed:** 7 minutes of waiting is about 8 heat (1.2 per minute × 1.2), or a blind jump (1.5 × fuel, the part damage risk). Both are small; the price is time.
-- **Toll:** 0.6 + 0.006 × heat units: 0.6 std at heat 0, 1.2 std at heat 100. Less than half a typical mission, cheaper than the blind fuel late in the run only when fuel is short. The toll rises with heat, so a hot fleet pays more.
+- **Closed:** 7 minutes of waiting is about 8 heat (1.2 per minute × 1.2). That is small; the price is time.
+- **Toll:** 0.6 + 0.006 × heat units: 0.6 std at heat 0, 1.2 std at heat 100. Less than half a typical mission. A fleet that cannot pay waits 10 minutes (`GiveUpSeconds` 600), about 11 heat. The toll rises with heat, so a hot fleet pays more.
 - **Pirates:** price 1.2 std (a third of a typical mission). A sure deal at the full price; half the price never works. Cargo counts at 0.8 × its buy price, so fuel bribes cost more than credits. The fight is 2 to 3 ships at the system tier (more in co-op), with salvage (about 1 std each, finding 7).
 - **Stash:** loot = 3 std money + twice a standard mission's fame (finding 10), and with chance 0.5 one tech unit (1.1 to 2.2 typical missions, so about 4 to 8 std). Expected loot when not found first: about 3 + 0.5 × 6 = 6 std. Found first: 10 % at the offer, +4 % per minute, so the expected value is 5.4 std at once, 3.9 std (a typical mission) after 6 minutes and 0.6 std at the cap. Half of the found-first cases are an ambush of 2 hunters (tier + 1). The stash pays more than a mission only when the players go quickly, which is the decision we want.
 - Heat: the loot fame (2 std) adds about 3.4 heat (1.425 per std fame × 1.2). The contract adds flat heat 2. No retune of the heat budget.

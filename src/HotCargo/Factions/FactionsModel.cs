@@ -8,7 +8,7 @@ public enum Zone { Neutral, Ally, Shelter, Watch }
 /// The kind of system switch that runs now (spec 650). View is a switch to a system where own ships wait, with no jump.
 /// RelayWatched: a relay jump with hunters near that relay at the jump start.
 /// </summary>
-public enum JumpKind { View, RelayWatched, RelayClear, Blind }
+public enum JumpKind { View, RelayWatched, RelayClear }
 
 /// <summary>
 /// Spec 1150: corporate ally space. The ally faction's military and civilian ships and the hunters (null: none live) are not enemies there,
@@ -84,15 +84,4 @@ public static class FactionsModel
 
     /// <summary>Spec 650: the share of heat that stays after a jump that removes the cut share.</summary>
     public static float HeatKept(float cut) => Math.Clamp(1f - cut, 0f, 1f);
-
-    /// <summary>
-    /// Spec 651: a blind spin-up is done when the spin time reaches factor × the time at which the drives were full (the vanilla spin-up).
-    /// Null fullAt: the drives are not full yet.
-    /// </summary>
-    public static bool BlindSpinDone(float spinSeconds, float? fullAtSeconds, float factor) => fullAtSeconds is { } at && spinSeconds >= at * factor;
-
-    /// <summary>Spec 651: the readiness bar of a blind spin-up, 0 to 1. Before the drives are full it is the vanilla progress ÷ factor.</summary>
-    public static float BlindSpinProgress(float vanillaProgress, float spinSeconds, float? fullAtSeconds, float factor) => fullAtSeconds is { } at
-        ? Math.Clamp(spinSeconds / Math.Max(1e-6f, at * factor), 0f, 1f)
-        : Math.Clamp(vanillaProgress / factor, 0f, 1f);
 }

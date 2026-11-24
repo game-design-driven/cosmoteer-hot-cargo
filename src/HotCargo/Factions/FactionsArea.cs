@@ -14,7 +14,7 @@ namespace HotCargo.Factions;
 
 /// <summary>
 /// Entry point of the Factions area (spec 640 to 662): the corporation's ally and rival, hot zones, shelter, fences,
-/// relay and blind jumps, station prices by heat, refusals and galaxy map markers.
+/// relay jumps, station prices by heat, refusals and galaxy map markers.
 /// Every rule reads sim state only (heat, reputation, map node factions, the galaxy seed), so all co-op machines agree.
 /// </summary>
 public static class FactionsArea
@@ -26,7 +26,6 @@ public static class FactionsArea
                 run.T.Factions.WatchHeatFactor);
         Run.Hooks.NotorietyFactor = run => FactionsModel.NotorietyFactor(ZoneOf(run, run.Game.CurrentMapNode), run.T.Factions.AllyNotorietyFactor);
         Run.Hooks.JumpHeatKept = run => HeatKept(run, Jumps.PendingKind(run));
-        Run.Hooks.Tick += Jumps.OnTick;
         Run.Hooks.SystemEntered += OnSystemEntered;
         Run.Hooks.StageStarted += OnStageStarted;
         AllyPeace.Register();
@@ -119,7 +118,6 @@ public static class FactionsArea
         {
             JumpKind.RelayWatched => FactionsModel.HeatKept(t.RelayWatchedHeatCut),
             JumpKind.RelayClear => FactionsModel.HeatKept(t.RelayClearHeatCut),
-            JumpKind.Blind => FactionsModel.HeatKept(t.BlindHeatCut),
             _ => run.T.Heat.HeatCarryOverFraction,
         };
     }
@@ -167,15 +165,9 @@ public static class FactionsArea
 
     internal static string Name(FactionRules f) => f.TextIconXml + f.NameKey.Text;
 
-    /// <summary>Spec 645, 650: on arrival, the blind switch turns off after a blind jump (sim), and a chat line names the zone (GUI).</summary>
+    /// <summary>Spec 645: on arrival, a chat line names the zone (GUI).</summary>
     static void OnSystemEntered(Run run, bool firstVisit)
     {
-        // Spec 650, 651: the blind switch holds for one jump, so a player never pays blind fuel by mistake on the next one.
-        if (Jumps.PendingKind(run) == JumpKind.Blind)
-        {
-            run.State.Factions.BlindJump = false;
-            Jumps.DamageOnArrival(run);
-        }
         if (!run.PressureActive) return;
         var f = Controller(run.Game.CurrentMapNode);
         var t = run.T.Factions;

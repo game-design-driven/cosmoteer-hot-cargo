@@ -1,4 +1,4 @@
-# Relays: a blind jump passes a closed relay (spec 650, 954). The blind spin-up takes BlindSpinUpFactor (2) x the vanilla time.
+# Relays: a toll lockdown gives up after GiveUpSeconds, and then a real jump starts (spec 950, 956).
 # Its own test, so it runs in the first game of the process (see relays-closed.txt: one jump per test).
 newgame
 wait 8
@@ -9,12 +9,11 @@ fa_drive
 wait 1
 fa_torelay
 wait 2
-rl_here closed
-rl_set ClosedSeconds 0
+rl_here fee
 wait 1
-fa_blind on
-wait 1
-expect rl_blocks == 0
+expect rl_blocks == 1
+rl_set GiveUpSeconds 5
+waitfor rl_blocks == 0 30
 fa_gatejump
 waitfor fa_ready == 1 180
 fa_engage

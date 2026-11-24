@@ -19,8 +19,10 @@ public sealed class RelaysTunables
     /// <summary>Spec 952: weight of a pirate guard in the kind roll.</summary>
     [Serialize(Optional = true)] public float PiratesWeight = 1f;
 
-    /// <summary>Spec 955: game seconds after arrival at which a closed relay opens again. 0 keeps it closed for the visit.</summary>
+    /// <summary>Spec 955: game seconds after arrival at which a closed relay opens again.</summary>
     [Serialize(Optional = true)] public float ClosedSeconds = 420f;
+    /// <summary>Spec 950: game seconds after arrival at which a toll or pirate lockdown gives up and the relays open.</summary>
+    [Serialize(Optional = true)] public float GiveUpSeconds = 600f;
     /// <summary>Spec 956: the relay fee, in event money units (one unit is about one standard mission's pay).</summary>
     [Serialize(Optional = true)] public float FeeUnits = 0.6f;
     /// <summary>Spec 956: the fee grows by this many money units for each heat point. The corporation asks the faction to squeeze you.</summary>
@@ -39,7 +41,8 @@ public sealed class RelaysTunables
         require(ChancePerSystem is >= 0 and <= 1, "Relays.ChancePerSystem must be 0 to 1");
         require(MinSector >= 0, "Relays.MinSector must not be negative");
         require(ClosedWeight >= 0 && FeeWeight >= 0 && PiratesWeight >= 0, "Relays kind weights must not be negative");
-        require(ClosedSeconds >= 0 && FeeUnits >= 0 && FeePerHeat >= 0 && BribeUnits > 0, "Relays.ClosedSeconds, FeeUnits and FeePerHeat must not be negative, BribeUnits above 0");
+        require(ClosedSeconds > 0 && GiveUpSeconds > 0, "Relays.ClosedSeconds and GiveUpSeconds must be above 0, so no lockdown traps the fleet");
+        require(FeeUnits >= 0 && FeePerHeat >= 0 && BribeUnits > 0, "Relays.FeeUnits and FeePerHeat must not be negative, BribeUnits above 0");
         require(BribeMinShare is >= 0 and < 1 && BribeResourceRate >= 0 && BribeResourceKinds >= 0, "Relays.BribeMinShare must be 0 to below 1, BribeResourceRate and BribeResourceKinds not negative");
     }
 }

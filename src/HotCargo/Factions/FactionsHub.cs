@@ -12,6 +12,6 @@ public sealed partial class Tunables
 
 public sealed partial class RunState
 {
-    /// <summary>Factions area state: the blind jump switch (spec 650).</summary>
+    /// <summary>Factions area state: watched systems and chain shelters (spec 664, 665).</summary>
     [Serialize(Optional = true)] public Factions.FactionsState Factions = new();
 }

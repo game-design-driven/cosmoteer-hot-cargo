@@ -24,12 +24,11 @@ wait 3
 expect ux_jump_notices == 1
 expect ux_jump_standing == 2
 # A jump that costs more than the drive holds: too big, whatever the fuel.
-fa_set BlindFuelFactor 100
-fa_blind on
+jw_fuelcost 100
 wait 3
 expect ux_jump_toobig == 1
 expect ux_jump_hover == 3
-fa_blind off
+jw_fuelcost 1
 wait 3
 expect ux_jump_toobig == 0
 # The real ENGAGE click with two ships that stay: the dialog lists both.

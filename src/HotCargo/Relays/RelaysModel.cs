@@ -46,6 +46,6 @@ public static class RelaysModel
     /// <summary>Spec 958: the bribe value of an amount of a resource.</summary>
     public static long ResourceValue(int amount, int buyPrice, float rate) => (long)Math.Floor(Math.Max(0, amount) * (double)Math.Max(0, buyPrice) * rate);
 
-    /// <summary>Spec 955: a closed relay opens after closedSeconds of the visit. 0 means never.</summary>
-    public static bool ClosedOpens(double visitSeconds, float closedSeconds) => closedSeconds > 0f && visitSeconds >= closedSeconds;
+    /// <summary>Spec 950: a lockdown opens after its time of the visit.</summary>
+    public static bool TimeOpens(double visitSeconds, float openSeconds) => visitSeconds >= openSeconds;
 }

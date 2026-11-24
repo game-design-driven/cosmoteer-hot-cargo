@@ -1,5 +1,5 @@
 # Relays: a closed relay (spec 954, 955). ENGAGE does nothing while the relays are closed, and the relays open after ClosedSeconds.
-# The ship spins up at a relay like a real jump (see factions-combat-jump.txt). relays-blind checks the blind jump out.
+# The ship spins up at a relay like a real jump (see factions-combat-jump.txt). relays-giveup checks the toll that gives up.
 # One jump per test: the headless sim never ends the jump animation, and a later game in the same process runs about 5 x slower.
 newgame
 wait 8
