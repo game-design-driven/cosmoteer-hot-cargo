@@ -53,7 +53,6 @@ public static class Overlay
         };
         mode.Game.Gui.RootWidget.AddChild(label);
         mode.Game.Gui.TopLeftHudBox.Children.Insert(0, new HeatPanel(mode));
-        mode.Game.Gui.TopLeftHudBox.Children.Insert(1, new TechWatch.Box(mode));
     }
 
     static string ErrorText()

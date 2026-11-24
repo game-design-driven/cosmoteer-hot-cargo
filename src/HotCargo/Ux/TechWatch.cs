@@ -147,6 +147,7 @@ internal static class TechWatch
     /// <summary>Spec 2123, 2124: the banners, polled twice a second. Each machine shows them for every player's tech.</summary>
     internal static void OnFrame(Run run)
     {
+        Mount(run);
         double now = App.Clock.Time.Seconds;
         if (now < _nextPoll) return;
         _nextPoll = now + 0.5;
@@ -176,6 +177,15 @@ internal static class TechWatch
         // The design banner already said it.
         if (designs.Count > 0) return;
         Warn(game, UxKit.Format("WatchBannerFmt", atRisk), UxKit.Format("WatchChatFmt", atRisk, lines.First(l => TechWatchModel.Alarms(l.Kind)).Text));
+    }
+
+    /// <summary>Spec 2122: puts the box under the heat panel once per game GUI (the top of the left column without the panel).</summary>
+    static void Mount(Run run)
+    {
+        var column = run.Game.Gui.TopLeftHudBox.Children;
+        if (column.OfType<Box>().Any()) return;
+        int under = column.OfType<Ui.HeatPanel>().Select(column.IndexOf).DefaultIfEmpty(-1).First();
+        column.Insert(under + 1, new Box(run.Mode));
     }
 
     static void Warn(GameRoot game, string banner, string chat)
@@ -231,7 +241,9 @@ internal static class TechWatch
             var lines = Shown = Lines(run!);
             SelfActive = lines.Count > 0;
             if (lines.Count == 0) return;
-            _head.Text = UxKit.Format("WatchHeadFmt", lines.Sum(l => l.Units));
+            // Tech of a design line is still in its vault: the header counts only tech that is outside now.
+            int outside = lines.Where(l => l.Kind != WatchKind.Design).Sum(l => l.Units);
+            _head.Text = outside > 0 ? UxKit.Format("WatchHeadFmt", outside) : UxKit.Text("WatchHeadDesign");
             for (int i = _lines.Count; i < lines.Count; i++) _lines.Add(NewLine());
             for (int i = 0; i < _lines.Count; i++)
             {
