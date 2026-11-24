@@ -38,6 +38,7 @@ public static class MissionArea
     public static void Register()
     {
         MissionMarkers.Register();
+        MissionPayCheck.Register();
         Ui.CommsHail.Providers.Add(EscortHail.Instance);
         SharedChoice.SharedChoices.Register(EscortHail.Instance);
         foreach (var (name, metatype) in Metatypes)

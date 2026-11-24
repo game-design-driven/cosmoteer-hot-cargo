@@ -49,6 +49,13 @@ ev_mark
 chain_goto
 chain_kill
 wait 3
+# Spec 1879: the pay waits at a station; the stage ends once it is collected.
+expectstage courier
+chain_tostation
+pause off
+wait 3
+chain_pay
+wait 2
 expectstage end
 # Spec 1141: the courier's crew pushes the crate out; it does not go straight into the vault.
 expect ev_tech_gain == 0
