@@ -6,6 +6,11 @@ HotCargoMissions
 	EscortCoverTip = "Flying in a registered convoy hides your trail. Heat changes when you collect the reward."
 	FleetAssault = "Joint Strike"
 	FleetAssaultDesc = "Join the navy strike group and destroy the raider stronghold."
+	// Spec 2430 to 2433.
+	Mayday = "Mayday"
+	MaydayDesc = "A civilian ship calls for help: raiders are on it. Fight them off before they kill it. Its people pay at their station."
+	MaydayStartFmt = "Mayday! {0} is under attack"
+	MaydayThanksFmt = "{0}: they are gone. Thank you! Our station has your pay."
 	// Spec 1890 to 1897.
 	Lead = "Blind Courier"
 	LeadDesc = "Raiders burned out the navigation core of the courier {escort_ship}. It can only follow a transponder now.\nLead it to the jump point. It cannot take a hit, so lead it around trouble. {route_hint}"
@@ -34,6 +39,8 @@ HotCargoObjectives
 	EscortAloneMarker = "Escort alone"
 	EscortRaidFmt = "{0}: raiders on our scope! Where are you?"
 	EscortLostFmt = "Contact lost with {0}. Raiders took it while it waited alone."
+	MaydayFmt = "Mayday: save {0}"
+	MaydayFightFmt = "Mayday: save {0}. {1} attackers left, hull {2} %"
 	LeadFmt = "Lead {0} to the jump point. It follows your nearest ship"
 	LeadDepartsFmt = "{0} locks onto your transponder. Lead the way. {1}"
 	LeadAmbushFmt = "{0}: contacts ahead! Raiders on the lane."

@@ -1,0 +1,26 @@
+# Mayday (spec 2430 to 2433): the distress fight in sight, with the red ring on the victim, the banner, the chat line and the objective
+# line that counts attackers and hull. Windowed test slot or RUNNER=mac (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+reveal on
+closepanel
+wait 1
+ev_set Enabled false
+godmode
+hc_mayday_start
+pause off
+wait 6
+pause on
+hc_mayday_camera 3200
+wait 1
+hc_mayday_camera 3200
+wait 1
+screenshot mayday-fight
+pause off
+wait 12
+pause on
+hc_mayday_camera 1600
+wait 1
+screenshot mayday-close
+quit

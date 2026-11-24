@@ -21,6 +21,13 @@
 			DescriptionKey = "HotCargoMissions/EscortDesc"
 			CategoryID = stations
 		}
+		// Spec 2430: a live distress fight. It never sits on a board: it enters the log by itself.
+		HotCargoMayday
+		{
+			NameKey = "HotCargoMissions/Mayday"
+			DescriptionKey = "HotCargoMissions/MaydayDesc"
+			CategoryID = stations
+		}
 		HotCargoLead
 		{
 			NameKey = "HotCargoMissions/Lead"

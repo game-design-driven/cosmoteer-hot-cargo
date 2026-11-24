@@ -127,25 +127,31 @@ internal static class EscortGuard
     /// Spec 1886: while the escort is alone, a red ring of EscortMarkerRadius follows it, on the map and in space. It goes when a player
     /// ship is back, and with the objective (IMissionMarkers, spec 996). Sim state, spawned in the sim tick on every machine.
     /// </summary>
-    static void Ring(SimRoot sim, ObjectiveTargetShip escort, EscortGuardState state, bool guarded)
+    static void Ring(SimRoot sim, ObjectiveTargetShip escort, EscortGuardState state, bool guarded) =>
+        state.MarkerId = WarningRing(sim, state.MarkerId, guarded ? null : escort.DetLocation());
+
+    /// <summary>
+    /// The red warning ring of EscortMarkerRadius at the point: spawned when <paramref name="id"/> names none, moved when it does, removed
+    /// when the point is null. Returns the ring's ID, or null. Sim tick only (sim.Rand for a new ID). Also the Mayday victim's ring (spec 2433).
+    /// </summary>
+    internal static ObjectID? WarningRing(SimRoot sim, ObjectID? id, Vector2? at)
     {
-        var ring = state.MarkerId is { } id ? sim.Doodads[id] as POIDoodad : null;
-        if (guarded || escort.DetLocation() is not { } at)
+        var ring = id is { } existing ? sim.Doodads[existing] as POIDoodad : null;
+        if (at is not { } point)
         {
             if (ring is not null) sim.Doodads.Remove(ring, dispose: true);
-            state.MarkerId = null;
-            return;
+            return null;
         }
         if (ring is null)
         {
             var rules = GameApp.Rules.GetDoodadRules(AloneRing) as RingedPOIDoodadRules ?? throw new InvalidOperationException($"{AloneRing} is not a ringed POI doodad");
             ObjectID newId;
             do newId = ObjectID.NewRandom(sim.Rand); while (!sim.IsObjectIDAvailable(newId));
-            ring = (POIDoodad)rules.SpawnAt(sim, at, Direction.Zero, sim.Rand, null, null, null, loadInstantly: true, id: newId,
+            ring = (POIDoodad)rules.SpawnAt(sim, point, Direction.Zero, sim.Rand, null, null, null, loadInstantly: true, id: newId,
                 scaleFactor: MissionArea.TunablesFor(sim.RequireGame()).EscortMarkerRadius);
-            state.MarkerId = ring.UniqueID;
         }
-        ring.Location = at;
+        ring.Location = point;
+        return ring.UniqueID;
     }
 
     /// <summary>Spec 1882: one raid around the lone escort, on this escort's raider allegiance. Sim tick only (sim.Rand).</summary>

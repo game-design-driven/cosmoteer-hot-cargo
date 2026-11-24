@@ -40,6 +40,7 @@ public static class MissionArea
     public static void Register()
     {
         MissionMarkers.Register();
+        Mayday.Register();
         MissionPayCheck.Register();
         Ui.CommsHail.Providers.Add(EscortHail.Instance);
         SharedChoice.SharedChoices.Register(EscortHail.Instance);
@@ -333,6 +334,69 @@ public static class MissionArea
         // hc_lead_collect: the receive payment button of the nearest station for the courier mission.
         Autotest.Commands["hc_lead_collect"] = _ => CollectAt(RequireLead().Mission ?? throw new InvalidOperationException("the courier objective has no mission"));
         // hc_guard_clear_raiders: removes the live raid ships of the newest escort (sim; "mp" in co-op), so a later step is not a fight.
+        // Spec 2430 to 2434, the Mayday. hc_mayday_start: starts one now (no chance roll, no pacer).
+        Autotest.Commands["hc_mayday_start"] = _ => _mayday = Mayday.Start(RequireRun(), RequireSim()) ?? throw new InvalidOperationException("no mayday started");
+        // hc_mayday_roll <chance>: the arrival roll (spec 2430) with this chance; at 1 a mayday is due MaydayDelaySeconds later.
+        Autotest.Commands["hc_mayday_roll"] = arg => Mayday.Roll(RequireRun(), RequireSim(), float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture));
+        Autotest.Fields["hc_mayday_due"] = () => RequireRun().State.Mayday.Node is null ? 0 : 1;
+        Autotest.Fields["hc_mayday_active"] = () => RequireRun().Mode.Missions.Count(m => m.MetatypeID.Equals(Mayday.Metatype) && m.Completion == CompletionState.InProgress);
+        Autotest.Fields["hc_mayday_attackers"] = () => RequireMayday().AttackersLeft(RequireSim());
+        Autotest.Fields["hc_mayday_hull"] = () => RequireMayday().HullPercent() ?? -1;
+        Autotest.Fields["hc_mayday_done"] = () => RequireMayday().Completion == CompletionState.Completed ? 1 : 0;
+        Autotest.Fields["hc_mayday_failed"] = () => RequireMayday().Completion == CompletionState.Failed ? 1 : 0;
+        Autotest.Fields["hc_mayday_ring"] = () => RequireMayday().RingId is { } id && RequireSim().Doodads[id] is not null ? 1 : 0;
+        // Live attackers whose attack order targets the victim.
+        Autotest.Fields["hc_mayday_on_victim"] = () =>
+        {
+            var o = RequireMayday();
+            Ship? victim = o.Victim.TargetShip;
+            var sim = RequireSim();
+            int n = 0;
+            for (int i = 0; i < sim.Ships.Count; i++)
+                if (sim.Ships[i].Metadata.PlayerIndex == o.Attackers && sim.Ships[i].Commands.CurConfirmedCommand is Cosmoteer.Ships.Commands.AttackCommand a && a.Target == victim && victim is not null) n++;
+            return n;
+        };
+        // Distance from the victim to the nearest player ship: it runs to the players.
+        Autotest.Fields["hc_mayday_victim_dist"] = () =>
+        {
+            Ship v = RequireMayday().Victim.TargetShip ?? throw new InvalidOperationException("victim is not live");
+            return RequireSim().Ships.HumanPlayerSignificantShips.Min(h => h.DetWorldCenter.DistanceTo(v.DetWorldCenter));
+        };
+        // hc_mayday_camera <size>: the camera on the victim, this many units wide (screenshots).
+        Autotest.Commands["hc_mayday_camera"] = arg =>
+        {
+            Vector2 at = RequireMayday().Victim.DetLocation() ?? throw new InvalidOperationException("the victim is not in this system");
+            Autotest.Commands["camera"](string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{at.X} {at.Y} {arg.Trim()}"));
+        };
+        Autotest.Commands["hc_mayday_kill_attackers"] = _ =>
+        {
+            var o = RequireMayday();
+            var sim = RequireSim();
+            foreach (Ship s in Enumerable.Range(0, sim.Ships.Count).Select(i => sim.Ships[i]).Where(s => s.Metadata.PlayerIndex == o.Attackers).ToList())
+                sim.Ships.Remove(s, dispose: true, handleLostShip: false);
+        };
+        Autotest.Commands["hc_mayday_kill_victim"] = _ =>
+        {
+            Ship v = RequireMayday().Victim.TargetShip ?? throw new InvalidOperationException("victim is not live");
+            RequireSim().Ships.Remove(v, dispose: true, handleLostShip: false);
+        };
+        // hc_mayday_collect: the players at the station that pays (the mission's ReceiveRewards contact), then its receive payment button.
+        Autotest.Commands["hc_mayday_collect"] = _ =>
+        {
+            var m = _mayday ?? throw new InvalidOperationException("no mayday; run hc_mayday_start first");
+            var objectives = new List<Cosmoteer.Modes.Career.Missions.Objectives.Objective>();
+            m.GetObjectives(objectives);
+            var contact = objectives.OfType<Cosmoteer.Modes.Career.Missions.Objectives.ReceiveRewardsObjective>().Single().ContactShip
+                ?? throw new InvalidOperationException("the mayday pays at no station");
+            var sim = RequireSim();
+            var station = SpaceStation.GetStations(sim, onlyOperating: false).Single(st => st.StationID == contact.ShipID);
+            var me = sim.Ships.HumanPlayerSignificantShips.First();
+            var at = Autotest.ClearSpotNear(sim, station.DetWorldCenter, 900f, me.WorldBoundingRadius);
+            foreach (Ship s in sim.Ships.HumanPlayerSignificantShips.ToList()) Autotest.Teleport(s, at);
+            var id = station.StationID;
+            Autotest.WaitFor(() => sim.Ships[id] is not null, 20, "the station to leave stasis", then: () =>
+                RequireRun().Game.NetManager.EnqueueInput(new Cosmoteer.Modes.Career.Comms.CommMissionsTab.MPMissionPaymentInput(sim.Ships[id]!, m)));
+        };
         Autotest.Commands["hc_guard_clear_raiders"] = _ =>
         {
             foreach (Ship r in GuardRaiders()) RequireSim().Ships.Remove(r, dispose: true, handleLostShip: false);
@@ -603,6 +667,15 @@ public static class MissionArea
         FindObjective<T>() ?? throw new InvalidOperationException($"no accepted mission has a {typeof(T).Name}");
 
     static EscortObjective RequireEscort() => RequireObjective<EscortObjective>();
+    static Mission? _mayday;
+    static MaydayObjective RequireMayday()
+    {
+        var m = _mayday = _mayday ?? RequireRun().Mode.Missions.LastOrDefault(x => x.MetatypeID.Equals(Mayday.Metatype))
+            ?? throw new InvalidOperationException("no mayday in the log");
+        var found = new List<MaydayObjective>();
+        m.GetObjectives(found);
+        return found.Single();
+    }
     static LeadObjective RequireLead() => RequireObjective<LeadObjective>();
 
     /// <summary>The newest objective that meets the players and then runs the guard rule.</summary>
