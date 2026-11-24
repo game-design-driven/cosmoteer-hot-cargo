@@ -15,7 +15,8 @@ internal interface IMissionMarkers
 }
 
 /// <summary>
-/// Spec 996: a mission's target area markers go when the mission leaves the log (completed, failed or abandoned).
+/// Spec 996: a mission's target area markers go when the objective that owns them ends (completed or failed), even while the mission
+/// waits for its pay, and at the latest when the mission leaves the log (completed, failed or abandoned).
 /// Vanilla removes a bounty marker only when its ships die (AutoRemoveWhenTagDestroyed), so an abandoned bounty kept its marker too.
 /// Runs from the mission log's MissionRemoved event, which every client gets at the same sim step (like ChainRunner).
 /// Markers in another system cannot go at once (object IDs belong to one system): the run remembers them, and the next arrival in
@@ -28,16 +29,23 @@ internal static class MissionMarkers
 
     internal static void Register()
     {
-        Run.Hooks.Tick += (run, _, _) => Watch(run);
+        Run.Hooks.Tick += (run, sim, _) =>
+        {
+            Watch(run);
+            Errors.Guard("mission markers sweep", () => Sweep(run, sim));
+        };
         Run.Hooks.SystemEntered += (run, _) => Errors.Guard("mission markers arrival", () => OnSystemEntered(run));
     }
 
     /// <summary>
-    /// The markers that the objectives of a mission own: the POI of the vanilla objective types that name one (POIDoodadID; these four
-    /// are every such type in the 0.30.5a objectives) and the markers of Hot Cargo objectives. A map ring that a mission only uses
-    /// (a belt pass for Hold the Pass) is not in the list.
+    /// The markers that the objectives of a mission own: the POIs that vanilla objectives name (<see cref="VanillaPois"/>) and the markers
+    /// of Hot Cargo objectives. A map ring that a mission only uses (a belt pass for Hold the Pass) is not in the list.
     /// </summary>
     internal static IEnumerable<ObjectID> Of(Mission m) => Objectives(m).SelectMany(OwnedBy);
+
+    /// <summary>The markers that the objectives still in progress own. An ended objective's markers go (spec 996).</summary>
+    internal static IEnumerable<ObjectID> LiveOf(Mission m) =>
+        m.Completion == CompletionState.InProgress ? Objectives(m).Where(o => o.Completion == CompletionState.InProgress).SelectMany(OwnedBy) : [];
 
     static List<Objective> Objectives(Mission m)
     {
@@ -46,19 +54,65 @@ internal static class MissionMarkers
         return objectives;
     }
 
-    static IEnumerable<ObjectID> OwnedBy(Objective o)
+    internal static IEnumerable<ObjectID> OwnedBy(Objective o)
     {
-        ObjectID? vanilla = o switch
-        {
-            DefeatShipsObjective d => d.POIDoodadID,
-            ReceiveRewardsObjective r => r.POIDoodadID,
-            ProtectShipsObjective p => p.POIDoodadID,
-            GotoShipObjective g => g.POIDoodadID,
-            _ => null,
-        };
-        if (vanilla is { } id) yield return id;
+        foreach (var get in VanillaPois(o.GetType()))
+            if (get(o) is { } id) yield return id;
         if (o is IMissionMarkers own)
             foreach (var marker in own.MarkerIds) yield return marker;
+    }
+
+    static readonly Dictionary<Type, Func<Objective, ObjectID?>[]> PoiGetters = [];
+
+    /// <summary>
+    /// The POIs that a vanilla objective type names, read from the type: every public ObjectID? property named ...DoodadID (POIDoodadID of
+    /// DefeatShips, ProtectShips, GotoShip, ReceiveRewards) and every ObjectiveTargetDoodad&lt;POIDoodad&gt; property (SuggestedCollectionPOI
+    /// of DeliverResources: the Salvage Race ring). Hot Cargo objectives name theirs with <see cref="IMissionMarkers"/>.
+    /// </summary>
+    static Func<Objective, ObjectID?>[] VanillaPois(Type type)
+    {
+        lock (PoiGetters)
+        {
+            if (PoiGetters.TryGetValue(type, out var cached)) return cached;
+            var getters = type.Assembly != typeof(Objective).Assembly ? [] : type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+                .Select<System.Reflection.PropertyInfo, Func<Objective, ObjectID?>?>(p =>
+                    p.PropertyType == typeof(ObjectID?) && p.Name.EndsWith("DoodadID", StringComparison.Ordinal) ? o => (ObjectID?)p.GetValue(o)
+                    : p.PropertyType == typeof(ObjectiveTargetDoodad<POIDoodad>) ? o => (p.GetValue(o) as ObjectiveTargetDoodad<POIDoodad>)?.DoodadID
+                    : null)
+                .OfType<Func<Objective, ObjectID?>>().ToArray();
+            return PoiGetters[type] = getters;
+        }
+    }
+
+    /// <summary>
+    /// Spec 996, sim tick: removes the target area markers of objectives that ended in missions still in the log (a kill done, the mission
+    /// waits for its pay; or the whole mission ended and still shows), unless an objective in progress or an offer owns them too. Markers
+    /// of another system are not in this sim; they go here on the next arrival, since the objective stays ended.
+    /// </summary>
+    static void Sweep(Run run, SimRoot sim)
+    {
+        List<(Mission Mission, ObjectID Id)>? ended = null;
+        ObjectID here = sim.NodeId();
+        foreach (Mission m in run.Mode.Missions)
+        {
+            bool missionEnded = m.Completion != CompletionState.InProgress;
+            foreach (var o in Objectives(m))
+            {
+                if (!missionEnded && o.Completion == CompletionState.InProgress) continue;
+                // Object IDs belong to one system: an objective of another system has no marker here.
+                if (o.GetFirstMapNode(run.Game) is { } node && !node.UniqueID.Equals(here)) continue;
+                foreach (var id in OwnedBy(o))
+                    if (sim.Doodads[id] is POIDoodad poi && poi.Rules.ID == TargetArea) (ended ??= []).Add((m, id));
+            }
+        }
+        if (ended is null) return;
+        var live = run.Mode.Missions.SelectMany(LiveOf).Concat(Contracts.ContractBook.Offers(sim).SelectMany(o => Of(o.Mission))).ToHashSet();
+        foreach (var (m, id) in ended.DistinctBy(e => e.Id).OrderBy(e => e.Id))
+        {
+            if (live.Contains(id) || sim.Doodads[id] is not POIDoodad poi) continue;
+            sim.Doodads.Remove(poi, dispose: true);
+            Log.Info($"mission {m.MetatypeID} {m.MissionID}: objective ended, marker {id} removed");
+        }
     }
 
     /// <summary>Subscribes to the mission log of the current run. A new or loaded game has a new log.</summary>
