@@ -1,0 +1,21 @@
+// Icons of the co-op "Share resources" switch (spec 1318), drawn by tools/sprites/make_ui_icons.py. Read by Tactics/ShareResourcesHud.cs.
+// Same texture settings as the vanilla tool icons (gui/game/resources/resources_gui.rules, ToolIcon).
+On
+{
+	Texture
+	{
+		File = "sprites/share_on.png"
+		MipLevels = 2
+		SampleMode = Linear
+	}
+}
+
+Off
+{
+	Texture
+	{
+		File = "sprites/share_off.png"
+		MipLevels = 2
+		SampleMode = Linear
+	}
+}
