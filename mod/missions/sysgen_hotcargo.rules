@@ -89,6 +89,8 @@ Escort
 											DestinationTag = { Mode=Latest; Tag=hc_escort_dest; }
 											// The route keeps the route sun clearance of the smaller systems (spec 36, spec 105).
 											SunClearance = "(&<../contracts/system_scale.rules>/RouteSunClearance)"
+											// Spec 1886: a route of about 9,000; 4 minutes alone (the default) before raiders take it.
+											LostSeconds = 240
 										}
 										{
 											Type = ProtectShips

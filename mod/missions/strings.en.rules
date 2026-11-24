@@ -1,7 +1,7 @@
 HotCargoMissions
 {
 	Escort = "Convoy Duty"
-	EscortDesc = "Escort the freighter {escort_ship} to the jump point.\nRaiders know the route. Stay close: it waits for you, and alone it draws raiders."
+	EscortDesc = "Escort the freighter {escort_ship} to the jump point.\nRaiders know the route. Stay close: it waits for you, and alone it draws raiders. After 4 minutes alone, raiders take it."
 	EscortCoverFmt = "Heat {0} (convoy cover)"
 	EscortCoverTip = "Flying in a registered convoy hides your trail. Heat changes when you collect the reward."
 	FleetAssault = "Joint Strike"
@@ -17,9 +17,12 @@ HotCargoObjectives
 	EscortAnswerFmt = "Answer the hail of {0} when you are ready"
 	EscortHailedFmt = "{0} hails you: ready to leave?"
 	EscortDepartsFmt = "{0} is under way. Stay close."
-	// Spec 1881 to 1883: the guard rule of an escort under way.
-	EscortStayCloseFmt = "Stay close: {0} waits for you"
-	EscortRaidedFmt = "Raiders found {0} alone. Get back to it"
+	// Spec 1881 to 1886: the guard rule of an escort under way.
+	EscortAloneFmt = "{0} alone: lost in {1}. Stay close"
+	EscortRaidedFmt = "Raiders found {0}: lost in {1}. Get back to it"
+	EscortAloneStartFmt = "{0} is alone and waits for you. Lost in {1}"
+	EscortAloneWarnFmt = "{0} is still alone. Lost in {1}"
+	EscortAloneMarker = "Escort alone"
 	EscortRaidFmt = "{0}: raiders on our scope! Where are you?"
 	EscortLostFmt = "Contact lost with {0}. Raiders took it while it waited alone."
 	SurviveAmbush = "Survive the ambush"

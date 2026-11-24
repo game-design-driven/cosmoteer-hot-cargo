@@ -42,7 +42,7 @@ public enum MiningEscortPhase
 /// </summary>
 [ReflectiveSerialization(Explicit = true)]
 [SerialDerivedType(TypeName = "HotCargoMiningEscort")]
-internal sealed class MiningEscortObjective : Objective, IMeetingEscort
+internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissionMarkers
 {
     [ReflectiveSerialization(Explicit = true)]
     [SerialDerivedType(TypeName = "HotCargoMiningEscort")]
@@ -54,6 +54,8 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
         [Serialize, PortableHash] public ID<SimObjectSpawner> FieldTag;
         [Serialize, PortableHash] public SpawnedObjectSearch StationTag = null!;
         [Serialize(Optional = true), PortableHash] public int TierOffset;
+        /// <summary>Spec 1886: game seconds alone before raiders take the miner. 0: Missions.EscortLostSeconds.</summary>
+        [Serialize(Optional = true), PortableHash] public float LostSeconds;
 
         public override Objective? CreateObjectiveImpl(SimRoot sim, Mission mission, Rand rand, SpawnedObjectCollection objects, Vector2 loc, out bool invalid)
         {
@@ -88,6 +90,7 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
             {
                 Start = start,
                 Tier = Math.Max(1, ((CareerSimModeManager)sim.Mode).TierFields.GetTier(center) + TierOffset),
+                Guard = new EscortGuardState { LostSeconds = EscortGuard.CheckLostSeconds(sim, LostSeconds) },
             };
         }
     }
@@ -147,6 +150,8 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
     [Serialize(Optional = true)] public EscortGuardState Guard { get; private set; } = new();
 
     public bool Waiting => Completion == CompletionState.InProgress && Phase == MiningEscortPhase.Meet;
+
+    IEnumerable<ObjectID> IMissionMarkers.MarkerIds => Guard.MarkerId is { } id ? [id] : [];
 
     public static readonly ID<SimObjectSpawner> WaveTag = new("hc_mining_raider");
 
@@ -233,7 +238,18 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
             _ => throw new InvalidOperationException($"unknown phase {Phase}"),
         };
         lines.Add(new DisplayLine { Text = text, State = Completion, CanFocus = CanFocusDisplayLine, OnFocused = OnDisplayLineFocused });
-        if (Phase != MiningEscortPhase.Meet && Completion == CompletionState.InProgress && EscortGuard.AloneLine(Guard, name) is { } alone) lines.Add(alone);
+        if (Phase != MiningEscortPhase.Meet && Completion == CompletionState.InProgress && EscortGuard.AloneLine(Guard, name, game) is { } alone) lines.Add(alone);
+    }
+
+    int _shownSeconds = -1;
+
+    /// <summary>Spec 1886: the alone line counts down once a second.</summary>
+    public override void RefreshDisplayLines(GameRoot game)
+    {
+        int shown = EscortGuard.ShownSeconds(Guard, game);
+        if (shown == _shownSeconds) return;
+        _shownSeconds = shown;
+        OnDisplayLinesChanged();
     }
 
     public override void RegisterEvents(GameRoot game, bool isLoading)
@@ -283,7 +299,7 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort
             return;
         }
         // Spec 1881 to 1883: after the answer the guard rule runs in every phase, also in stasis, where only its clock can lose the miner.
-        bool guarded = Phase == MiningEscortPhase.Meet || EscortGuard.Tick(sim, Escort, Guard, Tier, WaveTag, OnDisplayLinesChanged);
+        bool guarded = Phase == MiningEscortPhase.Meet || EscortGuard.Tick(sim, Escort, Guard, Tier, WaveTag, OnDisplayLinesChanged, () => OnMinerKilled(null, EventArgs.Empty));
         if (Completion != CompletionState.InProgress) return;
         // In stasis the miner does not move or mine, like every ship far from the players.
         if (Escort.TargetShip is not { } ship) return;

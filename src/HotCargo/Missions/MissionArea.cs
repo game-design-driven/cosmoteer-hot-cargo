@@ -202,6 +202,20 @@ public static class MissionArea
         Autotest.Fields["hc_guard_raiders"] = () => GuardRaiders().Count;
         Autotest.Fields["hc_guard_raiders_on_escort"] = () =>
             RequireGuarded().Escort.TargetShip is { } escort ? GuardRaiders().Count(r => r.Commands.CurConfirmedCommand is Cosmoteer.Ships.Commands.AttackCommand a && a.Target == escort) : 0;
+        // Spec 1886: the warning ring, the seconds that the alone line shows, and the escort's time alone before raiders take it.
+        Autotest.Fields["hc_guard_ring"] = () => RequireGuarded().Guard.MarkerId is { } id && RequireSim().Doodads[id] is not null ? 1 : 0;
+        Autotest.Fields["hc_guard_left"] = () => EscortGuard.ShownSeconds(RequireGuarded().Guard, RequireRun().Game);
+        Autotest.Fields["hc_guard_lost_after"] = () => RequireGuarded().Guard.LostAfter(MissionArea.TunablesFor(RequireRun().Game));
+        // hc_guard_mark: remembers the newest escort's ship. Field hc_guard_marked_taken: 1 when that ship (live or in stasis) is hostile to the players.
+        Autotest.Commands["hc_guard_mark"] = _ => _markedGuardShip = RequireGuarded().Escort.ShipID;
+        Autotest.Fields["hc_guard_marked_taken"] = () =>
+        {
+            var sim = RequireSim();
+            int owner = sim.Ships[_markedGuardShip]?.Metadata.PlayerIndex
+                ?? (sim.Stasis.FirstOrDefault(s => s.ReservedObjectID == _markedGuardShip) as Cosmoteer.Simulation.Stasis.StasisShipSpawner)?.ObjectAllegiance
+                ?? throw new InvalidOperationException("the marked escort is gone");
+            return sim.RequireGame().HumanPlayersIndexes.Any(h => sim.Mode.AreEnemies(owner, h)) ? 1 : 0;
+        };
         // hc_guard_expose <seconds>: sets the time alone, so a test does not wait for the raid or the loss.
         Autotest.Commands["hc_guard_expose"] = arg => RequireGuarded().Guard.ExposedSeconds = double.Parse(arg, System.Globalization.CultureInfo.InvariantCulture);
         // hc_guard_goto [distance]: the players next to the newest escort, or this much farther away (any escort, the miner too).
@@ -255,6 +269,7 @@ public static class MissionArea
         : TunablesFile.ForNewGame(game).Missions;
 
     static int _markedMoney;
+    static Cosmoteer.Game.ObjectID _markedGuardShip;
     static float _markedEscortDist;
 
     static HeatReward EscortCover()

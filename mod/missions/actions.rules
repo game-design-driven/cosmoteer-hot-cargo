@@ -6,6 +6,11 @@
 	ToAdd = &<missions/sysgen_hotcargo.rules>
 }
 {
+	Action = Add
+	AddTo = "<doodads/doodads.rules>/Doodads"
+	ToAdd = &<missions/escort_alone.rules>/AloneRing
+}
+{
 	Action = Overrides
 	OverrideIn = "<modes/career/mission_metatypes.rules>"
 	Overrides

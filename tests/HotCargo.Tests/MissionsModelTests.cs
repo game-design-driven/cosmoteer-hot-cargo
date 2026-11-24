@@ -79,30 +79,33 @@ public class ConvoyRouteTests
 public class EscortGuardTests
 {
     static EscortGuardEvent Step(ref double exposed, ref bool raided, double seconds, bool guarded, bool live) =>
-        MissionModel.GuardStep(ref exposed, ref raided, seconds, guarded, live, raidSeconds: 60f, lostSeconds: 150f);
+        MissionModel.GuardStep(ref exposed, ref raided, seconds, guarded, live, raidSeconds: 60f, lostSeconds: 240f, warnSeconds: 60f);
 
     [Fact]
-    public void A_live_escort_alone_draws_one_raid_then_never_a_loss()
+    public void The_clock_warns_at_the_start_raids_once_warns_a_minute_before_and_then_loses_a_live_escort()
     {
         double exposed = 0;
         bool raided = false;
-        Assert.Equal(EscortGuardEvent.None, Step(ref exposed, ref raided, 59, guarded: false, live: true));
+        Assert.Equal(EscortGuardEvent.Alone, Step(ref exposed, ref raided, 1, guarded: false, live: true));
+        Assert.Equal(EscortGuardEvent.None, Step(ref exposed, ref raided, 58, guarded: false, live: true));
         Assert.Equal(EscortGuardEvent.Raid, Step(ref exposed, ref raided, 1, guarded: false, live: true));
-        Assert.Equal(EscortGuardEvent.None, Step(ref exposed, ref raided, 200, guarded: false, live: true));
+        Assert.Equal(EscortGuardEvent.Warning, Step(ref exposed, ref raided, 120, guarded: false, live: true));
+        Assert.Equal(EscortGuardEvent.Lost, Step(ref exposed, ref raided, 60, guarded: false, live: true));
     }
 
     [Fact]
-    public void An_escort_in_stasis_is_lost_at_the_lost_time_and_raided_only_when_live_again()
+    public void An_escort_in_stasis_draws_its_raid_only_when_live_again_and_is_lost_on_time()
     {
         double exposed = 0;
         bool raided = false;
-        Assert.Equal(EscortGuardEvent.None, Step(ref exposed, ref raided, 100, guarded: false, live: false));
+        Step(ref exposed, ref raided, 100, guarded: false, live: false);
+        Assert.False(raided);
         Assert.Equal(EscortGuardEvent.Raid, Step(ref exposed, ref raided, 1, guarded: false, live: true));
-        Assert.Equal(EscortGuardEvent.Lost, Step(ref exposed, ref raided, 49, guarded: false, live: false));
+        Assert.Equal(EscortGuardEvent.Warning | EscortGuardEvent.Lost, Step(ref exposed, ref raided, 139, guarded: false, live: false));
     }
 
     [Fact]
-    public void A_guard_resets_the_clock_and_allows_a_new_raid()
+    public void A_guard_resets_the_clock_and_allows_a_new_start_and_raid()
     {
         double exposed = 0;
         bool raided = false;
@@ -110,7 +113,8 @@ public class EscortGuardTests
         Assert.Equal(EscortGuardEvent.None, Step(ref exposed, ref raided, 1, guarded: true, live: true));
         Assert.Equal(0, exposed);
         Assert.False(raided);
-        Assert.Equal(EscortGuardEvent.Raid, Step(ref exposed, ref raided, 60, guarded: false, live: true));
+        Assert.Equal(EscortGuardEvent.Alone | EscortGuardEvent.Raid, Step(ref exposed, ref raided, 60, guarded: false, live: true));
+        Assert.Equal(180, MissionModel.SecondsLeft(240f, exposed));
     }
 }
 
