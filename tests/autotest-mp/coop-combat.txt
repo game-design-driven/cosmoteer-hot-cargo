@@ -32,7 +32,6 @@ mp aiset CallEnabled false
 mp dip_set DemandHailChance 0
 mp dip_set MercChance 0
 mp dip_set HunterLeaveSeconds 2
-mp dip_set HireChanceBase 5
 mp dip_set PayChanceCap 1
 mp dip_set PayMoneyChance 5
 # Factor 2 sends 2 hunters, and each other hunter near the hailed one lowers the chance (the crowd factor). The step needs a sure pay-off.

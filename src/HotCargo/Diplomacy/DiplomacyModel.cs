@@ -86,13 +86,27 @@ public static class DiplomacyModel
         float perReputation, float feePaidChange) =>
         Clamp01(baseChance + perHeat * heat / 100f + perHunter * hunters + perReputation * reputation + (feePaid ? feePaidChange : 0f));
 
-    /// <summary>Help for pay. Never while wanted. The offer counts in fair prices, up to 1.5 of them.</summary>
-    public static float HireChance(int offer, int fair, float reputation, float heat, bool wanted, float baseChance, float perOffer, float perReputation, float perHeat)
+    /// <summary>
+    /// Spec 579, 1818: help for pay. Never while wanted. The chance is the offer's share of the sure price (at most 1) × trust ×
+    /// (1 + perReputation × reputation) × (1 − perHeat × heat ÷ 100, at least 0). An offer below minShare of the sure price never works.
+    /// </summary>
+    public static float HireChance(int offer, int sure, float minShare, float reputation, float heat, bool wanted, float trust, float perReputation, float perHeat)
     {
-        if (offer < 0 || fair <= 0) throw new ArgumentOutOfRangeException(nameof(offer));
-        if (wanted) return 0f;
-        return Clamp01(baseChance + perOffer * Math.Min(1.5f, offer / (float)fair) + perReputation * reputation - perHeat * heat / 100f);
+        if (offer < 0 || sure <= 0 || trust is < 0f or > 1f) throw new ArgumentOutOfRangeException(nameof(offer), $"offer {offer}, sure {sure}, trust {trust}");
+        float share = Math.Min(1f, offer / (float)sure);
+        if (wanted || share < minShare) return 0f;
+        return Clamp01(share * trust * (1f + perReputation * reputation) * Math.Clamp(1f - perHeat * heat / 100f, 0f, 1f));
     }
+
+    /// <summary>Spec 1818: mercenaries talk. Trust after paid hires and after the health that hired ships lost (in whole ships).</summary>
+    public static float HireTrust(int hires, float shipsLost, float perHire, float perShipLost) =>
+        Core.HeatModel.Trust(hires, perHire) * Core.HeatModel.Trust(shipsLost, perShipLost);
+
+    /// <summary>Spec 579: the first slider step of a hire offer, in tenths of the sure price: minShare × 10, rounded up.</summary>
+    public static int HireMinStep(float minShare) => Math.Clamp((int)Math.Ceiling(minShare * HireSteps - 1e-4f), 0, HireSteps);
+
+    /// <summary>Spec 579: the hire offer slider has this many steps up to the sure price.</summary>
+    public const int HireSteps = 10;
 
     /// <summary>Reputation as -1..1: reputation over the scale, clamped.</summary>
     public static float ReputationShare(int reputation, float scale) =>

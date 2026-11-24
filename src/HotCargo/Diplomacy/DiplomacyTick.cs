@@ -110,12 +110,30 @@ static class DiplomacyTick
         {
             var h = hires[i];
             var ship = sim.Ships[h.Ship];
-            if (ship is null || !ship.ExistsInSim(sim) || ship.IsJunk) { hires.RemoveAt(i--); continue; }
+            if (ship is null || !ship.ExistsInSim(sim) || ship.IsJunk)
+            {
+                if (h.Paid) S(run).HireShipsLost += h.LastHealth;
+                hires.RemoveAt(i--);
+                continue;
+            }
+            // Spec 1818: damage counts once a check (CheckSeconds) and when a fleeing hire quits. Limit: damage in the last check
+            // before a jump does not count. Revisit if jumps often come right after heavy hits on hired ships.
+            CountDamage(run, h, ship);
             if (now < h.Until || h.Fleeing) continue;
             Ux.UxKit.ChatLine(run.Game, DipText.Format("HireDoneFmt", ship.Metadata.XmlShipName));
             Log.Info($"diplomacy: hire of {ship.Metadata.PlainShipName} ended");
             hires.RemoveAt(i--);
         }
+    }
+
+    /// <summary>Spec 1818: adds the health that a paid hire lost since its last count to the run's hired ship losses. Repairs do not count.</summary>
+    internal static void CountDamage(Run run, Hire h, Ship ship)
+    {
+        if (!h.Paid) return;
+        float health = HunterOrders.HealthFraction(ship);
+        if (health >= h.LastHealth) return;
+        S(run).HireShipsLost += h.LastHealth - health;
+        h.LastHealth = health;
     }
 
     /// <summary>The first human ship that can talk with the AI ship now, or null.</summary>

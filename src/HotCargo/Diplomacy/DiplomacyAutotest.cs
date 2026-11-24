@@ -284,7 +284,19 @@ static class DiplomacyAutotest
         Autotest.Fields["dip_merc_cheaper"] = () =>
         {
             var t = R().T.Diplomacy;
-            return Quotes.MercPrice(R(), t.MercMaxMinutes) < Quotes.HireFair(R()) * t.MercMaxMinutes * 60f / t.HireSeconds ? 1 : 0;
+            // The merc price before trust (spec 1818) against the hire rate.
+            return Quotes.MercPrice(R(), t.MercMaxMinutes) * Quotes.HireTrust(R()) < Quotes.HireSure(R()) * t.MercMaxMinutes * 60f / t.HireSeconds ? 1 : 0;
+        };
+        // Spec 1818: trust after paid hires and hired ship damage, and the counts it comes from.
+        Autotest.Fields["dip_trust"] = () => Quotes.HireTrust(R());
+        Autotest.Fields["dip_paidhires"] = () => R().State.Diplomacy.PaidHires;
+        Autotest.Fields["dip_shipslost"] = () => R().State.Diplomacy.HireShipsLost;
+        // dip_endhire <target>: test only. The target's contract ends now, as if its time ran out (the next hire check removes it).
+        Autotest.Commands["dip_endhire"] = arg =>
+        {
+            var id = Target(arg).UniqueID;
+            var hire = R().State.Diplomacy.Hires.FirstOrDefault(h => h.Ship == id) ?? throw new InvalidOperationException($"{arg} has no contract");
+            hire.Until = R().State.GameSeconds;
         };
         Autotest.Fields["dip_enemyhostile"] = () => _enemy is { } e && Sim().Ships[e] is { } s && Me().IsEnemiesWith(s) ? 1 : 0;
         Autotest.Fields["dip_technuggets"] = () => Sim().Nuggets.Where(n => n.ResourceType == Tech.Vaults.TechId).Sum(n => n.Quantity);

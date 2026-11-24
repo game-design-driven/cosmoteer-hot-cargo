@@ -50,6 +50,7 @@ internal sealed class HiredStrategy : AIStrategyModule
                 HunterOrders.MoveTo(ship, threat.DetWorldCenter + away * (t.HiredFleeDistance * 1.25f + threat.WorldBoundingRadius), t.HiredFleeDistance * 0.25f);
                 return true;
             }
+            DiplomacyTick.CountDamage(run, hire, ship);
             run.State.Diplomacy.Hires.Remove(hire);
             Log.Info($"diplomacy: hired {ship.Metadata.PlainShipName} is clear and quits");
             return false;

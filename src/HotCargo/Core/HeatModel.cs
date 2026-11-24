@@ -25,8 +25,15 @@ public static class HeatModel
     /// </summary>
     public static float BuyFactor(float recentBuys, float heat, float falloff, float fullHeat)
     {
-        if (recentBuys < 0f || falloff < 0f || fullHeat <= 0f) throw new ArgumentOutOfRangeException(nameof(recentBuys), $"buys {recentBuys}, falloff {falloff}, full heat {fullHeat}");
-        return 1f / (1f + recentBuys * falloff) * Math.Clamp(heat / fullHeat, 0f, 1f);
+        if (fullHeat <= 0f) throw new ArgumentOutOfRangeException(nameof(fullHeat), $"full heat {fullHeat}");
+        return Trust(recentBuys, falloff) * Math.Clamp(heat / fullHeat, 0f, 1f);
+    }
+
+    /// <summary>Spec 1817, 1818: the trust left after some uses of a paid deal: 1 ÷ (1 + uses × falloff). Each use lowers it less.</summary>
+    public static float Trust(float uses, float falloff)
+    {
+        if (uses < 0f || falloff < 0f) throw new ArgumentOutOfRangeException(nameof(uses), $"uses {uses}, falloff {falloff}");
+        return 1f / (1f + uses * falloff);
     }
 
     /// <summary>Spec 1817: paid heat cuts are on offer while the factor is at least closeBelow.</summary>

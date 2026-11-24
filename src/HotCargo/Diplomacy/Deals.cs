@@ -339,9 +339,16 @@ public static class Deals
 
     static void AddHire(Run run, Ship ship, int player, double seconds, bool merc)
     {
-        var hire = S(run).Hires.FirstOrDefault(h => h.Ship == ship.UniqueID);
+        var s = S(run);
+        var hire = s.Hires.FirstOrDefault(h => h.Ship == ship.UniqueID);
         double now = run.State.GameSeconds;
-        if (hire is null) S(run).Hires.Add(hire = new Hire { Ship = ship.UniqueID, Player = player, Until = now });
+        if (hire is null)
+        {
+            // Spec 1818: a new paid contract counts against later hires; an extension does not.
+            s.Hires.Add(hire = new Hire { Ship = ship.UniqueID, Player = player, Until = now, Paid = true, LastHealth = Hunters.HunterOrders.HealthFraction(ship) });
+            s.PaidHires++;
+            s.EverHired.Add(ship.UniqueID);
+        }
         hire.Until = Math.Max(hire.Until, now) + seconds;
         hire.Merc = merc;
         hire.Player = player;

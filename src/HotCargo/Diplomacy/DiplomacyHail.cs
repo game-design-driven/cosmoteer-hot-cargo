@@ -37,7 +37,7 @@ public sealed class DiplomacyHail : IHailProvider
         return Situation.VaultTech(sim) > 0 && !Done(run, callee, Offer.Hold) && Situation.MayHold(run, callee)
             || S(run).Held.Any(h => h.Ship == callee.UniqueID)
             || S(run).FeeAsks.Any(f => f.Ship == callee.UniqueID)
-            || Situation.Hireable(callee) && (!Done(run, callee, Offer.Hire) || S(run).Mercs.Contains(callee.UniqueID))
+            || Situation.Hireable(callee) && (!Done(run, callee, Offer.Hire) || S(run).Mercs.Contains(callee.UniqueID) && !S(run).HiredBefore(callee.UniqueID))
             || S(run).Hires.Any(h => h.Ship == callee.UniqueID);
     }
 
@@ -99,11 +99,14 @@ public sealed class DiplomacyHail : IHailProvider
             case Offer.Hire:
                 if (!Situation.IsFriendlyShip(caller, callee) || !Situation.Hireable(callee) || merc) { why = "not a friendly armed ship"; return false; }
                 if (S(run).Hires.Any(h => h.Ship == callee.UniqueID)) { why = "already hired"; return false; }
+                if (S(run).EverHired.Contains(callee.UniqueID)) { why = "hired before"; return false; }
                 if (Situation.WantedAnywhere(sim, player)) { why = "wanted"; return false; }
-                if (amount < 0 || !Situation.CanPay(run, player, amount * Quotes.HireStep(run))) { why = "money"; return false; }
+                if (amount < Quotes.HireMinStep(run) || amount > DiplomacyModel.HireSteps) { why = $"offer step {amount}"; return false; }
+                if (!Situation.CanPay(run, player, amount * Quotes.HireStep(run))) { why = "money"; return false; }
                 return true;
             case Offer.Merc:
                 if (!Situation.IsFriendlyShip(caller, callee) || !merc) { why = "not a mercenary"; return false; }
+                if (S(run).HiredBefore(callee.UniqueID)) { why = "hired before"; return false; }
                 if (amount < 1 || amount > run.T.Diplomacy.MercMaxMinutes) { why = $"minutes {amount}"; return false; }
                 if (!Situation.CanPay(run, player, Quotes.MercPrice(run, amount))) { why = "money"; return false; }
                 if (S(run).Hires.FirstOrDefault(h => h.Ship == callee.UniqueID) is { } hire && hire.Player != player) { why = "hired by another player"; return false; }
@@ -247,17 +250,23 @@ public sealed class DiplomacyHail : IHailProvider
             return;
         }
         if (held > 0) Button(run, sim, player, caller, ship, page, Offer.Return, 0, DipText.Format("ReturnAskFmt", held));
-        if (merc)
+        bool mercRow = merc && !s.HiredBefore(ship.UniqueID);
+        bool hireRow = !merc && Situation.Hireable(ship) && hire is null && !s.WasUsed(ship.UniqueID, Offer.Hire);
+        // Spec 1818: after the first paid hire, a page with a hire row says how much trust is left.
+        if ((mercRow || hireRow) && Quotes.HireTrust(run) is var trust && trust < 1f)
+            page.AddText(DipText.Format("HireTrustFmt", s.PaidHires, s.HireShipsLost, trust, 1f / trust));
+        if (mercRow)
         {
             int max = Math.Max(1, run.T.Diplomacy.MercMaxMinutes);
             var spec = new SliderSpec("merc", DipText.Text("SliderMinutes"), 1, max, 1, Math.Min(3, max), v => DipText.Format("MinutesFmt", v));
             Row(run, sim, player, caller, ship, page, Offer.Merc, spec,
                 m => DipText.Format(hire is null ? "MercFmt" : "MercMoreFmt", m, Cost(run, Quotes.MercPrice(run, m))));
         }
-        else if (Situation.Hireable(ship) && hire is null)
+        else if (hireRow)
         {
             int step = Quotes.HireStep(run);
-            var spec = new SliderSpec("hire", DipText.Text("SliderOffer"), 0, 20, 1, 10, v => Cosmoteer.Extensions.ToXmlCostString(v * step));
+            var spec = new SliderSpec("hire", DipText.Text("SliderOffer"), Quotes.HireMinStep(run), DiplomacyModel.HireSteps, 1, DiplomacyModel.HireSteps,
+                v => Cosmoteer.Extensions.ToXmlCostString(v * step));
             if (Situation.WantedAnywhere(sim, player) && !Done(run, ship, Offer.Hire)) page.AddText(DipText.Text("HireWanted"));
             Row(run, sim, player, caller, ship, page, Offer.Hire, spec, steps =>
                 DipText.Format("HireFmt", Cost(run, steps * step), (int)Math.Ceiling(run.T.Diplomacy.HireSeconds / 60.0), Pct(Quotes.Hire(run, sim, player, ship, steps * step))));
