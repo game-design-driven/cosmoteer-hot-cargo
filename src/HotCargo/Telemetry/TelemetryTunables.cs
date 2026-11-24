@@ -26,7 +26,7 @@ public sealed class TelemetryTunables
     [Serialize(Optional = true)] public bool Tech = true;
     /// <summary>econ.*: money and fame changes with a source, reputation, station trades with prices.</summary>
     [Serialize(Optional = true)] public bool Economy = true;
-    /// <summary>mission.*: offers, accepts with contract terms, results with time to finish.</summary>
+    /// <summary>mission.*: offers, accepts with contract terms, results with time to finish, positions of mission objects.</summary>
     [Serialize(Optional = true)] public bool Missions = true;
     /// <summary>event.*: event pages shown and choices with the rolled outcome. Chain calls come through Trace.</summary>
     [Serialize(Optional = true)] public bool Story = true;

@@ -85,7 +85,8 @@ Category switches are in the `Telemetry` tunables section. The table names the s
 | `dip.surrender` | Diplomacy | AI fields, `player`, `by` (`players`, `ai`), `price`, `accepted`. A vanilla surrender input. |
 | `dip.deal` | Diplomacy | AI fields, `player`, `offer` (the hail choice, spec 561 to 596), `amount`, `price`, `chance`, `roll`, `accepted`. Chance, roll and accepted only for a choice with a roll. |
 | `ai.switch` | Ai | `ship`, `name`, `side`, `ai`, `from`, `to` (module types), `integrity`, `dist` |
-| `snap` | Snapshots | `why` (timer, entry, result, test), `stay_s`, `time_use`, `time_any`, `result`, `stages`, `notoriety`, `peak_tier`, `tech_value`, `buyer_mult`, `heat_mult`, `enemy_scale_factor`, `fame`, `money`, `score`, `delivered`, `open_contracts`, `trail_per_min`, `mission_log`, `pending_informants`, `waiting_hunter_groups`, `events_seen`, `chains`, `crew`, `ships` (value, blueprint, integrity, parts, firepower, vaults, crew of each player ship), `fleet_value`, `fleet_blueprint`, `fleet_firepower`, `fleet_parts`, `vaults`, `live` (ships by side), `stasis`, `ai` (sums, see below) |
+| `mission.positions` | Missions | `why` (`accept`, `objective`: an objective of the mission changed), `fleet`, `missions` (see Positions below). At an accept it holds only that mission. |
+| `snap` | Snapshots | `why` (timer, entry, result, test), `fleet` and `missions` (positions, with the Missions switch), `stay_s`, `time_use`, `time_any`, `result`, `stages`, `notoriety`, `peak_tier`, `tech_value`, `buyer_mult`, `heat_mult`, `enemy_scale_factor`, `fame`, `money`, `score`, `delivered`, `open_contracts`, `trail_per_min`, `mission_log`, `pending_informants`, `waiting_hunter_groups`, `events_seen`, `chains`, `crew`, `ships` (value, blueprint, integrity, parts, firepower, vaults, crew of each player ship), `fleet_value`, `fleet_blueprint`, `fleet_firepower`, `fleet_parts`, `vaults`, `live` (ships by side), `stasis`, `ai` (sums, see below) |
 | `perf` | Perf | `window_ms`, `frames`, `fps`, `paused_s`, `build_s`, `play_s` (real time of the frames while paused, in build mode, in play), `frame_mean_ms`, `frame_p50_ms`, `frame_p95_ms`, `frame_p99_ms`, `frame_max_ms`, `frames_over_33ms`, `ticks`, `tick_mean_ms`, `tick_max_ms`, `tick_total_ms`, `tele_ms`, `tele_pct_wall`, `tele_pct_tick`, `tele_writer_ms`, `tele_events`, `tele_bytes`, `tele_pending`, `tele_dropped`, `gc0`, `gc1`, `gc2`, `gc_pause_ms`, `heap_mb`, `working_set_mb` |
 | `mp.players` | Coop | `from`, `to` |
 | `mp.desync` | Coop | `input_tick`, `host`, `expected` (a test resync) |
@@ -161,6 +162,18 @@ Telemetry is not sim state. Each co-op machine writes its own file with its own 
 - Telemetry measures its own time on game threads (every patch, handler and event build) and reports it in `perf` (`tele_ms`, `tele_pct_wall`) and `session.end` (`overhead_pct_wall`). At a steady frame rate the share of real time is the share of frame time. Target: well below 1 %.
 - Headless test games run at about 400 frames per second without drawing, so their frame times are no measure of play frame times. The share of real time is.
 - Limit: a hard kill of the game loses the lines of the last second.
+
+## Positions
+
+Spec 1990 to 1994. Sim positions in world units; the y axis points down on the screen (`Direction.Up` is −y). Only the player fleet and mission objects, so the volume stays small.
+
+- `fleet`: `center` (`x`, `y`) and `ships` (`ship`, `name`, `player`, `x`, `y`) of the human ships in the system.
+- `missions`: one entry per open mission: `mission`, `type`, `name`, `objectives` (the active leaf objectives), and
+  - `ships`: the ships that the active objectives name (vanilla `Mission.IsShipAssociated`: targets, contacts, escorts, item source ships), live or in stasis, nearest first, at most 12: `ship`, `name` and `side` (live) or `stasis`, `player`, `tags`, `x`, `y`;
+  - `items`: loose mission item crates of hand-overs: `item`, `x`, `y`;
+  - `areas`: objective areas (`Objective.GetAreaLocation`, for example target area markers): `objective`, `x`, `y`, `r`.
+
+During a playtest, `cd tools/telemetry && uv run hc-where --dir <live telemetry folder>` prints for each open mission where its ships, items and areas are from the fleet centre: distance and compass direction (north is up on the screen). It reads the newest session file and the newest snapshot or `mission.positions` event. On a Mac host the folder is `~/Library/Application Support/Cosmoteer/<steam id>/Mods/hot_cargo/telemetry`.
 
 ## Playtest notes
 

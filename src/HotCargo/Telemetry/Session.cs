@@ -107,6 +107,8 @@ sealed class Session
     readonly HashSet<ObjectID> _offersSeen = [];
     /// <summary>Run game seconds of each accept by mission ID. The save keeps them (spec 1589).</summary>
     readonly Dictionary<string, double> _accepted = [];
+    /// <summary>Spec 1991: the objective states of each open mission at the last check, to see an objective change.</summary>
+    readonly Dictionary<ObjectID, string> _objectiveStates = [];
     internal Dictionary<string, double> AcceptedCopy() { lock (_accepted) return new(_accepted); }
     MissionManager? _log;
 
@@ -448,6 +450,7 @@ sealed class Session
             }
         }
         StoryDiff();
+        if (Tele.On(Cat.Missions)) ObjectiveChanges(sim);
         if (Tele.On(Cat.Tech)) LossTimerState(sim);
         if (Tele.On(Cat.Combat)) { TickFight(); FleetTelemetry.RememberFleet(this, sim); }
         int players = Game.HumanPlayersIndexes.Count();
@@ -852,6 +855,28 @@ sealed class Session
             WriteTerms(w, ContractBook.Find(Run, m));
             w.WriteNumber("open_contracts", ContractBook.Open(Run).Count() + (m.Completion == CompletionState.InProgress ? 0 : 1));
         });
+        if (Game.Sim is { } sim) Positions(sim, m, "accept");
+    }
+
+    /// <summary>Spec 1991: a "mission.positions" event: the fleet and the objects of one mission, or of every open mission.</summary>
+    void Positions(SimRoot sim, Mission? m, string why) =>
+        Tele.Emit(Cat.Missions, "mission.positions", w =>
+        {
+            w.WriteString("why", why);
+            MissionPositions.Write(w, Run, sim, m);
+        });
+
+    /// <summary>Spec 1991: once a second, a mission whose objective states changed gets a positions event.</summary>
+    void ObjectiveChanges(SimRoot sim)
+    {
+        var open = Run.Mode.Missions.Where(m => m.Completion == CompletionState.InProgress).ToList();
+        foreach (var m in open)
+        {
+            string state = MissionPositions.ObjectiveState(m);
+            if (_objectiveStates.TryGetValue(m.MissionID, out var was) && was != state) Positions(sim, m, "objective");
+            _objectiveStates[m.MissionID] = state;
+        }
+        foreach (var gone in _objectiveStates.Keys.Except(open.Select(m => m.MissionID)).ToList()) _objectiveStates.Remove(gone);
     }
 
     void OnMissionRemoved(object? sender, Mission m)
@@ -1102,6 +1127,8 @@ sealed class Session
             w.WriteEndObject();
             w.WriteNumber("stasis", sim.Stasis.Count);
             TelemetryPatches.WriteAiSums(w);
+            // Spec 1992: where the fleet and the open missions' objects are.
+            if (Tele.On(Cat.Missions)) MissionPositions.Write(w, Run, sim);
         });
     }
 }

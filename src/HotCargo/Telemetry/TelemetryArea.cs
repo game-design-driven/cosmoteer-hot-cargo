@@ -200,6 +200,8 @@ public static class TelemetryArea
                 default: throw new InvalidOperationException("telenote needs: open | type <text> | save | cancel");
             }
         };
+        // Spec 1994: mission ships, items and areas that the last positions record named.
+        Autotest.Fields["tele_positions_objects"] = () => MissionPositions.LastObjects;
         Autotest.Fields["telenote_open"] = () => PlaytestNotes.OpenDialog is null ? 0 : 1;
         // 1 when the note key would open a note now (spec 1984).
         Autotest.Fields["telenote_can_open"] = () => PlaytestNotes.CanOpen(Autotest.RequireRun()) ? 1 : 0;
