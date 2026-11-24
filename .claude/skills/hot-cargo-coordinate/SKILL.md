@@ -38,6 +38,7 @@ The whole workflow and which parts are generic: `docs/WORKFLOW.md`. Each rule be
 
 ## Merges and failures
 
+- Rule failures (PR text, Game tests block, spec numbers, determinism) reach the PR owner from the `pr-text` check itself: its output and its one PR comment say what to fix. Do not relay them. Reason: the user wants the rule to ask, not the coordinator.
 - Agents merge their own PRs (`hot-cargo-pr-flow`). The GitHub merge queue of `main` orders the merges. No agent runs a merge queue of its own.
 - When you add a PR to the merge queue, call `watch_pull_request` on it. `scripts/agent-watch.sh` puts a PR back into the queue once per commit when the queue dropped it only for tests in `tests/flaky.txt` or for an infrastructure failure (`scripts/requeue-flakes.sh`, with a PR comment). Add a test to `tests/flaky.txt` only after you checked it on `main`, with the reason; remove it when its cause is fixed. Reason: on 2026-11-16 a PR left the queue on a flake, and nobody noticed it for 7 hours.
 - A flaky or infrastructure failure in a test that the PR does not touch counts as passing, after a check of the same test on `main` (`hot-cargo-pr-flow`). Reason: slow, flaky gates blocked merges for hours, and one PR merged with 4 real regressions that its owner called unrelated without that check.

@@ -61,8 +61,6 @@ pr_set() {
       for t in "${BASELINE[@]}"; do mine[$t]=1; done ;;
   esac
   rm -f "$files"
-  # In the merge queue the whole text counts (the Decisions block too); on a PR, pr-text.yml runs that check.
-  if [[ "$GROUP" == yes ]]; then scripts/check-pr-text.sh "$PR" || fail "PR #$PR: the PR text breaks the rules above"; fi
   # The block: from the "### Game tests" heading to the next heading. HTML comments (the template's examples) do not count.
   block="$(gh api "repos/$REPO/pulls/$PR" --jq '.body // ""' | tr -d '\r' \
     | awk '/^###[[:space:]]+Game tests[[:space:]]*$/ { on = 1; next } on && /^#/ { exit } on' \
@@ -90,16 +88,13 @@ pr_set() {
   for t in "${!mine[@]}"; do SET[$t]=1; done
 }
 
-PRS=() GROUP=no
+PRS=()
 case "${1:-}" in
   --all) for t in "${ALL_TESTS[@]}"; do SET[$t]=1; done; echo "== every CI game test" ;;
   --group)
     base="${2:?--group needs a base and a head sha}" head="${3:?--group needs a base and a head sha}"
-    # One merge commit per PR: "<title> (#N)" (the repo titles merges with the PR title), or "Merge pull request #N ..." (older).
-    mapfile -t PRS < <(gh api "repos/$REPO/compare/$base...$head" --jq '.commits[].commit.message | split("\n")[0]' \
-      | sed -n -e 's/^Merge pull request #\([0-9]*\) .*/\1/p' -e 's/.* (#\([0-9]*\))$/\1/p' | sort -un)
-    (( ${#PRS[@]} > 0 )) || fail "no '<title> (#N)' or 'Merge pull request #N' commit between $base and $head"
-    GROUP=yes
+    mapfile -t PRS < <(scripts/queue-group-prs.sh "$base" "$head")
+    (( ${#PRS[@]} > 0 )) || fail "no PR in the merge queue group $base..$head"
     echo "== merge queue group: PR ${PRS[*]}" ;;
   "") fail "usage: ci-test-set.sh <pr number> ... | --group <base> <head> | --all" ;;
   *) PRS=("$@") ;;
