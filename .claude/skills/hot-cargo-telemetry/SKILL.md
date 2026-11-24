@@ -14,6 +14,13 @@ Files, events and report options are in `TELEMETRY.md`.
 3. Read the findings at the top of `report.md` first, then the sections of each run.
 4. For a question that the report does not answer, read the events: `jq -c 'select(.e=="<event>")' <file>.jsonl`.
 
+## During a playtest
+
+- Before play starts, install the newest green `main` on every player's machine (`hot-cargo-install`), after each merge. Both players need the same version.
+- When play starts, follow the host's live notes file (`tail -F`, path in `TELEMETRY.md`, Playtest notes) and act on each note at once: triage it, and queue a fix to an agent. Do not wait for the end of the session. Reason: the player asked for it, and notes lose their context fast.
+- A fix made during the session installs only at a break, on every machine together.
+- "Where is X?": run `hc-where` on the host's telemetry folder (`TELEMETRY.md`, Positions). Its positions can be up to 30 game seconds old.
+
 ## What to look at
 
 - Errors: `log` events with level error, invariant breaks, `mp.desync`. Each one is a bug.

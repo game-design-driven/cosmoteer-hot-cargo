@@ -10,6 +10,7 @@ description: Build Hot Cargo, run unit tests, game tests and co-op tests (in the
 2. Unit tests (pure math only, no game types): `cd tests/HotCargo.Tests && dotnet run`. Pure math goes in a file named `*Model.cs` with no game types; the test project picks up every such file.
 
 ## Headless game tests
+- .NET 10 on a Mac: the headless sim, the unit tests and the Mac screenshot runner need the .NET 10 runtime. Harmony refuses CoreCLR 11 ("CoreCLR version 11.0.0 is not supported"). When `dotnet --list-runtimes` shows no `Microsoft.NETCore.App 10.x`, put the local copy first: `PATH="$PWD/../.state/dotnet10:$PATH" DOTNET_ROOT="$PWD/../.state/dotnet10"` (from a worktree). Never commit a path to that folder.
 - Where tests run: CI runs the PR's game test set in the headless sim in the merge queue, and every test on `main` after merges (see "Before a merge"). On this Mac, run them in the headless sim (`scripts/autotest-sim.sh`, `tools/headless-sim`, `docs/headless-sim.md`). The PC runs the tests with `# runner: pc`, screenshots, and checks against the real game. Manual PC work: `hot-cargo-pc`.
 - One test on the PC: `scripts/autotest.sh tests/autotest/<name>.txt [timeoutSeconds]`. It takes a free headless slot on the PC (t1..t6, own save, settings and cache folders, no window), deploys your worktree's build and runs the script. Exit 0 means pass.
   - The PC caches each build by a hash of its content. A build that the PC already has is not uploaded again.
@@ -57,6 +58,8 @@ These are not game failures. Rerun the test:
 - "relay was lost", "no signed connection to kitshn", "kitshn refused the run", "tar: Write error", "the PC did not confirm the deploy", "not enough free memory to start slot" (the PC is full; it waited 120 s).
 - An empty test log after the deploy line.
 A game failure shows `CHECK FAILED`, `ERROR` or `MP DESYNC` in the log.
+
+Odd rsync, git or install errors on the Mac: check the free disk space first (`df -h /System/Volumes/Data`). Reason: the disk ran full twice from test output and run copies.
 
 ## Rules
 - The PC is shared with other agents and with a person. Use only the scripts. They never take focus.

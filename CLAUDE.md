@@ -4,6 +4,10 @@ Hot Cargo is a Cosmoteer career mod: C# Harmony code plus `.rules` content. Read
 
 The whole workflow (agents, PRs, tests, the PC, releases) and which parts are generic: `docs/WORKFLOW.md`.
 
+The design pillars (`spec/02-design-pillars.md`) decide every design question. A change that breaks a pillar needs the player's yes first.
+
+Knowledge lives in three places only: this file (what every agent must always keep in mind), skills (situational procedures) and `spec/` (design and mechanics). No other notes.
+
 Procedures are skills in `.claude/skills/`:
 - `hot-cargo-testing`: build, unit tests, headless game tests, co-op tests, infrastructure failures.
 - `hot-cargo-screenshots`: screenshots in a windowed test slot (never the player's game slot).

@@ -21,6 +21,7 @@ The whole workflow and which parts are generic: `docs/WORKFLOW.md`. Each rule be
 
 - One agent for each area, with a queue of its features. Never start two agents on features that touch the same files. Reason: parallel edits of one file end in merge conflicts in the queue.
 - Point every brief that ends in a PR to `hot-cargo-pr-flow`.
+- When the player's words have two readings (a size, a count, a layout), write "I read this as: ..." in the reply that starts the agent. The agent starts on that reading. Reason: a 2x2 vault brief was read the wrong way, and an agent built the wrong part.
 - Give each agent that adds a spec section its own section number and requirement number block. Take the blocks above the highest numbers on `main` and in the open PRs (`gh pr diff <n>`). Reason: parallel branches pick the same next number, and `scripts/check-spec-numbers.sh` finds the clash only in the merge queue.
 - Before you brief a new player-facing mechanic from a brainstorm pick, write 2 or 3 lines of what the player sees and does, and wait for the player's yes. Tuning, fixes and features that the player described in their own words need no extra check. Reason: a one-line brainstorm option is not a design approval, and a surprise feature once cost a build, a removal and a playtest.
 - Risky actions and gambles happen in the game world (a button on a part, an item, a ship), with a visible result and a message that names the outcome. Dialogs only offer clear deals. Reason: the player found dialog-only choices unclear and boring.
@@ -57,4 +58,4 @@ Only the coordinator does this, and only while the hold is off:
 
 - Vaults in ship designs: `hot-cargo-player-ships`.
 - A new loader version, which needs every game on the PC closed once: `hot-cargo-game-update`.
-- Installs need no hold check: `hot-cargo-install`. Keep the newest `main` installed: run `scripts/install-player.sh` after merges. Reason: the player plays the newest build without asking for it. Limit: PC calls work only while your turn is active, so `keep-installed.sh` stops working when the turn ends.
+- Installs need no hold check: `hot-cargo-install`. Keep the newest `main` installed on the PC (`scripts/install-player.sh`) and in the Mac app (`hot-cargo-install`, The Mac app) after merges. Reason: the player plays the newest build without asking for it. Limit: PC calls work only while your turn is active, so `keep-installed.sh` stops working when the turn ends.
