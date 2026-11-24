@@ -55,6 +55,13 @@ public static class MissionArea
             if (_markedMarkers.Count == 0) throw new InvalidOperationException($"the latest {arg.Trim()} mission owns no marker");
         };
         Autotest.Fields["hc_markers_left"] = () => _markedMarkers.Count(id => RequireSim().Doodads[id] is not null);
+        // Spec 996: hc_markers_sweep <complete|fail>: every offer in this system that owns a live target area marker (vanilla, Hot Cargo and
+        // chain missions: the offers decide, not a list) goes to the log, and each of its objectives that owns a marker completes or fails.
+        // The fields then count the markers and those still in the sim. Test only.
+        Autotest.Commands["hc_markers_sweep"] = arg => TestMarkerSweep(arg.Trim());
+        Autotest.Fields["hc_markers_swept"] = () => _swept.Count;
+        Autotest.Fields["hc_markers_swept_left"] = () => _swept.Count(id => RequireSim().Doodads[id] is not null);
+        Autotest.Fields["hc_markers_sweep_errors"] = () => _sweepErrors;
         Autotest.Commands["hc_abandon"] = arg =>
         {
             RequireRun().Game.NetManager.EnqueueInput(new Cosmoteer.Modes.Career.Missions.MissionLogTab.MPAbandonMissionInput(LatestOfType(arg.Trim())));
@@ -237,6 +244,43 @@ public static class MissionArea
     }
 
     /// <summary>Runs the Hot Cargo spawner groups now. Arg: escort, assault, shady or all.</summary>
+    static readonly HashSet<Cosmoteer.Game.ObjectID> _swept = [];
+    static int _sweepErrors;
+
+    static void TestMarkerSweep(string mode)
+    {
+        bool fail = mode switch { "complete" => false, "fail" => true, _ => throw new InvalidOperationException($"hc_markers_sweep: complete or fail, not '{mode}'") };
+        var run = RequireRun();
+        var sim = RequireSim();
+        _swept.Clear();
+        _sweepErrors = 0;
+        // One offer can sit in several lists as copies with the same MissionID.
+        foreach (var copies in Contracts.ContractBook.Offers(sim).GroupBy(o => o.Mission.MissionID).OrderBy(g => g.Key).ToList())
+        {
+            var m = copies.First().Mission;
+            var ids = MissionMarkers.Of(m).Distinct()
+                .Where(id => sim.Doodads[id] is Cosmoteer.Simulation.Doodads.POIDoodad poi && poi.Rules.ID == MissionMarkers.TargetArea).ToList();
+            if (ids.Count == 0) continue;
+            try
+            {
+                foreach (var (_, list) in copies) list.RemoveMission(m);
+                run.Mode.Missions.AddMission(m, track: false);
+                var objectives = new List<Cosmoteer.Modes.Career.Missions.Objectives.Objective>();
+                m.GetObjectives(objectives);
+                foreach (var o in objectives.Where(o => o.Completion == CompletionState.InProgress && MissionMarkers.OwnedBy(o).Any()))
+                    if (fail) o.Fail(); else o.Complete();
+                _swept.UnionWith(ids);
+                Log.Info($"AUTOTEST MARKERS {mode} {m.MetatypeID} {m.MissionID}: {ids.Count} marker(s) [{string.Join(" ", ids)}]");
+            }
+            catch (Exception ex)
+            {
+                _sweepErrors++;
+                Log.Error($"AUTOTEST MARKERS {mode} {m.MetatypeID} {m.MissionID}: {ex}");
+            }
+        }
+        Autotest.Wait(2);
+    }
+
     static void TestGenerate(string arg)
     {
         string[] names = arg is "" or "all" ? [.. Metatypes.Keys] : [arg];

@@ -157,15 +157,16 @@ public static class Invariants
     static readonly Dictionary<ObjectID, int> _strayMarkerChecks = [];
 
     /// <summary>
-    /// Spec 996: a mission marker (a target area marker that a mission owns, MissionMarkers.Of) goes with its mission. A marker that a
-    /// mission owned at an earlier check and that no mission in progress or offer owns for two checks in a row stayed after its mission
-    /// ended. Map rings that a mission only uses (belt passes) are never mission markers.
+    /// Spec 996: a mission marker (a target area marker that a mission owns, MissionMarkers.Of) goes with its objective. A marker that an
+    /// objective owned at an earlier check and that no objective in progress or offer owns for two checks in a row stayed after its
+    /// objective ended. Map rings that a mission only uses (belt passes) are never mission markers.
     /// Limit: a marker whose mission ends before its first check is not seen. Revisit if a mission can end within a second of its offer.
     /// </summary>
     static void MarkersEndWithMission(Run run, SimRoot sim)
     {
-        var owned = run.Mode.Missions.Where(m => m.Completion == CompletionState.InProgress)
-            .Concat(Contracts.ContractBook.Offers(sim).Select(o => o.Mission)).SelectMany(Missions.MissionMarkers.Of).ToHashSet();
+        // An objective still in progress owns its markers; an ended objective's markers go even while its mission waits for pay.
+        var owned = run.Mode.Missions.SelectMany(Missions.MissionMarkers.LiveOf)
+            .Concat(Contracts.ContractBook.Offers(sim).Select(o => o.Mission).SelectMany(Missions.MissionMarkers.Of)).ToHashSet();
         _missionMarkers.UnionWith(owned);
         var seen = new HashSet<ObjectID>();
         foreach (var id in _missionMarkers.ToList())

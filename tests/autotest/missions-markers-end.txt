@@ -1,0 +1,30 @@
+# Spec 996: a target area marker goes when the objective that owns it ends, completed or failed, also while the mission waits for pay.
+# Playtest 2026-11-24: "Make sure target area for things does not stay after mission done" (the Salvage Race ring stayed: its vanilla
+# DeliverResources objective names the ring as SuggestedCollectionPOI, which the marker list missed).
+# The sweep takes every offer of the system that owns a marker: vanilla, Hot Cargo, mechanics and chain missions.
+# missions: random
+newgame run
+wait 8
+ev_set Enabled false
+contract_set RivalsEnabled off
+godmode on
+hc_generate all
+mech_generate capture
+mech_generate prototype
+mech_generate survey nonebula
+chain_force magpie_rivalry
+wait 2
+hc_markers_sweep complete
+expect hc_markers_sweep_errors == 0
+expect hc_markers_swept >= 4
+expect hc_markers_swept_left == 0
+# The same with failed objectives.
+hc_generate all
+mech_generate capture
+chain_force black_box
+wait 2
+hc_markers_sweep fail
+expect hc_markers_sweep_errors == 0
+expect hc_markers_swept >= 3
+expect hc_markers_swept_left == 0
+quit
