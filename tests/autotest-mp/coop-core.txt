@@ -199,7 +199,10 @@ on 1 hc_escort_call
 on 1 comms_click Ready
 waitfor hc_escort_waiting == 0 15
 on 1 waitfor hc_escort_waiting == 0 15
-# Playtest 2026-11-24: after the client's "Ready" the freighter flies the route by itself, before any teleport.
+# Playtest 2026-11-24: after the client's "Ready" the freighter flies the route by itself, before any teleport. The game must run for
+# that: queue run 2026-11-24 stopped right after the client's comms window opened (PauseLog now names any pause and who made it).
+pause off
+waitfor paused == 0 10
 hc_mark
 waitfor hc_escort_progress > 50 45
 # Just before the ambush point (EscortAmbushAt 0.3). The freighter flies on and springs the ambush itself. From 0.25 the
