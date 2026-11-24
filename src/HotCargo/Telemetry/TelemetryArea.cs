@@ -153,6 +153,14 @@ public static class TelemetryArea
             TestShield.On = arg != "off";
             Log.Info($"AUTOTEST shieldplayers {TestShield.On}");
         };
+        // shieldhunters on|off: the parts of corporate hunters lose no health (TestShield). Test only. In co-op only with "mp".
+        Autotest.Commands["shieldhunters"] = arg =>
+        {
+            if (Autotest.RequireRun().IsMultiplayer && Autotest.SimPlayer is null)
+                throw new InvalidOperationException("shieldhunters in co-op needs \"mp\" (it changes the sim)");
+            TestShield.Hunters = arg != "off";
+            Log.Info($"AUTOTEST shieldhunters {TestShield.Hunters}");
+        };
         // teleactivity: logs the time use signals now and the construction queues of the own ships (TELEMETRY.md, Time use).
         Autotest.Commands["teleactivity"] = _ =>
         {

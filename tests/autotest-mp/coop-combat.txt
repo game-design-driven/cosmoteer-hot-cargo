@@ -201,6 +201,9 @@ mp aiset CallEnabled false
 mp dip_set DemandHailChance 0
 as 1 apart 16000
 wait 3
+# The hunters take no damage until the checks: the step checks where they are, not who wins. Queue run 45354014391: both died
+# within 8 s, about 2,500 from the host, and "hunters >= 1" failed.
+mp shieldhunters on
 mp spawnstage Warning
 waitfor hunters >= 1 30
 # The stasis manager takes ships out of the live area within a few seconds.
@@ -208,11 +211,14 @@ wait 8
 expect hunters >= 1
 expect hunterstasis == 0
 on 1 expect hunterstasis == 0
+mp shieldhunters off
 
 step thieves.collect
 # Spec 1783, in a new run: a thief group fights the host's ship, the spilled cargo stops it, it collects and leaves. The phases and
 # the counts are run state, and the state hash compares them, so a divergence fails the step. Every setup line runs on both machines.
 mprestart
+# A failed check in hunters.anchor skips its last line, so the hunter shield goes off here too.
+mp shieldhunters off
 mp godmode on
 mp ev_set Enabled false
 mp scav_set FactionEnabled false

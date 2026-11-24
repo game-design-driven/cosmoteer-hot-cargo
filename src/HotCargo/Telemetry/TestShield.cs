@@ -8,12 +8,16 @@ namespace HotCargo.Telemetry;
 /// Test only: the autotest command "shieldplayers on" keeps human ship parts from losing health and human crew from dying,
 /// so a scripted run (telemetry-run) does not depend on the starter ship surviving. Repairs still work. It changes the sim, so
 /// in co-op it runs only with "mp" (every machine at the same tick). Turn it off around test commands that damage on purpose (vault damage).
+/// "shieldhunters on" does the same for the parts of corporate hunters (tag hc_hunter), so a step that checks where hunters are
+/// does not depend on who wins a fight. Their crew can still die.
 /// </summary>
 static class TestShield
 {
     internal static bool On;
+    internal static bool Hunters;
 
-    static bool Shields(Part part) => On && part.Ship is { IsHumanPlayerShip: true };
+    static bool Shields(Part part) => part.Ship is { } ship
+        && (On && ship.IsHumanPlayerShip || Hunters && HotCargo.Ai.AiGate.IsCorporateHunter(ship));
 
     /// <summary>The Health setter; a lower value keeps the current health.</summary>
     [HarmonyPatch(typeof(Part), nameof(Part.Health), MethodType.Setter)]
