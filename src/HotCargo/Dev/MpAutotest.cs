@@ -247,9 +247,33 @@ public static class MpAutotest
         };
         Run.Hooks.Tick += LogState;
         App.Director.FrameEnded += (_, _) => WatchLosses();
+        App.Director.FrameEnded += (_, _) => WatchStalls();
         // mpallowloss: the host does not stop the session when a player loses its last ship (WatchLosses). For a session that
         // does not need the ship, such as a performance measure of a heavy fight.
         Autotest.Commands["mpallowloss"] = _ => _allowLoss = true;
+    }
+
+    /// <summary>A frame of at least this many real seconds in a co-op session is a stall (WatchStalls).</summary>
+    const double StallSeconds = 2;
+    static double _lastFrame = -1;
+    static int _lastGen2;
+    static TimeSpan _lastPause;
+
+    /// <summary>
+    /// Every machine of a co-op session logs each frame that took StallSeconds or more of real time. The vanilla connection ends
+    /// after 10 s without messages, so one long stall ends the session for both machines (queue run 45346638923: the client left
+    /// the resync 12.8 s after the host, and both sides dropped the connection). The line gives the gen 2 collections and the GC
+    /// pause in the stall, the memory and the screens. A failed run then shows whether a machine froze, and if the GC froze it.
+    /// </summary>
+    static void WatchStalls()
+    {
+        double now = App.Clock.Time.Seconds;
+        int gen2 = GC.CollectionCount(2);
+        var pause = GC.GetTotalPauseDuration();
+        if (_mpGames > 0 && _lastFrame >= 0 && now - _lastFrame >= StallSeconds)
+            Log.Info($"MP STALL {now - _lastFrame:0.0} s: gen 2 GCs +{gen2 - _lastGen2}, GC pause +{(pause - _lastPause).TotalMilliseconds:0} ms, " +
+                     $"memory {Environment.WorkingSet / (1024 * 1024)} MB, screens {Autotest.StateNames()}");
+        (_lastFrame, _lastGen2, _lastPause) = (now, gen2, pause);
     }
 
     /// <summary>Host: the human ships and their players at the last frame, in _watchedSim.</summary>
