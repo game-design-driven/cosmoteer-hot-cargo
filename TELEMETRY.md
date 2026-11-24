@@ -6,7 +6,7 @@ Spec: `spec/36-telemetry.md` (requirements 530 to 545 and 1580 to 1593). Code: `
 ## Files
 
 - Folder: `<mod folder>/telemetry/` on the PC, for example `%USERPROFILE%\HotCargoSlots\t3\Mods\hot_cargo\telemetry\` for a test slot.
-  `scripts/deploy.sh` keeps this folder.
+  `scripts/deploy.sh` and the player installers keep this folder (spec 1989).
 - One file for each session: `<run id>__<session id>.jsonl`. A session is one game from its start or load until it closes.
 - A run is one career. The run ID is in the career save (path `HotCargoTelemetry`), so a loaded game continues the run ID.
   A co-op client that joins a running game or resyncs gets the run ID with the host's game state. A new co-op game gets its own run ID on each machine;

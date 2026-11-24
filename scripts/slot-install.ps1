@@ -33,11 +33,13 @@ if (Get-SlotProcess) { throw "Cosmoteer is running in slot $slot. Stop it before
 
 New-Item -ItemType Directory -Force $mods | Out-Null
 
-# Mod folder: replace everything but the live tunables, their backups and the telemetry files (TELEMETRY.md).
+# Mod folder. The player's slot (main) follows the player installers (spec 1989): the build is copied over it and nothing is
+# deleted, so telemetry, screenshots and other files of the player stay. A test slot is replaced but for the live tunables,
+# their backups and the telemetry files (TELEMETRY.md), so one test cannot leave files for the next.
 $keep = Join-Path $env:TEMP ("hot_cargo_tunables_keep_" + $slot + ".rules"); if (Test-Path $keep) { Remove-Item $keep -Force }
 if (Test-Path (Join-Path $modDir "tunables.rules")) { Copy-Item (Join-Path $modDir "tunables.rules") $keep -Force }
 # A game that just exited can hold its files for a moment, so the removal tries again for up to 10 s.
-for ($try = 1; Test-Path $modDir; $try++) {
+for ($try = 1; $slot -ne "main" -and (Test-Path $modDir); $try++) {
   try { Get-ChildItem $modDir | Where-Object { $_.Name -notlike "tunables.rules*" -and $_.Name -ne "telemetry" } | Remove-Item -Recurse -Force; break }
   catch { if ($try -ge 10) { throw }; Start-Sleep -Seconds 1 }
 }

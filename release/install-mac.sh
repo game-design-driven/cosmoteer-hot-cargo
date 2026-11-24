@@ -5,7 +5,8 @@
 #   need the same build, so every player installs the same named release.
 # Usage: install-mac.sh            (from an unzipped release)
 #        install-mac.sh <tag>      (from the repo; tags: gh release list, or the GitHub releases page)
-# - Copies the hot_cargo mod folder into the Mods folder of your Steam save folder (your tunables.rules is kept).
+# - Copies the hot_cargo mod files into the Mods folder of your Steam save folder. Your files there stay: tunables.rules,
+#   telemetry, screenshots, logs.
 # - Copies HotCargo.Loader.dll into <game>/Bin/HotCargoLoader.
 # - Adds a .NET startup hook to <game>/Bin/Cosmoteer.runtimeconfig.json (backup: .hot_cargo_orig). The app runs it at start.
 # - Turns the mod on in settings.rules of the save folder (EnabledMods).
@@ -48,14 +49,18 @@ else
   [[ -d "$SRC/hot_cargo" ]] || fail "the zip has no hot_cargo folder: $URL"
 fi
 
-# Mod folder. Keep the player's tunables.
+# Mod folder (spec 1989): copy the release files over it and delete nothing, so the player's files stay: telemetry/ (sessions,
+# notes.jsonl, note screenshots, players/), screenshots/, testships/ and the log. The release's tunables.rules is only a
+# template: it goes in only when the player has none. Same rule as release/install.ps1.
+# Limit: a file that an older release shipped and this one does not stays behind. Nothing loads such a file: mod.rules names
+# every rules file, and the loader loads only csharp/HotCargo.dll. Revisit if a release ever must remove a file.
 MOD="$SAVE/Mods/hot_cargo"
-mkdir -p "$SAVE/Mods"
-KEEP=""
-if [[ -f "$MOD/tunables.rules" ]]; then KEEP="$(mktemp)"; cp "$MOD/tunables.rules" "$KEEP"; fi
-rm -rf "$MOD"
-cp -R "$SRC/hot_cargo" "$MOD"
-if [[ -n "$KEEP" ]]; then mv "$KEEP" "$MOD/tunables.rules"; fi
+mkdir -p "$MOD"
+for f in "$SRC/hot_cargo/"* "$SRC/hot_cargo/".[!.]*; do
+  [[ -e "$f" ]] || continue
+  if [[ "$(basename "$f")" == tunables.rules && -f "$MOD/tunables.rules" ]]; then continue; fi
+  cp -R "$f" "$MOD/"
+done
 
 # Loader and startup hook, as release/install.ps1 does on Windows.
 LOADER="$GAME/Bin/HotCargoLoader"
