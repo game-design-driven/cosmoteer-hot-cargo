@@ -9,6 +9,7 @@ The whole workflow and which parts are generic: `docs/WORKFLOW.md`. Each rule be
 
 ## Watch the agents
 
+- For the whole state (main, the queue, open PRs, releases, installs, the player hold, disk), run `scripts/status.sh` (`hot-cargo-status`).
 - Run `scripts/agent-watch.sh` from the `main` worktree, by hand or from a scheduled check. It prints one line for each agent worktree, and the count of held test slots and the main-slot lock. Its header names the columns.
 - Signs that an agent needs a message:
   - No commit for a long time, with no running tests.
