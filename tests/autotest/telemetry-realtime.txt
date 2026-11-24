@@ -1,0 +1,23 @@
+# Telemetry: real time use (spec 2010 to 2015). Each frame's real time goes to one place: the map, the pause and the build
+# tool here, the fleet activity (idle) otherwise. The headless clock runs fast, so the checks need time in each place, not 2 s. A blueprint apply ("make it so") writes a design.apply event and counts.
+newgame run
+wait 5
+map on
+waitreal 2
+map off
+pause on
+waitreal 2
+pause off
+teleeditor on
+waitreal 2
+teleeditor off
+pt_build cosmoteer.corridor
+wait 3
+teleflush
+expect tele_real_map > 0
+expect tele_real_paused > 0
+expect tele_real_editor > 0
+expect tele_real_idle > 0
+expect tele_design_applies >= 1
+telecount design.apply >= 1
+quit

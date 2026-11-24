@@ -86,6 +86,21 @@ public static class TelemetryArea
         Autotest.Fields["tele_trace_patched"] = () => Stats.TracePatched;
         // Spec 1763: game seconds of each activity in this session (tele_time_fight, tele_time_build, ...).
         foreach (var a in TimeUse.All) Autotest.Fields[$"tele_time_{TimeUse.Name(a)}"] = () => Session.Current?.SessionUse(a) ?? -1;
+        // Spec 2015: real seconds of each place in this session (tele_real_editor, tele_real_map, ...) and the design applies.
+        foreach (var p in RealTimeUse.All) Autotest.Fields[$"tele_real_{RealTimeUse.Name(p)}"] = () => Session.Current?.SessionReal(p) ?? -1;
+        Autotest.Fields["tele_design_applies"] = () => Session.Current?.SessionApplies ?? -1;
+        // teleeditor on|off: selects the player ship and opens or closes the build tool, like the build button. Test only, UI only.
+        Autotest.Commands["teleeditor"] = arg =>
+        {
+            var ship = Tech.TechAutotest.PlayerShip();
+            ship.Sim.PlayerInput.SelectSingleShip(ship);
+            Autotest.RequireRun().Game.Gui.ShipGui.BuildButton.IsSelected = arg switch
+            {
+                "on" => true,
+                "off" => false,
+                _ => throw new InvalidOperationException($"teleeditor needs on or off, not '{arg}'"),
+            };
+        };
         // Spec 1593: the co-op relay. Client: bytes that the host has not confirmed. Host: bytes received, good and bad client copies.
         Autotest.Fields["tele_relay_pending"] = () => Session.Current is { } rs ? Relay.Pending(rs, closedOnly: false) : -1;
         Autotest.Fields["tele_relay_pending_closed"] = () => Session.Current is { } rs ? Relay.Pending(rs, closedOnly: true) : -1;

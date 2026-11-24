@@ -100,6 +100,14 @@ sealed class Session
     readonly TimeUse _stayUse = new(), _sessionUse = new();
     readonly Lock _useGate = new();
     double _lastUseSample;
+    /// <summary>Spec 2010: the activity of the newest sample; the real time of a frame in play goes to it.</summary>
+    Activity _lastActivity = Activity.Idle;
+    /// <summary>Spec 2010, 2013: real seconds by place and the design work, of the stay and of the session. Under _useGate.</summary>
+    readonly RealTimeUse _stayReal = new(), _sessionReal = new();
+    readonly DesignCount _stayDesign = new(), _sessionDesign = new();
+    /// <summary>Spec 2014: per ship, the real time of the first edit since its last apply and the edits since then.</summary>
+    readonly Dictionary<ObjectID, DesignIteration> _designIteration = [];
+    readonly record struct DesignIteration(double FirstEditReal, int Edits, int Parts);
     readonly Lock _fightGate = new();
     string _lossTimer = "";
 
@@ -203,9 +211,11 @@ sealed class Session
             Tele.Num(w, "writer_ms", Stats.Ms(Interlocked.Read(ref Stats.WriterTicks)));
             w.WriteNumber("frames", Perf.SessionFrames);
             Tele.Num(w, "frame_ms", Perf.SessionFrameMs);
-            Tele.Num(w, "paused_s", Perf.SessionPausedMs / 1000);
-            Tele.Num(w, "build_s", Perf.SessionBuildMs / 1000);
-            Tele.Num(w, "play_s", Perf.SessionPlayMs / 1000);
+            lock (s._useGate)
+            {
+                s._sessionReal.Write(w);
+                s._sessionDesign.Write(w);
+            }
             w.WriteNumber("ticks", Perf.SessionTicks);
             Tele.Num(w, "tick_ms", Perf.SessionTickMs);
             Tele.Num(w, "overhead_pct_wall", Stats.Ms(Interlocked.Read(ref Stats.OverheadTicks)) * 100 / (s.RealSeconds * 1000));
@@ -563,14 +573,69 @@ sealed class Session
     {
         double dt = _simSeconds - _lastUseSample;
         _lastUseSample = _simSeconds;
-        lock (_useGate) { _stayUse.Add(signals, dt); _sessionUse.Add(signals, dt); }
+        lock (_useGate) { _stayUse.Add(signals, dt); _sessionUse.Add(signals, dt); _lastActivity = TimeUse.Pick(signals); }
+    }
+
+    /// <summary>Spec 2010: a frame of real time, at the place that this machine's screen shows. Main thread (Perf).</summary>
+    internal RealUse AddReal(ScreenState screen, double seconds)
+    {
+        lock (_useGate)
+        {
+            var place = RealTimeUse.Pick(screen, _lastActivity);
+            _stayReal.Add(place, seconds);
+            _sessionReal.Add(place, seconds);
+            return place;
+        }
+    }
+
+    internal double SessionReal(RealUse place) { lock (_useGate) return _sessionReal[place]; }
+    internal int SessionApplies { get { lock (_useGate) return _sessionDesign.Applies; } }
+
+    /// <summary>
+    /// Spec 2013, 2014: a ship update input of any player ran in the sim. Edits and live edits only count; an apply also writes a
+    /// "design.apply" event with the size of the change and the edits since the last apply of that ship.
+    /// </summary>
+    internal void OnDesign(DesignChange change, Ship ship, int playerIndex, int added, int removed)
+    {
+        double now = RealSeconds;
+        DesignIteration iteration;
+        lock (_useGate)
+        {
+            _stayDesign.Add(change, added + removed);
+            _sessionDesign.Add(change, added + removed);
+            if (change == DesignChange.Live) return;
+            if (change == DesignChange.Edit)
+            {
+                var it = _designIteration.GetValueOrDefault(ship.UniqueID, new DesignIteration(now, 0, 0));
+                _designIteration[ship.UniqueID] = it with { Edits = it.Edits + 1, Parts = it.Parts + added + removed };
+                return;
+            }
+            // An apply without edits since the last one (a rebuild, a resume): its iteration time is 0.
+            if (!_designIteration.Remove(ship.UniqueID, out iteration)) iteration = new DesignIteration(now, 0, 0);
+        }
+        Tele.Emit(Cat.Run, "design.apply", w =>
+        {
+            w.WriteString("ship", ship.UniqueID.ToString());
+            w.WriteString("name", ship.Metadata.PlainShipName);
+            w.WriteNumber("player", playerIndex);
+            w.WriteNumber("parts_added", added);
+            w.WriteNumber("parts_removed", removed);
+            w.WriteNumber("edits", iteration.Edits);
+            w.WriteNumber("blueprint_parts", iteration.Parts);
+            Tele.Num(w, "iteration_real_s", now - iteration.FirstEditReal);
+        });
     }
 
     internal double SessionUse(Activity a) { lock (_useGate) return _sessionUse[a]; }
 
     void WriteUse(Utf8JsonWriter w, string prefix = "")
     {
-        lock (_useGate) _stayUse.Write(w, prefix);
+        lock (_useGate)
+        {
+            _stayUse.Write(w, prefix);
+            _stayReal.Write(w, prefix);
+            _stayDesign.Write(w, prefix);
+        }
     }
 
     void CloseFight()
@@ -642,6 +707,7 @@ sealed class Session
             w.WriteString("kind", _jumpKind);
             Tele.Num(w, "heat_kept", _jumpHeatKept);
             Tele.Num(w, "stay_s", _simSeconds - _enteredSim);
+            Tele.Num(w, "stay_real_s", RealSeconds - _enteredReal);
             WriteUse(w);
             w.WriteNumber("open_contracts", ContractBook.Open(Run).Count());
             TelemetryModel.WriteJumpShips(w, "jumped", jumped.Select(sh => FleetTelemetry.JumpShipOf(sh, path)));
@@ -679,7 +745,7 @@ sealed class Session
         s._snapAfterEntry = true;
         s._enteredSim = s._simSeconds;
         s._enteredReal = s.RealSeconds;
-        lock (s._useGate) s._stayUse.Reset();
+        lock (s._useGate) { s._stayUse.Reset(); s._stayReal.Reset(); s._stayDesign.Reset(); }
         s._missionsDoneInSystem = s._missionsAcceptedInSystem = 0;
         s._offersSeen.Clear();
         s._nextScan = s._simSeconds + 2;
@@ -1072,6 +1138,7 @@ sealed class Session
             var s = Run.State;
             w.WriteString("why", why);
             Tele.Num(w, "stay_s", _simSeconds - _enteredSim);
+            Tele.Num(w, "stay_real_s", RealSeconds - _enteredReal);
             WriteUse(w);
             w.WriteString("result", s.Result.ToString());
             w.WriteNumber("stages", s.StagesStarted);
