@@ -93,7 +93,10 @@ public static class ThievesArea
                 x += 120f;
             }
         };
-        // th_encounter: the thief-only encounter now (no roll, no pacer check). th_near <distance>: the thieves move this far from the first player ship.
+        // th_encounter: the thief-only encounter now (no roll, no pacer check). th_near <distance>: the thieves move this far from the first
+        // player ship, and their patrol origin moves with them, as if they arrived there. The vanilla AI acquires no target while the ship
+        // is more than TargetAcquireRangeFromOrigin (6,000) from its origin. The encounter places the origin from the lowest-ID player ship,
+        // which can be the client's, so without the move a thief next to the host could stay out of reach of every target there.
         Autotest.Commands["th_encounter"] = _ => Thieves.Arrive(R(), Sim(), R().T.Thieves);
         Autotest.Commands["th_near"] = arg =>
         {
@@ -101,6 +104,8 @@ public static class ThievesArea
             foreach (var s in Live())
             {
                 Autotest.Teleport(s, Autotest.ClearSpotNear(Sim(), Me().DetWorldCenter, Me().WorldBoundingRadius + offset + s.WorldBoundingRadius, s.WorldBoundingRadius));
+                var parameters = s.AI?.Parameters ?? throw new InvalidOperationException($"thief {s.Metadata.PlainShipName} has no AI parameters");
+                parameters.PatrolOrigin = s.DetWorldCenter;
                 offset += 150f;
             }
         };
