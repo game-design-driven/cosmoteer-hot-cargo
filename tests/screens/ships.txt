@@ -1,0 +1,53 @@
+# Ship quality (Core/ShipCheck.cs): the Ore Tender, the thieves of tiers 1 and 4 and the scavenger up close with their roofs off,
+# so rooms and doors show. Windowed test slot or RUNNER=mac (needs graphics): see the hot-cargo-screenshots skill.
+render on
+newgame run 0
+wait 10
+reveal on
+closepanel
+wait 1
+ev_set Enabled false
+scav_set FactionEnabled false
+th_set JoinChance 0
+godmode
+mech_generate miningescort
+mech_accept miningescort
+mech_mine_goto
+pause off
+waitfor mech_mine_hailed == 1 60
+wait 2
+pause on
+wait 1
+auto_ship Ore Tender
+auto_interior on
+auto_frame 30
+wait 1
+auto_frame 30
+wait 1
+screenshot ships-ore-tender
+openspace 6000 3000
+th_lineup 1 4
+wait 1
+auto_ship Thief 1
+auto_interior on
+auto_frame 40
+wait 1
+auto_frame 40
+wait 1
+screenshot ships-thief-tier1
+auto_ship Thief 2
+auto_interior on
+auto_frame 50
+wait 1
+auto_frame 50
+wait 1
+screenshot ships-thief-tier4
+scav_new player
+auto_ship Scavenger 1
+auto_interior on
+auto_frame 30
+wait 1
+auto_frame 30
+wait 1
+screenshot ships-scavenger
+quit

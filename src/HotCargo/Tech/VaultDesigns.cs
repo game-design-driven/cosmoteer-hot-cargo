@@ -93,7 +93,7 @@ static class VaultDesigns
     static int _fitCapacity;
 
     /// <summary>The vanilla Data folder file of career starter N.</summary>
-    static string VanillaStarter(int index) =>
+    internal static string VanillaStarter(int index) =>
         (string)(GameApp.Rules.BuiltInShipsFolder / "Starter" / Path.GetFileName((string)GameApp.Rules.CareerMode.StarterShips[index].Ship.FilePath));
 
     /// <summary>Spec 1470 to 1476: the Fit Tech Vaults flow. These commands work on the main menu, before a career starts.</summary>
