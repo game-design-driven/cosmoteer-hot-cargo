@@ -45,7 +45,7 @@ internal sealed class EventsMultiDomain : MultiChoice.IMultiChoiceDomain
     public IReadOnlyList<MultiChoice.MultiOption>? Options(Run run, int serial)
     {
         if (run.State.Result != RunResult.Running || run.State.Events.Pending is not { } p || p.Serial != serial) return null;
-        return [.. EventLibrary.Get(p.EventId).Options.Select((o, i) => new MultiChoice.MultiOption(i, o.MinSteps, o.MaxSteps, 1))];
+        return [.. EventRunner.OptionsOf(run, EventLibrary.Get(p.EventId), p.Serial).Select((o, i) => new MultiChoice.MultiOption(i, o.MinSteps, o.MaxSteps, 1))];
     }
 }
 

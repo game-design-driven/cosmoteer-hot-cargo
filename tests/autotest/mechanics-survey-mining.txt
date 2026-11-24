@@ -21,20 +21,36 @@ wait 20
 mech_survey_next
 wait 20
 expect mech_goal_survey == 1
-# Sun mining: ore deposits sit on the seam asteroids; a sale to the station counts; the time limit fails it.
+# Sun mining: ore deposits sit on the seam asteroids. Spec 1880: the ore goes over on the shared delivery page at the station, in trips
+# (a small hold carries less than 30): 20, then 10. The job completes at the rules' minimum of 30 of 45, and the pay follows the total.
 mech_generate sunmining
 mech_accept sunmining
 mech_sun_goto
 wait 5
 expect mech_sun_ore_units >= 30
-expect mech_deliver_target >= 30
+expect mech_deliver_min == 30
+expect mech_deliver_max == 45
 mech_deliver_goto
 wait 3
-mech_deliver 20
-expect mech_deliver_count == 20
+expect ev_goods_held == 0
+ev_res_add yarden_zamir.helion_ore 20
+wait 1
+expect ev_goods_held == 1
+ev_mark
+ev_goods_open
+expectevent deliver_goods
+pick 1 20
+choose 1
+wait 1
 expect mech_goal_sunmining == 0
-mech_deliver 30
+expect ev_res_yarden_zamir.helion_ore_gain == -20
+ev_res_add yarden_zamir.helion_ore 10
+ev_goods_open
+pick 1 10
+choose 1
+wait 1
 expect mech_goal_sunmining == 1
+expect ev_goods_reward > 0
 mech_generate sunmining
 mech_accept sunmining
 mech_expire sunmining

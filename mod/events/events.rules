@@ -1320,6 +1320,34 @@ Events
 		]
 	}
 
+	// Goods delivery (spec 1880): every delivery of a common resource (every DeliverResources objective, vanilla and Hot Cargo) ends on
+	// this page at its contact. The option takes the hand-over's resource in its amount range; the pay follows the amount.
+	{
+		ID = deliver_goods
+		Trigger = Hail
+		HailTarget = Contact
+		HailLine = "Hand over the delivery."
+		MaxPerRun = 0
+		Title = "Delivery"
+		Text = "The dock master checks the manifest. \"Unload what you brought. We pay for what we get.\""
+		Options
+		[
+			{ Text = "Unload"; Pay = Resource; Resource = "@handover"; Sure = true }
+		]
+		Choices
+		[
+			{
+				Text = "Hand it over."
+				NeedPoints = 1
+				Outcomes [ { Text = "The cargo goes over. Once the delivery is complete, the pay waits at the station."; HandOver = true } ]
+			}
+			{
+				Text = "Not yet."
+				Outcomes [ { Text = "\"We'll be here.\"" } ]
+			}
+		]
+	}
+
 	// Prototype Retrieval hand-over (spec 1108): the broker at the station takes the core. Haggling risks a tip-off.
 	{
 		ID = prototype_broker

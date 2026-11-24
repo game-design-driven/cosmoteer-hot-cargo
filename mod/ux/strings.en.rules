@@ -127,8 +127,6 @@ HotCargoUx
 	TechSaleFmt = "<fame_color>Sell {0} tech:</fame_color> heat <bad>+{1:0.0}</bad> → <good>+{2:0.0}</good>/min, score <bad>{3}</bad> <gray>(today's price)</gray>"
 	TechSaleBuyer = "The Buyer: sell tech here to win."
 	TradePricesFmt = "<gray>{0} ({1}): buy x{2:0.00}, sell x{3:0.00}</gray>"
-	DeliveryAcceptedFmt = "<fame_color>Delivery</fame_color> {0}: {1} / {2}, pays <money>{3}</money>. Sales here count."
-	DeliveryOfferedFmt = "<gray>Offered delivery</gray> {0}: {1} / {2}, pays <money>{3}</money>"
 
 	// Wanted
 	WantedSeenFmt = "{0}   <bad>seen, timer paused</bad>"

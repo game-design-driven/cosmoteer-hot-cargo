@@ -282,14 +282,13 @@ public static class MechanicsArea
 
         // Sun mining (spec 138): helion ore deposits on live asteroids, and their distance to the nearest sun.
         Autotest.Commands["mech_sun_goto"] = _ => MissionArea.TeleportPlayers(SunOreShips().FirstOrDefault()?.DetWorldCenter ?? SunOreStasis().First());
-        Autotest.Commands["mech_deliver_goto"] = _ => MissionArea.TeleportPlayers(Deliver().ToShip.DetLocation() ?? throw new InvalidOperationException("delivery station is not in this system"));
-        Autotest.Commands["mech_deliver"] = arg => TestDeliver(int.Parse(arg, CultureInfo.InvariantCulture));
+        Autotest.Commands["mech_deliver_goto"] = _ => MissionArea.TeleportPlayers(Deliver().Contact.DetLocation() ?? throw new InvalidOperationException("delivery station is not in this system"));
         Autotest.Fields["mech_sun_ore_asteroids"] = () => SunOreShips().Count() + SunOreStasis().Count();
         Autotest.Fields["mech_sun_ore_units"] = () => SunOreShips().Sum(s => s.Parts.Where(p => p.Rules.Resources.Any(r => r.Type == OreId)).Sum(p => p.Rules.Resources.First(r => r.Type == OreId).Quantity));
         Autotest.Fields["mech_sun_ore_maxdist"] = () => SunOreShips().Select(s => s.DetWorldCenter).Concat(SunOreStasis()).Max(SunDistance);
         Autotest.Fields["mech_sun_ore_mindist"] = () => SunOreShips().Select(s => s.DetWorldCenter).Concat(SunOreStasis()).Min(SunDistance);
-        Autotest.Fields["mech_deliver_count"] = () => Deliver().Count;
-        Autotest.Fields["mech_deliver_target"] = () => Deliver().TargetCount;
+        Autotest.Fields["mech_deliver_min"] = () => Deliver().MinAmount;
+        Autotest.Fields["mech_deliver_max"] = () => Deliver().MaxAmount;
     }
 
     /// <summary>
@@ -378,7 +377,7 @@ public static class MechanicsArea
     {
         var all = new List<Objective>();
         foreach (var o in m.Objectives) o.GetObjectives(all);
-        return all.FirstOrDefault(o => o is HoldOutObjective or PrototypeObjective or TowObjective or CaptureObjective or SurveyObjective or DeliverResourcesObjective or MiningEscortObjective)
+        return all.FirstOrDefault(o => o is HoldOutObjective or PrototypeObjective or TowObjective or CaptureObjective or SurveyObjective or Events.HandOverObjective { Goods: true } or MiningEscortObjective)
             ?? throw new InvalidOperationException($"{m.MetatypeID} has no mechanics objective");
     }
 
@@ -405,7 +404,8 @@ public static class MechanicsArea
     static int _markedOre;
     static CaptureObjective Capture() => Require<CaptureObjective>();
     static SurveyObjective Survey() => Require<SurveyObjective>();
-    static DeliverResourcesObjective Deliver() => Require<DeliverResourcesObjective>();
+    /// <summary>Spec 1880: the sun mining delivery, a goods hand-over.</summary>
+    static Events.HandOverObjective Deliver() => Require<Events.HandOverObjective>() is { Goods: true } h ? h : throw new InvalidOperationException("the latest hand-over is no goods delivery");
 
     /// <summary>
     /// Runs one mechanics group with SpawnChance 1. Arg: kind name, then "nonebula" to lift the in-nebula rules of the group for this one run
@@ -482,18 +482,6 @@ public static class MechanicsArea
         Wreck(ship);
         ship.Metadata.PlayerIndex = RequireRun().Game.HumanPlayersIndexes[0];
         Autotest.Wait(2);
-    }
-
-    /// <summary>Raises the trade delivery event of a sale of helion ore to the delivery station, as the crew do at the end of a sale.</summary>
-    static void TestDeliver(int amount)
-    {
-        var o = Deliver();
-        var sim = RequireSim();
-        Ship station = o.ToShip.TargetShip ?? throw new InvalidOperationException("delivery station is not live");
-        Ship player = SimQueries.FirstHumanShip(sim) ?? throw new InvalidOperationException("no player ship");
-        var crew = player.Crew.Assigned.FirstOrDefault() ?? throw new InvalidOperationException("player ship has no crew");
-        RequireRun().Game.EventHub.OnResourceTradeDelivery(TradeType.Sell, OreId, amount, crew, player, station);
-        Autotest.Wait(1);
     }
 
     static IEnumerable<Ship> SunOreShips()

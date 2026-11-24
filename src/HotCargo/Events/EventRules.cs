@@ -278,6 +278,20 @@ public sealed class OptionRules
 
     public int MinSteps => (int)MathF.Round(MinUnits / StepUnits);
     public int MaxSteps => (int)MathF.Round(MaxUnits / StepUnits);
+
+    /// <summary>Spec 1880: Resource = "@handover" pays with the resource of the page's goods hand-over, in its amount range.</summary>
+    public const string HandOverResource = "@handover";
+
+    /// <summary>A copy that pays with this resource, from min to max units (one unit per step).</summary>
+    internal OptionRules ForHandOver(string resource, float min, float max)
+    {
+        var copy = (OptionRules)MemberwiseClone();
+        copy.Resource = resource;
+        copy.MinUnits = min;
+        copy.MaxUnits = max;
+        copy.StepUnits = 1f;
+        return copy;
+    }
 }
 
 [ReflectiveSerialization(Explicit = true)]
@@ -417,7 +431,11 @@ public static class EventLibrary
                 throw new InvalidDataException($"{oat}: needs 0 < MinUnits <= MaxUnits and StepUnits above 0, at most {MultiChoiceSpan - 1} steps");
             if (opt.Unit <= 0 || opt.Points < 0 || opt.RiskChance < 0) throw new InvalidDataException($"{oat}: Unit must be above 0, Points and RiskChance not negative");
             if ((opt.Pay == PayKind.Resource) != (opt.Resource.Length > 0)) throw new InvalidDataException($"{oat}: Resource is set exactly when Pay = Resource");
-            if (opt.Pay == PayKind.Resource) ValidateResource(opt.Resource, oat);
+            if (opt.Resource == OptionRules.HandOverResource)
+            {
+                if (e.HailTarget != HailTarget.Contact || opt.Pay != PayKind.Resource) throw new InvalidDataException($"{oat}: Resource = {OptionRules.HandOverResource} needs Pay = Resource on a Contact page");
+            }
+            else if (opt.Pay == PayKind.Resource) ValidateResource(opt.Resource, oat);
             if (opt.Pay == PayKind.None && opt.MaxSteps > opt.MinSteps && opt.ValueText.Length == 0) throw new InvalidDataException($"{oat}: a slider without Pay needs a ValueText");
             if (opt.RiskChance > 0 != opt.Risk is not null) throw new InvalidDataException($"{oat}: RiskChance and Risk go together");
             ValidateNeed(opt.Need, oat);
