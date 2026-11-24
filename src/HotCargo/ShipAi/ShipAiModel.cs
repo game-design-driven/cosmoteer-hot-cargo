@@ -605,12 +605,13 @@ public static class ShipAiModel
             new([new Term(Cond.FleetBeyond, 300, Not: true)], Act.Unload, 0),
             new(Cond.StationInRange, 0, Act.Buy, 0),
         ],
+        // Spec 1079: like the Looter, it waits with the fleet until every other ship is repaired, so the crews keep the materials.
         Preset.Salvager =>
         [
-            new(Cond.CargoAbove, 95, Act.GoToStation, (int)StationPick.Nearest),
+            new([new Term(Cond.FleetHealthAbove, RepairedPercent), new Term(Cond.CargoAbove, 95)], Act.GoToStation, (int)StationPick.Nearest),
             new([new Term(Cond.StationInRange, 0), new Term(Cond.CargoToSell, 0)], Act.Sell, 0),
-            new(Cond.LootWithin, 3000, Act.CollectLoot, 0),
-            new(Cond.WreckWithin, 3000, Act.Salvage, 0),
+            new([new Term(Cond.FleetHealthAbove, RepairedPercent), new Term(Cond.LootWithin, 3000)], Act.CollectLoot, 0),
+            new([new Term(Cond.FleetHealthAbove, RepairedPercent), new Term(Cond.WreckWithin, 3000)], Act.Salvage, 0),
             new(Cond.Always, 0, Act.ReturnToFleet, 0),
         ],
         Preset.EscortDrone =>

@@ -174,6 +174,17 @@ public class AutonomyModelTests
         Assert.Equal(Enum.Parse<Act>(act), rows[d.MoveRow].Act);
     }
 
+    [Theory]
+    [InlineData(0.5f, "ReturnToFleet", 4)]  // a ship needs repair: no cutting, wait with the fleet
+    [InlineData(0.95f, "Salvage", 3)]       // repaired: cut the wreck
+    public void Salvager_cuts_wrecks_only_after_the_repair(float others, string act, int row)
+    {
+        var rows = ShipAiModel.PresetRows(Preset.Salvager);
+        var d = ShipAiModel.Evaluate(rows, Calm with { OthersHealth = others, Cargo = 0.3f, NearestWreck = 1000f }, _ => true);
+        Assert.Equal(row, d.MoveRow);
+        Assert.Equal(Enum.Parse<Act>(act), rows[d.MoveRow].Act);
+    }
+
     [Fact]
     public void Path_is_clear_only_when_the_whole_line_and_both_ends_keep_the_clearance()
     {
