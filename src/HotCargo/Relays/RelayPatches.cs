@@ -92,8 +92,7 @@ static class MapPatches
         var kind = Shown(run, node);
         if (kind == LockKind.None) return "";
         int credits = kind == LockKind.Fee ? RelaysArea.FeeCredits(run) : RelaysArea.BribePrice(run);
-        return "\n" + RelaysArea.Format("Tip" + kind + "Fmt", RelaysArea.Cost(run, credits), (int)(run.T.Relays.ClosedSeconds / 60f),
-            (int)(run.T.Relays.GiveUpSeconds / 60f));
+        return "\n" + RelaysArea.Format("Tip" + kind + "Fmt", RelaysArea.Cost(run, credits), (int)(run.T.Relays.ClosedSeconds / 60f));
     }
 
     [HarmonyPatch(typeof(CareerGameModeManager), nameof(CareerGameModeManager.GetMapNodeToolTip))]

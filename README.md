@@ -232,7 +232,7 @@ Spec: [Factions, jumps and station prices](spec/38-factions-jumps-and-station-pr
 <details>
 <summary><b>Relay lockdowns</b>: a closed relay, a toll, or pirates at the gate</summary>
 
-Now and then a system next to you locks its relays. The galaxy map shows it before you jump: closed, a toll, or pirates who want a bribe. Pay, fight, or wait: every lockdown ends after a while.
+Now and then a system next to you locks its relays. The galaxy map shows it before you jump: closed, a toll, or pirates who want a bribe. Pay or fight your way out; a closed relay opens after a while.
 
 <img src="docs/screenshots/relays-bribe.jpg" width="70%" alt="Pirates hold a relay and ask for a bribe">
 

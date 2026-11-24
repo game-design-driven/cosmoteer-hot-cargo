@@ -62,7 +62,7 @@ waitfor rl_guards >= 2 10
 rl_killguards
 waitfor rl_blocks == 0 10
 
-# A bribe at the min share always fails: no second offer. The pirates give up after GiveUpSeconds (spec 950, 959).
+# A bribe at the min share always fails: no second offer, and the relays stay blocked (spec 959).
 newgame
 wait 8
 ev_set Enabled false
@@ -83,6 +83,6 @@ rl_bribe
 wait 3
 expect rl_bribefailed == 1
 expect rl_blocks == 1
-rl_set GiveUpSeconds 1
-waitfor rl_blocks == 0 10
+wait 5
+expect rl_blocks == 1
 quit

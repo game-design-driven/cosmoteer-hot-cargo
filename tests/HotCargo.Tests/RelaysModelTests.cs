@@ -38,7 +38,8 @@ public class RelaysModelTests
     [Fact]
     public void Closed_relay_opens_after_its_time_and_zero_means_never()
     {
-        Assert.False(RelaysModel.TimeOpens(100, 420f));
-        Assert.True(RelaysModel.TimeOpens(420, 420f));
+        Assert.False(RelaysModel.ClosedOpens(100, 420f));
+        Assert.True(RelaysModel.ClosedOpens(420, 420f));
+        Assert.False(RelaysModel.ClosedOpens(1e9, 0f));
     }
 }

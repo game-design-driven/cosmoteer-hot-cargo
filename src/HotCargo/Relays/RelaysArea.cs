@@ -22,7 +22,7 @@ namespace HotCargo.Relays;
 /// Entry point of the Relays area (spec 950 to 969): rare relay lockdowns. A lockdown is marked on a system next to the players'
 /// system, so the galaxy map shows it before they jump in. In that system the relays refuse relay jumps until the lockdown opens:
 /// the faction closes them for a time, the faction charges a fee (pay at its station), or pirates hold them (bribe or fight).
-/// Every lockdown opens after its time, so none traps the fleet. Every rule reads sim state only and changes it only in the sim tick and in MP inputs.
+/// A fleet that cannot pay or win stays. Every rule reads sim state only and changes it only in the sim tick and in MP inputs.
 /// </summary>
 public static class RelaysArea
 {
@@ -151,20 +151,13 @@ public static class RelaysArea
         Run.OnNextFrame(() => UxKit.Guard("relay mark line", () => UxKit.ChatLine(run.Game, line)));
     }
 
-    /// <summary>
-    /// Spec 950, 955, 957: a closed relay opens after ClosedSeconds, a toll or pirates give up after GiveUpSeconds;
-    /// pirates spawn once and the relays open when every guard is gone.
-    /// </summary>
+    /// <summary>Spec 955, 957: a closed relay opens after its time; pirates spawn once and the relays open when every guard is gone.</summary>
     static void Update(Run run, SimRoot sim, Lockdown a)
     {
-        double visit = run.State.GameSeconds - a.Since;
         switch (a.Kind)
         {
-            case LockKind.Closed when RelaysModel.TimeOpens(visit, run.T.Relays.ClosedSeconds):
+            case LockKind.Closed when RelaysModel.ClosedOpens(run.State.GameSeconds - a.Since, run.T.Relays.ClosedSeconds):
                 Open(run, a, Text("ClosedOpens"));
-                break;
-            case LockKind.Fee or LockKind.Pirates when RelaysModel.TimeOpens(visit, run.T.Relays.GiveUpSeconds):
-                Open(run, a, Text("GiveUp" + a.Kind));
                 break;
             case LockKind.Pirates when !a.GuardsSpawned:
                 SpawnGuards(run, sim, a);
