@@ -6,6 +6,15 @@ HotCargoMissions
 	EscortCoverTip = "Flying in a registered convoy hides your trail. Heat changes when you collect the reward."
 	FleetAssault = "Joint Strike"
 	FleetAssaultDesc = "Join the navy strike group and destroy the raider stronghold."
+	// Spec 1890 to 1897.
+	Lead = "Blind Courier"
+	LeadDesc = "Raiders burned out the navigation core of the courier {escort_ship}. It can only follow a transponder now.\nLead it to the jump point. It cannot take a hit, so lead it around trouble. {route_hint}"
+	// Spec 1890: the mood line by the main danger of the direct route (Missions/LeadRoute.cs, RouteDanger). No counts, no names.
+	LeadRouteQuiet = "The direct route looks quiet, but raiders watch the lanes."
+	LeadRouteRaiders = "Traffic control flags raider activity along the direct route."
+	LeadRouteBase = "Traffic control warns of a hostile base near the direct route."
+	LeadRouteRoughSpace = "The direct route crosses rough space."
+	CourierName = "Courier"
 	ShadyBounty = "Discreet Bounty"
 	ShadyBountyDesc = "Destroy the <b>{target_ship}</b>. No faction, no questions.\nIt can be a corporate trap."
 }
@@ -25,6 +34,9 @@ HotCargoObjectives
 	EscortAloneMarker = "Escort alone"
 	EscortRaidFmt = "{0}: raiders on our scope! Where are you?"
 	EscortLostFmt = "Contact lost with {0}. Raiders took it while it waited alone."
+	LeadFmt = "Lead {0} to the jump point. It follows your nearest ship"
+	LeadDepartsFmt = "{0} locks onto your transponder. Lead the way. {1}"
+	LeadAmbushFmt = "{0}: contacts ahead! Raiders on the lane."
 	SurviveAmbush = "Survive the ambush"
 	TrapSprung = "It was a setup. Corporate hunters drop out of the dark!"
 }

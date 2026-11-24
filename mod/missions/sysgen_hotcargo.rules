@@ -5,9 +5,98 @@ Type = None
 SubSpawners
 [
 	&~/Escort
+	&~/BlindCourier
 	&~/FleetAssault
 	&~/ShadyBounty
 ]
+
+// Spec 1890 to 1897. The Blind Courier: a small unarmed courier with a dead navigation core waits next to a trade station. After the
+// players answer its hail, it follows their nearest ship. The players lead it to a jump point on the convoy route rules (spec 36).
+// The objective (Missions/LeadObjective.cs) spawns the courier (Missions/CourierShip.cs), moves the jump point onto the route,
+// sends the ambushes, and runs the escort guard rule (spec 1881 to 1885).
+BlindCourier
+{
+	Type = None
+	// hc_own_stream (spec 1897): its rolls come from its own random stream, so adding it moved no roll of any other system object.
+	Tags = [hc_group_lead, hc_own_stream]
+	// BALANCE.md, finding 10: no Hot Cargo type in more than half of the systems.
+	SpawnChance = 50%
+	RootLocation = Tag
+	RootLocationTag = trade_station
+
+	SubSpawners
+	[
+		// The jump point. Its direction from the station is the first route that the objective tries. The objective reveals it on acceptance.
+		{
+			Type = Doodads
+			DoodadType = cosmoteer.poi_target_area
+			ScaleFactor = 500
+			Tags = [hc_lead_dest]
+			Distance = [4500, 6500]
+			MinDistanceFromTags = [[sun, "max((&<../contracts/system_scale.rules>/Scale) * 6000, (&<../contracts/system_scale.rules>/SunClearance))"], [station, "(&<../contracts/system_scale.rules>/Scale) * 3000"], [bounty, "(&<../contracts/system_scale.rules>/Scale) * 2000"]]
+			MinDistanceFromNebulas = [[ion_storm, 1000]]
+			Undiscovered = true
+			HideIfUnexplored = true
+			ShowOnlyInFog = true
+			SuppressLocationAssertions = true
+		}
+		{
+			Type = Mission
+			Metatype = HotCargoLead
+			SpawnAt = Tag
+			SpawnAtTag = { Mode=Nearest; Tag=trade_station; }
+			Faction = OwnerOfTag
+			FactionTag = { Mode=Nearest; Tag=trade_station; }
+			Objectives
+			[
+				{
+					Type = Sequential
+					SubObjectives
+					[
+						{
+							Type = HotCargoLead
+							DestinationTag = { Mode=Latest; Tag=hc_lead_dest; }
+							StationTag = { Mode=Nearest; Tag=trade_station; }
+							// Spec 1886: a weak ship that follows the players the whole way, so a short 3 minutes alone.
+							LostSeconds = 180
+							// The route keeps the route sun clearance of the smaller systems (spec 36, spec 105).
+							SunClearance = "(&<../contracts/system_scale.rules>/RouteSunClearance)"
+						}
+						{
+							Type = ReceiveRewards
+						}
+					]
+				}
+			]
+			// Like Convoy Duty (BALANCE.md, finding 10): 2x money, fame and reputation. The ambush raiders also pay kill fame.
+			Rewards
+			[
+				{
+					Type = Money
+					MoneyPerHighTier = &/TIER_TABLES/StandardMoneyPerTier
+					MoneyPerTierMultiplier = 2
+					RoundToMultiple = 500
+				}
+				{
+					Type = Fame
+					FamePerHighTier = &/TIER_TABLES/StandardFamePerTier
+					MaxFamePerHighTier = &/TIER_TABLES/StandardMaxFamePerTier
+					FamePerTierMultiplier = 2
+				}
+				{
+					Type = Reputation
+					ReputationPerHighTier = &/TIER_TABLES/StandardReputationPerTier
+					ReputationPerTierMultiplier = 2
+				}
+				// Spec 100: a legal courier job, quiet like a convoy. It leaves only half a trail.
+				{
+					Type = HotCargoContract
+					TrailWeight = 0.5
+				}
+			]
+		}
+	]
+}
 
 // Spec 36. A civilian freighter waits next to a station. After the players accept, it flies to a jump point in open space.
 // The escort objective moves the jump point to MissionTunables.EscortRouteShare of the gate ring and spawns the raiders

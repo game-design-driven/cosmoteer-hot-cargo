@@ -220,6 +220,20 @@ on 1 waitfor hc_guard_alone == 1 15
 mp hc_guard_expose 59
 waitfor hc_guard_raiders >= 2 30
 on 1 waitfor hc_guard_raiders >= 2 30
+# Spec 1890 to 1892: the Blind Courier answers the client and follows the players on both machines.
+mp hc_guard_clear_raiders
+mp hc_generate lead
+mp hc_accept lead
+mp hc_guard_goto
+pause off
+waitfor hc_lead_hailed == 1 60
+as 1 hc_lead_ready
+waitfor hc_lead_waiting == 0 15
+on 1 waitfor hc_lead_waiting == 0 15
+mp hc_lead_lead 700
+pause off
+waitfor hc_lead_gap < 450 45
+on 1 waitfor hc_lead_gap < 450 45
 wait 5
 mp shieldplayers off
 

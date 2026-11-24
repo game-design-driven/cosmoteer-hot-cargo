@@ -41,6 +41,9 @@
 | `EscortRouteShare`, `EscortAmbushAt`, `EscortAmbushLead`, `EscortRaiderFocus` | 0.65, 0.3, 1800, 20 | 36 |
 | `EscortGuardRadius`, `EscortRaidSeconds`, `EscortLostSeconds`, `EscortLostWarnSeconds` | 1500, 60, 240, 60 | 1881 to 1883, 1886 |
 | `EscortRaidShips`, `EscortRaidMaxLive`, `EscortRaidTierOffset`, `EscortRaidShipTags`, `EscortRaidDistanceMin`, `EscortRaidDistanceMax` | 2, 4, −1, [combat], 900, 1300 | 1882 |
+| `LeadSpawnDistanceMin`, `LeadSpawnDistanceMax`, `LeadFollowGap`, `LeadFollowSlack` | 500, 800, 250, 150 | 1891, 1892 |
+| `LeadAmbushAt`, `LeadAmbushDistanceMin`, `LeadAmbushDistanceMax` | 0.5, 1300, 1700 | 1893 |
+| `LeadEncounterRange`, `LeadDestinationClear`, `LeadEncounterShipWeight`, `LeadEncounterStationWeight`, `LeadEncounterNebulaWeight`, `LeadNebulaGridStep` | 2000, 2000, 1, 3, 0.25, 1000 | 1890 |
 | `Events.ArrivalEventChance`, `ArrivalDelaySeconds` | 0.6, 6 s | 69 |
 | `Events.StationEventChance`, `StationTriggerDistance` | 0.5, 1500 | 69 |
 | `Events.SignalTriggerDistance` | 900 | 69 |

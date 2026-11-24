@@ -62,7 +62,7 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
             // POI doodads never go into stasis (POIDoodadRules.CanSpawnIntoStasis), so the spawned POI is live.
             var poi = sim.Doodads[poiId] as POIDoodad ?? throw new InvalidOperationException($"destination {poiId} is not a live POI doodad");
             Vector2 start = escort.Location.Center;
-            if (Route(sim, objects, start, poi.Location) is not { } destination)
+            if (Route(sim, objects, start, poi.Location, SunClearance) is not { } destination)
             {
                 invalid = true;
                 return null;
@@ -80,28 +80,37 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
             };
         }
 
-        /// <summary>
-        /// The destination at EscortRouteShare of the nearest gate's distance from the center (spec 36, spec 105: inside the gate ring).
-        /// The first direction tried is toward the rules POI. Null drops the offer: no gate, or no direction fits.
-        /// </summary>
-        Vector2? Route(SimRoot sim, SpawnedObjectCollection objects, Vector2 start, Vector2 rulesDestination)
+    }
+
+    /// <summary>
+    /// The destination at EscortRouteShare of the nearest gate's distance from the center (spec 36, spec 105: inside the gate ring), with the
+    /// straight route <paramref name="sunClearance"/> from every sun. The first direction tried is toward the rules POI. Null drops the
+    /// offer: no gate, or no direction fits.
+    /// </summary>
+    internal static Vector2? Route(SimRoot sim, SpawnedObjectCollection objects, Vector2 start, Vector2 rulesDestination, float sunClearance) =>
+        RouteCandidates(sim, objects, start, rulesDestination, sunClearance) is [var first, ..] ? first : null;
+
+    /// <summary>
+    /// Every destination that fits the convoy route rules of <see cref="Route"/>, in the order that it tries them. Empty when none fits.
+    /// The Blind Courier picks among them (spec 1890).
+    /// </summary>
+    internal static List<Vector2> RouteCandidates(SimRoot sim, SpawnedObjectCollection objects, Vector2 start, Vector2 rulesDestination, float sunClearance)
+    {
+        List<System.Numerics.Vector2> Tagged(string tag) =>
+            objects.TryGetValue(new ID<SimObjectSpawner>(tag), out var list) ? [.. list.Select(o => N(o.Location.Center))] : [];
+        var gates = Tagged("ftl_gate");
+        if (gates.Count == 0)
         {
-            List<System.Numerics.Vector2> Tagged(string tag) =>
-                objects.TryGetValue(new ID<SimObjectSpawner>(tag), out var list) ? [.. list.Select(o => N(o.Location.Center))] : [];
-            var gates = Tagged("ftl_gate");
-            if (gates.Count == 0)
-            {
-                Log.Info("escort offer dropped: no FTL gate in this system");
-                return null;
-            }
-            float reach = gates.Min(g => g.Length());
-            float length = MissionArea.TunablesFor(sim.RequireGame()).EscortRouteShare * reach;
-            Vector2 toward = rulesDestination - start;
-            if (toward == Vector2.Zero) toward = new Vector2(1f, 0f);
-            if (MissionModel.ConvoyDestination(N(start), N(toward), length, reach, SunClearance, Tagged("sun")) is { } d) return new Vector2(d.X, d.Y);
-            Log.Info($"escort offer dropped: no route of {length:0} from {start} inside {reach:0}");
-            return null;
+            Log.Info("escort offer dropped: no FTL gate in this system");
+            return [];
         }
+        float reach = gates.Min(g => g.Length());
+        float length = MissionArea.TunablesFor(sim.RequireGame()).EscortRouteShare * reach;
+        Vector2 toward = rulesDestination - start;
+        if (toward == Vector2.Zero) toward = new Vector2(1f, 0f);
+        var fits = MissionModel.RouteCandidates(N(start), N(toward), length, reach, sunClearance, Tagged("sun"));
+        if (fits.Count == 0) Log.Info($"escort offer dropped: no route of {length:0} from {start} inside {reach:0}");
+        return [.. fits.Select(d => new Vector2(d.X, d.Y))];
     }
 
     [Serialize] public ObjectiveTargetShip Escort { get; private set; }
