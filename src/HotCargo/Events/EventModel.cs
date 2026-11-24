@@ -57,7 +57,9 @@ public sealed record ResearchSale(IReadOnlyList<string> Techs, long Worth, int P
 /// <summary>The first need that the fleet does not meet.</summary>
 public enum UnmetKind { Money, Tech, VaultSpace, Crew, Bunks, MinHeat, MaxHeat, MinSector, MaxSector, Resource, Part, Flag, NotFlag, FlagAge, MinSectorsLeft, MaxSectorsLeft, NotWanted,
     /// <summary>A submit: no option is selected (Amount 0), or the selected options give too few points (Amount = the points needed).</summary>
-    Points }
+    Points,
+    /// <summary>Spec 1817: a paid heat cut while the paid heat cuts are closed (too many recent buys, or a cold trail).</summary>
+    HeatBuy }
 
 public sealed record Unmet(UnmetKind Kind, string Id = "", float Amount = 0);
 

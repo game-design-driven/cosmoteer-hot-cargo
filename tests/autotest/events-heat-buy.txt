@@ -1,0 +1,33 @@
+# Spec 1817: paid heat cuts share one factor. Each recent buy weakens the next, a cold trail cuts less, and below the threshold the
+# choice is greyed and the hail line that only sells a cut is gone. Patrol Chatter (hunter_intel): 0.2 money units for heat -8.
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+heat 80
+expect ev_heat_buys == 0
+# 1st buy at heat 80: the full cut.
+event hunter_intel
+ev_mark
+choose 1
+expect ev_heat_gain <= -7.5
+expect ev_heat_buys >= 0.99
+# 2nd buy right after: two thirds (heat 72 is still above 60).
+event hunter_intel
+ev_mark
+choose 1
+expect ev_heat_gain > -5.6
+expect ev_heat_gain < -5
+# A cold trail with two recent buys: closed. The choice is greyed and the faction ship offers no line.
+heat -50
+expect ev_heat_buy_open == 0
+event hunter_intel
+expectchoice 1 disabled
+choose 2
+expectcomms faction Ask about hunters nearby 0
+# Back at heat 80 the factor is 1/(1+2x0.5) = 0.5: open again, and the line is back.
+heat 50
+expect ev_heat_buy_open == 1
+expectcomms faction Ask about hunters nearby 1
+quit

@@ -139,6 +139,7 @@ public static class EventText
     public static string Reason(Unmet u) => u.Kind switch
     {
         UnmetKind.Money => $"Needs {(int)u.Amount:n0} credits",
+        UnmetKind.HeatBuy => Strings.GetText("HotCargoEvents/HeatBuyClosed"),
         UnmetKind.Tech => $"Needs {(int)u.Amount} Stolen Tech in vaults",
         UnmetKind.VaultSpace => $"Needs room for {(int)u.Amount} in Tech Vaults",
         UnmetKind.Crew => $"Needs {(int)u.Amount} crew",

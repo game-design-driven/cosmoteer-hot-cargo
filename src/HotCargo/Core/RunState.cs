@@ -14,6 +14,8 @@ public sealed partial class RunState
     /// <summary>False after a win. The career continues without pressure.</summary>
     [Serialize] public bool HeatEnabled = true;
     [Serialize] public float Heat;
+    /// <summary>Spec 1817: recent paid heat cuts. Each adds 1; the count halves every Heat.HeatBuyHalfLifeMinutes of game time.</summary>
+    [Serialize(Optional = true)] public float HeatBuys;
     /// <summary>Stages already started in the current system visit.</summary>
     [Serialize] public int StagesStarted;
     [Serialize] public double SecondsSinceStrikeWave;

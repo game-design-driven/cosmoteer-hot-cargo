@@ -1216,7 +1216,8 @@ Events
 		HailTarget = FactionShip
 		HailLine = "Ask about hunters nearby."
 		MaxPerRun = 0
-		Need { MinHeat = 10 }
+		// Spec 1817: the line only sells a heat cut, so it hides while the paid heat cuts are closed.
+		Need { MinHeat = 10; HeatBuyOpen = true }
 		Title = "Patrol Chatter"
 		Text = "The pilot shrugs. \"Corporate ships? We see them. Information costs, though.\""
 		Choices

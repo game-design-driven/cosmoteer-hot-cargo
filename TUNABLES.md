@@ -17,7 +17,7 @@ Fields not listed in the "Not now" column apply Now.
 
 | Section | Not now | Notes |
 |---|---|---|
-| Heat | (none) | `HeatCarryOverFraction` is read at each switch without a jump. `Stages`: new thresholds re-baseline the started stages (spec 503). A stage below the current heat spawns nothing; a stage above it waits for heat. |
+| Heat | (none) | The `HeatBuy*` values (spec 1817) apply to the next paid heat cut and the next choice text. `HeatCarryOverFraction` is read at each switch without a jump. `Stages`: new thresholds re-baseline the started stages (spec 503). A stage below the current heat spawns nothing; a stage above it waits for heat. |
 | Tech | `StartingTechUnits`, `StartingResearch`: new runs only | The tech value fields apply to the next price query. An open event page keeps the tech value of its opening. |
 | Journey | `RunSectorCount`: next new system | Fixed in this change: the Buyer spawns in the first new system with sector index `RunSectorCount` or more, once per run (`RunState.BuyerSpawned`). Before, a value below the current sector meant no Buyer. `FinalSectorTier`, `MapSystems`: new runs only (the galaxy is made once per run; in co-op the galaxy uses the defaults, spec 1983). `RewardScale` applies to payouts at once, but contract fees keep the scale of their offer. |
 | Hunters | `Stages` (all fields), `SpawnDistanceMin`, `SpawnDistanceMax`, `WaveArcDegrees`, `ShipFactions`, `ShipTags`, `ShipNamePrefix`, `MaxLiveHunters`, `MinFuel`, `RouteTierFloor`: next spawned ships | The waiting groups of a stage that started take the new count and tier at once and keep their arrival times (spec 854). `StrikeWaveIntervalSeconds` and `VaultTargetFactor` apply now. |

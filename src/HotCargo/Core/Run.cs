@@ -173,6 +173,7 @@ public sealed class Run
         if (CurrentTier > State.PeakTier)
             State.PeakTier = Math.Max(State.PeakTier, Math.Min(CurrentTier, Journey.TierCapSpawner.PeakTierCap(Mode, State.SectorIndex) ?? int.MaxValue));
         Hooks.RaiseTick(this, sim, dt);
+        if (State.HeatBuys > 0f) State.HeatBuys = HeatModel.BuyDecay(State.HeatBuys, dt, T.Heat.HeatBuyHalfLifeMinutes);
         if (State.Result != RunResult.Running || !State.HeatEnabled) return;
         AddHeat(TimeHeatPerMinute(State.FleetTech) * (float)(dt / 60.0), sim);
         TickStrikeWaves(sim, dt);
@@ -230,6 +231,15 @@ public sealed class Run
         if (State.StagesStarted > reached) State.StagesStarted = reached;
         return State.Heat - before;
     }
+
+    /// <summary>Spec 1817: the share of a paid heat cut that works now (recent buys and current heat).</summary>
+    public float HeatBuyFactor() => HeatModel.BuyFactor(State.HeatBuys, State.Heat, T.Heat.HeatBuyFalloff, T.Heat.HeatBuyFullHeat);
+
+    /// <summary>Spec 1817: paid heat cuts are on offer now.</summary>
+    public bool HeatBuyOpen() => HeatModel.BuyOpen(HeatBuyFactor(), T.Heat.HeatBuyCloseBelow);
+
+    /// <summary>Spec 1817: a paid heat cut happened. Sim logic.</summary>
+    public void CountHeatBuy() => State.HeatBuys += 1f;
 
     /// <summary>Starts the next stage at once, by raising heat to its threshold.</summary>
     public void ForceNextStage(SimRoot sim)

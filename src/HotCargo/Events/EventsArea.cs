@@ -995,6 +995,9 @@ public static class EventsArea
         Autotest.Fields["ev_pending"] = () => RequireRun().State.Events.Pending is null ? 0 : 1;
         Autotest.Fields["ev_seen"] = () => RequireRun().State.Events.Seen.Values.Sum();
         Autotest.Fields["ev_result"] = () => RequireRun().State.Events.LastResult?.Serial ?? 0;
+        // Spec 1817: recent paid heat cuts, and 1 while the paid heat cuts are on offer.
+        Autotest.Fields["ev_heat_buys"] = () => RequireRun().State.HeatBuys;
+        Autotest.Fields["ev_heat_buy_open"] = () => RequireRun().HeatBuyOpen() ? 1 : 0;
         // expectresultline <0|1> <text>: whether an effect line of the last result holds the text (plain, without XML).
         Autotest.Commands["expectresultline"] = arg =>
         {

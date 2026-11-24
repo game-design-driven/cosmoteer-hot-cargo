@@ -102,6 +102,8 @@ public sealed class NeedRules
     [Serialize(Optional = true)] public int MaxSectorsLeft = -1;
     /// <summary>True: only while a faction in this system wants the players.</summary>
     [Serialize(Optional = true)] public bool Wanted;
+    /// <summary>Spec 1817: true hides the event (a hail line) while the paid heat cuts are closed. For lines that only sell a heat cut.</summary>
+    [Serialize(Optional = true)] public bool HeatBuyOpen;
 }
 
 [ReflectiveSerialization(Explicit = true)]
