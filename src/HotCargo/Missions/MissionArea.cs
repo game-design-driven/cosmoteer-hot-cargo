@@ -217,6 +217,12 @@ public static class MissionArea
                          $"cmd={r.Commands.CurConfirmedCommand?.GetType().Name} target={(r.Commands.CurConfirmedCommand as Cosmoteer.Ships.Commands.AttackCommand)?.Target?.Metadata.PlainShipName} " +
                          $"enemy={(escort is null ? "?" : sim.Mode.AreEnemies(r.Metadata.PlayerIndex, escort.Metadata.PlayerIndex).ToString())} origin={r.AI?.PreferredOrigin} modules={string.Join(",", r.AI?.StrategyModules.Select(m => m.GetType().Name) ?? [])}");
         };
+        // hc_guard_camera <size>: centers the camera on the newest escort, this many units wide (screenshots).
+        Autotest.Commands["hc_guard_camera"] = arg =>
+        {
+            Vector2 at = RequireGuarded().Escort.DetLocation() ?? throw new InvalidOperationException("escort is not in this system");
+            Autotest.Commands["camera"](string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{at.X} {at.Y} {arg.Trim()}"));
+        };
         // hc_guard_clear_raiders: removes the live raid ships of the newest escort (sim; "mp" in co-op), so a later step is not a fight.
         Autotest.Commands["hc_guard_clear_raiders"] = _ =>
         {
