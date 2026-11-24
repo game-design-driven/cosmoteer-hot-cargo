@@ -9,8 +9,9 @@ namespace HotCargo.Ux;
 
 /// <summary>
 /// Test aids for the readability pass (spec 1480, 1481): set the window size and the game's UI scale, and check that windows
-/// and panels fit the screen. Headless slots use the null window. A windowed test slot runs minimized (UX.md, "Screenshots"),
-/// so a resize of the hidden window does not reach the back buffer; this resizes the D3D11 swap chain directly.
+/// and panels fit the screen. Headless slots use the null window, the Mac runner (RUNNER=mac) the cosmoteer-macos window.
+/// A windowed test slot runs minimized (UX.md, "Screenshots"), so a resize of the hidden window does not reach the back
+/// buffer; this resizes the D3D11 swap chain directly.
 /// </summary>
 static class ScreenSize
 {
@@ -23,9 +24,10 @@ static class ScreenSize
         // No lower limit: the headless window starts at 800x600, and "matrix" sets the start size again at its end.
         if (size.X <= 0 || size.Y <= 0) throw new ArgumentException($"window {size}: needs a positive size");
         var window = App.Window;
-        if (window is Halfling.Windows.Null.NullWindow)
+        // The headless window runs borderless, where Size cannot be set but reads WindowedSize (NullWindow.Size). The Mac
+        // runner's hidden window (cosmoteer-macos MacWindow) resizes at once when WindowedSize is set.
+        if (window is Halfling.Windows.Null.NullWindow || window.GetType().FullName == "MacWindow")
         {
-            // The headless window runs borderless, where Size cannot be set but reads WindowedSize (NullWindow.Size).
             window.WindowedSize = size;
             window.InvokeResizedOrModeChanged();
         }
