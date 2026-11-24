@@ -110,6 +110,14 @@ internal static class ThiefShip
         return parts;
     }
 
+    /// <summary>For price studies (econ_census): the parts of every kit layout that Design can pick. Test only.</summary>
+    internal static IEnumerable<(int Kit, int Segments, IEnumerable<string> Parts)> CensusLayouts()
+    {
+        for (int k = 0; k < Kits.Length; k++)
+            for (int n = MinSegments; n <= (k == Kits.Length - 1 ? MaxTopSegments : MaxSegments); n++)
+                yield return (k, n, Layout(Kits[k], n).Select(p => p.Part));
+    }
+
     /// <summary>The ship rules that hold every part of all kits (the terran rules in 0.30.5a).</summary>
     static ShipRules Rules() => ShipBuilder.RulesFor(Kits.SelectMany(k => Layout(k, 3)), "thief");
 

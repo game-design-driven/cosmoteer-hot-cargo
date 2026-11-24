@@ -22,6 +22,27 @@ public static class BalanceArea
         Run.Hooks.TunablesApplied += StationFuelFloor.OnTunablesApplied;
         RegisterContractTests();
         Autotest.Commands["balance_census"] = arg => BalanceCensus.Log(arg.Length > 0 ? arg : "census");
+        // econ_census: logs every built-in ship (faction, tier, tags, value, units and value of each resource in its parts) and every
+        // part (cost and resources), from the loaded rules. For price studies (docs/steel-coil-price-study.md). Test only.
+        Autotest.Commands["econ_census"] = _ =>
+        {
+            static string Units(IEnumerable<(string Id, int Units)> rs) =>
+                string.Join(",", rs.GroupBy(r => r.Id).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key}:{g.Sum(r => r.Units)}"));
+            foreach (var part in Autotest.RequireRun().Game.Sim.Ships.LocalPlayerShips.First().Rules.Parts.OrderBy(p => p.ID.ToString(), StringComparer.Ordinal))
+                Log.Info($"ECON part {part.ID} cost={part.Cost} res={Units(part.Resources.Select(r => (r.Type.ToString(), (int)r.Quantity)))}");
+            foreach (var b in GameApp.Rules.BuiltinShips.OrderBy(b => b.ID.ToString(), StringComparer.Ordinal))
+            {
+                int tier = b.Tier ?? 0;
+                var parts = b.File.LoadShipBlueprints().BlueprintParts.Select(bp => bp.Rules).ToList();
+                Log.Info($"ECON ship {b.ID} faction={b.Faction?.ToString() ?? "-"} tier={tier} tags={string.Join("|", (b.Tags ?? []).Select(t => t.ToString()).OrderBy(t => t, StringComparer.Ordinal))} " +
+                         $"value={parts.Sum(p => p.Cost)} res={Units(parts.SelectMany(p => p.Resources.Select(r => (r.Type.ToString(), (int)r.Quantity))))}");
+            }
+            foreach (var r in GameApp.Rules.Resources.OrderBy(r => r.ID.ToString(), StringComparer.Ordinal))
+                Log.Info($"ECON resource {r.ID} price={r.BuyPrice} stack={r.MaxStackSize}");
+            foreach (var (kit, n, parts) in Thieves.ThiefShip.CensusLayouts())
+                Log.Info($"ECON thief kit={kit} segments={n} parts={string.Join(",", parts.GroupBy(p => p).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key}:{g.Count()}"))}");
+            for (int t = 1; t <= 20; t++) Log.Info($"ECON tiermax {t} {GameData.TierValueMaximum(t)} thiefParts={Thieves.ThiefShip.Design(t).Count}");
+        };
         Autotest.Commands["balance_visit"] = arg => BalanceCensus.Visit(int.Parse(arg, System.Globalization.CultureInfo.InvariantCulture));
         // balance_probe <tier> <count>: spawns hunters of this tier and logs their mass, value, fuel and kill fame.
         Autotest.Commands["balance_probe"] = arg =>
