@@ -183,13 +183,15 @@ public static class TelemetryArea
             var move = new Cosmoteer.Ships.Commands.MoveCommand(ship, ship.Commands.AllocLocalCommandID(), to, null, Cosmoteer.Ships.Commands.CollisionAvoidanceFlags.All, isTentative: false);
             game.NetManager.EnqueueInput(new Cosmoteer.Game.Multiplayer.MPInputs.MPEnqueueCommandsInput(move, append: false, playLocalSound: false));
         };
-        // telenote open | type <text> | save | cancel: the note key, the text field, Enter and Escape (spec 1986). Test only.
+        // telenote shot | open | type <text> | save | cancel: a made-up screenshot for the next note (spec 1995), the note key, the
+        // text field, Enter and Escape (spec 1986). Test only.
         Autotest.Commands["telenote"] = arg =>
         {
             var parts = arg.Split(' ', 2);
             var d = PlaytestNotes.OpenDialog;
             switch (parts[0])
             {
+                case "shot": PlaytestNotes.NextTestShot = PlaytestNotes.TestShot(Session.Current ?? throw new InvalidOperationException("no telemetry session")); break;
                 case "open": PlaytestNotes.Open(Autotest.RequireRun()); break;
                 case "type": (d ?? throw new InvalidOperationException("no note dialog")).TextEditField.Text = parts.Length > 1 ? parts[1] : ""; break;
                 case "save" or "cancel":
@@ -197,7 +199,7 @@ public static class TelemetryArea
                     dialog.Response = parts[0] == "save" ? TwoButtonTextEntryDialog.DialogResponse.Option1 : TwoButtonTextEntryDialog.DialogResponse.Option2;
                     App.Director.PopState(dialog);
                     break;
-                default: throw new InvalidOperationException("telenote needs: open | type <text> | save | cancel");
+                default: throw new InvalidOperationException("telenote needs: shot | open | type <text> | save | cancel");
             }
         };
         // Spec 1994: mission ships, items and areas that the last positions record named.
@@ -224,6 +226,16 @@ public static class TelemetryArea
         // Lines of the live notes file from this player and from other players (spec 1988).
         Autotest.Fields["telenote_live_own"] = () => LiveNotes(own: true);
         Autotest.Fields["telenote_live_others"] = () => LiveNotes(own: false);
+        // Spec 1995 to 1997: client notes the host has not confirmed; screenshot bytes for the host not confirmed (client); host note
+        // lines of other players whose screenshot file is on the host; crash events in the host's copies of client files.
+        Autotest.Fields["telenote_unsent"] = () => Relay.UnsentNoteCount;
+        Autotest.Fields["tele_relay_pending_shots"] = () => Session.Current is { } rs ? Relay.Pending(rs, closedOnly: false, RelayFile.NoteShot) : -1;
+        Autotest.Fields["telenote_host_shots"] = () => HostShots();
+        Autotest.Fields["tele_relay_crashes"] = () => Directory.Exists(Relay.PlayersFolder)
+            ? Directory.GetFiles(Relay.PlayersFolder, "*.jsonl", SearchOption.AllDirectories).Sum(f => CountIn(f, "\"e\":\"crash\""))
+            : 0;
+        // telecrash: records a crash as the crash handler does (spec 1997), without the crash. It ends the telemetry session. Test only.
+        Autotest.Commands["telecrash"] = _ => CrashRecord.Record(new InvalidOperationException("autotest crash"));
         // telestats: logs the overhead numbers of the session, for reports.
         Autotest.Commands["telestats"] = _ =>
             Log.Info($"TELEMETRY STATS events={Interlocked.Read(ref Stats.Events)} bytes={Interlocked.Read(ref Stats.Bytes)} dropped={Interlocked.Read(ref Stats.Dropped)} " +
@@ -244,17 +256,30 @@ public static class TelemetryArea
         });
     }
 
-    /// <summary>Counts lines with "e":"name" in the files of a run: every session and part file.</summary>
-    static int CountEvents(string dir, string runId, string name)
+    /// <summary>Host note lines from other players whose "screenshot" names a non-empty file in the host's notes folder.</summary>
+    static int HostShots()
     {
-        string needle = $"\"e\":\"{name}\"";
-        int count = 0;
-        foreach (string file in Directory.GetFiles(dir, runId + "__*.jsonl"))
+        if (!File.Exists(PlaytestNotes.LivePath)) return 0;
+        int me = Autotest.RequireRun().Game.LocalPlayerIndex;
+        return File.ReadLines(PlaytestNotes.LivePath).Count(l =>
         {
-            using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            using var reader = new StreamReader(stream);
-            while (reader.ReadLine() is { } line) if (line.Contains(needle, StringComparison.Ordinal)) count++;
-        }
+            using var doc = System.Text.Json.JsonDocument.Parse(l);
+            var r = doc.RootElement;
+            return r.GetProperty("local_player").GetInt32() != me && r.TryGetProperty("screenshot", out var shot) && shot.ValueKind == System.Text.Json.JsonValueKind.String
+                && new FileInfo(Path.Combine(Relay.NotesFolder, shot.GetString()!)) is { Exists: true, Length: > 0 };
+        });
+    }
+
+    /// <summary>Counts lines with "e":"name" in the files of a run: every session and part file.</summary>
+    static int CountEvents(string dir, string runId, string name) =>
+        Directory.GetFiles(dir, runId + "__*.jsonl").Sum(file => CountIn(file, $"\"e\":\"{name}\""));
+
+    static int CountIn(string file, string needle)
+    {
+        int count = 0;
+        using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream);
+        while (reader.ReadLine() is { } line) if (line.Contains(needle, StringComparison.Ordinal)) count++;
         return count;
     }
 }

@@ -215,8 +215,12 @@ sealed class Session
         Current = null;
         Tele.SetMask(null);
         TelemetryWriter.Close();
-        // Spec 1593: a co-op client whose game closes sends the rest of its files once.
-        if (reason is "game_closed" or "game_closed_after_loss") Errors.Guard("telemetry relay rest", () => Relay.SendRest(s));
+        // Spec 1593, 1997: a co-op client whose game closes or crashes sends the rest of its files once.
+        if (reason is "game_closed" or "game_closed_after_loss" or "crash")
+        {
+            Errors.Guard("telemetry relay rest", () => Relay.SendRest(s));
+            Relay.ReportUnsent();
+        }
     }
 
     void Subscribe()

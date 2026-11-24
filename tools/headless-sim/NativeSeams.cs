@@ -21,6 +21,9 @@ static class NativeSeams
         // FreeImage (TeximpNet): image encoding. Co-op setup sends the ship icon as PNG bytes (GameSetupScreen add-ship RPC).
         harmony.Patch(AccessTools.Method(typeof(TextureData), nameof(TextureData.SaveTo), [typeof(Stream), typeof(ImageFileFormat), typeof(int)]),
             prefix: new HarmonyMethod(typeof(NativeSeams), nameof(SaveBlankPng)));
+        // FreeImage (TeximpNet): a stretch resize. The note screenshot for the host shrinks its image (spec 1995); a canvas resize is managed.
+        harmony.Patch(AccessTools.Method(typeof(TextureData), nameof(TextureData.Resize), [typeof(IntVector2), typeof(ResizeMode)]),
+            prefix: new HarmonyMethod(typeof(NativeSeams), nameof(CanvasOnly)));
         // nvtt (TeximpNet): GPU texture compression. The null graphics device never uploads textures.
         harmony.Patch(AccessTools.Method(typeof(TextureData), nameof(TextureData.Compress)),
             prefix: new HarmonyMethod(typeof(NativeSeams), nameof(Skip)));
@@ -37,6 +40,8 @@ static class NativeSeams
     }
 
     static bool Skip() => false;
+
+    static void CanvasOnly(ref ResizeMode mode) => mode = ResizeMode.CanvasOnly;
 
     /// <summary>Writes a blank PNG of the texture's size. The sim never reads icon pixels, and LoadFromStream decodes any PNG.</summary>
     static bool SaveBlankPng(TextureData __instance, Stream stream)

@@ -114,12 +114,15 @@ def test_notes_list_in_play_order_with_nearby_events(tmp_path: Path) -> None:
         ev("combat.destroyed", 130, ship="h1", name="Corporate Arche", side="hunter"),
         ev("heat.stage", 500, stage=2, name="Hunt"),
         ev("note", 600, text="second", player="Yarden", screen={}, screenshot="r__x.png"),
+        ev("note", 700, text="third", player="Tom", screen={}, screenshot="r__y.png", screenshot_small="r__y.jpg"),
     ])
     rep = analyze(load(tmp_path)[0])
     notes = rep.tables[0]
     assert notes.title == "Playtest notes"
-    assert [r[7] for r in notes.rows] == ["hunters came from the sun", "second"]
+    assert [r[7] for r in notes.rows] == ["hunters came from the sun", "second", "third"]
+    # Spec 1995: a client's note names its small copy on the host.
+    assert "r__y.jpg" in notes.rows[2][6]
     assert notes.rows[0][5] == "event defector"
     around = [r for r in rep.tables[1].rows if r[0] == 1]
     assert [r[3] for r in around] == ["heat.stage", "combat.destroyed"]
-    assert rep.findings[0] == "2 playtest notes (see 'Playtest notes')."
+    assert rep.findings[0] == "3 playtest notes (see 'Playtest notes')."

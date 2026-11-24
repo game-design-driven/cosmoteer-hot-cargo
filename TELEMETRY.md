@@ -13,7 +13,7 @@ Spec: `spec/36-telemetry.md` (requirements 530 to 545 and 1580 to 1593). Code: `
   the `seed` and `players` in `session.start` match on all machines of that game.
 - A file that reaches `MaxFileMegabytes` continues in `<run id>__<session id>.part<N>.jsonl`. Each part starts with a `file.part` line.
 - At session start the oldest files go until the folder is below `MaxFolderMegabytes`. The client copies in `players/` count too.
-- Co-op: each client also sends its files to the host (spec 1592, 1593). The host keeps a copy of each in `telemetry/players/<player name>/`, under the client's file name. The client keeps its own files. Chunks of 32 KB go over a reliable RPC on the game's MP connection, one at a time from the length that the host confirmed, so a late join, a resync or a reconnect sends nothing twice and skips nothing. A closing client sends its rest once. Lines that a client writes after its last chunk reached the host arrive at its next join of the same run.
+- Co-op: each client also sends its files to the host (spec 1592, 1593). The host keeps a copy of each in `telemetry/players/<player name>/`, under the client's file name. The client keeps its own files. Chunks of 32 KB go over a reliable RPC on the game's MP connection, one at a time from the length that the host confirmed, so a late join, a resync or a reconnect sends nothing twice and skips nothing. A closing or crashing client sends its rest once (spec 1997). Lines that a client writes after its last chunk reached the host arrive at its next join of the same run.
 
 ## Event format
 
@@ -41,7 +41,7 @@ Category switches are in the `Telemetry` tunables section. The table names the s
 | Event | Switch | Fields |
 |---|---|---|
 | `session.start` | Run | `schema`, `run`, `session`, `session_no` (unique for the run on this machine, also after a load of an older save), `new_run`, `loaded`, `wall_utc`, `game_version`, `mod_version` (`1.0.0+<commit>`), `tunables_hash` (of the file), `tunables_full_hash` (of the values in effect), `seed`, `map`, `map_size_index`, `combat_difficulty`, `econ_difficulty`, `crew_scarcity`, `ironman`, `pressure` (run mode pressure: `heat_rate`, `hunter_ships`, `hunter_tiers`, `contract_fees`, `tech_value`), `money_reward_factor`, `fame_reward_factor`, `players`, `enemy_scale_setting`, `enemy_scale_factor`, `local_player`, `mp`, `host`, `autotest`, `label`, `cores`, `os`, `tunables` (every tunable value) |
-| `session.end` | Run | `reason` (`game_closed`, `game_closed_after_loss`, `replaced`, `process_exit`), `result`, `real_s`, `sim_s`, `paused_s`, `build_s`, `play_s` (real time split, spec 1591), `events`, `dropped`, `overhead_ms`, `overhead_pct_wall`, `writer_ms`, `frames`, `frame_ms`, `ticks`, `tick_ms`, `trace_missing` |
+| `session.end` | Run | `reason` (`game_closed`, `game_closed_after_loss`, `replaced`, `process_exit`, `crash`), `result`, `real_s`, `sim_s`, `paused_s`, `build_s`, `play_s` (real time split, spec 1591), `events`, `dropped`, `overhead_ms`, `overhead_pct_wall`, `writer_ms`, `frames`, `frame_ms`, `ticks`, `tick_ms`, `trace_missing` |
 | `run.new`, `run.loaded` | Run | `starting_tech`; `result`, `sessions` |
 | `run.save` | Run | `caller` (who saved: a save, an autosave, a co-op sync) |
 | `run.jump` | Run | `from`, `to`, `kind` (View, RelayWatched, RelayClear, Blind), `heat_kept` (share of heat the jump keeps), `stay_s`, `time_use` and `time_any` (time use of the stay, see below), `open_contracts`, `jumped` and `left` (jump ships, see below). The first tick with player ships in the new system takes a snapshot (`why` = entry). |
@@ -91,7 +91,8 @@ Category switches are in the `Telemetry` tunables section. The table names the s
 | `mp.players` | Coop | `from`, `to` |
 | `mp.desync` | Coop | `input_tick`, `host`, `expected` (a test resync) |
 | `mp.game_loaded` | Coop | `host`, `players`. A co-op game that the host's state rebuilt: a join or a resync. |
-| `note` | Run | A playtest note (spec 1984 to 1987): `text`, `player` (the player's name), `local_player`, `pressed_real_s` (real seconds at the key press), `screen` (what the player saw: `event`, `comms`, `build`, `dialog`), `screenshot` (the file in `notes/`, or null), `wall_utc`. Also one line in the live file `notes.jsonl` at once (spec 1988). |
+| `note` | Run | A playtest note (spec 1984 to 1987): `text`, `player` (the player's name), `local_player`, `pressed_real_s` (real seconds at the key press), `screen` (what the player saw: `event`, `comms`, `build`, `dialog`), `screenshot` (the file in `notes/`, or null), `screenshot_small` (co-op client: the small copy for the host, spec 1995), `wall_utc`. Also one line in the live file `notes.jsonl` at once (spec 1988). |
+| `crash` | Run | The game crashed (spec 1997): `type`, `msg`, `stack` (at most 6000 characters). The session then ends with reason `crash`. |
 | `log` | Log | `level`, `msg`: every `hot_cargo_log.txt` line, with user folder names and Steam IDs replaced by `<user>` and `<steam id>` (spec 1585) |
 | `trace` | Trace | `method`, `args`, `result`, `ms`, `ctx` |
 
@@ -177,9 +178,9 @@ During a playtest, `cd tools/telemetry && uv run hc-where --dir <live telemetry 
 
 ## Playtest notes
 
-During play, press `\` (`Telemetry.NoteKey`), type a short note and press Enter; Escape cancels. The key does nothing while a menu or dialog is open, or while a text box such as the co-op chat has the focus. The note goes into the session file as a `note` event, with what was on screen at the key press, and a chat line says "Note saved." A co-op client's note travels to the host with the client's file (`players/<name>/`). In co-op the game keeps running while a player types; in single player it pauses, like every vanilla dialog.
+During play, press `\` (`Telemetry.NoteKey`), type a short note and press Enter; Escape cancels. The key does nothing while a menu or dialog is open, or while a text box such as the co-op chat has the focus. The note goes into the session file as a `note` event, with what was on screen at the key press, and a chat line says "Note saved." A co-op client's note travels to the host at once, and again until the host confirms it (spec 1996). In co-op the game keeps running while a player types; in single player it pauses, like every vanilla dialog.
 
-The game also saves a screenshot through its own capture path (`App.Graphics.GetEndOfFrameScreenShot`, the path of the vanilla screenshot key) into `telemetry/notes/<run>__<time>.png` on that machine. The Mac app has the same capture (the Metal graphics manager); a headless game has no graphics device and saves the note without a screenshot. Screenshots do not travel to the host.
+The game also saves a screenshot through its own capture path (`App.Graphics.GetEndOfFrameScreenShot`, the path of the vanilla screenshot key) into `telemetry/notes/<run>__<time>.png` on that machine. The Mac app has the same capture (the Metal graphics manager); a headless game has no graphics device and saves the note without a screenshot. A co-op client also saves a small JPEG copy (at most 1280 px wide) and sends it to the host, which keeps it as `telemetry/notes/<player>__<run>__<time>.jpg` (spec 1995). The host's `notes.jsonl` line names that file in `screenshot`, and the client's own file in `screenshot_client` (spec 1996).
 
 To read notes during play, follow the live file on the host: `tail -F "$HOME/Library/Application Support/Cosmoteer/"*/Mods/hot_cargo/telemetry/notes.jsonl` on a Mac (`%USERPROFILE%\Saved Games\Cosmoteer\<steam id>\Mods\hot_cargo\telemetry\notes.jsonl` on Windows). Each note is one JSON line, written at once (spec 1988). A co-op client sends its note to the host at once, so the host's file holds every player's notes. Fields: the common fields (`e` = `note`, `t`, `gs`, `ss`, `sec`, `sys`, `tier`, `arch`, `heat`, `tech`), then `text`, `player`, `local_player`, `wall_utc`, `pressed_real_s`, `screen`, `screenshot`.
 

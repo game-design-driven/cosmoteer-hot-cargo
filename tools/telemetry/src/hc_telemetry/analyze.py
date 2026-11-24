@@ -615,13 +615,18 @@ def notes_section(rep: RunReport) -> None:
     rows, around = [], []
     for i, (s, n) in enumerate(notes, 1):
         screen = ", ".join(f"{k} {v}" for k, v in (n.get("screen") or {}).items()) or "-"
-        rows.append([i, mmss(n["gs"]), mmss(n["t"]), n.get("player", ""), n.get("sys", ""), screen, n.get("screenshot") or "-", n.get("text", "")])
+        shot = n.get("screenshot") or "-"
+        if n.get("screenshot_small"):
+            # Spec 1995: a co-op client's small copy, on the host as notes/<player folder>__<file>.
+            shot += f"; host copy notes/*__{n['screenshot_small']}"
+        rows.append([i, mmss(n["gs"]), mmss(n["t"]), n.get("player", ""), n.get("sys", ""), screen, shot, n.get("text", "")])
         for e in s.events:
             if e["e"] in NOTE_QUIET or e is n or abs(e["gs"] - n["gs"]) > NOTE_WINDOW_S:
                 continue
             around.append([i, mmss(e["gs"]), f"{e['gs'] - n['gs']:+.0f} s", e["e"], note_summary(e)])
     # First in the run's report: the notes are what the players asked to look at.
     rep.tables.insert(0, Table("Playtest notes", ["#", "game time", "real time", "player", "system", "screen", "screenshot", "note"], rows,
-                               "Notes from the note key (Telemetry.NoteKey). Screenshots are in the telemetry folder's notes/ of the machine that took them."))
+                               "Notes from the note key (Telemetry.NoteKey). Screenshots are in the telemetry folder's notes/ of the machine that took them; "
+                               "a co-op client's small copy is also in the host's notes/."))
     rep.tables.insert(1, Table(f"Events around each note (within {NOTE_WINDOW_S} game seconds)", ["#", "game time", "from the note", "event", "detail"], around))
     rep.findings.insert(0, f"{len(notes)} playtest notes (see 'Playtest notes').")
