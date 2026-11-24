@@ -144,6 +144,63 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     }
     [Serialize(Optional = true)] public ObjectID? DeliveredShipId { get; private set; }
 
+    /// <summary>
+    /// Spec 1880: a goods delivery. The players gather a common resource (ore, iron, processors) and hand it over on the shared page
+    /// <see cref="GoodsPage"/>, in one or more trips (a small hold carries less than MinAmount). The job completes once the units handed over
+    /// reach MinAmount, at most MaxAmount in all. No lost check and no take-back: the resource is the players' own.
+    /// </summary>
+    [Serialize(Optional = true)] public bool Goods { get; private set; }
+    [Serialize(Optional = true)] public int MinAmount { get; private set; } = 1;
+    [Serialize(Optional = true)] public int MaxAmount { get; private set; } = 1;
+    /// <summary>Units handed over in earlier trips.</summary>
+    [Serialize(Optional = true)] public int Delivered { get; private set; }
+    /// <summary>Units that one trip can still hand over.</summary>
+    internal int Remaining => MaxAmount - Delivered;
+    /// <summary>Spec 1880: a POI where the resource is found (vanilla SuggestedCollectionAreaTag). The map marks it while the fleet holds none.</summary>
+    [Serialize(Optional = true)] public ObjectID? CollectionDoodadID { get; private set; }
+
+    /// <summary>The Hail event (events.rules) of every goods delivery.</summary>
+    internal const string GoodsPage = "deliver_goods";
+
+    /// <summary>Spec 1880: a goods delivery of MinAmount to MaxAmount units of the resource to the contact ship of this system.</summary>
+    /// <param name="contactAt">Where the contact is: at generation it is not in the sim yet, so the caller gives its place for the tier.</param>
+    internal static HandOverObjective NewGoods(SimRoot sim, ID<ResourceRules> resource, int minAmount, int maxAmount, ObjectiveTargetShip contact, Vector2 contactAt, ObjectID? collectionPoi)
+    {
+        if (minAmount < 1 || maxAmount < minAmount) throw new ArgumentOutOfRangeException(nameof(maxAmount), $"goods amount {minAmount} to {maxAmount}: needs 1 <= min <= max");
+        return new HandOverObjective(resource, contact, GoodsPage)
+        {
+            GiveOnAccept = false,
+            Goods = true,
+            MinAmount = minAmount,
+            MaxAmount = maxAmount,
+            CollectionDoodadID = collectionPoi,
+            Tier = Math.Max(1, ((Cosmoteer.Modes.Career.CareerSimModeManager)sim.Mode).TierFields.GetTier(contactAt)),
+        };
+    }
+
+    /// <summary>A trip of this many units completes the job: with the earlier trips it reaches MinAmount.</summary>
+    internal bool Completes(float units)
+    {
+        if (units < 1 || units > Remaining) throw new ArgumentOutOfRangeException(nameof(units), units, $"a goods trip takes 1 to {Remaining}");
+        return Delivered + units >= MinAmount;
+    }
+
+    /// <summary>
+    /// Spec 1880: the pay of a goods delivery is linear in the total amount: the job's money reward × total / MaxAmount, so MaxAmount pays the
+    /// full reward. Asked for a trip that completes the job; 0 for any other hand-over (no change).
+    /// </summary>
+    internal float GoodsPayFactor(float units)
+    {
+        if (!Goods) return 0f;
+        if (!Completes(units)) throw new InvalidOperationException($"a trip of {units} does not complete the goods delivery ({Delivered} of {MinAmount})");
+        return (Delivered + units) / MaxAmount;
+    }
+
+    /// <summary>Spec 1880: what a completing trip of this many units pays: each money reward of the job × <see cref="GoodsPayFactor"/>, rounded like the delivery.</summary>
+    internal int GoodsPay(float units) =>
+        Mission?.Rewards.OfType<Cosmoteer.Modes.Career.Missions.Rewards.MoneyReward>()
+            .Sum(r => Missions.MissionModel.ScaleReward(r.Money, GoodsPayFactor(units), EventModel.HandOverPayRoundTo)) ?? 0;
+
     /// <summary>Spec 1110, 1877: the delivered ship has arrived at the contact (ShipDelivery), live in this sim.</summary>
     bool ShipArrived(SimRoot sim, Ship ship) =>
         Contact.TargetShip is { } contact && Missions.ShipDelivery.Arrived(sim.RequireGame(), ship.DetWorldBoundingCircle, contact.DetWorldBoundingCircle);
@@ -224,9 +281,22 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
 
     /// <summary>The page outcome of a hand-over (HandOver = true) on this contact. The page cost already took the unit. Sim logic.</summary>
     /// <paramref name="payFactor"/> above 0 scales the job's money reward (spec 1118: the contact notices and pays less).
-    public static void Deliver(Run run, ObjectID? contact, float payFactor = 0f)
+    public static void Deliver(Run run, ObjectID? contact, float payFactor = 0f, float units = 0f)
     {
         var o = Require(run, contact);
+        // Spec 1880: a goods trip that does not reach MinAmount counts and keeps the job open; the completing trip pays for the total.
+        if (o.Goods)
+        {
+            if (!o.Completes(units))
+            {
+                o.Delivered += (int)units;
+                Log.Info($"hand-over: goods trip of {units}, {o.Delivered} of {o.MinAmount} delivered");
+                o.OnDisplayLinesChanged();
+                return;
+            }
+            payFactor = o.GoodsPayFactor(units);
+            o.Delivered += (int)units;
+        }
         Log.Info($"hand-over: {o.Page} done with {o.Contact.GetPlainTargetName(run.Game.Sim)}");
         if (payFactor > 0f && o.Mission is { } mission)
             foreach (var reward in mission.Rewards.OfType<Cosmoteer.Modes.Career.Missions.Rewards.MoneyReward>())
@@ -304,7 +374,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
 
     /// <summary>A job that leaves the log without its hand-over takes its held unit back.</summary>
     public IReadOnlyList<ID<ResourceRules>> CargoToTakeBack =>
-        Completion != CompletionState.Completed && Held && ResourceType is { } item ? Forms(item) : [];
+        !Goods && Completion != CompletionState.Completed && Held && ResourceType is { } item ? Forms(item) : [];
 
     /// <summary>The contact took the item and still ended the deal (spec 1118). The players hold nothing for this job any more.</summary>
     internal void FailAfterHandOver()
@@ -341,12 +411,13 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     }
 
     /// <summary>Spec 996: the contact's area marker goes with the mission.</summary>
-    public IEnumerable<ObjectID> MarkerIds => AreaDoodadID is { } id ? [id] : [];
+    public IEnumerable<ObjectID> MarkerIds => new[] { AreaDoodadID, CollectionDoodadID }.OfType<ObjectID>();
 
     POIDoodad? Area(GameRoot game) => AreaDoodadID is { } id ? game.Sim?.Doodads[id] as POIDoodad : null;
 
     public override bool IsPOIAssociated(POIDoodad poi) =>
-        Completion == CompletionState.InProgress && poi.UniqueID == AreaDoodadID && Contact.TargetShip is not { IsWithinRadarOfLocalPlayer: true };
+        Completion == CompletionState.InProgress
+        && (poi.UniqueID == AreaDoodadID && Contact.TargetShip is not { IsWithinRadarOfLocalPlayer: true } || poi.UniqueID == CollectionDoodadID && !Held);
 
     public override bool IsShipAssociated(MetaShip ship) =>
         Recovering ? ship.UniqueID == Source!.ShipID : Completion == CompletionState.InProgress && Contact.TargetMetaShip == ship;
@@ -376,7 +447,9 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     {
         string contact = Contact.GetXmlTargetName(game.Sim);
         var text = ResourceType?.GetResourceRules() is { } r
-            ? Held ? Strings.KeyStringFmt("HotCargoEventMissions/HandOverFmt", r.TextIconXml, r.NameKey, contact)
+            ? Goods ? Strings.KeyStringFmt(Delivered > 0 ? "HotCargoEventMissions/GoodsPartFmt" : "HotCargoEventMissions/GoodsFmt",
+                MinAmount == MaxAmount ? $"{MinAmount}" : $"{MinAmount} to {MaxAmount}", r.TextIconXml, r.NameKey, contact, Delivered)
+            : Held ? Strings.KeyStringFmt("HotCargoEventMissions/HandOverFmt", r.TextIconXml, r.NameKey, contact)
                 : SourceName is { } from
                     ? Strings.KeyStringFmt("HotCargoEventMissions/RecoverFromFmt", r.TextIconXml, r.NameKey, Halfling.StringTools.EscapeForXml(from))
                     : Strings.KeyStringFmt("HotCargoEventMissions/RecoverFmt", r.TextIconXml, r.NameKey)
@@ -466,6 +539,15 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
         if (ResourceType is not { } item) return;
         // During a jump the ships are in limbo: no human ship is in any system, so the fleet holds 0 units. Not a loss (spec 1103).
         if (!FleetHere(sim)) return;
+        // Spec 1880: goods have no lost check. Held follows the fleet: it holds some of the resource or not.
+        if (Goods)
+        {
+            bool enough = FleetUnits(sim, Forms(item)) >= 1;
+            if (enough == Held) return;
+            Held = enough;
+            OnDisplayLinesChanged();
+            return;
+        }
         if (!Held)
         {
             if (FleetUnits(sim, Forms(item)) == 0)

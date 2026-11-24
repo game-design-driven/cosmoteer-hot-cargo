@@ -20,8 +20,8 @@ namespace HotCargo.Ux;
 
 /// <summary>
 /// A hint block at the top of the comms trade tab:
-/// - V13 (TradeHints): the price factors of your standing with the station's faction, and the station's delivery missions
-///   (accepted or offered) with progress and money reward. A sale counts toward a delivery mission.
+/// - V13 (TradeHints): the price factors of your standing with the station's faction. Deliveries are comms hand-overs (spec 1880),
+///   so the trade tab shows none.
 /// - H8 (TechSaleHint): what selling tech here does to the heat rate and the final score, or that a sale here wins the run.
 /// GUI only. It refreshes twice a second.
 /// </summary>
@@ -81,7 +81,6 @@ static class TradeHints
         if (UxKit.On(s => s.TradeHints))
         {
             PriceLine(tab, lines);
-            DeliveryLines(tab, lines);
         }
         return string.Join("\n", lines);
     }
@@ -112,31 +111,5 @@ static class TradeHints
         var title = mode.GetCurrentReputationTitle(faction.ID);
         float sell = tab.SimMode.EconDifficulty.ResourceSaleRefund * title.ResourceSellCostFactor;
         lines.Add(UxKit.Format("TradePricesFmt", faction.NameKey.Text, title.NameKey.Text, title.ResourceBuyCostFactor, sell));
-    }
-
-    static void DeliveryLines(CommTradeTab tab, List<string> lines)
-    {
-        var mode = tab.SimMode.GameMode;
-        var seen = new HashSet<Mission>();
-        Add(mode.Missions, accepted: true);
-        if (tab.Callee.AI is { } ai && ai.WillProvideMissions(tab.Caller) && ai.GetProvidedMissions(tab.Caller) is { } offered) Add(offered, accepted: false);
-
-        void Add(IEnumerable<Mission> missions, bool accepted)
-        {
-            var objectives = new List<DeliverResourcesObjective>();
-            foreach (var m in missions)
-            {
-                if (!seen.Add(m)) continue;
-                objectives.Clear();
-                m.GetObjectives(objectives, activeOnly: accepted);
-                foreach (var o in objectives.Where(o => o.ToShip.ShipID == tab.Callee.UniqueID))
-                {
-                    var rr = o.ResourceType.GetResourceRules();
-                    int money = m.GetRewardSortValue(Reward.SortValueType.Money);
-                    lines.Add(UxKit.Format(accepted ? "DeliveryAcceptedFmt" : "DeliveryOfferedFmt",
-                        (rr.PluralNameKey ?? rr.NameKey).Text, o.Count, o.TargetCount, money.ToString("N0")));
-                }
-            }
-        }
     }
 }

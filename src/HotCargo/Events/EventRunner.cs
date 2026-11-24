@@ -459,11 +459,27 @@ public static class EventRunner
     public readonly record struct Pay(int Money, int Tech, int Crew, int CrewWork, int Resource);
 
     /// <summary>The selected options of the page with this serial, from the shared draft (values kept in each option's range).</summary>
-    public static List<OptionPick> Picks(Run run, EventRules e, int serial) =>
-        MultiChoice.MultiChoices.Draft(run, EventsMultiDomain.Name, serial)
-            .Where(d => d.Option >= 0 && d.Option < e.Options.Length)
-            .Select(d => new OptionPick(d.Option, e.Options[d.Option], d.Value, d.Value * e.Options[d.Option].StepUnits))
+    public static List<OptionPick> Picks(Run run, EventRules e, int serial)
+    {
+        var options = OptionsOf(run, e, serial);
+        return MultiChoice.MultiChoices.Draft(run, EventsMultiDomain.Name, serial)
+            .Where(d => d.Option >= 0 && d.Option < options.Length)
+            .Select(d => new OptionPick(d.Option, options[d.Option], d.Value, d.Value * options[d.Option].StepUnits))
             .ToList();
+    }
+
+    /// <summary>
+    /// Spec 1880: the page's options, with Resource = "@handover" resolved from the open goods hand-over of the page's contact: its
+    /// resource, from 1 to the units still open. Throws when such a page waits without one.
+    /// </summary>
+    public static OptionRules[] OptionsOf(Run run, EventRules e, int serial)
+    {
+        if (!e.Options.Any(o => o.Resource == OptionRules.HandOverResource)) return e.Options;
+        var p = State(run).Pending is { } pending && pending.Serial == serial ? pending : throw new InvalidOperationException($"page {e.ID} serial {serial} is not the pending page");
+        var h = p.Carrier is { } c ? HandOverObjective.ForContact(run, c) : null;
+        if (h is not { Goods: true, ResourceType: { } item }) throw new InvalidOperationException($"page {e.ID} needs an open goods hand-over at its contact");
+        return [.. e.Options.Select(o => o.Resource == OptionRules.HandOverResource ? o.ForHandOver(item.ToString(), 1, h.Remaining) : o)];
+    }
 
     public static float UnitSize(OptionRules o, PendingEvent p) => EventModel.UnitSize(o.Unit, o.UnitPerTier, o.UnitPerHeat, p.Tier, p.Heat);
 
@@ -589,7 +605,7 @@ public static class EventRunner
         }
         foreach (string f in o.ClearFlags) State(run).Flags.Remove(f);
         if (o.Spawn.Length > 0) Spawn(run, sim, o.Spawn, p.Seed, playerIndex);
-        if (o.HandOver) HandOverObjective.Deliver(run, p.Carrier, o.HandOverPay);
+        if (o.HandOver) HandOverObjective.Deliver(run, p.Carrier, o.HandOverPay, p.PickedUnits);
         if (o.ContactTurns != ContactReaction.None) HandOverObjective.React(run, sim, p.Carrier, o.ContactTurns);
         if (o.Effect.Length > 0) Effects[o.Effect](run, sim, playerIndex, p, lines);
         // UI only: the chat tells every player the result.

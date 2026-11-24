@@ -50,7 +50,7 @@ public static class EventView
             var c = e.Choices[i];
             var unmet = EventRunner.ChoiceUnmet(run, c, p, c.IsSubmit ? picks : [], snapshot);
             if (unmet is not null && c.HideIfUnmet) continue;
-            choices.Add(new ChoiceView(i, ChoiceText(run, e, c, p, unmet), unmet is null, c.IsSubmit));
+            choices.Add(new ChoiceView(i, ChoiceText(run, e, c, p, unmet, c.IsSubmit ? picks.Sum(k => k.Units) : 0f), unmet is null, c.IsSubmit));
         }
         string body = EventText.Fill(p.Lead.Length > 0 ? $"{p.Lead}\n\n{e.Text}" : e.Text, run.State.FleetTech, p);
         if (e.OfferLine.Length > 0 && e.Choices.FirstOrDefault(c => c.IsSubmit) is { } submit)
@@ -62,18 +62,25 @@ public static class EventView
     static List<OptionView> Options(Run run, EventRules e, PendingEvent p, IReadOnlyList<EventRunner.OptionPick> picks, Snapshot snapshot)
     {
         var rows = new List<OptionView>();
-        for (int i = 0; i < e.Options.Length; i++)
+        var options = EventRunner.OptionsOf(run, e, p.Serial);
+        // Spec 1880: the goods option also says what its amount pays.
+        var goods = p.Carrier is { } contact && HandOverObjective.ForContact(run, contact) is { Goods: true } h ? h : null;
+        for (int i = 0; i < options.Length; i++)
         {
-            var o = e.Options[i];
+            var o = options[i];
+            bool paysJob = goods is not null && e.Options[i].Resource == OptionRules.HandOverResource;
+            string Value(float units) => ValueText(run, o, units, p) + (!paysJob ? ""
+                : goods!.Completes(units) ? ", " + EventText.Money(goods.GoodsPay(units))
+                : ", " + Cosmoteer.Localization.Strings.FormatText("HotCargoEventMissions/GoodsSoFarFmt", goods.Delivered + units, goods.MinAmount));
             var unmet = EventModel.FirstUnmet(EventRunner.ToNeed(run, o.Need, p.Tier, p.TechValue), snapshot);
             if (unmet is not null && o.HideIfUnmet) continue;
             var pick = picks.FirstOrDefault(k => k.Index == i);
             int steps = pick?.Steps ?? o.MinSteps;
             var slider = o.MaxSteps > o.MinSteps
-                ? new Ui.SliderSpec($"ev{p.Serial}.{i}", "", o.MinSteps, o.MaxSteps, 1, o.MinSteps, v => ValueText(run, o, v * o.StepUnits, p))
+                ? new Ui.SliderSpec($"ev{p.Serial}.{i}", "", o.MinSteps, o.MaxSteps, 1, o.MinSteps, v => Value(v * o.StepUnits))
                 : null;
             string text = EventText.Fill(o.Text, run.State.FleetTech, p);
-            if (slider is null && ValueText(run, o, o.MinUnits, p) is { Length: > 0 } fixedValue) text += $" <gray>({fixedValue})</gray>";
+            if (slider is null && Value(o.MinUnits) is { Length: > 0 } fixedValue) text += $" <gray>({fixedValue})</gray>";
             rows.Add(new OptionView(i, unmet is null ? text : $"<gray>{text}</gray>", unmet is null, unmet is null ? null : EventText.Reason(unmet), slider, pick is not null, steps));
         }
         return rows;
@@ -99,7 +106,7 @@ public static class EventView
     /// "[Sensor Array] Scan it first. (-5,000 credits)" with the requirement tag in FTL blue, or grey text with the reason in red.
     /// No number prefix: the UX area draws the key numbers next to the buttons (Ux/DialogueKeys).
     /// </summary>
-    static string ChoiceText(Run run, EventRules e, ChoiceRules c, PendingEvent p, Unmet? unmet)
+    static string ChoiceText(Run run, EventRules e, ChoiceRules c, PendingEvent p, Unmet? unmet, float pickedUnits)
     {
         string tag = RequirementTag(c.Need);
         string cost = CostText(run, c.Cost, p);
@@ -108,7 +115,7 @@ public static class EventView
             return $"<gray>{EventText.Fill(c.Text, run.State.FleetTech, p)}{(cost.Length > 0 ? $" ({cost})" : "")}</gray>   <bad>{EventText.Reason(unmet)}</bad>";
         string tagXml = tag.Length > 0 ? EventText.Unlocked.FormatWithXml($"[{tag}]") + " " : "";
         string costXml = cost.Length > 0 ? $" <gray>({cost})</gray>" : "";
-        string gain = e.HideEffects || c.Outcomes.Length != 1 ? "" : GainText(run, c.Outcomes[0], p);
+        string gain = e.HideEffects || c.Outcomes.Length != 1 ? "" : GainText(run, c.Outcomes[0], p, pickedUnits);
         return $"{tagXml}{EventText.Fill(c.Text, run.State.FleetTech, p)}{costXml}{(gain.Length > 0 ? "   " + gain : "")}";
     }
 
@@ -117,19 +124,23 @@ public static class EventView
     /// hand-over's job pay), fame, heat, crew and resources. A choice with several outcomes is a gamble and shows none. An offer price
     /// is in the choice text already.
     /// </summary>
-    static string GainText(Run run, OutcomeRules o, PendingEvent p)
+    static string GainText(Run run, OutcomeRules o, PendingEvent p, float pickedUnits)
     {
-        var job = o.HandOver && p.Carrier is { } contact ? HandOverObjective.ForContact(run, contact)?.Mission : null;
+        var handOver = o.HandOver && p.Carrier is { } contact ? HandOverObjective.ForContact(run, contact) : null;
+        // Spec 1880: a goods delivery pays for the picked units; with no amount in range picked yet, its pay is not shown.
+        if (handOver is { Goods: true } && (pickedUnits < 1 || pickedUnits > handOver.Remaining || !handOver.Completes(pickedUnits))) handOver = null;
+        var job = handOver?.Mission;
+        float handOverPay = handOver is { Goods: true } ? handOver.GoodsPayFactor(pickedUnits) : o.HandOverPay;
         var rewards = job?.Rewards ?? [];
         var g = EventModel.Gain(
             EventRunner.Credits(run, o.Money, o.MoneyTech, p.Tier, p.TechValue),
             o.Fame != 0 ? EventRunner.FameAmount(run, o.Fame, p.Tier) : 0,
             o.Heat * run.T.Events.HeatScale,
             o.Crew - o.CrewLeaves,
-            o.HandOver,
+            job is not null,
             rewards.OfType<Cosmoteer.Modes.Career.Missions.Rewards.MoneyReward>().Select(r => r.Money),
             rewards.OfType<Cosmoteer.Modes.Career.Missions.Rewards.FameReward>().Sum(r => r.Fame),
-            o.HandOverPay);
+            handOverPay);
         var parts = new List<string>();
         if (g.Money != 0) parts.Add(EventText.Money(g.Money));
         if (g.Fame != 0) parts.Add(EventText.Fame(g.Fame));

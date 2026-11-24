@@ -30,7 +30,7 @@ public static class EventsArea
         var p = run.State.Events.Pending ?? throw new InvalidOperationException("no pending event");
         var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         int index = Int(parts[0]) - 1;
-        var options = EventLibrary.Get(p.EventId).Options;
+        var options = EventRunner.OptionsOf(run, EventLibrary.Get(p.EventId), p.Serial);
         if (index < 0 || index >= options.Length) throw new InvalidOperationException($"event {p.EventId} has no option {index + 1}");
         int steps = parts.Length > 1 ? Int(parts[1]) : options[index].MinSteps;
         MultiChoice.DraftSender.Toggle(run, EventsMultiDomain.Name, p.Serial, index, select, steps);
@@ -174,6 +174,8 @@ public static class EventsArea
             var sim = RequireSim();
             foreach (var e in EventLibrary.InOrder)
             {
+                // The goods page (spec 1880) takes its option from an open goods hand-over, so it renders only at one.
+                if (e.Options.Any(o => o.Resource == OptionRules.HandOverResource)) continue;
                 var p = new PendingEvent { EventId = e.ID, Serial = 0, Tier = run.CurrentTier, TechValue = EventRunner.CurrentTechValue(run) };
                 var page = EventView.Pending(run, sim, p, run.Game.LocalPlayerIndex);
                 Log.Info($"AUTOTEST EVENT {e.ID} ({e.Trigger}): {page.Title}\n{EventView.Plain(page.Body)}");
@@ -352,6 +354,52 @@ public static class EventsArea
         // 1: the latest hand-over objective in the log (any mission) is done, 0: open, -1: failed, -2: none.
         // 1 while an open ship delivery arrived but waits for the players' crew to leave the ship (spec 1110).
         Autotest.Fields["ev_ship_wait"] = () => OpenHandOvers().Any(o => o.ShipWait(RequireSim()) is not null) ? 1 : 0;
+        // Spec 1880: ev_res_add <resource> <n>: n units of the resource into the human ships' storage (lowest ship ID first). Test only.
+        Autotest.Commands["ev_res_add"] = arg =>
+        {
+            var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var rid = new ID<Cosmoteer.Resources.ResourceRules>(parts[0]);
+            int left = Int(parts[1]);
+            foreach (var ship in Tech.Vaults.HumanShips(RequireSim()).OrderBy(sh => sh.UniqueID)) left -= ship.Resources.AddResources(rid, left, excludeConstructionSinks: true);
+            if (left > 0) throw new InvalidOperationException($"no storage for {left} {rid}");
+            Autotest.Wait(1);
+        };
+        // ev_goods_open: the players hail the contact of the latest open goods delivery and open its line (the shared page). Test only.
+        Autotest.Commands["ev_goods_open"] = _ =>
+        {
+            var h = OpenHandOvers().LastOrDefault(o => o.Goods) ?? throw new InvalidOperationException("no open goods delivery");
+            var contact = h.Contact.TargetShip ?? throw new InvalidOperationException("the goods contact is not live");
+            EventHail.OpenLine(RequireRun(), RequireSim(), RequireRun().Game.LocalPlayerIndex, HandOverObjective.GoodsPage, contact.UniqueID);
+            Autotest.Wait(1);
+        };
+        // ev_goods_supply: MinAmount of the latest open goods delivery's resource into the human ships' storage. Test only.
+        Autotest.Commands["ev_goods_supply"] = _ =>
+        {
+            var h = OpenHandOvers().LastOrDefault(o => o.Goods) ?? throw new InvalidOperationException("no open goods delivery");
+            var rid = h.ResourceType ?? throw new InvalidOperationException("a goods delivery has no resource");
+            int left = h.MinAmount;
+            foreach (var ship in Tech.Vaults.HumanShips(RequireSim()).OrderBy(sh => sh.UniqueID)) left -= ship.Resources.AddResources(rid, left, excludeConstructionSinks: true);
+            if (left > 0) throw new InvalidOperationException($"no storage for {left} {rid}");
+            Autotest.Wait(1);
+        };
+        // ev_goods_pick: on the open goods page, selects the option with what the fleet holds, at most the units still open. Test only.
+        Autotest.Commands["ev_goods_pick"] = _ =>
+        {
+            var run = RequireRun();
+            var p = run.State.Events.Pending is { EventId: HandOverObjective.GoodsPage } page ? page : throw new InvalidOperationException("the goods page is not open");
+            var h = OpenHandOvers().LastOrDefault(o => o.Goods) ?? throw new InvalidOperationException("no open goods delivery");
+            int units = Math.Min(h.Remaining, HandOverObjective.FleetUnits(RequireSim(), HandOverObjective.Forms(h.ResourceType!.Value)));
+            MultiChoice.DraftSender.Toggle(run, EventsMultiDomain.Name, p.Serial, 0, true, units);
+            Autotest.Wait(1);
+        };
+        Autotest.Fields["ev_goods_held"] = () => OpenHandOvers().LastOrDefault(o => o.Goods) is { Held: true } ? 1 : 0;
+        // The money reward of the latest goods delivery's mission (after the hand-over: what the amount pays).
+        Autotest.Fields["ev_goods_reward"] = () =>
+        {
+            var found = new List<HandOverObjective>();
+            foreach (Mission m in RequireRun().Mode.Missions) m.GetObjectives(found);
+            return found.LastOrDefault(o => o.Goods)?.Mission?.Rewards.OfType<Cosmoteer.Modes.Career.Missions.Rewards.MoneyReward>().Sum(r => r.Money) ?? -1;
+        };
         Autotest.Fields["ev_handover"] = () =>
         {
             var found = new List<HandOverObjective>();
