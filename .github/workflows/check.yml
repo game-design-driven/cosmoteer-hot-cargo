@@ -87,6 +87,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           { echo "game-tests=$run"; echo "tests=$tests"; echo "shards=$(jq -cn --argjson n "$shards" '[range(1; $n + 1)]')"
             echo "full=$(sed -n 's/^FULL //p' set.txt | sed 's/yes/true/; s/no/false/')"; } >> "$GITHUB_OUTPUT"
+      # Co-op determinism lint: new code that can desync co-op (clock, random, local player, hashes, threads, file order).
+      - run: python3 tools/determinism-lint.py
       - uses: actions/checkout@v7.0.1
         with:
           repository: Yarden-zamir/cosmoteer-hot-cargo-game-refs
