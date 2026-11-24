@@ -266,10 +266,20 @@ expect tele_relay_received > 0
 
 step telemetry.note
 # Spec 1986, 1988: the client's playtest note reaches the host's live notes file at once, and the game keeps running.
+# Spec 1995, 1996: its small screenshot reaches the host's notes folder, the host's line names that copy, and the host confirms the line.
+on 1 telenote shot
 on 1 telenote open
 on 1 telenote type the client saw this
 on 1 telenote save
 waitfor telenote_live_others >= 1 30
 on 1 waitfor telenote_open == 0 10
+on 1 waitfor telenote_unsent == 0 30
+on 1 waitfor tele_relay_pending_shots == 0 60
+waitfor telenote_host_shots >= 1 30
+
+step telemetry.crash
+# Spec 1997: a client crash ends its session with a crash event, and the rest of its files reaches the host.
+on 1 telecrash
+waitfor tele_relay_crashes >= 1 60
 end
 # tier: smoke

@@ -216,15 +216,46 @@ public class RelayModelTests
     [Fact]
     public void File_and_folder_names_cannot_leave_the_player_folder()
     {
-        Assert.True(RelayModel.IsFileName("r1__20261115-101010-123.part2.jsonl"));
-        Assert.False(RelayModel.IsFileName("../x.jsonl"));
-        Assert.False(RelayModel.IsFileName("a/b.jsonl"));
-        Assert.False(RelayModel.IsFileName("a\\b.jsonl"));
-        Assert.False(RelayModel.IsFileName("x.txt"));
-        Assert.False(RelayModel.IsFileName(null));
+        Assert.Equal(RelayFile.Session, RelayModel.Kind("r1__20261115-101010-123.part2.jsonl"));
+        Assert.Equal(RelayFile.NoteShot, RelayModel.Kind("r1__20261115-101010.jpg"));
+        Assert.Null(RelayModel.Kind("../x.jsonl"));
+        Assert.Null(RelayModel.Kind("a/b.jsonl"));
+        Assert.Null(RelayModel.Kind("a\\b.jpg"));
+        Assert.Null(RelayModel.Kind("x.txt"));
+        Assert.Null(RelayModel.Kind("x.png"));
+        Assert.Null(RelayModel.Kind("x.jpg.tmp"));
+        Assert.Null(RelayModel.Kind(null));
         Assert.Equal("Tom_B", RelayModel.FolderName("Tom B"));
         Assert.Equal("player", RelayModel.FolderName("../.."));
         Assert.Equal(40, RelayModel.FolderName(new string('a', 99)).Length);
+        Assert.Equal("Tom_B__r1__t.jpg", RelayModel.HostShotName("Tom B", "r1__t.jpg"));
+    }
+
+    [Fact]
+    public void The_screenshot_for_the_host_keeps_its_aspect_and_never_grows()
+    {
+        Assert.Equal((1280, 720), RelayModel.ShotSize(3840, 2160, 1280));
+        Assert.Equal((1280, 800), RelayModel.ShotSize(2560, 1600, 1280));
+        Assert.Equal((1024, 768), RelayModel.ShotSize(1024, 768, 1280));
+        Assert.Equal((1280, 1), RelayModel.ShotSize(100_000, 1, 1280));
+    }
+
+    [Fact]
+    public void A_host_note_line_names_the_host_copy_of_the_screenshot()
+    {
+        string line = """{"e":"note","text":"hi","screenshot":"r1__t.png","screenshot_small":"r1__t.jpg"}""";
+        using var doc = JsonDocument.Parse(RelayModel.HostNoteLine(line, "Tom B")!);
+        Assert.Equal("Tom_B__r1__t.jpg", doc.RootElement.GetProperty("screenshot").GetString());
+        Assert.Equal("r1__t.png", doc.RootElement.GetProperty("screenshot_client").GetString());
+        Assert.False(doc.RootElement.TryGetProperty("screenshot_small", out _));
+        Assert.Equal("hi", doc.RootElement.GetProperty("text").GetString());
+
+        // Without a small copy (or with a name that the relay refuses) the line keeps the client's screenshot field.
+        using var none = JsonDocument.Parse(RelayModel.HostNoteLine("""{"e":"note","screenshot":null}""", "Tom")!);
+        Assert.Equal(JsonValueKind.Null, none.RootElement.GetProperty("screenshot").ValueKind);
+        using var bad = JsonDocument.Parse(RelayModel.HostNoteLine("""{"screenshot":"a.png","screenshot_small":"../a.jpg"}""", "Tom")!);
+        Assert.Equal("a.png", bad.RootElement.GetProperty("screenshot").GetString());
+        Assert.Null(RelayModel.HostNoteLine("[1]", "Tom"));
     }
 }
 

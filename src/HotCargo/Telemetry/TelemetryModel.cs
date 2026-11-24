@@ -297,10 +297,44 @@ public static class RelayModel
         return (have, (int)Math.Min(chunkBytes, size - have));
     }
 
-    /// <summary>A file name that the host accepts: a plain telemetry file name, no folder part.</summary>
-    public static bool IsFileName(string? name) =>
-        name is { Length: > 6 and <= 200 } && name.EndsWith(".jsonl", StringComparison.Ordinal) && name.IndexOfAny(['/', '\\', ':']) < 0
-        && !name.Contains("..", StringComparison.Ordinal) && name.Trim() == name;
+    /// <summary>
+    /// The kind of a file name that the host accepts, or null: a plain name without a folder part, a telemetry file (.jsonl) or a
+    /// note screenshot for the host (.jpg, spec 1995).
+    /// </summary>
+    public static RelayFile? Kind(string? name)
+    {
+        if (name is not { Length: > 4 and <= 200 } || name.IndexOfAny(['/', '\\', ':']) >= 0 || name.Contains("..", StringComparison.Ordinal) || name.Trim() != name)
+            return null;
+        if (name.EndsWith(".jsonl", StringComparison.Ordinal)) return RelayFile.Session;
+        if (name.EndsWith(".jpg", StringComparison.Ordinal)) return RelayFile.NoteShot;
+        return null;
+    }
+
+    /// <summary>Spec 1995: the host refuses note screenshot bytes past this size. A 1280 px JPEG is far below it.</summary>
+    public const long MaxNoteShotBytes = 8 * 1024 * 1024;
+
+    /// <summary>Spec 1995: the name of a client's note screenshot in the host's telemetry/notes/ folder.</summary>
+    public static string HostShotName(string? playerName, string file) => $"{FolderName(playerName)}__{file}";
+
+    /// <summary>Spec 1995: the size of the screenshot for the host: at most maxWidth wide, same aspect ratio, never larger than the source.</summary>
+    public static (int Width, int Height) ShotSize(int width, int height, int maxWidth) =>
+        width <= maxWidth ? (width, height) : (maxWidth, Math.Max(1, (int)Math.Round((double)height * maxWidth / width)));
+
+    /// <summary>
+    /// Spec 1996: a client's note line as the host writes it to its notes.jsonl. With a screenshot for the host, "screenshot" names
+    /// the host's copy and "screenshot_client" the client's own file. Null for a line that is no JSON object.
+    /// </summary>
+    public static string? HostNoteLine(string line, string? playerName)
+    {
+        if (System.Text.Json.Nodes.JsonNode.Parse(line) is not System.Text.Json.Nodes.JsonObject o) return null;
+        if (o["screenshot_small"] is System.Text.Json.Nodes.JsonValue v && v.TryGetValue(out string? small) && Kind(small) == RelayFile.NoteShot)
+        {
+            o["screenshot_client"] = o["screenshot"]?.DeepClone();
+            o["screenshot"] = HostShotName(playerName, small);
+        }
+        o.Remove("screenshot_small");
+        return o.ToJsonString();
+    }
 
     /// <summary>The folder of a player on the host: the player's name with letters, digits, '-' and '_' only, at most 40 characters.</summary>
     public static string FolderName(string? playerName)
@@ -309,6 +343,9 @@ public static class RelayModel
         return s.Length == 0 ? "player" : s[..Math.Min(s.Length, 40)];
     }
 }
+
+/// <summary>What a relayed file is: a telemetry file (host: players/&lt;name&gt;/) or a note screenshot (host: notes/&lt;name&gt;__&lt;file&gt;).</summary>
+public enum RelayFile { Session, NoteShot }
 
 /// <summary>Spec 1760: what the players' fleet does, in the order of the priority rule. The first activity whose signal is on wins.</summary>
 public enum Activity { Fight, Build, Trade, Travel, Repair, Idle }
