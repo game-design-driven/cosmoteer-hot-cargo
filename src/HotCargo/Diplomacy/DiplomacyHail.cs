@@ -71,12 +71,14 @@ public sealed class DiplomacyHail : IHailProvider
                 return true;
             case Offer.DemandSurrender:
                 if (!enemy || callee.AI?.GetCommsModule<AIDialogueModule>() is null) { why = "not an enemy that talks"; return false; }
+                if (OffersSurrender(run, sim, caller, callee)) { why = "they offer their own surrender"; return false; }
                 return true;
             case Offer.AcceptYield:
                 if (!enemy || !S(run).Rolled.Contains(DiplomacyState.Key(callee.UniqueID, "yieldok"))) { why = "no surrender offer"; return false; }
                 return true;
             case Offer.OfferSurrender:
                 if (!enemy || hunter || callee.AI?.GetCommsModule<AIDialogueModule>() is null) { why = "not an enemy that takes a surrender"; return false; }
+                if (OffersSurrender(run, sim, caller, callee)) { why = "they offer their own surrender"; return false; }
                 if (!Situation.CanPay(run, player, Quotes.OfferPrice(run, sim, player, callee))) { why = "money"; return false; }
                 return true;
             case Offer.Hold:
@@ -187,7 +189,8 @@ public sealed class DiplomacyHail : IHailProvider
             Button(run, sim, player, caller, hunter, page, Offer.AcceptYield, 0,
                 payout > 0 ? DipText.Format("AcceptYieldFmt", Events.EventText.Money(payout)) : DipText.Text("AcceptYieldFuel"));
         }
-        Button(run, sim, player, caller, hunter, page, Offer.DemandSurrender, 0, DipText.Format("DemandSurrenderFmt", Pct(Quotes.DemandSurrender(run, sim, player, hunter))));
+        // Spec 2221: no demand to a hunter that already offers its surrender.
+        else Button(run, sim, player, caller, hunter, page, Offer.DemandSurrender, 0, DipText.Format("DemandSurrenderFmt", Pct(Quotes.DemandSurrender(run, sim, player, hunter))));
         if (!talked) Button(run, sim, player, caller, hunter, page, Offer.Refuse, 0, DipText.Text("Fight"), close: true);
     }
 
@@ -216,10 +219,18 @@ public sealed class DiplomacyHail : IHailProvider
         }
     }
 
+    /// <summary>
+    /// Spec 2221: the AI ship offers its own surrender to the caller now: the vanilla offer (spec 1526, 2220), or a hunter's yield (spec 572).
+    /// </summary>
+    static bool OffersSurrender(Run run, SimRoot sim, Ship caller, Ship ai) =>
+        S(run).Rolled.Contains(DiplomacyState.Key(ai.UniqueID, "yieldok")) || Situation.Career(sim).GetSurrenderForPrice(ai, caller).HasValue;
+
     void EnemyPage(Run run, SimRoot sim, int player, Ship caller, Ship ai, HailPage page)
     {
         if (page.PrimaryDialogue.Length == 0) page.AddText(DipText.Format("EnemyFmt", ai.Metadata.XmlShipName));
         AlliesText(run, sim, ai, page);
+        // Spec 2221: a ship that offers its own surrender shows only the vanilla accept and decline, not the players' surrender or a demand.
+        if (OffersSurrender(run, sim, caller, ai)) return;
         Button(run, sim, player, caller, ai, page, Offer.DemandSurrender, 0, DipText.Format("DemandSurrenderFmt", Pct(Quotes.DemandSurrender(run, sim, player, ai))));
         Button(run, sim, player, caller, ai, page, Offer.OfferSurrender, 0,
             DipText.Format("OfferSurrenderFmt", Cost(run, Quotes.OfferPrice(run, sim, player, ai)), Pct(Quotes.OfferSurrender(run, sim, player, ai))));

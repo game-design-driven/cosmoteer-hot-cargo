@@ -3,3 +3,4 @@
 # were on main before this file need no block. Get the next free block with scripts/spec-block.sh <spec file> [size].
 1890-1899 64-escorts.md
 2200-2219 02-design-pillars.md
+2220-2229 37-diplomacy.md

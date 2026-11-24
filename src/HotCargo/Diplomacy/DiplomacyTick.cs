@@ -25,6 +25,7 @@ static class DiplomacyTick
         if (run.State.GameSeconds < S(run).NextCheck) return;
         S(run).NextCheck = run.State.GameSeconds + run.T.Diplomacy.CheckSeconds;
         TickHeld(run, sim);
+        TickFights(run, sim);
         TickHires(run, sim);
         TickHails(run, sim);
     });
@@ -37,6 +38,7 @@ static class DiplomacyTick
         s.Hires.Clear();
         s.Leaving.Clear();
         s.FeeAsks.Clear();
+        s.FightSince.Clear();
     }
 
     static float Roll(Ship ship, ulong salt) => new FastRand((uint)ship.UniqueID, salt).Single();
@@ -100,6 +102,34 @@ static class DiplomacyTick
             }
             held.RemoveAt(i--);
         }
+    }
+
+    /// <summary>Spec 2220: notes when each enemy AI ship comes within AreaRadius of a human ship, and forgets ships that are gone.</summary>
+    static void TickFights(Run run, SimRoot sim)
+    {
+        var since = S(run).FightSince;
+        float radius = run.T.Diplomacy.AreaRadius;
+        var humans = sim.Ships.HumanPlayerSignificantShips;
+        for (int i = 0; i < sim.Ships.Count; i++)
+        {
+            var ship = sim.Ships[i];
+            if (ship.AI is null || !ship.IsSignificant || ship.IsJunk || ship.IsHumanPlayerShip || since.ContainsKey(ship.UniqueID)) continue;
+            foreach (var human in humans)
+                if (human.IsEnemiesWith(ship) && human.DetWorldCenter.DistanceTo(ship.DetWorldCenter) <= radius)
+                {
+                    since[ship.UniqueID] = run.State.GameSeconds;
+                    break;
+                }
+        }
+        foreach (var id in since.Keys.Where(id => sim.Ships[id] is not { } s || !s.ExistsInSim(sim) || s.IsJunk).ToList()) since.Remove(id);
+    }
+
+    /// <summary>Spec 2220: the AI ship fought long enough or took enough damage to offer its surrender. Reads sim and run state only.</summary>
+    internal static bool SurrenderReady(Run run, Ship ai)
+    {
+        var t = run.T.Diplomacy;
+        double? fight = S(run).FightSince.TryGetValue(ai.UniqueID, out double at) ? run.State.GameSeconds - at : null;
+        return DiplomacyModel.SurrenderReady(fight, 1f - HunterOrders.HealthFraction(ai), t.SurrenderMinFightSeconds, t.SurrenderMinDamage);
     }
 
     static void TickHires(Run run, SimRoot sim)

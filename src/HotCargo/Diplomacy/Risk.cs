@@ -109,6 +109,25 @@ static class RiskSurrenderPatch
     }
 }
 
+/// <summary>
+/// Spec 2220: an AI ship offers its own surrender (hail and dialogue) only after it fought long enough or took enough damage,
+/// with or without the risk model. Vanilla allows it after any damage, so a ship hit once at the start of a fight surrendered at once.
+/// </summary>
+[HarmonyPatch(typeof(CareerSimModeManager), nameof(CareerSimModeManager.GetSurrenderForPrice), [typeof(Ship), typeof(Ship), typeof(bool)], [ArgumentType.Normal, ArgumentType.Normal, ArgumentType.Out])]
+static class SurrenderReadyPatch
+{
+    static void Postfix(CareerSimModeManager __instance, Ship surrenderer, ref int? __result)
+    {
+        if (__result is null || surrenderer.IsHumanPlayerShip) return;
+        try
+        {
+            if (Run.Current is not { } run || run.Game.Sim != __instance.Sim || !run.T.Diplomacy.Enabled) return;
+            if (!DiplomacyTick.SurrenderReady(run, surrenderer)) __result = null;
+        }
+        catch (Exception ex) { Errors.Report("surrender ready", ex.Message, ex); }
+    }
+}
+
 /// <summary>Spec 1528: the vanilla demand dialogue names the allies that the risk model counted.</summary>
 [HarmonyPatch(typeof(AIDialogueModule), nameof(AIDialogueModule.GetDialogueExchange))]
 static class RiskDemandTextPatch

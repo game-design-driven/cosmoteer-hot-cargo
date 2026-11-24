@@ -42,6 +42,8 @@ public sealed class DiplomacyState
     [Serialize(Optional = true)] public List<HailResult> Results = new();
     /// <summary>Counts results, so each result line gets its own number.</summary>
     [Serialize(Optional = true)] public int Serial;
+    /// <summary>Spec 2220: run game seconds at which each AI ship first came within AreaRadius of a human ship that it is an enemy of, by ship.</summary>
+    [Serialize(Optional = true)] public Dictionary<ObjectID, double> FightSince = new();
     /// <summary>Spec 1818: paid hires this run: hired help, and new mercenary contracts (not the extensions).</summary>
     [Serialize(Optional = true)] public int PaidHires;
     /// <summary>Spec 1818: health that ships on a paid hire lost this run, in whole ships (0.5 is half a ship).</summary>

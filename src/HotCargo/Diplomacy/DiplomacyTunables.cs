@@ -96,6 +96,10 @@ public sealed class DiplomacyTunables
     [Serialize(Optional = true)] public float HunterYieldHealth = 0.35f;
     /// <summary>Chance, rolled once per hunter when it drops below HunterYieldHealth, that it offers its surrender.</summary>
     [Serialize(Optional = true)] public float HunterYieldChance = 0.4f;
+    /// <summary>Spec 2220: an AI ship offers its surrender only after this many game seconds in the fight with the players, or after it lost SurrenderMinDamage.</summary>
+    [Serialize(Optional = true)] public float SurrenderMinFightSeconds = 45f;
+    /// <summary>Spec 2220: an AI ship offers its surrender only after it lost this share of its health (0 to 1), or after SurrenderMinFightSeconds in the fight.</summary>
+    [Serialize(Optional = true)] public float SurrenderMinDamage = 0.3f;
     /// <summary>Base chance that an enemy accepts the players' surrender.</summary>
     [Serialize(Optional = true)] public float OfferChanceBase = 0.5f;
     /// <summary>Chance added per point of the enemy's leverage (they are stronger).</summary>
@@ -215,6 +219,7 @@ public sealed class DiplomacyTunables
                 && RiskBraveryDefault is >= 0 and <= 1, "Diplomacy.RiskJoinRadius, RiskRangeWeight must be 0 or more; RiskCrewWeight, RiskBraverySpread, RiskBraveryDefault 0 to 1");
         require(RiskSurrenderAt <= RiskFleeAt && RiskFleeAt < RiskDemandAt && RiskSurrenderAt >= 0,
             "Diplomacy.RiskSurrenderAt <= RiskFleeAt < RiskDemandAt, and RiskSurrenderAt 0 or more");
+        require(SurrenderMinFightSeconds >= 0 && SurrenderMinDamage is >= 0 and <= 1, "Diplomacy.SurrenderMinFightSeconds must be 0 or more, SurrenderMinDamage 0 to 1");
         require(HireSureUnits > 0 && HireMinShare is > 0 and <= 1 && HirePerHeat >= 0 && HireUseFalloff >= 0 && HireLossFalloff >= 0,
             "Diplomacy.HireSureUnits must be above 0, HireMinShare above 0 to 1, HirePerHeat, HireUseFalloff and HireLossFalloff 0 or more");
         var groups = new HashSet<string>();

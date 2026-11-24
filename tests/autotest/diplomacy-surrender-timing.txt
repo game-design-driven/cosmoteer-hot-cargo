@@ -1,0 +1,45 @@
+# Issue #289 (spec 2220, 2221): an enemy offered its surrender right after it attacked, and its page offered the players' own
+# surrender to it. Now it offers its surrender only after SurrenderMinFightSeconds in the fight or SurrenderMinDamage lost, and its
+# page then shows only the vanilla accept and decline. Vanilla decides alone here (RiskEnabled false), so the stance does not matter.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+aiset FleeEnabled false
+scav_set SpawnChance 0
+fr_set PayForwardChance 0
+openspace 6000
+fr_kill_enemies
+dip_set RiskEnabled false
+dip_set DemandHailChance 0
+dip_set SurrenderMinFightSeconds 12
+dip_set SurrenderMinDamage 0.95
+# A small pirate ship next to the player ship with a tenth of its health gone: vanilla lets it offer its surrender at once (any
+# damage is enough). Its value ratio roll is set, so the ship ID does not decide. The player ship's guns stay on: vanilla needs the
+# players' firepower.
+aispawn pirates 1 1
+ainew_watch 0 300
+aidamage new 0.9
+dip_ai_offers
+wait 3
+# A few seconds into the fight it does not offer its surrender, and its page offers the players' surrender.
+expect dip_offers == 0
+dip_page aispawn
+expect dip_page_offersurrender == 1
+# The fault: without the fight time, vanilla offers it now.
+dip_set SurrenderMinFightSeconds 0
+expect dip_offers == 1
+dip_set SurrenderMinFightSeconds 12
+# After the fight time it offers its surrender, and its page no longer offers the players' surrender or a demand.
+wait 12
+expect dip_offers == 1
+dip_page aispawn
+expect dip_page_offersurrender == 0
+expect dip_page_demand == 0
+# Enough damage is enough on its own: with a long fight time, the ship at 30 % of its health offers once the damage limit is 50 %.
+dip_set SurrenderMinFightSeconds 1000
+aidamage new 0.3
+expect dip_offers == 0
+dip_set SurrenderMinDamage 0.5
+expect dip_offers == 1
+quit
