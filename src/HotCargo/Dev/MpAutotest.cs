@@ -640,3 +640,29 @@ static class DesyncPatch
                   $"Hot Cargo state: heat={s?.Heat:0.000} stages={s?.StagesStarted} sector={s?.SectorIndex} tech={s?.FleetTech} result={s?.Result}");
     }
 }
+
+/// <summary>
+/// Co-op autotests: a client that finds a hash that differs from the host's logs where: the tick, the phase and the fixed update
+/// bucket of the first pair that differs (FixedUpdateBuckets: ShipAI, Commands, Jobs and so on). The vanilla "Out of sync" line
+/// goes to the vanilla log only, and the test log keeps only its last lines (full suite 45282914405: a desync loop that the Hot
+/// Cargo state hash did not show). The patch reads the two queues and changes nothing.
+/// </summary>
+[HarmonyPatch(typeof(MPClientManager), "ValidateIntegrityHashes")]
+static class OutOfSyncDetail
+{
+    static void Prefix(MPClientManager __instance)
+    {
+        if (!Autotest.IsActive || __instance._isOutOfSync) return;
+        using var ours = __instance._ourIntegrityHashQueue.GetEnumerator();
+        using var theirs = __instance._theirIntegrityHashQueue.GetEnumerator();
+        while (ours.MoveNext() && theirs.MoveNext())
+        {
+            if (Equals(ours.Current, theirs.Current)) continue;
+            var h = ours.Current;
+            string bucket = h.Phase == IntegrityHashPhase.FixedUpdate ? FixedUpdateBuckets.GetBucketName(h.Bucket) : "-";
+            Log.Error($"MP OUT OF SYNC at sim tick {h.Tick}, input tick {h.InputTick}, game={MpAutotest._mpGames}: phase {h.Phase}, bucket {bucket} ({h.Bucket}), " +
+                      $"hash {h.Hash} here, {theirs.Current.Hash} on the host");
+            return;
+        }
+    }
+}
