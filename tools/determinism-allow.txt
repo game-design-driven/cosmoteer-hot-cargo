@@ -1,0 +1,61 @@
+# Known lines of tools/determinism-lint.py that do not change the sim: "<file> <rule> <count>  # reason".
+# The lint fails when a file gets more lines of a rule than its count here. Checked one by one on 2026-11-24; none of these
+# reaches sim state. A new line needs a fix or a "// determinism: <reason>" mark, not a higher count here.
+
+# Autotest commands and fields in area files (test only, single player or the machine that runs the script).
+src/HotCargo/Ai/AiArea.cs local 1                        # ai_blips field: what the local player sees on radar
+src/HotCargo/Balance/BalanceArea.cs local 2              # balance test commands
+src/HotCargo/Balance/BalanceCensus.cs local 2            # AUTOTEST BALANCE log lines
+src/HotCargo/Contracts/ContractsArea.cs local 6          # money marks and fields of contract tests
+src/HotCargo/Events/EventsArea.cs local 12               # event test commands, fields and log lines
+src/HotCargo/Friendly/FriendlyArea.cs local 3            # friendly test fields
+src/HotCargo/Missions/Mechanics/MechanicsArea.cs local 1 # hold-out order test command
+src/HotCargo/Pursuit/PursuitArea.cs local 2              # pursuit money test fields
+src/HotCargo/SharedChoice/SharedChoiceArea.cs local 1    # AUTOTEST LISTEN log line
+src/HotCargo/ShipAi/ShipAiArea.cs local 2                # tactics_ally test command, single player only
+src/HotCargo/Ux/UxArea.cs ui-mutation 2                  # win test command: a sample score before Run.Win
+
+# This machine's own view: text, sound, comms pages and buttons for the local player. The sim result is the same everywhere.
+src/HotCargo/Contracts/AcceptPatch.cs local 1            # refusal line only on the acting player's screen
+src/HotCargo/Debt/DebtArea.cs local 1                    # debt comms page of the local player
+src/HotCargo/Debt/DebtHail.cs local 2                    # money shown in the lender's comms page
+src/HotCargo/Debt/DebtMissions.cs local 1                # reward text in the mission window
+src/HotCargo/Debt/DebtTick.cs local 1                    # interest sound and notice for the local player (spec 1426)
+src/HotCargo/Diplomacy/DiplomacyHail.cs local 1          # comms page of the local player
+src/HotCargo/Events/EventHail.cs local 1                 # event page that the local player sees
+src/HotCargo/Events/EventRunner.cs local 1               # chat line for the player who chose
+src/HotCargo/Factions/Jumps.cs local 1                   # jump button state in the GUI
+src/HotCargo/Pursuit/Hacker.cs local 1                   # hacker comms page: can the local player pay
+src/HotCargo/Relays/RelayComms.cs local 1                # relay comms page of the local player
+src/HotCargo/Relays/RelayPatches.cs local 1              # "blocked" line for the player who clicked; every machine drops the input
+src/HotCargo/SharedChoice/ListenIn.cs local 5            # listen-in windows and log lines of this machine
+src/HotCargo/SharedChoice/Presence.cs local 1            # own hover is not shown as a remote hover
+src/HotCargo/Worlds/HeatZone.cs local 1                  # heat zone warning text for the local player's ships
+
+# Real time for display, GUI delays and timers, co-op hover messages, and the local tunables file. No sim value reads them.
+src/HotCargo/Core/TunablesFile.cs clock 2                # file poll once a second; changes reach the sim through the host's input
+src/HotCargo/Debris/DebrisGlow.cs clock 1                # glow pulse drawing
+src/HotCargo/Factions/MapPatches.cs clock 1              # map marker cache, UI only
+src/HotCargo/Journey/Buyer.cs clock 1                    # toast after the jump animation
+src/HotCargo/MultiChoice/DraftSender.cs clock 1          # rate of the draft hover messages
+src/HotCargo/Onboarding/Hints.cs clock 2                 # hint check rate
+src/HotCargo/Pursuit/Outage.cs clock 1                   # heat panel flash time
+src/HotCargo/SharedChoice/ListenIn.cs clock 2            # listen-in window linger
+src/HotCargo/SharedChoice/Presence.cs clock 4            # hover message rate and age
+src/HotCargo/ShipAi/TacticsEditor.cs clock 4             # editor note and send timers
+src/HotCargo/Worlds/Current.cs clock 1                   # current arrow animation
+src/HotCargo/Worlds/WorldsArea.cs clock 1                # arrival line delay
+# PlayerTimeIssued and PlayerTimeGiven: vanilla display fields (TargetManager.GetTargetInfo); vanilla AI sets them the same way.
+src/HotCargo/ShipAi/ShipAiController.cs clock 2
+src/HotCargo/Tactics/DisableTargeting.cs clock 1
+src/HotCargo/Thieves/ThiefModules.cs clock 1
+
+# ObjectID.GetHashCode returns the id itself, the same on every machine.
+src/HotCargo/Contracts/ContractBook.cs hash 2
+src/HotCargo/Factions/FactionsArea.cs hash 1
+src/HotCargo/Relays/RelaysArea.cs hash 2
+
+# Dev tools: vault designs built and checked by a script, single player.
+src/HotCargo/Tech/VaultDesigns.cs clock 4                # power-up waits of the vault build tool
+src/HotCargo/Tech/VaultDesigns.cs local 1                # vault build tool loads a design for the local player
+src/HotCargo/Tech/FitVaults.cs fs-order 1                # a set of preset names; its order is never read
