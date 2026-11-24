@@ -32,6 +32,16 @@ internal sealed class EscortHail : IHailProvider, ISharedChoiceDomain
         return found.OfType<IMeetingEscort>().FirstOrDefault(o => o.Waiting && o.Escort.ShipID == ship);
     }
 
+    /// <summary>The ship is the escort of an accepted escort mission that is in progress, waiting or under way (spec 1885). Sim state only.</summary>
+    internal static bool IsEscortShip(Run run, ObjectID ship)
+    {
+        var found = new List<Objective>();
+        foreach (Mission m in run.Mode.Missions)
+            if (m.Completion == CompletionState.InProgress)
+                foreach (var o in m.Objectives) o.GetObjectives(found);
+        return found.OfType<IMeetingEscort>().Any(o => ((Objective)o).Completion == CompletionState.InProgress && o.Escort.ShipID == ship);
+    }
+
     public static int Serial(ObjectID ship) => unchecked((int)(uint)ship);
 
     static string Text(string key) => Strings.GetText("HotCargoEscortHail/" + key);

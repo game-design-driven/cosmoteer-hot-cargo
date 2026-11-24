@@ -184,7 +184,8 @@ ChainEscort
 		}
 		{
 			Type = Ships
-			Tags = [hc_ch_escort]
+			// hc_escort_ship: convoy raiders want this freighter too (Missions/ConvoyTargetPatch.cs, spec 36).
+			Tags = [hc_ch_escort, hc_escort_ship]
 			Distance = [500, 800]
 			Allegiance = FactionCivilian
 			SuppressLocationAssertions = true

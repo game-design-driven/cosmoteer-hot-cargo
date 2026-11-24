@@ -24,8 +24,8 @@ namespace HotCargo.Missions;
 
 /// <summary>
 /// Rules type "HotCargoEscort" (spec requirement 36): completes when the escorted AI ship arrives at the destination (spec 1877, ShipDelivery).
-/// While the mission is active and the escort is live (near a player), the objective points the escort AI at the destination.
-/// The escort does not move in stasis, so it waits when the players leave it behind.
+/// While the mission is active, the escort is live and a player ship is near (spec 1881, <see cref="EscortGuard"/>), the objective points
+/// the escort AI at the destination. Alone, the escort holds where it is, draws raiders, and in stasis it is lost (spec 1882, 1883).
 /// Put it in an AnyOrder next to a ProtectShips on the same ship: ProtectShips fails the mission if the escort dies.
 /// At creation it moves the destination POI to MissionTunables.EscortRouteShare of the gate ring. When the escort covers
 /// EscortAmbushAt of the route, it spawns the raiders from missions/convoy_ambush.rules ahead of the escort.
@@ -121,6 +121,11 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
     [Serialize(Optional = true)] public float RouteSunClearance { get; private set; }
     /// <summary>Spec 1855: a stop before the destination, when the straight route from the meeting place passes a sun.</summary>
     [Serialize(Optional = true)] public Vector2? Via { get; private set; }
+    /// <summary>Spec 1881 to 1884: the guard rule after "Ready".</summary>
+    [Serialize(Optional = true)] public EscortGuardState Guard { get; private set; } = new();
+
+    /// <summary>Spec 1882: guard raids carry the convoy raider tag, so they want the freighter like the ambush (ConvoyTargetPatch).</summary>
+    static readonly ID<SimObjectSpawner> RaiderTag = new("hc_escort_raider");
 
     /// <summary>The escort waits for the players' answer (spec 1850).</summary>
     public bool Waiting => Completion == CompletionState.InProgress && !Ready;
@@ -148,6 +153,8 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
         AmbushSprung.GetIntegrityHash(iHash);
         Ready.GetIntegrityHash(iHash);
         Hailed.GetIntegrityHash(iHash);
+        Guard.Raided.GetIntegrityHash(iHash);
+        Guard.Guarded.GetIntegrityHash(iHash);
     }
 
     public override Range<int>? GetTierRange(SimRoot curSim) => Tier;
@@ -179,14 +186,18 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
 
     public override void OnDisplayLineFocused(GameRoot game) => MissionFocus.Focus(game, Escort);
 
-    public override void GetDisplayLinesImpl(List<DisplayLine> lines, GameRoot game, CompletionState parentState) =>
+    public override void GetDisplayLinesImpl(List<DisplayLine> lines, GameRoot game, CompletionState parentState)
+    {
+        string name = Escort.GetXmlTargetName(game.Sim);
         lines.Add(new DisplayLine
         {
-            Text = Strings.KeyStringFmt(Ready ? "HotCargoObjectives/EscortFmt" : Hailed ? "HotCargoObjectives/EscortAnswerFmt" : "HotCargoObjectives/EscortMeetFmt", Escort.GetXmlTargetName(game.Sim)),
+            Text = Strings.KeyStringFmt(Ready ? "HotCargoObjectives/EscortFmt" : Hailed ? "HotCargoObjectives/EscortAnswerFmt" : "HotCargoObjectives/EscortMeetFmt", name),
             State = Completion,
             CanFocus = CanFocusDisplayLine,
             OnFocused = OnDisplayLineFocused,
         });
+        if (Ready && Completion == CompletionState.InProgress && EscortGuard.AloneLine(Guard, name) is { } alone) lines.Add(alone);
+    }
 
     public override void RegisterEvents(GameRoot game, bool isLoading)
     {
@@ -232,7 +243,9 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
         // Spec 1877: the shared arrival rule, for the stop and for the destination (points, so no hull).
         bool AtPoint(Vector2 point) => Escort.TargetShip is { } ship && ShipDelivery.Arrived(sim.RequireGame(), ship.DetWorldBoundingCircle, new Circle(point, 0f));
         if (Via is { } via && AtPoint(via)) Via = null;
-        if (Escort.TargetShip?.AI is { } ai) SteerTo(ai, Via ?? Destination, 0f);
+        // Spec 1881: alone, the escort holds where it was when the last player ship left.
+        bool guarded = EscortGuard.Tick(sim, Escort, Guard, Tier, RaiderTag, OnDisplayLinesChanged);
+        if (Escort.TargetShip?.AI is { } ai) SteerTo(ai, guarded ? Via ?? Destination : Guard.HoldAt ?? at, 0f);
         float left = at.DistanceTo(Destination);
         if (!AmbushSprung && Escort.TargetShip is not null
             && MissionModel.RouteProgress(Start.DistanceTo(Destination), left) >= MissionArea.TunablesFor(sim.RequireGame()).EscortAmbushAt)

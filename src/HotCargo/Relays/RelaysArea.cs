@@ -22,7 +22,7 @@ namespace HotCargo.Relays;
 /// Entry point of the Relays area (spec 950 to 969): rare relay lockdowns. A lockdown is marked on a system next to the players'
 /// system, so the galaxy map shows it before they jump in. In that system the relays refuse relay jumps until the lockdown opens:
 /// the faction closes them for a time, the faction charges a fee (pay at its station), or pirates hold them (bribe or fight).
-/// A blind jump always works. Every rule reads sim state only and changes it only in the sim tick and in MP inputs.
+/// A fleet that cannot pay or win stays. Every rule reads sim state only and changes it only in the sim tick and in MP inputs.
 /// </summary>
 public static class RelaysArea
 {
@@ -47,8 +47,8 @@ public static class RelaysArea
     public static Lockdown? ActiveHere(Run run) =>
         run.PressureActive && run.State.Relays.Active is { } a && a.Node.Equals(run.Game.CurrentMapNode.UniqueID) ? a : null;
 
-    /// <summary>Spec 954: relay jumps are blocked now. A blind jump passes.</summary>
-    public static bool Blocks(Run run) => ActiveHere(run) is { Open: false } && !run.State.Factions.BlindJump;
+    /// <summary>Spec 954: relay jumps are blocked now.</summary>
+    public static bool Blocks(Run run) => ActiveHere(run) is { Open: false };
 
     /// <summary>The marked kind of a node, or None.</summary>
     public static LockKind MarkedKind(Run run, MapNode node) =>

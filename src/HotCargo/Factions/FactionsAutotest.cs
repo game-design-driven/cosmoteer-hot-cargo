@@ -113,31 +113,7 @@ static class FactionsAutotest
         };
         // fa_set <FactionsTunables field> <value>: changes a live tunable for this run.
         Autotest.Commands["fa_set"] = arg => Autotest.SetField(R().T.Factions, arg);
-        // fa_blind on|off: the real player action (the MP input of the switch under ENGAGE).
-        Autotest.Commands["fa_blind"] = arg => R().Game.NetManager.EnqueueInput(new BlindJumpInput(arg == "on"));
-        // fa_jumpguis: jump windows with a blind jump button. fa_blindbutton: 1 when a shown jump window shows its blind jump button
-        // inside the window (spec 652). Each read logs the window and button state.
-        Autotest.Fields["fa_jumpguis"] = () => Jumps.BlindButtons.Count();
-        // fa_blindclick: clicks the blind jump button of the shown spin-up window, as a player does. Fails when no window shows it.
-        Autotest.Commands["fa_blindclick"] = _ =>
-        {
-            var (_, button) = Jumps.BlindButtons.SingleOrDefault(x => x.Window.SelfActive && x.Button.SelfActive);
-            (button ?? throw new InvalidOperationException("no shown spin-up window shows the blind jump button")).ClickController.InvokeClicked();
-            Autotest.Wait(1);
-        };
-        Autotest.Fields["fa_blindbutton"] = () =>
-        {
-            int shown = 0;
-            foreach (var (window, button) in Jumps.BlindButtons)
-            {
-                var (w, b) = (window.ScreenRect, button.ScreenRect);
-                bool inside = b.Height > 0f && b.Left >= w.Left && b.Right <= w.Right && b.Top >= w.Top && b.Bottom <= w.Bottom;
-                Log.Info($"AUTOTEST blind button: window active={window.SelfActive} rect={window.ScreenRect} button active={button.SelfActive} rect={button.ScreenRect} text={button.Text}");
-                if (window.SelfActive && button.SelfActive && inside) shown++;
-            }
-            return shown;
-        };
-        // fa_jump relay|blind|view: single player. Jumps to the first unvisited neighbor like the "jump" command, without the animation.
+        // fa_jump relay|view: single player. Jumps to the first unvisited neighbor like the "jump" command, without the animation.
         // relay picks watched or clear from the hunters near that relay now (spec 650), like a real jump start.
         Autotest.Commands["fa_jump"] = arg =>
         {
@@ -211,7 +187,6 @@ static class FactionsAutotest
                 Autotest.Check(error is null, $"map tooltip of {node.Name} parses as markup{(error is null ? "" : ": " + error)}");
             }
             Log.Info($"AUTOTEST factions badges: {CommsPatches.Badges(run, TechAutotest.PlayerShip(), TechAutotest.NearestStation())}");
-            Log.Info($"AUTOTEST factions blind button: {Jumps.ButtonText(run)}");
         };
 
         // Spec 664, 665: the saved marks, and the galaxy map nodes whose map text (what the game draws under the name) shows a tag.
@@ -253,8 +228,6 @@ static class FactionsAutotest
         Autotest.Fields["fa_crewratio"] = () => CrewPrice() / Base(_baseCrew);
         Autotest.Fields["fa_fuel"] = Fuel;
         Autotest.Fields["fa_fuelratio"] = () => Fuel() / Base(_baseFuel);
-        // Fuel now minus the relay fuel of fa_base times BlindFuelFactor, rounded up. 0 with the blind switch on (one player ship).
-        Autotest.Fields["fa_blindfuelgap"] = () => Fuel() - FactionsModel.Scale((int)Base(_baseFuel), R().T.Factions.BlindFuelFactor);
         Autotest.Fields["fa_offerratio"] = () => OfferMoney() / Base(_baseOffers);
         Autotest.Fields["fa_rivalsell"] = () => SellRatio(FactionsArea.Roles(R()).Rival);
         Autotest.Fields["fa_plainsell"] = () => SellRatio(GameApp.Rules.Factions.First(f => f != FactionsArea.Roles(R()).Rival));
@@ -262,16 +235,10 @@ static class FactionsAutotest
         Autotest.Fields["fa_answers"] = () => ((CareerSimModeManager)R().Game.Sim.Mode).WillShipAnswerCall(TechAutotest.PlayerShip(), TechAutotest.NearestStation()) ? 1 : 0;
         Autotest.Fields["fa_trade"] = () => R().Game.Sim.Mode.AllowResourceTrade(TechAutotest.PlayerShip(), TechAutotest.NearestStation()) ? 1 : 0;
         Autotest.Fields["fa_refusal"] = () => CommsPatches.LastRefusal.Length > 0 ? 1 : 0;
-        Autotest.Fields["fa_blind"] = () => R().State.Factions.BlindJump ? 1 : 0;
         Autotest.Fields["fa_huntersnear"] = () => Jumps.HuntersNearRelay(R(), R().Game.Sim, Next());
-        Autotest.Fields["fa_hurtparts"] = () => TechAutotest.PlayerShip().Parts.Count(p => p.Health < p.Rules.MaxHealth);
         Autotest.Fields["fa_preparing"] = () => TechAutotest.PlayerShip().Ftl.IsPreparingToGateJump ? 1 : 0;
         Autotest.Fields["fa_progress"] = () => TechAutotest.PlayerShip().Ftl.FtlReadinessProgress;
         Autotest.Fields["fa_ready"] = () => TechAutotest.PlayerShip().Ftl.IsReadyToJump ? 1 : 0;
-        Autotest.Fields["fa_spin"] = () => R().State.Factions.SpinSeconds.GetValueOrDefault(TechAutotest.PlayerShip().UniqueID);
-        Autotest.Fields["fa_fullat"] = () => R().State.Factions.FullAtSeconds.TryGetValue(TechAutotest.PlayerShip().UniqueID, out float at) ? at : -1;
-        Autotest.Fields["fa_spinratio"] = () => R().State.Factions.FullAtSeconds.TryGetValue(TechAutotest.PlayerShip().UniqueID, out float at) && at > 0
-            ? R().State.Factions.SpinSeconds.GetValueOrDefault(TechAutotest.PlayerShip().UniqueID) / at : 0;
         Autotest.Fields["fa_saveblocked"] = () => R().Game.IsGameSavingBlocked ? 1 : 0;
         Autotest.Fields["fa_jumpstarts"] = () => Jumps.JumpStarts;
         Autotest.Fields["fa_combat"] = () => R().Game.Sim.Ships.AllShips.Count(s => s.HasTag(Hunters.HunterSpawner.HunterTag) && !s.IsJunk);

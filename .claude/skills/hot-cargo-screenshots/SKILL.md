@@ -13,16 +13,18 @@ A PR agent takes its own screenshots. Never use slot main on the PC: it is the p
 
 ## Which runner
 
-- **Mac (`RUNNER=mac scripts/screens.sh tests/screens/<name>.txt <local folder> [timeout]`):** use it first for single-player screen scripts. It needs no PC, no PC test slot and no active turn, and it works while the player holds the PC. The game takes one Mac sim slot, under the same cap as the sim tests (`HOT_CARGO_SIM_JOBS`), so it waits while the slots are busy.
+- **Mac (`RUNNER=mac scripts/screens.sh tests/screens/<name>.txt <local folder> [timeout]`):** use it first, for single-player and co-op screen scripts. It needs no PC, no PC test slot and no active turn, and it works while the player holds the PC. The game takes one Mac sim slot, under the same cap as the sim tests (`HOT_CARGO_SIM_JOBS`), so it waits while the slots are busy.
   - It runs the real game with the cosmoteer-macos host: a Metal renderer, a hidden window of 2560x1440 pixels (the PC screenshot size), no sound.
   - It needs the cosmoteer-macos checkout next to this repo (`<container>/../cosmoteer-macos/main`, or `COSMOTEER_MACOS=<worktree>`) with `tools/hotcargo-screens.sh`. Without it, `screens.sh` stops with a message.
   - Differences from the PC: the text rasterizer differs a little. On 2026-11-15 the same scripts gave the same UI; `systems` differed in 1% of pixels, `map-consequences` in about 9% (animated map background).
   - The default timeout is 900 s: loading game data takes minutes on a busy Mac.
-- **PC (default, `RUNNER=pc`):** use it for co-op screenshots (`screens-mp.sh`), for the final look of a Windows-only detail, or when the Mac runner is missing.
+- **PC (default, `RUNNER=pc`):** use it for the final look of a Windows-only detail, or when the Mac runner is missing.
 
 While `.state/player-hold` exists, `screens.sh` refuses (exit 3): a window in a test slot could take focus or GPU time from the player. Headless tests stay allowed. Try again when the hold ends, or ask the coordinator.
 
 Co-op screenshots: `scripts/screens-mp.sh tests/screens/<name>.host.txt tests/screens/<name>.client.txt <local folder>`. The host runs in a windowed test slot, the client in a headless test slot.
+
+Co-op screenshots on the Mac: `RUNNER=mac scripts/screens-mp.sh <host script> <client script> <local folder>`. Two hidden Mac games run, through `screens.sh`. The client logs go to `<local folder>/client`.
 
 Rules:
 - Keep sessions short.

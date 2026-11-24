@@ -36,6 +36,8 @@
 | `ShadyTrapSurvivalReward` | 0.5 | 40 |
 | `EscortHeatChange` | −8 | 36 |
 | `EscortRouteShare`, `EscortAmbushAt`, `EscortAmbushLead`, `EscortRaiderFocus` | 0.65, 0.3, 1800, 20 | 36 |
+| `EscortGuardRadius`, `EscortRaidSeconds`, `EscortLostSeconds` | 1500, 60, 150 | 1881 to 1883 |
+| `EscortRaidShips`, `EscortRaidMaxLive`, `EscortRaidTierOffset`, `EscortRaidShipTags`, `EscortRaidDistanceMin`, `EscortRaidDistanceMax` | 2, 4, −1, [combat], 900, 1300 | 1882 |
 | `Events.ArrivalEventChance`, `ArrivalDelaySeconds` | 0.6, 6 s | 69 |
 | `Events.StationEventChance`, `StationTriggerDistance` | 0.5, 1500 | 69 |
 | `Events.SignalTriggerDistance` | 900 | 69 |
@@ -122,8 +124,7 @@
 | `Factions.ShelterReputation`, `ShelterHeatFactor` | 500, 0.6 | 643 |
 | `Factions.WatchHeatFactor` | 1.1 | 664 |
 | `Factions.RivalFencePremium` | 1.5 | 644 |
-| `Factions.RelayWatchedHeatCut`, `RelayClearHeatCut`, `BlindHeatCut`, `RelayWatchRadius` | 0.75, 0.85, 0.9, 3500 | 650 |
-| `Factions.BlindFuelFactor`, `BlindSpinUpFactor`, `BlindDamageChance`, `BlindDamageParts`, `BlindDamageFraction` | 1.5, 2, 0.35, 3, 0.4 | 651 |
+| `Factions.RelayWatchedHeatCut`, `RelayClearHeatCut`, `RelayWatchRadius` | 0.75, 0.85, 3500 | 650 |
 | `Factions.MarkupStartHeat`, `MarkupMaxFactor`, `PriceHeatStep` | 75, 2, 5 | 655 |
 | `Factions.CrewPriceAtMaxHeat` | 2 | 656 |
 | `Factions.RefuseHeat`, `RefuseChance` | 90, 0.5 | 657 |

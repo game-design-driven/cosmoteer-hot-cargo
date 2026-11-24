@@ -20,14 +20,13 @@ screenshot jump-02-hover
 tipclear
 jw_gatejump
 waitfor jw_ready >= 1 120
-fa_set BlindFuelFactor 100
-fa_blind on
+jw_fuelcost 100
 wait 3
 tipshow jumptip
 wait 1
 screenshot jump-03-window-too-big
 tipclear
-fa_blind off
+jw_fuelcost 1
 jw_gatejump
 waitfor jw_ready >= 1 120
 wait 1

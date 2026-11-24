@@ -82,17 +82,6 @@ public class FactionsModelTests
     }
 
     [Fact]
-    public void Blind_spin_up_takes_factor_times_the_vanilla_time()
-    {
-        Assert.False(FactionsModel.BlindSpinDone(100f, null, 2f));
-        Assert.False(FactionsModel.BlindSpinDone(19.9f, 10f, 2f));
-        Assert.True(FactionsModel.BlindSpinDone(20f, 10f, 2f));
-        Assert.Equal(0.25f, FactionsModel.BlindSpinProgress(0.5f, 3f, null, 2f), 5);
-        Assert.Equal(0.75f, FactionsModel.BlindSpinProgress(1f, 15f, 10f, 2f), 5);
-        Assert.Equal(1f, FactionsModel.BlindSpinProgress(1f, 30f, 10f, 2f));
-    }
-
-    [Fact]
     public void Ally_faction_and_hunters_are_at_peace_only_in_ally_space()
     {
         Assert.Null(FactionsModel.Peace(Zone.Neutral, 101, 102, 20));

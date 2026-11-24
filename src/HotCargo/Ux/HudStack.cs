@@ -11,7 +11,8 @@ namespace HotCargo.Ux;
 /// </summary>
 static class HudStack
 {
-    const float Gap = 8f;
+    // The spacing of the vanilla tool button row (ShipGui: WidgetPadding and BorderPadding 10), so a widget lines up with its buttons.
+    const float Gap = 10f;
     static readonly HashSet<Widget> Ours = [];
 
     /// <summary>

@@ -54,7 +54,7 @@ public static class RunEndUi
         if (!run.T.Ux.RunIntro) return;
         var t = run.T;
         string body = UxKit.Format("IntroBodyFmt", run.T.Journey.RunSectorCount, t.Heat.Stages.Length,
-            t.Factions.RelayWatchedHeatCut, t.Factions.RelayClearHeatCut, t.Factions.BlindHeatCut) + RunModes.RunModesArea.IntroLines(run);
+            t.Factions.RelayWatchedHeatCut, t.Factions.RelayClearHeatCut) + RunModes.RunModesArea.IntroLines(run);
         // Wider than the win panel, so each rule fits on one line at 1280 x 720.
         CenterPanel.Show(run.Game, UxKit.Text("IntroTitle"), WidgetRules.Instance.FameTextColor, body, UxKit.Text("IntroButton"), width: 760f);
     }
