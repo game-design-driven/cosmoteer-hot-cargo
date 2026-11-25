@@ -12,7 +12,7 @@ auto_log built
 expect auto_manned == 1
 auto_rock cosmoteer.asteroid_iron_l 300 0.05
 tactics_ship MinerL
-tactics HC1:LootWithin=600>CollectLoot;AsteroidWithin=20000>Mine
+tactics HC2:NearestLoot<600->CollectLoot;NearestAsteroid<20000->Mine
 tacticsauto on
 # The spawned rock is the nearest one, so the miner works on it.
 expect auto_rock_nearest == 1

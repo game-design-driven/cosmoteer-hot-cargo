@@ -22,6 +22,15 @@ HotCargoAutonomy
 
 	// Editor cargo block (spec 1062)
 	Cargo = "Cargo"
+	Designs = "Designs"
+	DesignsTip = "Saved ship designs for the Build rows. The design is copied into this ship's AI, so co-op players do not need the file."
+	DesignSlotFmt = "{0}: {1}"
+	DesignPickFmt = "{0}: pick a design"
+	DesignPickTip = "Pick a saved ship design for this slot."
+	DesignClear = "x"
+	DesignClearTip = "Clear this design slot."
+	DesignWrongClass = "<bad>This design is for another ship class.</bad>"
+	DesignInUse = "<bad>A row uses this design slot. Change that row first.</bad>"
 	CargoTip = "What this ship collects, sells, mines and buys. The cargo rows of the AI use these lists."
 	LootAll = "Loot: all"
 	LootValueFmt = "Loot: value {0}+"

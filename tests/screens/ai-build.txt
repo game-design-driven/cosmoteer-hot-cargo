@@ -1,0 +1,26 @@
+# Build ship and refit rows in the ship AI editor (spec 1084 to 1090). Windowed test slot or the Mac runner:
+# RUNNER=mac scripts/screens.sh tests/screens/ai-build.txt <out-dir>
+render on
+newgame run
+wait 10
+ev_set Enabled false
+closepanel
+wait 1
+pause off
+godmode on
+auto_build Drone 0,-2000 yarden_zamir.computer@0,0 yarden_zamir.targeted_reactor@0,1
+tactics_ship Drone
+savedesign Drone
+auto_build Builder player yarden_zamir.computer@2,0 yarden_zamir.targeted_reactor@2,1 cosmoteer.storage_2x2@0,0 yarden_zamir.funnel@0,2 cosmoteer.thruster_small@0,4 cosmoteer.thruster_small@3,3 cosmoteer.thruster_small@0,-2,2 cosmoteer.thruster_small@3,-2,2 cosmoteer.thruster_small@-2,0,1 cosmoteer.thruster_small@-2,2,1 cosmoteer.thruster_small@4,0,3 cosmoteer.thruster_small@4,1,3
+tactics_ship Builder
+savedesign Builder
+tactics_editor open
+tactics_editor design 1 Drone
+wait 1
+tactics_editor design 2 Builder
+wait 1
+tactics HC2:CanAffordDesign=1&ShipsOf[1]<3->BuildShip=1;CanAffordRefit=2->RefitShip=2;NearestLoot<3000->CollectLoot;Always->ReturnToFleet
+tacticsauto on
+wait 2
+screenshot ai-build-editor
+quit

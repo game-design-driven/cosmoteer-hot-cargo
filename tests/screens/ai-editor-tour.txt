@@ -1,0 +1,41 @@
+# The reworked ship AI editor (spec 419, 2323 to 2326), step by step for a short video: a row is built from its group, entry,
+# comparison and number, then a value on the other side and a flag row. RUNNER=mac scripts/screens.sh tests/screens/ai-editor-tour.txt <out-dir>
+render on
+newgame run
+wait 10
+ev_set Enabled false
+closepanel
+wait 1
+pause off
+godmode on
+auto_build Drone 0,-2000 yarden_zamir.computer@0,0
+tactics_ship Drone
+savedesign Drone
+auto_build Builder player yarden_zamir.computer@2,0 yarden_zamir.targeted_reactor@2,1 cosmoteer.storage_2x2@0,0 yarden_zamir.funnel@0,2 cosmoteer.thruster_small@0,4 cosmoteer.thruster_small@3,3 cosmoteer.thruster_small@0,-2,2 cosmoteer.thruster_small@3,-2,2 cosmoteer.thruster_small@-2,0,1 cosmoteer.thruster_small@-2,2,1 cosmoteer.thruster_small@4,0,3 cosmoteer.thruster_small@4,1,3
+tactics_ship Builder
+tactics clear
+tactics_editor open
+tactics_editor design 1 Drone
+wait 1
+screenshot tour-1-empty
+tactics_editor add
+wait 1
+screenshot tour-2-row
+tactics_editor cond 1 NearestEnemy
+wait 1
+screenshot tour-3-value
+tactics_editor num 1 1500
+tactics_editor act 1 ReturnToFleet
+wait 1
+screenshot tour-4-action
+tactics_editor add
+tactics_editor cond 2 Resource
+tactics_editor arg 2 processor
+tactics_editor op 2 <
+wait 1
+screenshot tour-5-resource
+tactics HC2:NearestEnemy<1500->ReturnToFleet;Resource[processor]<Cost[1,processor]->CollectLoot;CanAffordDesign=1&ShipsOf[1]<3->BuildShip=1;Cargo>95->SetFlag=1;Flag=1->GoToStation=Nearest;Cargo<5->ClearFlag=1
+tacticsauto on
+wait 2
+screenshot tour-6-full
+quit

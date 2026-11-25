@@ -14,7 +14,7 @@ auto_build Miner player yarden_zamir.computer@2,0,1 cosmoteer.mining_laser_small
 wait 1
 airocks 3 700
 tactics_ship Miner
-tactics HC1:CargoAbove=25>GoToStation=0;StationInRange&CargoToSell>Sell;LootWithin=600>CollectLoot;AsteroidWithin=20000>Mine;Always>ReturnToFleet
+tactics HC2:Cargo>25->GoToStation=Nearest;StationInRange&CargoToSell->Sell;NearestLoot<600->CollectLoot;NearestAsteroid<20000->Mine;Always->ReturnToFleet
 tacticsauto on
 auto_mark
 waitfor tactics_move_row == 3 20

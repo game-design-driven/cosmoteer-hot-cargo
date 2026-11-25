@@ -236,5 +236,11 @@ internal static class Cargo
         id.Length > 0 && GameApp.Rules.HasResourceRules(new ID<ResourceRules>(id)) && id != Vaults.TechId.ToString()
         && new ID<ResourceRules>(id).GetResourceRules().IsStackable;
 
-    internal static CargoSettings Decode(string text) => AutonomyModel.Decode(text, IsCargoResource);
+    /// <summary>Spec 1063, 1085: the cargo text, with every design slot loaded once (Build.InfoOf throws FormatException for a bad design).</summary>
+    internal static CargoSettings Decode(string text)
+    {
+        var cargo = AutonomyModel.Decode(text, IsCargoResource);
+        foreach (var d in cargo.Designs) if (d is not null) Build.InfoOf(d);
+        return cargo;
+    }
 }

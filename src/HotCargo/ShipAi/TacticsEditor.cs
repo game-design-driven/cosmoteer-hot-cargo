@@ -42,6 +42,7 @@ internal sealed class TacticsEditor : WindowBox
     readonly List<DropList> _choiceLists = [];
     readonly List<DropList> _paramLists = [];
     readonly SimpleBox _cargoBar;
+    readonly SimpleBox _designBar;
     CargoPicker? _picker;
 
     List<TacticRow> _rows = [];
@@ -115,10 +116,11 @@ internal sealed class TacticsEditor : WindowBox
 
     /// <summary>
     /// Autotest: does what a click does. open | close | auto on|off | apply &lt;preset or personal name&gt; | add | remove &lt;row&gt; |
-    /// up &lt;row&gt; | cond &lt;row&gt; &lt;Cond&gt; [term] | param &lt;row&gt; &lt;n&gt; [term] | act &lt;row&gt; &lt;Act&gt; | actparam &lt;row&gt; &lt;n&gt; |
+    /// up &lt;row&gt; | cond &lt;row&gt; &lt;Cond or Value&gt; [term] | param &lt;row&gt; &lt;n&gt; [term] | num &lt;row&gt; &lt;n&gt; [term] |
+    /// op &lt;row&gt; &lt;|&gt;|= [term] | arg &lt;row&gt; &lt;slot&gt;|&lt;resource&gt;|&lt;slot,resource&gt; [term] | act &lt;row&gt; &lt;Act&gt; | actparam &lt;row&gt; &lt;n&gt; |
     /// addterm &lt;row&gt; | removeterm|insertterm|bracket|unbracket &lt;row&gt; &lt;term&gt; | not &lt;row&gt; &lt;term&gt; | or &lt;row&gt; &lt;term&gt; | copy | paste [text] |
     /// savepreset &lt;name&gt; | deletepreset &lt;name&gt; | toselected | loot v&lt;n&gt;|&lt;id,id&gt; | sell|mine|buy &lt;id,id&gt;|none |
-    /// recall on|off. Rows and terms count from 1, like the window shows them.
+    /// recall on|off | design &lt;slot&gt; &lt;test design&gt;|clear. Rows and terms count from 1, like the window shows them.
     /// </summary>
     internal static void TestCommand(Run run, Ship ship, string arg)
     {
@@ -143,8 +145,11 @@ internal sealed class TacticsEditor : WindowBox
             case "add": e.AddRow(); break;
             case "remove": e._rows.RemoveAt(Row()); e.SendRows(); break;
             case "up": e.Swap(Row(), Row() - 1); break;
-            case "cond": e.EditTerm(Row(), TermAt(3), t => ShipAiModel.WithCond(t, Enum.Parse<Cond>(a[2]))); break;
-            case "param": e.EditTerm(Row(), TermAt(3), t => t with { Param = Num(2) }); break;
+            case "cond": e.EditBody(Row(), TermAt(3), b => Enum.TryParse<Cond>(a[2], out var c) ? ShipAiModel.Picked(b, c) : e.PickValue(b, Enum.Parse<Value>(a[2]))); break;
+            case "param": e.EditBody(Row(), TermAt(3), b => (FactTerm)b with { Param = Num(2) }); break;
+            case "num": e.EditBody(Row(), TermAt(3), b => (CompareTerm)b with { Right = null, Number = Num(2) }); break;
+            case "op": e.EditBody(Row(), TermAt(3), b => (CompareTerm)b with { Op = a[2] switch { "<" => Op.Less, ">" => Op.Greater, "=" => Op.Equal, _ => throw new InvalidOperationException($"unknown comparison '{a[2]}'") } }); break;
+            case "arg": e.EditBody(Row(), TermAt(3), b => (CompareTerm)b with { Left = Arg(((CompareTerm)b).Left, a[2]) }); break;
             case "not": e.EditTerm(Row(), TermAt(2), t => t with { Not = !t.Not }); break;
             case "or": e.EditTerm(Row(), TermAt(2), t => t with { Or = !t.Or }); break;
             case "addterm": e.Edit(Row(), ShipAiModel.AddTerm(e._rows[Row()])); break;
@@ -177,6 +182,11 @@ internal sealed class TacticsEditor : WindowBox
             case "mine": e.EditCargo(e._cargo with { Mine = List(a[1]) }); break;
             case "buy": e.EditCargo(e._cargo with { Buy = List(a[1]) }); break;
             case "recall": e._recall = a[1] == "on"; e.Send(); break;
+            // design <slot> <test design name>|clear: picks a design for the slot, as the ship library would (spec 1084).
+            case "design":
+                if (a[2] == "clear") e.SetDesign(Num(1), null);
+                else e.PickedDesign(Num(1), ShipAiArea.DesignPath(a[2]));
+                break;
             default: throw new InvalidOperationException($"unknown tactics_editor verb '{a[0]}'");
         }
     }
@@ -197,9 +207,10 @@ internal sealed class TacticsEditor : WindowBox
             return;
         }
         int stages = _run.T.Heat.Stages.Length;
-        var names = Enum.GetValues<Cond>().Select(c => Text("Cond_" + c)).Concat(Enum.GetValues<Act>().Select(a => Text("Act_" + a)));
-        var values = Enum.GetValues<ParamKind>().Where(k => k != ParamKind.None)
-            .SelectMany(k => ShipAiModel.ChoicesOf(k, stages).Select(v => ParamName(k, v)));
+        var names = Enum.GetValues<Cond>().Select(c => Text("Cond_" + c)).Concat(Enum.GetValues<Value>().Select(v => Text("Value_" + v)))
+            .Concat(Enum.GetValues<Act>().Select(a => Text("Act_" + a)));
+        var values = Enum.GetValues<ParamKind>().Where(k => k != ParamKind.None).SelectMany(k => ShipAiRegistry.Choices(k).Select(v => ParamName(k, v)))
+            .Concat(Enum.GetValues<Unit>().SelectMany(u => ShipAiRegistry.Choices(u, stages).Select(n => NumberName(u, n))));
         var bad = new List<string>();
         float Check(DropList drop, IEnumerable<string> texts)
         {
@@ -235,6 +246,15 @@ internal sealed class TacticsEditor : WindowBox
 
     static string[] List(string arg) => arg == "none" ? [] : arg.Split(',');
 
+    /// <summary>Test verb "arg": a slot number, a resource ID, or "slot,resource".</summary>
+    static Operand Arg(Operand o, string arg) => ShipAiRegistry.Of(o.Value).Arg switch
+    {
+        ArgKind.Resource => o with { Resource = arg },
+        ArgKind.Design => o with { Slot = int.Parse(arg, CultureInfo.InvariantCulture) },
+        ArgKind.DesignResource => o with { Slot = int.Parse(arg.Split(',')[0], CultureInfo.InvariantCulture), Resource = arg.Split(',')[1] },
+        _ => throw new InvalidOperationException($"{o.Value} takes no argument"),
+    };
+
     /// <summary>The own ships that "Apply to selected" changes: the selected ships that the local player commands, without this one.</summary>
     IEnumerable<Ship> SelectedOthers() =>
         _run.Game.Sim.PlayerInput.SelectedCommandableShips.Where(s => s != _ship && s.IsHumanPlayerShip).OrderBy(s => s.UniqueID);
@@ -246,8 +266,8 @@ internal sealed class TacticsEditor : WindowBox
         TitleText = Format("TitleFmt", ship.Metadata.PlainShipName);
         TitleLabel.TextRenderer.HAlignment = HAlignment.Left;
         TitleLabel.TextRenderer.Padding = new Borders(10f, 0f, 0f, 0f);
-        Size = new Vector2(1280f, 720f);
-        ResizeController.MinSize = new Vector2(1100f, 420f);
+        Size = new Vector2(1400f, 760f);
+        ResizeController.MinSize = new Vector2(1300f, 420f);
 
         var page = new ScrollBox();
         page.AnchorRect = AnchorPresets.Fill;
@@ -296,6 +316,8 @@ internal sealed class TacticsEditor : WindowBox
 
         _cargoBar = Strip(36f);
         page.Children.Add(_cargoBar);
+        _designBar = Strip(36f);
+        page.Children.Add(_designBar);
 
         _status = NewLabel(18);
         page.Children.Add(_status);
@@ -377,21 +399,46 @@ internal sealed class TacticsEditor : WindowBox
         return drop;
     }
 
-    static string ParamName(ParamKind kind, int value) => kind switch
+    /// <summary>A fact or action parameter as the lists show it.</summary>
+    string ParamName(ParamKind kind, int value) => kind switch
     {
-        ParamKind.Percent => Format("PercentFmt", value),
-        ParamKind.Distance => Format("DistanceFmt", value),
-        ParamKind.Count => Format("CountFmt", value),
         ParamKind.PartKind => Text("PartKind_" + (PartKind)value),
         ParamKind.ShipClass => Text("ShipClass_" + (ShipClass)value),
         ParamKind.GuardWho => Text("GuardWho_" + (GuardWho)value),
-        ParamKind.Group => value == 0 ? Text("GroupAll") : Format("GroupFmt", value),
-        ParamKind.Stage => Format("StageFmt", value),
-        ParamKind.Seconds => Format("SecondsFmt", value),
         ParamKind.Side => Text("Side_" + (Side)value),
         ParamKind.Station => Text("Station_" + (StationPick)value),
+        ParamKind.WeaponGroup => value == 0 ? Text("GroupAll") : Format("GroupFmt", value),
+        ParamKind.Spacing => Format("DistanceFmt", value),
+        ParamKind.Design => SlotName(value),
+        ParamKind.Flag => Format("FlagFmt", value),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
+
+    /// <summary>Spec 2323: a number of a unit as the lists show it.</summary>
+    static string NumberName(Unit unit, int n) => Format("Unit" + unit + "Fmt", n.ToString("N0", CultureInfo.InvariantCulture));
+
+    /// <summary>A value with its arguments, as the other-side list and the status show it.</summary>
+    string OperandName(Operand o) => ShipAiRegistry.Of(o.Value).Arg switch
+    {
+        ArgKind.None => Text("Value_" + o.Value),
+        ArgKind.Resource => Format("ArgFmt", Text("Value_" + o.Value), ResourceName(o.Resource)),
+        ArgKind.Design => Format("ArgFmt", Text("Value_" + o.Value), SlotName(o.Slot)),
+        ArgKind.DesignResource => Format("Arg2Fmt", Text("Value_" + o.Value), SlotName(o.Slot), ResourceName(o.Resource)),
+        _ => throw new ArgumentOutOfRangeException(nameof(o), o.Value, null),
+    };
+
+    /// <summary>The other side of a comparison: like OperandName, without the resource, which the left side shows.</summary>
+    string RightName(Operand o) => ShipAiRegistry.Of(o.Value).Arg switch
+    {
+        ArgKind.Resource => Text("Value_" + o.Value),
+        ArgKind.DesignResource => Format("ArgFmt", Text("Value_" + o.Value), SlotName(o.Slot)),
+        _ => OperandName(o),
+    };
+
+    static string ResourceName(string id) => new Cosmoteer.Data.ID<Cosmoteer.Resources.ResourceRules>(id).GetResourceRules().NameKey.Text;
+
+    /// <summary>Spec 2322: a design slot as the lists show it: its number and its design name, or that it is empty.</summary>
+    string SlotName(int slot) => _cargo.Design(slot) is { } d ? Format("DesignFmt", slot, d.Name) : Format("DesignEmptyFmt", slot);
 
     void BuildRows()
     {
@@ -411,6 +458,7 @@ internal sealed class TacticsEditor : WindowBox
             }
             _add.SelfInputActive = _rows.Count < ShipAiModel.MaxRows;
             BuildCargo();
+            BuildDesigns();
         }
         finally { _updating = false; }
     }
@@ -439,6 +487,48 @@ internal sealed class TacticsEditor : WindowBox
         if (!Autonomy.Autonomous.IsAutonomous(_ship)) return;
         var recall = Ui.FlatButton.New(AText(_recall ? "ReturnOn" : "ReturnOff"), () => { _recall = !_recall; Send(); _dirty = true; }, AText("ReturnTip"));
         Place(_cargoBar, recall, 78f, 22f);
+    }
+
+    /// <summary>Spec 1084: a button per design slot that picks a saved design from the vanilla ship library, and one that clears it.</summary>
+    void BuildDesigns()
+    {
+        _designBar.Children.Clear();
+        var title = new Label { Text = AText("Designs") };
+        title.ToolTips.TextProvider = new Ux.LiveText(() => AText("DesignsTip"));
+        Place(_designBar, title, 0f, 6f);
+        for (int slot = 1; slot <= Autonomy.BuildModel.MaxDesigns; slot++)
+        {
+            int s = slot;
+            float left = 6f + (s - 1) * 31f;
+            string text = _cargo.Design(s) is { } d ? AFormat("DesignSlotFmt", s, d.Name) : AFormat("DesignPickFmt", s);
+            Place(_designBar, Ui.FlatButton.New(text, () => ShowLibrary(s), AText("DesignPickTip")), left, 26f);
+            if (_cargo.Design(s) is not null) Place(_designBar, Ui.FlatButton.New(AText("DesignClear"), () => SetDesign(s, null), AText("DesignClearTip")), left + 26f, 5f);
+        }
+    }
+
+    async void ShowLibrary(int slot)
+    {
+        string? path = await ShipLibraryDialog.Show(ShipDialogMode.Load);
+        if (path is not null && _open == this) Errors.Guard("tactics editor design pick", () => PickedDesign(slot, path));
+    }
+
+    /// <summary>Spec 1084: copies the design file into the slot. A design of another ship class is refused, as vanilla refuses it.</summary>
+    void PickedDesign(int slot, string path)
+    {
+        Autonomy.BuildDesign d;
+        try { d = Autonomy.Build.FromFile(path); }
+        catch (FormatException ex) { Note(Format("PasteBadFmt", ex.Message)); return; }
+        if (Autonomy.Build.InfoOf(d).Rules != _ship.Rules.ID) { Note(AText("DesignWrongClass")); return; }
+        SetDesign(slot, d);
+    }
+
+    /// <summary>A slot that a row names cannot be cleared: the tactics input would refuse the rows (spec 2322).</summary>
+    void SetDesign(int slot, Autonomy.BuildDesign? d)
+    {
+        var designs = (Autonomy.BuildDesign?[])_cargo.Designs.Clone();
+        designs[slot - 1] = d;
+        if (d is null && _rows.Any(r => ShipAiModel.DesignSlots(r).Contains(slot))) { Note(AText("DesignInUse")); return; }
+        EditCargo(_cargo with { Designs = designs });
     }
 
     static IReadOnlyList<Cosmoteer.Resources.ResourceRules> Offered(bool mine) => CargoPicker.Offered(mine);
@@ -491,15 +581,56 @@ internal sealed class TacticsEditor : WindowBox
         return block;
     }
 
-    // Spec 419: column starts and widths in percent of the rule line. The condition and action lists share one column. In the game
-    // font (18 px) the widest name is 272 px and the widest parameter value 130 px; a list adds about 73 px (arrow, padding). At the
-    // smallest window (1100) the lists then keep about a third of spare room. "tactics_editor fit" checks it in a game with graphics.
-    const float ColMarker = 0f, ColJoin = 3f, ColNot = 9f, ColChoice = 15f, ChoiceWidth = 40f, ColParam = 55f, ParamWidth = 22f, ColEnd = 77f;
+    // Spec 419: column starts and widths in percent of the rule line, at the 1,300 minimum width. A term line: the group list, the entry
+    // list, then for a fact its parameter, for a value its argument, the comparison, the other side and its switch.
+    const float ColMarker = 0f, ColJoin = 3f, ColNot = 8f, ColGroup = 13f, GroupWidth = 9f, ColEntry = 22f, EntryWidth = 19f,
+        ColArg = 41f, ArgWidth = 12f, ColOp = 53f, OpWidth = 4f, ColRight = 57f, RightWidth = 15f, ColSwitch = 72f, SwitchWidth = 6f, ColEnd = 78f;
 
     // Spec 2321: each bracket level indents the term line by IndentStep. Limit: the indent stops at MaxIndent levels, so the
-    // condition list keeps room for the longest name; deeper levels show only their brackets. Revisit if players nest deeper.
-    const float IndentStep = 2.5f, BracketWidth = 2f;
+    // group list keeps room for its longest name; deeper levels show only their brackets. Revisit if players nest deeper.
+    const float IndentStep = 1.5f, BracketWidth = 2f;
     const int MaxIndent = 4;
+
+    /// <summary>Spec 419: the groups of the condition list, in list order, and the facts and values of each, in registry order.</summary>
+    static readonly Group[] TermGroups = [Group.Always, Group.Ship, Group.Enemies, Group.Fleet, Group.World, Group.Run, Group.Cargo, Group.Flags];
+
+    static readonly Group[] ActGroups = [Group.Target, Group.Move, Group.Fire, Group.Facing, Group.Trade, Group.Build, Group.Flags];
+
+    static Group GroupOf(TermBody body) => body switch
+    {
+        FactTerm f => ShipAiRegistry.Of(f.Cond).Group,
+        CompareTerm c => ShipAiRegistry.Of(c.Left.Value).Group,
+        _ => throw new ArgumentOutOfRangeException(nameof(body), body, null),
+    };
+
+    /// <summary>The entries of a group: its facts, then its values. An entry is a Cond or a Value.</summary>
+    static List<Enum> EntriesOf(Group g) =>
+        ShipAiRegistry.Facts.Where(f => f.Group == g).Select(f => (Enum)f.Cond).Concat(ShipAiRegistry.Values.Where(v => v.Group == g).Select(v => (Enum)v.Value)).ToList();
+
+    static string EntryName(Enum e) => e is Cond c ? Text("Cond_" + c) : Text("Value_" + (Value)e);
+
+    static Enum EntryOf(TermBody body) => body switch
+    {
+        FactTerm f => f.Cond,
+        CompareTerm c => c.Left.Value,
+        _ => throw new ArgumentOutOfRangeException(nameof(body), body, null),
+    };
+
+    /// <summary>The body that picking an entry gives (ShipAiModel.Picked); a value with a resource starts with the first offered resource.</summary>
+    TermBody Pick(TermBody old, Enum entry) => entry is Cond c ? ShipAiModel.Picked(old, c) : PickValue(old, (Value)entry);
+
+    TermBody PickValue(TermBody old, Value v) =>
+        ShipAiModel.Picked(old, v, old is CompareTerm { Left.Resource.Length: > 0 } c ? c.Left.Resource : Offered(false).First().ID.ToString());
+
+    /// <summary>A drop list of entries with names and a tooltip that describes the selected entry (strings "Desc_" plus its name).</summary>
+    DropList EntryList<T>(IReadOnlyList<T> entries, T current, Func<T, string> name, Func<T, string> desc, Action<T> picked) where T : notnull
+    {
+        var drop = Choices(Enumerable.Range(0, entries.Count), Math.Max(0, entries.ToList().IndexOf(current)), i => name(entries[i]), i => picked(entries[i]));
+        drop.ToolTips.TextProvider = new Ux.LiveText(() => desc(current));
+        return drop;
+    }
+
+    static string Desc(string key) => Text("Desc_" + key);
 
     /// <summary>Spec 419, 2321. outer: the bracket depth before the brackets that this term opens.</summary>
     void BuildTerm(SimpleBox line, int i, int j, int outer)
@@ -522,23 +653,110 @@ internal sealed class TacticsEditor : WindowBox
         else Place(line, Ui.FlatButton.New(Text(term.Or ? "Or" : "And"), () => EditTerm(i, j, t => t with { Or = !t.Or }), Text("ConnectorTip")), ColJoin + indent, ColNot - ColJoin);
         // The opening brackets stand before NOT, as in the text form: a NOT belongs to its term, never to the bracket.
         if (term.Open > 0) Place(line, Bracket(new string('(', term.Open)), ColNot + indent, BracketWidth);
-        Place(line, Ui.FlatButton.New(Text(term.Not ? "NotOn" : "NotOff"), () => EditTerm(i, j, t => t with { Not = !t.Not }), Text("NotTip")), ColNot + indent + BracketWidth, ColChoice - ColNot - BracketWidth);
-        var cond = Choices(Enum.GetValues<Cond>().Select(c => (int)c), (int)term.Cond, v => Text("Cond_" + (Cond)v),
-            v => EditTerm(i, j, t => ShipAiModel.WithCond(t, (Cond)v)));
-        _choiceLists.Add(cond);
-        Place(line, cond, ColChoice + indent, ChoiceWidth - indent);
-        var kind = ShipAiModel.ParamOf(term.Cond);
-        if (kind != ParamKind.None)
+        Place(line, Ui.FlatButton.New(Text(term.Not ? "NotOn" : "NotOff"), () => EditTerm(i, j, t => t with { Not = !t.Not }), Text("NotTip")), ColNot + indent + BracketWidth, ColGroup - ColNot - BracketWidth);
+        var group = GroupOf(term.Body);
+        var groupList = EntryList(TermGroups, group, g => Text("Group_" + g), g => Text("GroupTip"),
+            g => EditBody(i, j, b => Pick(b, EntriesOf(g)[0])));
+        _choiceLists.Add(groupList);
+        Place(line, groupList, ColGroup + indent, GroupWidth);
+        var entries = EntriesOf(group);
+        // The Always group has one entry: the group list says it all.
+        if (entries.Count > 1)
         {
-            var param = Choices(ShipAiModel.ChoicesOf(kind, _run.T.Heat.Stages.Length), term.Param, v => ParamName(kind, v), v => EditTerm(i, j, t => t with { Param = v }));
-            _paramLists.Add(param);
-            Place(line, param, ColParam, ParamWidth);
+            var entryList = EntryList(entries, EntryOf(term.Body), EntryName, e => Desc(e.ToString()), e => EditBody(i, j, b => Pick(b, e)));
+            _choiceLists.Add(entryList);
+            Place(line, entryList, ColEntry + indent, EntryWidth - indent);
+        }
+        switch (term.Body)
+        {
+            case FactTerm f when ShipAiModel.ParamOf(f.Cond) is var kind and not ParamKind.None:
+                var param = Choices(ShipAiRegistry.Choices(kind), f.Param, v => ParamName(kind, v), v => EditBody(i, j, _ => f with { Param = v }));
+                _paramLists.Add(param);
+                // A group with one entry shows no entry list: its parameter takes that place.
+                if (entries.Count > 1) Place(line, param, ColArg, ArgWidth);
+                else Place(line, param, ColEntry + indent, EntryWidth - indent);
+                break;
+            case CompareTerm c:
+                BuildCompare(line, i, j, c);
+                break;
         }
         if (term.Close > 0) Place(line, Bracket(new string(')', term.Close)), ColEnd, BracketWidth);
         Place(line, TipButton("InsertTerm", "InsertTermTip", () => Edit(i, ShipAiModel.InsertTerm(_rows[i], j))), 80f, 4f);
         Place(line, TipButton("BracketTerm", "BracketTermTip", () => Edit(i, ShipAiModel.Bracket(_rows[i], j))), 84f, 5f);
         if (term.Open > 0) Place(line, TipButton("Unbracket", "UnbracketTip", () => Edit(i, ShipAiModel.Unbracket(_rows[i], j))), 89f, 6f);
         if (row.Terms.Length > 1) Place(line, Ui.FlatButton.New(Text("RemoveTerm"), () => Edit(i, ShipAiModel.RemoveTerm(_rows[i], j))), 95f, 5f);
+    }
+
+    /// <summary>Spec 419, 2323: the argument list, the comparison button, the other side (numbers or values) and its switch.</summary>
+    void BuildCompare(SimpleBox line, int i, int j, CompareTerm c)
+    {
+        var unit = ShipAiModel.UnitOf(c.Left.Value);
+        var args = ArgChoices(c.Left);
+        if (args.Count > 0)
+        {
+            var argList = EntryList(args, c.Left, OperandArgName, _ => "", o => EditBody(i, j, _ => c with { Left = o }));
+            _paramLists.Add(argList);
+            Place(line, argList, ColArg, ArgWidth);
+        }
+        Place(line, Ui.FlatButton.New(ShipAiModel.OpChar(c.Op).ToString(), () => EditBody(i, j, _ => c with { Op = ShipAiModel.NextOp(c.Op) }), Text("OpTip")), ColOp, OpWidth);
+        if (c.Right is { } right)
+        {
+            var values = RightChoices(c.Left);
+            if (!values.Contains(right)) values.Insert(0, right);
+            var rightList = EntryList(values, right, RightName, o => Desc(o.Value.ToString()), o => EditBody(i, j, _ => c with { Right = o }));
+            _paramLists.Add(rightList);
+            Place(line, rightList, ColRight, RightWidth);
+        }
+        else
+        {
+            var numbers = Choices(ShipAiRegistry.Choices(unit, _run.T.Heat.Stages.Length), c.Number, n => NumberName(unit, n), n => EditBody(i, j, _ => c with { Number = n }));
+            _paramLists.Add(numbers);
+            Place(line, numbers, ColRight, RightWidth);
+        }
+        // The switch: a number on the other side, or a value of the same unit (when there is one to offer).
+        if (c.Right is not null || RightChoices(c.Left).Count > 0)
+            Place(line, Ui.FlatButton.New(Text(c.Right is null ? "RightValue" : "RightNumber"),
+                () => EditBody(i, j, _ => c.Right is null ? c with { Right = RightChoices(c.Left)[0] } : c with { Right = null }),
+                Text(c.Right is null ? "RightValueTip" : "RightNumberTip")), ColSwitch, SwitchWidth);
+    }
+
+    /// <summary>Spec 2322: the arguments that a value can take: every offered resource, every design slot, or each filled slot with
+    /// each resource of its design's cost.</summary>
+    List<Operand> ArgChoices(Operand o) => ShipAiRegistry.Of(o.Value).Arg switch
+    {
+        ArgKind.None => [],
+        ArgKind.Resource => Offered(false).Select(r => o with { Resource = r.ID.ToString() }).ToList(),
+        ArgKind.Design => Enumerable.Range(1, Autonomy.BuildModel.MaxDesigns).Select(slot => o with { Slot = slot }).ToList(),
+        ArgKind.DesignResource => Enumerable.Range(1, Autonomy.BuildModel.MaxDesigns).Where(slot => _cargo.Design(slot) is not null)
+            .SelectMany(slot => Autonomy.Build.InfoOf(_cargo.Design(slot)!).Cost.Keys.Select(res => o with { Slot = slot, Resource = res })).DefaultIfEmpty(o).ToList(),
+        _ => throw new ArgumentOutOfRangeException(nameof(o), o.Value, null),
+    };
+
+    string OperandArgName(Operand o) => ShipAiRegistry.Of(o.Value).Arg switch
+    {
+        ArgKind.Resource => ResourceName(o.Resource),
+        ArgKind.Design => SlotName(o.Slot),
+        ArgKind.DesignResource => Format("ArgPairFmt", SlotName(o.Slot), o.Resource.Length > 0 ? ResourceName(o.Resource) : "-"),
+        _ => throw new ArgumentOutOfRangeException(nameof(o), o.Value, null),
+    };
+
+    /// <summary>
+    /// Spec 419: the values that the other side can be: every value of the left side's unit except the left side itself, with its
+    /// arguments filled in: the left side's resource, and each filled design slot.
+    /// </summary>
+    List<Operand> RightChoices(Operand left)
+    {
+        var unit = ShipAiModel.UnitOf(left.Value);
+        string res = left.Resource.Length > 0 ? left.Resource : Offered(false).First().ID.ToString();
+        var slots = Enumerable.Range(1, Autonomy.BuildModel.MaxDesigns).Where(slot => _cargo.Design(slot) is not null).ToList();
+        return ShipAiRegistry.Values.Where(v => v.Unit == unit).SelectMany(v => v.Arg switch
+        {
+            ArgKind.None => [new Operand(v.Value)],
+            ArgKind.Resource => [new Operand(v.Value, Resource: res)],
+            ArgKind.Design => slots.Select(slot => new Operand(v.Value, slot)),
+            ArgKind.DesignResource => slots.Select(slot => new Operand(v.Value, slot, res)),
+            _ => throw new ArgumentOutOfRangeException(nameof(v), v.Arg, null),
+        }).Where(o => o != left).ToList();
     }
 
     /// <summary>The brackets of a term line, in the size of the AND/OR text.</summary>
@@ -560,20 +778,25 @@ internal sealed class TacticsEditor : WindowBox
     void BuildAction(SimpleBox line, int i)
     {
         var row = _rows[i];
-        // Indented under the conditions: THEN sits in the NOT column, the action in the condition column.
+        // Indented under the conditions: THEN sits in the NOT column, the action in the group and entry columns.
         var then = new Label { Text = Text("Then") };
         then.TextRenderer.HAlignment = HAlignment.Center;
-        Place(line, then, ColNot, ColChoice - ColNot);
-        var act = Choices(Enum.GetValues<Act>().Select(a => (int)a), (int)row.Act, v => Text("Act_" + (Act)v),
-            v => Edit(i, ShipAiModel.WithAct(_rows[i], (Act)v)));
+        Place(line, then, ColNot, ColGroup - ColNot);
+        var group = ShipAiRegistry.Of(row.Act).Group;
+        var groupList = EntryList(ActGroups, group, g => Text("Group_" + g), _ => Text("ActGroupTip"),
+            g => Edit(i, ShipAiModel.WithAct(_rows[i], ShipAiRegistry.Acts.First(a => a.Group == g).Act)));
+        _choiceLists.Add(groupList);
+        Place(line, groupList, ColGroup, GroupWidth);
+        var acts = ShipAiRegistry.Acts.Where(a => a.Group == group).Select(a => a.Act).ToList();
+        var act = EntryList(acts, row.Act, a => Text("Act_" + a), a => Desc(a.ToString()), a => Edit(i, ShipAiModel.WithAct(_rows[i], a)));
         _choiceLists.Add(act);
-        Place(line, act, ColChoice, ChoiceWidth);
+        Place(line, act, ColEntry, EntryWidth);
         var actKind = ShipAiModel.ParamOf(row.Act);
         if (actKind != ParamKind.None)
         {
-            var param = Choices(ShipAiModel.ChoicesOf(actKind, _run.T.Heat.Stages.Length), row.ActParam, v => ParamName(actKind, v), v => Edit(i, _rows[i] with { ActParam = v }));
+            var param = Choices(ShipAiRegistry.Choices(actKind), row.ActParam, v => ParamName(actKind, v), v => Edit(i, _rows[i] with { ActParam = v }));
             _paramLists.Add(param);
-            Place(line, param, ColParam, ParamWidth);
+            Place(line, param, ColArg, ArgWidth);
         }
         Place(line, TipButton("AddTerm", "AddTermTip", () => Edit(i, ShipAiModel.AddTerm(_rows[i]))), ColEnd, 7f);
         var up = Ui.FlatButton.New(Text("Up"), () => Swap(i, i - 1));
@@ -590,11 +813,13 @@ internal sealed class TacticsEditor : WindowBox
     void AddRow()
     {
         if (_rows.Count >= ShipAiModel.MaxRows) return;
-        _rows.Add(new TacticRow(Cond.Always, 0, Act.TargetNearest, 0));
+        _rows.Add(new TacticRow(Term.Fact(Cond.Always), Act.TargetNearest));
         SendRows();
     }
 
     void EditTerm(int i, int j, Func<Term, Term> change) => Edit(i, ShipAiModel.WithTerm(_rows[i], j, change(_rows[i].Terms[j])));
+
+    void EditBody(int i, int j, Func<TermBody, TermBody> change) => Edit(i, ShipAiModel.WithBody(_rows[i], j, change(_rows[i].Terms[j].Body)));
 
     void Edit(int i, TacticRow row)
     {
@@ -615,8 +840,18 @@ internal sealed class TacticsEditor : WindowBox
         Send();
     }
 
+    /// <summary>
+    /// Spec 2322: rows that name an empty design slot or an unknown resource are not sent; the sim would refuse them. The note says
+    /// why, and the window shows the sim's rows again.
+    /// </summary>
     void Send()
     {
+        if ((ShipAiModel.DesignError(_rows, slot => _cargo.Design(slot) is not null) ?? ShipAiModel.ResourceError(_rows, Autonomy.Cargo.IsCargoResource)) is { } error)
+        {
+            Note(Format("PasteBadFmt", error));
+            LoadFromSim();
+            return;
+        }
         string text = ShipAiModel.Encode(_rows), cargo = Autonomy.AutonomyModel.Encode(_cargo);
         _sent = _shown = StateKey(text, _auto, cargo, _recall);
         _sentAt = App.Clock.Time.Seconds;
@@ -648,6 +883,7 @@ internal sealed class TacticsEditor : WindowBox
         {
             var rows = ShipAiModel.Decode(lines[0]);
             var cargo = lines.Length > 1 ? Autonomy.Cargo.Decode(lines[1]) : _cargo;
+            if (ShipAiModel.DesignError(rows, slot => cargo.Design(slot) is not null) is { } error) throw new FormatException(error);
             (_rows, _cargo) = (rows, cargo);
         }
         catch (FormatException ex) { Note(Format("PasteBadFmt", ex.Message)); return; }
@@ -752,7 +988,7 @@ internal sealed class TacticsEditor : WindowBox
             if (_sent is not null && (sim == _sent || now > _sentAt + SendWaitSeconds)) _sent = null;
             if (_sent is null && sim != _shown) LoadFromSim();
             bool commandable = _ship.Commands.IsCommandableByLocalPlayer;
-            if (_list.SelfInputActive != commandable) { _list.SelfInputActive = commandable; _autoToggle.SelfInputActive = commandable; _cargoBar.SelfInputActive = commandable; }
+            if (_list.SelfInputActive != commandable) { _list.SelfInputActive = commandable; _autoToggle.SelfInputActive = commandable; _cargoBar.SelfInputActive = commandable; _designBar.SelfInputActive = commandable; }
             int others = SelectedOthers().Count();
             _toSelected.Text = Format("ToSelectedButtonFmt", others);
             _toSelected.SelfInputActive = others > 0;
@@ -773,6 +1009,9 @@ internal sealed class TacticsEditor : WindowBox
         if (t.Target is { } id && _run.Game.Sim[id] is Ship target) parts.Add(Format("StatusTargetFmt", target.Metadata.XmlShipName));
         if (t.Recall) parts.Add(AText("ReturnOn"));
         else if (t.MoveRow >= 0 && t.MoveRow < t.Rows.Count) parts.Add(Format("StatusMoveFmt", t.MoveRow + 1, Text("Act_" + t.Rows[t.MoveRow].Act)));
+        // Spec 2326: the flags that are set.
+        var flags = Enumerable.Range(1, ShipAiModel.MaxFlags).Where(n => (t.Flags & (1 << (n - 1))) != 0).Select(n => Format("FlagFmt", n)).ToList();
+        if (flags.Count > 0) parts.Add(Format("StatusFlagsFmt", string.Join(", ", flags)));
         if (parts.Count == 1 && t.Rows.Count > 0) parts.Add(Text("StatusIdle"));
         return string.Join(" ", parts);
     }
@@ -790,7 +1029,7 @@ internal sealed class TacticsEditor : WindowBox
         bool live = t is { Auto: true, Waiting: false } && t.Text == ShipAiModel.Encode(_rows);
         for (int i = 0; i < _markers.Count; i++)
         {
-            bool on = live && t is not null && (i == t.TargetRow || i == t.MoveRow || i == t.FacingRow || i == t.TradeRow ||
+            bool on = live && t is not null && (i == t.TargetRow || i == t.MoveRow || i == t.FacingRow || i == t.TradeRow || i == t.BuildRow ||
                 ((t.Matched & (1 << i)) != 0 && ShipAiModel.KindOf(_rows[i].Act) == ActKind.Weapons));
             _markers[i].Text = on ? $"<good>{i + 1}</good>" : $"<gray>{i + 1}</gray>";
         }

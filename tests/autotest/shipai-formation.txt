@@ -46,7 +46,7 @@ tacticsauto off
 tactics_ship 2
 tacticsauto off
 tactics_ship 0
-tactics HC1:AllyInLineOfFire>HoldFire=0;Always>TargetNearest
+tactics HC2:AllyInLineOfFire->HoldFire=0;Always->TargetNearest
 tacticsauto on
 aispawn pirates 1 6
 waitfor tactics_target_row == 1 60

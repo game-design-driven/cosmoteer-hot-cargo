@@ -3,73 +3,46 @@ using System.Text;
 
 namespace HotCargo.ShipAi;
 
-/// <summary>Spec 401, 413. A tactic condition. Each one reads one fact about the ship (ShipFacts).</summary>
-public enum Cond
-{
-    Always, HealthBelow, ShieldsBelow, PartLost, EnemyWithin, EnemyBeyond, TargetedByEnemy, AllyUnderAttack,
-    AmmoBelow, BatteryBelow, EnemyClassNear, EnemiesAtLeast, CarryingTech, VaultDamaged,
-    // Hot Cargo (spec 413)
-    HeatStageAtLeast, HuntersInSystem, StrikeWithin, LossTimerRunning, CratesWithin, EnemyHoldsTech, EnemyCalling,
-    // Autonomous ships (spec 1066)
-    CargoAbove, CargoToSell, LootWithin, StationInRange, AsteroidWithin, WreckWithin, FleetBeyond,
-    // Loot runner (spec 1083)
-    FleetHealthAbove,
-    // Formations (spec 423, 424)
-    AllyWithin, AllyInLineOfFire,
-}
-
-/// <summary>Spec 402, 414. A tactic action. ShipAiModel.KindOf gives its kind from its place in this list.</summary>
-public enum Act
-{
-    // Target
-    TargetNearest, TargetWeakest, TargetStrongest, TargetAllyAttacker, TargetVaultAttacker, TargetTechHolder, TargetCaller, TargetMyAttacker,
-    // Move
-    Kite, CloseIn, HoldPosition, RetreatToAlly, RetreatRepair, FleeJump, FollowLeader, Guard, CollectTech,
-    CollectLoot, GoToStation, Mine, Salvage, ReturnToFleet,
-    // Formations (spec 425, 426): the parameter is the spacing.
-    HoldFormation, KeepSpacing,
-    // Weapons (the parameter is the weapon group: 0 = all weapons, 1 to 10 = part control group)
-    FireAtWill, FocusTarget, TargetWeapons, TargetEngines, PointDefenseOnly, HoldFire, FireDisruptors,
-    // Facing (the parameter is the side that faces the target)
-    Face,
-    // Trade (spec 1067, 1073, 1074)
-    Sell, Buy, Unload,
-}
-
-public enum ActKind { Target, Move, Weapons, Facing, Trade }
-
-/// <summary>What the parameter of a condition or an action means.</summary>
-public enum ParamKind { None, Percent, Distance, Count, PartKind, ShipClass, Group, GuardWho, Stage, Seconds, Side, Station }
-
-public enum PartKind { Weapon, Thruster, Shield, Vault }
-
-/// <summary>Small and Large are relative to the ship's own blueprint cost. Station = a ship without thrusters.</summary>
-public enum ShipClass { Small, Large, Station }
-
-public enum GuardWho { Flagship, VaultShip, WeakestAlly }
-
-/// <summary>Spec 415. The side of the ship that faces the target.</summary>
-public enum Side { Nose, BroadsideLeft, BroadsideRight, Stern }
-
-/// <summary>Spec 1069. Which trading station "go to station" picks.</summary>
-public enum StationPick { Nearest, BestPrice, Cheapest }
-
 /// <summary>Spec 410: the AI button of the ships card for the selected ships: Auto on in none, some or all of them.</summary>
 public enum CardState { Off, Mixed, On }
 
 public enum Preset { Aggressive, Defensive, Sniper, Escort, VaultGuard, Looter, Miner, SupplyRunner, Salvager, EscortDrone, Formation }
+
+/// <summary>Spec 2323: the comparison of a term.</summary>
+public enum Op { Less, Greater, Equal }
+
+/// <summary>Spec 2322, 2325: a value with its arguments. Slot: a design slot (1 to MaxDesigns) or 0; Resource: a resource ID or "".</summary>
+public readonly record struct Operand(Value Value, int Slot = 0, string Resource = "");
+
+/// <summary>Spec 416: what a term tests: a fact or a comparison.</summary>
+public abstract record TermBody;
+
+/// <summary>Spec 2324: a fact with its parameter (what ShipAiRegistry.Of(Cond).Param says, 0 without one).</summary>
+public sealed record FactTerm(Cond Cond, int Param = 0) : TermBody;
+
+/// <summary>Spec 2323: Left Op (Right, or Number when Right is null). Right has the unit of Left.</summary>
+public sealed record CompareTerm(Operand Left, Op Op, Operand? Right, int Number) : TermBody;
 
 /// <summary>
 /// One condition term of a row (spec 416). Not inverts it. Or joins it (with the brackets that it opens) to the item before it
 /// with OR, else with AND; Or of the first item in a bracket means nothing. Open: brackets that open before the term; Close:
 /// brackets that close after it (spec 2320). The brackets of a row are balanced (ShipAiModel.BracketError).
 /// </summary>
-public readonly record struct Term(Cond Cond, int Param, bool Not = false, bool Or = false, int Open = 0, int Close = 0);
-
-/// <summary>One "conditions → action" row. Params mean what ShipAiModel.ParamOf says. Terms is never empty; nobody changes it.</summary>
-public sealed record TacticRow(Term[] Terms, Act Act, int ActParam)
+public readonly record struct Term(TermBody Body, bool Not = false, bool Or = false, int Open = 0, int Close = 0)
 {
-    public TacticRow(Cond cond, int condParam, Act act, int actParam) : this([new Term(cond, condParam)], act, actParam) { }
+    public static Term Fact(Cond cond, int param = 0) => new(new FactTerm(cond, param));
+
+    public static Term Compare(Value value, Op op, int number) => new(new CompareTerm(new Operand(value), op, null, number));
+
+    public static Term Less(Value value, int number) => Compare(value, Op.Less, number);
+
+    public static Term Greater(Value value, int number) => Compare(value, Op.Greater, number);
+}
+
+/// <summary>One "conditions → action" row. ActParam means what ShipAiRegistry.Of(Act).Param says. Terms is never empty; nobody changes it.</summary>
+public sealed record TacticRow(Term[] Terms, Act Act, int ActParam = 0)
+{
+    public TacticRow(Term term, Act act, int actParam = 0) : this([term], act, actParam) { }
 
     public bool Equals(TacticRow? other) =>
         other is not null && Act == other.Act && ActParam == other.ActParam && Terms.AsSpan().SequenceEqual(other.Terms);
@@ -78,51 +51,23 @@ public sealed record TacticRow(Term[] Terms, Act Act, int ActParam)
 }
 
 /// <summary>
-/// The facts that conditions read, gathered from the sim each AI tick.
-/// Fractions are 0 to 1; null means the ship has none of that thing (no shields, no battery storage).
-/// NearestEnemy and NearestCrate are edge distances, or +infinity with none. StrikeIn is the game seconds to the next Strike wave,
-/// or null outside the Strike stage. Spec 1066: Cargo is null without storage bays; NearestLoot, NearestAsteroid, NearestWreck and
-/// NearestFleet are edge distances, or +infinity with none. Spec 1083: OthersHealth is the lowest hull share (ShipAiController.HullHealth)
-/// of the other human player ships in the system, or null with none.
+/// What terms read, from the sim each AI tick (spec 2324, 2325). Value: in the unit of the value (percent 0 to 100, distance edge to
+/// edge, +infinity when there is nothing to measure to), or null when the ship has no such value (no shields, no Strike wave, an
+/// empty slot). A row reads only what its terms name.
 /// </summary>
-public sealed record ShipFacts(
-    float Health,
-    float? Shields,
-    IReadOnlySet<PartKind> LostParts,
-    float NearestEnemy,
-    bool TargetedByEnemy,
-    bool AllyUnderAttack,
-    float? Ammo,
-    float? Battery,
-    IReadOnlySet<ShipClass> EnemyClasses,
-    int Enemies,
-    bool CarryingTech,
-    bool VaultDamaged,
-    int HeatStage = 0,
-    bool HuntersInSystem = false,
-    float? StrikeIn = null,
-    bool LossTimerRunning = false,
-    float NearestCrate = float.PositiveInfinity,
-    bool EnemyHoldsTech = false,
-    bool EnemyCalling = false,
-    float? Cargo = null,
-    bool CargoToSell = false,
-    float NearestLoot = float.PositiveInfinity,
-    bool StationInRange = false,
-    float NearestAsteroid = float.PositiveInfinity,
-    float NearestWreck = float.PositiveInfinity,
-    float NearestFleet = float.PositiveInfinity,
-    float NearestAlly = float.PositiveInfinity,
-    bool AllyInLineOfFire = false,
-    float? OthersHealth = null);
+public interface IShipFacts
+{
+    bool Fact(Cond cond, int param);
+
+    double? Value(Operand operand);
+}
 
 /// <summary>The last value of one term and the game second it took that value (spec 418). Rows keep one per term, in term order.</summary>
 public readonly record struct TermMemory(bool On, double Since);
 
 /// <summary>
-/// Spec 418. Margin: a threshold term that holds keeps holding until its value passes the threshold by this much
-/// (percent terms: points × 100, distance and seconds terms: a fraction of the threshold). MinHoldSeconds: a threshold term keeps
-/// a new value at least this long.
+/// Spec 418. Margin: a threshold comparison that holds keeps holding until its value passes the other side by this much
+/// (percent: points × 100, distance and seconds: a fraction of the other side). MinHoldSeconds: it keeps a new result at least this long.
 /// </summary>
 public readonly record struct Hysteresis(float Margin, double MinHoldSeconds)
 {
@@ -130,175 +75,130 @@ public readonly record struct Hysteresis(float Margin, double MinHoldSeconds)
 }
 
 /// <summary>
-/// Result of one evaluation (spec 403, 1067). TargetRow, MoveRow, FacingRow and TradeRow are row indexes or -1.
-/// Matched holds, for each row, whether its conditions held and its action could run. Weapon rows resolve per weapon (WeaponAct).
-/// Memory is the new term memory of all rows, in term order.
+/// Result of one evaluation (spec 403, 1067). TargetRow, MoveRow, FacingRow, TradeRow and BuildRow are row indexes or -1.
+/// Matched holds, for each row, whether its conditions held and its action could run. Weapon rows resolve per weapon (WeaponAct);
+/// every matched flag row runs (spec 2326). Memory is the new term memory of all rows, in term order.
 /// </summary>
-public sealed record Decision(int TargetRow, int MoveRow, int FacingRow, bool[] Matched, TermMemory[] Memory, int TradeRow = -1)
+public sealed record Decision(int TargetRow, int MoveRow, int FacingRow, bool[] Matched, TermMemory[] Memory, int TradeRow = -1, int BuildRow = -1)
 {
     public static readonly Decision None = new(-1, -1, -1, [], []);
 }
 
 /// <summary>
-/// Player ship tactics, Dragon Age style (spec 400 to 439). Pure: no game types, so the unit tests cover it.
+/// Player ship tactics, Dragon Age style (spec 400 to 439, 2320 to 2329). Pure: no game types, so the unit tests cover it.
 /// </summary>
 public static class ShipAiModel
 {
     public const int MaxRows = 16;
     public const int MaxGroup = 10;
+    public const int MaxFlags = 4;
     /// <summary>
     /// The highest stage that stored tactics text may name. The real limit is the number of heat stages (Heat.Stages), which the
-    /// tactics input checks (StageError). Stored text keeps this wider bound, so a save or design still loads after the stage table
-    /// gets shorter; such a term never holds.
+    /// tactics input checks (StageError).
     /// </summary>
     public const int MaxStage = 10;
-    public const string Prefix = "HC1:";
+    public const string Prefix = "HC2:";
+    public const string Arrow = "->";
 
-    public static ActKind KindOf(Act act) => act switch
-    {
-        <= Act.TargetMyAttacker => ActKind.Target,
-        <= Act.KeepSpacing => ActKind.Move,
-        <= Act.FireDisruptors => ActKind.Weapons,
-        Act.Face => ActKind.Facing,
-        _ => ActKind.Trade,
-    };
+    public static ActKind KindOf(Act act) => ShipAiRegistry.Of(act).Kind;
 
-    public static ParamKind ParamOf(Cond cond) => cond switch
-    {
-        Cond.HealthBelow or Cond.ShieldsBelow or Cond.AmmoBelow or Cond.BatteryBelow or Cond.CargoAbove or Cond.FleetHealthAbove => ParamKind.Percent,
-        Cond.EnemyWithin or Cond.EnemyBeyond or Cond.CratesWithin or Cond.LootWithin or Cond.AsteroidWithin or Cond.WreckWithin
-            or Cond.FleetBeyond or Cond.AllyWithin => ParamKind.Distance,
-        Cond.EnemiesAtLeast => ParamKind.Count,
-        Cond.PartLost => ParamKind.PartKind,
-        Cond.EnemyClassNear => ParamKind.ShipClass,
-        Cond.HeatStageAtLeast => ParamKind.Stage,
-        Cond.StrikeWithin => ParamKind.Seconds,
-        _ => ParamKind.None,
-    };
+    public static ParamKind ParamOf(Cond cond) => ShipAiRegistry.Of(cond).Param;
 
-    public static ParamKind ParamOf(Act act) => act switch
-    {
-        Act.Guard => ParamKind.GuardWho,
-        Act.Face => ParamKind.Side,
-        Act.GoToStation => ParamKind.Station,
-        Act.HoldFormation or Act.KeepSpacing => ParamKind.Distance,
-        _ when KindOf(act) == ActKind.Weapons => ParamKind.Group,
-        _ => ParamKind.None,
-    };
+    public static ParamKind ParamOf(Act act) => ShipAiRegistry.Of(act).Param;
 
-    /// <summary>Spec 418: terms that compare a measured value with a threshold get hysteresis.</summary>
-    public static bool IsThreshold(ParamKind kind) => kind is ParamKind.Percent or ParamKind.Distance or ParamKind.Seconds;
+    public static Unit UnitOf(Value value) => ShipAiRegistry.Of(value).Unit;
 
-    /// <summary>Allowed parameter range for each kind. A decoded value outside it is an error.</summary>
-    public static (int Min, int Max) RangeOf(ParamKind kind) => kind switch
-    {
-        ParamKind.None => (0, 0),
-        ParamKind.Percent => (0, 100),
-        ParamKind.Distance => (0, 20000),
-        ParamKind.Count => (1, 50),
-        ParamKind.PartKind => (0, Enum.GetValues<PartKind>().Length - 1),
-        ParamKind.ShipClass => (0, Enum.GetValues<ShipClass>().Length - 1),
-        ParamKind.Group => (0, MaxGroup),
-        ParamKind.GuardWho => (0, Enum.GetValues<GuardWho>().Length - 1),
-        ParamKind.Stage => (1, MaxStage),
-        ParamKind.Seconds => (0, 3600),
-        ParamKind.Side => (0, Enum.GetValues<Side>().Length - 1),
-        ParamKind.Station => (0, Enum.GetValues<StationPick>().Length - 1),
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
-    };
+    /// <summary>Spec 418: comparisons of percent, distance and seconds values get hysteresis; facts and '=' do not.</summary>
+    public static bool IsThreshold(TermBody body) =>
+        body is CompareTerm { Op: not Op.Equal } c && ShipAiRegistry.IsThreshold(UnitOf(c.Left.Value));
 
-    /// <summary>
-    /// The values that the editor offers for a parameter. stages: the number of heat stages (Heat.Stages). A row with another value
-    /// (pasted text) shows it too.
-    /// </summary>
-    public static int[] ChoicesOf(ParamKind kind, int stages) => kind switch
-    {
-        ParamKind.Percent => [5, 10, 20, 25, 30, 40, 50, 60, 75, 90, 95],
-        ParamKind.Distance => [100, 150, 200, 300, 500, 800, 1000, 1500, 2000, 3000, 5000, 10000, 20000],
-        ParamKind.Count => [1, 2, 3, 4, 5, 6, 8],
-        ParamKind.Stage => Enumerable.Range(1, Math.Clamp(stages, 1, MaxStage)).ToArray(),
-        ParamKind.Seconds => [10, 20, 30, 60, 90, 120],
-        _ => Enumerable.Range(RangeOf(kind).Min, RangeOf(kind).Max - RangeOf(kind).Min + 1).ToArray(),
-    };
-
-    /// <summary>Spec 413: an error for a "heat stage at least" term above the number of heat stages, or null when all fit.</summary>
+    /// <summary>Spec 413: an error for a heat stage comparison above the number of heat stages, or null when all fit.</summary>
     public static string? StageError(IEnumerable<TacticRow> rows, int stages)
     {
         foreach (var row in rows)
             foreach (var t in row.Terms)
-                if (t.Cond == Cond.HeatStageAtLeast && t.Param > stages)
-                    return $"HeatStageAtLeast={t.Param}: the run has {stages} heat stages";
+                if (t.Body is CompareTerm { Left.Value: Value.HeatStage, Right: null } c && c.Number > stages)
+                    return $"HeatStage {c.Number}: the run has {stages} heat stages";
         return null;
     }
 
-    /// <summary>The parameter that a new term or action (or a changed condition or action) starts with.</summary>
-    public static int DefaultParam(ParamKind kind) => kind switch
+    /// <summary>The design slots that a row names, in its terms and its action.</summary>
+    public static IEnumerable<int> DesignSlots(TacticRow row)
     {
-        ParamKind.Percent => 30,
-        ParamKind.Distance => 1000,
-        ParamKind.Count => 2,
-        ParamKind.Stage => 1,
-        ParamKind.Seconds => 30,
-        _ => 0,
-    };
+        foreach (var t in row.Terms)
+        {
+            if (t.Body is FactTerm f && ParamOf(f.Cond) == ParamKind.Design) yield return f.Param;
+            foreach (var o in Operands(t.Body))
+                if (o.Slot > 0) yield return o.Slot;
+        }
+        if (ParamOf(row.Act) == ParamKind.Design) yield return row.ActParam;
+    }
 
-    /// <summary>Whether a term's condition holds, without Not and without hysteresis.</summary>
-    public static bool Holds(Term term, ShipFacts f) => Holds(term, f, wasOn: false, margin: 0f);
+    /// <summary>The values that a term reads: the left side, and the right side when it is a value.</summary>
+    public static IEnumerable<Operand> Operands(TermBody body)
+    {
+        if (body is not CompareTerm c) yield break;
+        yield return c.Left;
+        if (c.Right is { } r) yield return r;
+    }
+
+    /// <summary>Spec 2322: an error for a row that names an empty design slot, or null when every named slot holds a design.</summary>
+    public static string? DesignError(IEnumerable<TacticRow> rows, Func<int, bool> filled)
+    {
+        foreach (var row in rows)
+            foreach (int slot in DesignSlots(row))
+                if (!filled(slot)) return $"design slot {slot} is empty: pick a design for it first";
+        return null;
+    }
+
+    /// <summary>Spec 2322: an error for a resource argument that isResource refuses, or null.</summary>
+    public static string? ResourceError(IEnumerable<TacticRow> rows, Func<string, bool> isResource)
+    {
+        foreach (var row in rows)
+            foreach (var t in row.Terms)
+                foreach (var o in Operands(t.Body))
+                    if (o.Resource.Length > 0 && !isResource(o.Resource)) return $"unknown resource '{o.Resource}'";
+        return null;
+    }
+
+    /// <summary>Whether a term holds, without Not and without hysteresis.</summary>
+    public static bool Holds(Term term, IShipFacts f) => Holds(term.Body, f, wasOn: false, margin: 0f);
 
     /// <summary>
-    /// Spec 402: the engage range of a target row: the smallest "enemy within R" of its terms, when every term must hold (no OR) and
-    /// that term has no NOT. The target pick takes only enemies within R × (1 + margin), the margin of the anti-flicker rule
-    /// (requirement 418), so a target that the condition keeps also stays pickable. Null: the row picks among every enemy on radar.
+    /// Spec 402: the engage range of a target row: the smallest number of its "nearest enemy &lt; R" terms, when every term must hold
+    /// (no OR) and that term has no NOT. The pick takes only enemies within R × (1 + margin), the margin of requirement 418, so a target
+    /// that the term keeps also stays pickable. Null: the row picks among every enemy on radar.
     /// </summary>
     public static float? EngageRange(TacticRow row, float margin)
     {
         if (row.Terms.Any(t => t.Or)) return null;
-        var within = row.Terms.Where(t => t.Cond == Cond.EnemyWithin && !t.Not).ToList();
-        return within.Count == 0 ? null : within.Min(t => t.Param) * (1f + margin);
+        var within = row.Terms.Where(t => !t.Not && t.Body is CompareTerm { Left.Value: Value.NearestEnemy, Op: Op.Less, Right: null })
+            .Select(t => ((CompareTerm)t.Body).Number).ToList();
+        return within.Count == 0 ? null : within.Min() * (1f + margin);
     }
 
-    /// <summary>The condition of a term, without Not. A threshold term that was on gets the margin in its favor (spec 418).</summary>
-    static bool Holds(Term term, ShipFacts f, bool wasOn, float margin)
+    /// <summary>A term's body, without Not. A threshold comparison that was on gets the margin in its favor (spec 418).</summary>
+    static bool Holds(TermBody body, IShipFacts f, bool wasOn, float margin) => body switch
     {
-        float m = wasOn ? margin : 0f;
-        float p = term.Param;
-        bool Below(float? fraction) => fraction is { } v && v * 100f < p + m * 100f;
-        bool Above(float? fraction) => fraction is { } v && v * 100f > p - m * 100f;
-        return term.Cond switch
+        FactTerm fact => f.Fact(fact.Cond, fact.Param),
+        CompareTerm c => Compares(c, f, wasOn ? margin : 0f),
+        _ => throw new ArgumentOutOfRangeException(nameof(body), body, null),
+    };
+
+    /// <summary>Spec 2323, 418: a missing value on either side makes the comparison false.</summary>
+    static bool Compares(CompareTerm c, IShipFacts f, float margin)
+    {
+        if (f.Value(c.Left) is not { } left) return false;
+        double? right = c.Right is { } r ? f.Value(r) : c.Number;
+        if (right is not { } rv) return false;
+        double m = c.Op == Op.Equal || !ShipAiRegistry.IsThreshold(UnitOf(c.Left.Value)) ? 0
+            : UnitOf(c.Left.Value) == Unit.Percent ? margin * 100.0 : margin * Math.Abs(rv);
+        return c.Op switch
         {
-            Cond.Always => true,
-            Cond.HealthBelow => Below(f.Health),
-            Cond.ShieldsBelow => Below(f.Shields),
-            Cond.PartLost => f.LostParts.Contains((PartKind)term.Param),
-            Cond.EnemyWithin => f.NearestEnemy <= p * (1f + m),
-            Cond.EnemyBeyond => f.NearestEnemy > p * (1f - m),
-            Cond.TargetedByEnemy => f.TargetedByEnemy,
-            Cond.AllyUnderAttack => f.AllyUnderAttack,
-            Cond.AmmoBelow => Below(f.Ammo),
-            Cond.BatteryBelow => Below(f.Battery),
-            Cond.EnemyClassNear => f.EnemyClasses.Contains((ShipClass)term.Param),
-            Cond.EnemiesAtLeast => f.Enemies >= term.Param,
-            Cond.CarryingTech => f.CarryingTech,
-            Cond.VaultDamaged => f.VaultDamaged,
-            Cond.HeatStageAtLeast => f.HeatStage >= term.Param,
-            Cond.HuntersInSystem => f.HuntersInSystem,
-            Cond.StrikeWithin => f.StrikeIn is { } s && s <= p * (1f + m),
-            Cond.LossTimerRunning => f.LossTimerRunning,
-            Cond.CratesWithin => f.NearestCrate <= p * (1f + m),
-            Cond.EnemyHoldsTech => f.EnemyHoldsTech,
-            Cond.EnemyCalling => f.EnemyCalling,
-            Cond.CargoAbove => Above(f.Cargo),
-            Cond.CargoToSell => f.CargoToSell,
-            Cond.LootWithin => f.NearestLoot <= p * (1f + m),
-            Cond.StationInRange => f.StationInRange,
-            Cond.AsteroidWithin => f.NearestAsteroid <= p * (1f + m),
-            Cond.WreckWithin => f.NearestWreck <= p * (1f + m),
-            Cond.FleetBeyond => f.NearestFleet > p * (1f - m),
-            // Spec 1083: every other ship is above the threshold. With no other ship, no repair needs the loot.
-            Cond.FleetHealthAbove => f.OthersHealth is not { } v || v * 100f > p - m * 100f,
-            Cond.AllyWithin => f.NearestAlly <= p * (1f + m),
-            Cond.AllyInLineOfFire => f.AllyInLineOfFire,
-            _ => throw new ArgumentOutOfRangeException(nameof(term), term.Cond, null),
+            Op.Less => left < rv + m,
+            Op.Greater => left > rv - m,
+            Op.Equal => Math.Round(left) == Math.Round(rv),
+            _ => throw new ArgumentOutOfRangeException(nameof(c), c.Op, null),
         };
     }
 
@@ -307,7 +207,7 @@ public static class ShipAiModel
     /// A bracket is evaluated the same way and counts as one item. Every term is evaluated, so each one updates its memory.
     /// memory: the terms' old memory (or null), start: its first index. The new memory goes to output from start on.
     /// </summary>
-    static bool RowHolds(TacticRow row, ShipFacts f, IReadOnlyList<TermMemory>? memory, int start, double now, Hysteresis h, TermMemory[] output)
+    static bool RowHolds(TacticRow row, IShipFacts f, IReadOnlyList<TermMemory>? memory, int start, double now, Hysteresis h, TermMemory[] output)
     {
         // One (any, group) pair per open bracket level: any = an OR part before held, group = the AND part so far holds.
         var levels = new Stack<(bool Any, bool Group)>();
@@ -316,8 +216,8 @@ public static class ShipAiModel
         {
             var term = row.Terms[j];
             TermMemory? old = memory is not null && start + j < memory.Count ? memory[start + j] : null;
-            bool threshold = IsThreshold(ParamOf(term.Cond));
-            bool raw = Holds(term, f, old?.On == true && threshold, h.Margin);
+            bool threshold = IsThreshold(term.Body);
+            bool raw = Holds(term.Body, f, old?.On == true && threshold, h.Margin);
             TermMemory next;
             if (old is not { } o) next = new TermMemory(raw, now);
             else if (raw == o.On) next = o;
@@ -376,23 +276,24 @@ public static class ShipAiModel
     }
 
     /// <summary>Evaluation without term memory and without hysteresis.</summary>
-    public static Decision Evaluate(IReadOnlyList<TacticRow> rows, ShipFacts facts, Func<TacticRow, bool> canRun) =>
+    public static Decision Evaluate(IReadOnlyList<TacticRow> rows, IShipFacts facts, Func<TacticRow, bool> canRun) =>
         Evaluate(rows, facts, canRun, null, 0, Hysteresis.None);
 
     /// <summary>
     /// Spec 403. Rows run top to bottom. A row matches when its conditions hold and canRun says its action can run now
     /// (for example, a target action needs a target). The first matching row of each kind wins: one target row, one move row,
-    /// one facing row, and per weapon the first matching weapons row of its group (WeaponAct). canRun is called only for rows whose
-    /// conditions hold. memory is the Memory of the last decision for the same rows, or null; a memory of another length is ignored.
+    /// one facing row, one trade row, one build row, and per weapon the first matching weapons row of its group (WeaponAct). canRun is called only
+    /// for rows whose conditions hold. memory is the Memory of the last decision for the same rows, or null; a memory of another
+    /// length is ignored.
     /// </summary>
-    public static Decision Evaluate(IReadOnlyList<TacticRow> rows, ShipFacts facts, Func<TacticRow, bool> canRun,
+    public static Decision Evaluate(IReadOnlyList<TacticRow> rows, IShipFacts facts, Func<TacticRow, bool> canRun,
         IReadOnlyList<TermMemory>? memory, double now, Hysteresis h)
     {
         int termCount = rows.Sum(r => r.Terms.Length);
         if (memory is not null && memory.Count != termCount) memory = null;
         var output = new TermMemory[termCount];
         var matched = new bool[rows.Count];
-        int target = -1, move = -1, facing = -1, trade = -1, start = 0;
+        int target = -1, move = -1, facing = -1, trade = -1, build = -1, start = 0;
         for (int i = 0; i < rows.Count; i++)
         {
             var row = rows[i];
@@ -405,9 +306,27 @@ public static class ShipAiModel
                 case ActKind.Move when move < 0: move = i; break;
                 case ActKind.Facing when facing < 0: facing = i; break;
                 case ActKind.Trade when trade < 0: trade = i; break;
+                case ActKind.Build when build < 0: build = i; break;
             }
         }
-        return new Decision(target, move, facing, matched, output, trade);
+        return new Decision(target, move, facing, matched, output, trade, build);
+    }
+
+    /// <summary>Spec 2326: the flags after the matched flag rows ran, in row order. flags: bit n-1 = flag n.</summary>
+    public static int ApplyFlags(IReadOnlyList<TacticRow> rows, IReadOnlyList<bool> matched, int flags)
+    {
+        for (int i = 0; i < rows.Count && i < matched.Count; i++)
+        {
+            if (!matched[i]) continue;
+            int bit = 1 << (rows[i].ActParam - 1);
+            flags = rows[i].Act switch
+            {
+                Act.SetFlag => flags | bit,
+                Act.ClearFlag => flags & ~bit,
+                _ => flags,
+            };
+        }
+        return flags;
     }
 
     /// <summary>
@@ -429,10 +348,9 @@ public static class ShipAiModel
     /// <summary>Weapons actions that give weapons an explicit part target on the target ship.</summary>
     public static bool AimsAtParts(Act act) => act is Act.FocusTarget or Act.TargetWeapons or Act.TargetEngines or Act.FireDisruptors;
 
-    /// <summary>
-    /// Spec 405, 417, 2320. Text form: "HC1:" then rows joined by ';', each "terms>Act[=n]". Terms: "[(...][!]Cond[=n][)...]" joined
-    /// by '&amp;' (AND) or '|' (OR). Text without brackets is the old form, so old text reads and writes the same. Empty text = no tactics.
-    /// </summary>
+    // ---- Text form (spec 405, 417, 2320)
+
+    /// <summary>"HC2:" then rows joined by ';', each "terms->Action[=parameter]". Empty text = no tactics.</summary>
     public static string Encode(IReadOnlyList<TacticRow> rows)
     {
         if (rows.Count == 0) return "";
@@ -447,17 +365,42 @@ public static class ShipAiModel
                 if (j > 0) sb.Append(t.Or ? '|' : '&');
                 sb.Append('(', t.Open);
                 if (t.Not) sb.Append('!');
-                sb.Append(t.Cond);
-                if (ParamOf(t.Cond) != ParamKind.None) sb.Append('=').Append(t.Param.ToString(CultureInfo.InvariantCulture));
+                sb.Append(TermText(t.Body));
                 sb.Append(')', t.Close);
             }
-            sb.Append('>').Append(r.Act);
-            if (ParamOf(r.Act) != ParamKind.None) sb.Append('=').Append(r.ActParam.ToString(CultureInfo.InvariantCulture));
+            sb.Append(Arrow).Append(r.Act).Append(ParamText(ParamOf(r.Act), r.ActParam));
         }
         return sb.ToString();
     }
 
-    /// <summary>Parses Encode text. Throws FormatException on any unknown name, missing or out-of-range parameter, unbalanced brackets or too many rows.</summary>
+    /// <summary>A term body as the text form writes it, also for the editor's tooltips.</summary>
+    public static string TermText(TermBody body) => body switch
+    {
+        FactTerm f => f.Cond + ParamText(ParamOf(f.Cond), f.Param),
+        CompareTerm c => OperandText(c.Left) + OpChar(c.Op) + (c.Right is { } r ? OperandText(r) : c.Number.ToString(CultureInfo.InvariantCulture)),
+        _ => throw new ArgumentOutOfRangeException(nameof(body), body, null),
+    };
+
+    public static char OpChar(Op op) => op switch { Op.Less => '<', Op.Greater => '>', Op.Equal => '=', _ => throw new ArgumentOutOfRangeException(nameof(op), op, null) };
+
+    public static string OperandText(Operand o) => ShipAiRegistry.Of(o.Value).Arg switch
+    {
+        ArgKind.None => o.Value.ToString(),
+        ArgKind.Resource => $"{o.Value}[{o.Resource}]",
+        ArgKind.Design => $"{o.Value}[{o.Slot.ToString(CultureInfo.InvariantCulture)}]",
+        ArgKind.DesignResource => $"{o.Value}[{o.Slot.ToString(CultureInfo.InvariantCulture)},{o.Resource}]",
+        _ => throw new ArgumentOutOfRangeException(nameof(o), o.Value, null),
+    };
+
+    /// <summary>"=name" for an enum parameter, "=n" for a number parameter, "" without one.</summary>
+    static string ParamText(ParamKind kind, int value) => kind switch
+    {
+        ParamKind.None => "",
+        _ when ShipAiRegistry.EnumOf(kind) is { } type => "=" + Enum.GetName(type, value),
+        _ => "=" + value.ToString(CultureInfo.InvariantCulture),
+    };
+
+    /// <summary>Parses Encode text. Throws FormatException on any error (spec 405); an old "HC1:" text is an error.</summary>
     public static List<TacticRow> Decode(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
@@ -466,9 +409,12 @@ public static class ShipAiModel
         var rows = new List<TacticRow>();
         foreach (string part in text[Prefix.Length..].Split(';'))
         {
-            int arrow = part.IndexOf('>');
-            if (arrow < 0) throw new FormatException($"tactic row '{part}' has no '>'");
-            var (act, actParam) = ParseSide<Act>(part[(arrow + 1)..], ParamOf);
+            int arrow = part.LastIndexOf(Arrow, StringComparison.Ordinal);
+            if (arrow < 0) throw new FormatException($"tactic row '{part}' has no '{Arrow}'");
+            string actText = part[(arrow + Arrow.Length)..];
+            int eq = actText.IndexOf('=');
+            var act = ParseName<Act>(eq < 0 ? actText : actText[..eq]);
+            int actParam = ParseParam(ParamOf(act), act.ToString(), eq < 0 ? null : actText[(eq + 1)..]);
             rows.Add(new TacticRow(ParseTerms(part[..arrow]), act, actParam));
         }
         if (rows.Count > MaxRows) throw new FormatException($"tactics have {rows.Count} rows; at most {MaxRows}");
@@ -489,8 +435,7 @@ public static class ShipAiModel
             string body = inner.TrimEnd(')');
             int close = inner.Length - body.Length;
             bool not = body.StartsWith('!');
-            var (cond, param) = ParseSide<Cond>(not ? body[1..] : body, ParamOf);
-            terms.Add(new Term(cond, param, not, or, open, close));
+            terms.Add(new Term(ParseBody(not ? body[1..] : body), not, or, open, close));
             if (end < 0) break;
             or = side[end] == '|';
             pos = end + 1;
@@ -499,41 +444,119 @@ public static class ShipAiModel
         return terms.ToArray();
     }
 
-    static (T Value, int Param) ParseSide<T>(string side, Func<T, ParamKind> paramOf) where T : struct, Enum
+    /// <summary>A name followed by '[' or an operator: a value with a comparison when the name is a value, else a fact.</summary>
+    static TermBody ParseBody(string s)
     {
-        int eq = side.IndexOf('=');
-        string name = eq < 0 ? side : side[..eq];
-        // Enum.TryParse also takes numbers; only names are valid text.
-        if (name.Length == 0 || char.IsDigit(name[0]) || !Enum.TryParse(name, ignoreCase: false, out T value) || !Enum.IsDefined(value))
-            throw new FormatException($"unknown {typeof(T).Name} '{name}'");
-        var kind = paramOf(value);
-        if (kind == ParamKind.None)
+        int nameEnd = 0;
+        while (nameEnd < s.Length && char.IsLetterOrDigit(s[nameEnd])) nameEnd++;
+        string name = s[..nameEnd];
+        if (IsName<Value>(name))
         {
-            if (eq >= 0) throw new FormatException($"{name} takes no parameter");
-            return (value, 0);
+            var (left, rest) = ParseOperand(s);
+            if (rest.Length < 2) throw new FormatException($"'{s}' needs <, > or = and a number or a value");
+            var op = rest[0] switch { '<' => Op.Less, '>' => Op.Greater, '=' => Op.Equal, _ => throw new FormatException($"'{s}': unknown comparison '{rest[0]}'") };
+            string rhs = rest[1..];
+            var unit = UnitOf(left.Value);
+            if (char.IsDigit(rhs[0]))
+            {
+                if (!int.TryParse(rhs, NumberStyles.None, CultureInfo.InvariantCulture, out int n)) throw new FormatException($"'{s}': '{rhs}' is not a whole number");
+                var (min, max) = ShipAiRegistry.RangeOf(unit);
+                if (n < min || n > max) throw new FormatException($"'{s}': {n} is outside {min} to {max}");
+                return new CompareTerm(left, op, null, n);
+            }
+            var (right, tail) = ParseOperand(rhs);
+            if (tail.Length > 0) throw new FormatException($"'{s}': unexpected '{tail}'");
+            if (UnitOf(right.Value) != unit) throw new FormatException($"'{s}': {left.Value} and {right.Value} have different units");
+            return new CompareTerm(left, op, right, 0);
         }
-        if (eq < 0 || !int.TryParse(side[(eq + 1)..], NumberStyles.Integer, CultureInfo.InvariantCulture, out int param))
-            throw new FormatException($"{name} needs a number parameter");
-        var (min, max) = RangeOf(kind);
-        if (param < min || param > max) throw new FormatException($"{name}={param} is outside {min} to {max}");
-        return (value, param);
+        var cond = ParseName<Cond>(name);
+        string rest2 = s[nameEnd..];
+        if (rest2.Length > 0 && rest2[0] != '=') throw new FormatException($"'{s}': {name} is a fact; it takes '=parameter' only");
+        return new FactTerm(cond, ParseParam(ParamOf(cond), name, rest2.Length == 0 ? null : rest2[1..]));
     }
+
+    /// <summary>A value name and its arguments in square brackets; returns the rest of the text.</summary>
+    static (Operand Operand, string Tail) ParseOperand(string s)
+    {
+        int nameEnd = 0;
+        while (nameEnd < s.Length && char.IsLetterOrDigit(s[nameEnd])) nameEnd++;
+        var value = ParseName<Value>(s[..nameEnd]);
+        var kind = ShipAiRegistry.Of(value).Arg;
+        string[] args = [];
+        string rest = s[nameEnd..];
+        if (rest.StartsWith('['))
+        {
+            int close = rest.IndexOf(']');
+            if (close < 0) throw new FormatException($"'{s}': '[' without ']'");
+            args = rest[1..close].Split(',');
+            rest = rest[(close + 1)..];
+        }
+        int Slot(string a) => int.TryParse(a, NumberStyles.None, CultureInfo.InvariantCulture, out int n) && n >= 1 && n <= Autonomy.BuildModel.MaxDesigns
+            ? n : throw new FormatException($"'{s}': design slot '{a}' is not 1 to {Autonomy.BuildModel.MaxDesigns}");
+        string Res(string a) => a.Length > 0 && a.All(c => char.IsLetterOrDigit(c) || c is '_' or '.') ? a : throw new FormatException($"'{s}': '{a}' is not a resource ID");
+        var operand = (kind, args.Length) switch
+        {
+            (ArgKind.None, 0) => new Operand(value),
+            (ArgKind.Resource, 1) => new Operand(value, Resource: Res(args[0])),
+            (ArgKind.Design, 1) => new Operand(value, Slot(args[0])),
+            (ArgKind.DesignResource, 2) => new Operand(value, Slot(args[0]), Res(args[1])),
+            _ => throw new FormatException($"'{s}': {value} takes {kind switch { ArgKind.None => "no arguments", ArgKind.Resource => "[resource]", ArgKind.Design => "[slot]", _ => "[slot,resource]" }}"),
+        };
+        return (operand, rest);
+    }
+
+    static bool IsName<T>(string name) where T : struct, Enum =>
+        name.Length > 0 && !char.IsDigit(name[0]) && Enum.TryParse(name, ignoreCase: false, out T v) && Enum.IsDefined(v);
+
+    static T ParseName<T>(string name) where T : struct, Enum =>
+        IsName<T>(name) ? Enum.Parse<T>(name) : throw new FormatException($"unknown {typeof(T).Name} '{name}'");
+
+    static int ParseParam(ParamKind kind, string owner, string? text)
+    {
+        if (kind == ParamKind.None)
+            return text is null ? 0 : throw new FormatException($"{owner} takes no parameter");
+        if (text is null) throw new FormatException($"{owner} needs a parameter");
+        int value;
+        if (ShipAiRegistry.EnumOf(kind) is { } type)
+        {
+            if (text.Length == 0 || char.IsDigit(text[0]) || !Enum.TryParse(type, text, ignoreCase: false, out object? e) || !Enum.IsDefined(type, e))
+                throw new FormatException($"{owner}: '{text}' is not one of {string.Join(", ", Enum.GetNames(type))}");
+            value = (int)e;
+        }
+        else if (!int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out value))
+            throw new FormatException($"{owner} needs a whole number, not '{text}'");
+        var (min, max) = ShipAiRegistry.RangeOf(kind);
+        if (value < min || value > max) throw new FormatException($"{owner}={text} is outside {min} to {max}");
+        return value;
+    }
+
+    // ---- Presets (spec 406, 427, 1076 to 1080, 1083)
 
     /// <summary>
     /// Spec 406: the engage range of the combat presets, edge to edge. About twice the longest weapon range (missile launcher 700,
     /// railgun 444, most guns 150 to 380), so a sniper still opens fire at its full range, and below the start ship's radar (1807).
-    /// The same range as the "enemy within 1500" rows of Defensive, Formation and Escort Drone.
     /// </summary>
     public const int EngageRangeDefault = 1500;
 
-    /// <summary>
-    /// Spec 1083: the default of the Autonomy tunable EnemyClearance and the flee distance of the Looter preset. It is the engage
-    /// range of the combat presets (requirement 406).
-    /// </summary>
+    /// <summary>Spec 1083: the default of the Autonomy tunable EnemyClearance and the flee distance of the Looter preset.</summary>
     public const int EnemyClearanceDefault = EngageRangeDefault;
 
     /// <summary>Spec 1083: the Looter waits while another ship has this share of its hull or less, so the crews keep the loot for repair.</summary>
     public const int RepairedPercent = 90;
+
+    static TacticRow Row(Act act, params Term[] terms) => new(terms, act);
+
+    static TacticRow Row(Act act, int param, params Term[] terms) => new(terms, act, param);
+
+    static readonly Term Always = Term.Fact(Cond.Always);
+
+    static Term Near(int range) => Term.Less(Value.NearestEnemy, range);
+
+    static readonly Term Repaired = Term.Greater(Value.OthersHealth, RepairedPercent);
+
+    static readonly Term CanSell = Term.Fact(Cond.CargoToSell);
+
+    static readonly Term AtStation = Term.Fact(Cond.StationInRange);
 
     /// <summary>Spec 406. Starting points for the editor. Each one is a plain list of rows that the player can change.</summary>
     public static IReadOnlyList<TacticRow> PresetRows(Preset preset) => preset switch
@@ -542,93 +565,93 @@ public static class ShipAiModel
         // pull the ship across the system.
         Preset.Aggressive =>
         [
-            new(Cond.HealthBelow, 20, Act.RetreatRepair, 0),
-            new(Cond.EnemyWithin, EngageRangeDefault, Act.TargetWeakest, 0),
-            new(Cond.EnemyWithin, EngageRangeDefault, Act.CloseIn, 0),
-            new(Cond.Always, 0, Act.FocusTarget, 0),
+            Row(Act.RetreatRepair, Term.Less(Value.Health, 20)),
+            Row(Act.TargetWeakest, Near(EngageRangeDefault)),
+            Row(Act.CloseIn, Near(EngageRangeDefault)),
+            Row(Act.FocusTarget, 0, Always),
             // Without an enemy, a second ship stays with the fleet. The first ship has no leader, so the row never runs there.
-            new(Cond.Always, 0, Act.FollowLeader, 0),
+            Row(Act.FollowLeader, Always),
         ],
         Preset.Defensive =>
         [
-            new(Cond.HealthBelow, 40, Act.RetreatToAlly, 0),
-            new(Cond.AllyUnderAttack, 0, Act.TargetAllyAttacker, 0),
-            new(Cond.EnemyWithin, EngageRangeDefault, Act.TargetNearest, 0),
-            new(Cond.EnemyBeyond, EngageRangeDefault, Act.FollowLeader, 0),
+            Row(Act.RetreatToAlly, Term.Less(Value.Health, 40)),
+            Row(Act.TargetAllyAttacker, Term.Fact(Cond.AllyUnderAttack)),
+            Row(Act.TargetNearest, Near(EngageRangeDefault)),
+            Row(Act.FollowLeader, Term.Greater(Value.NearestEnemy, EngageRangeDefault)),
         ],
         Preset.Sniper =>
         [
-            new(Cond.HealthBelow, 30, Act.RetreatRepair, 0),
-            new(Cond.EnemyWithin, EngageRangeDefault, Act.TargetNearest, 0),
-            new(Cond.EnemyWithin, EngageRangeDefault, Act.Kite, 0),
-            new(Cond.Always, 0, Act.TargetWeapons, 0),
-            new(Cond.Always, 0, Act.FollowLeader, 0),
+            Row(Act.RetreatRepair, Term.Less(Value.Health, 30)),
+            Row(Act.TargetNearest, Near(EngageRangeDefault)),
+            Row(Act.Kite, Near(EngageRangeDefault)),
+            Row(Act.TargetWeapons, 0, Always),
+            Row(Act.FollowLeader, Always),
         ],
         Preset.Escort =>
         [
-            new(Cond.HealthBelow, 25, Act.RetreatToAlly, 0),
-            new(Cond.AllyUnderAttack, 0, Act.TargetAllyAttacker, 0),
-            new(Cond.TargetedByEnemy, 0, Act.TargetMyAttacker, 0),
-            new(Cond.Always, 0, Act.Guard, (int)GuardWho.Flagship),
+            Row(Act.RetreatToAlly, Term.Less(Value.Health, 25)),
+            Row(Act.TargetAllyAttacker, Term.Fact(Cond.AllyUnderAttack)),
+            Row(Act.TargetMyAttacker, Term.Fact(Cond.TargetedByEnemy)),
+            Row(Act.Guard, (int)GuardWho.Flagship, Always),
         ],
         Preset.VaultGuard =>
         [
-            new(Cond.HealthBelow, 20, Act.RetreatRepair, 0),
-            new(Cond.Always, 0, Act.TargetVaultAttacker, 0),
-            new(Cond.EnemyWithin, 1200, Act.TargetNearest, 0),
-            new(Cond.Always, 0, Act.Guard, (int)GuardWho.VaultShip),
+            Row(Act.RetreatRepair, Term.Less(Value.Health, 20)),
+            Row(Act.TargetVaultAttacker, Always),
+            Row(Act.TargetNearest, Near(1200)),
+            Row(Act.Guard, (int)GuardWho.VaultShip, Always),
         ],
         // Spec 1076 to 1080: autonomous ship scenarios. Spec 1083: the Looter collects and sells only while every other ship is
         // repaired, and keeps away from enemies.
         Preset.Looter =>
         [
-            new(Cond.EnemyWithin, EnemyClearanceDefault, Act.ReturnToFleet, 0),
-            new([new Term(Cond.StationInRange, 0), new Term(Cond.CargoToSell, 0)], Act.Sell, 0),
-            new([new Term(Cond.FleetHealthAbove, RepairedPercent), new Term(Cond.CargoAbove, 95)], Act.GoToStation, (int)StationPick.Nearest),
-            new([new Term(Cond.FleetHealthAbove, RepairedPercent), new Term(Cond.LootWithin, 3000)], Act.CollectLoot, 0),
-            new([new Term(Cond.FleetHealthAbove, RepairedPercent), new Term(Cond.CargoToSell, 0)], Act.GoToStation, (int)StationPick.Nearest),
-            new(Cond.Always, 0, Act.ReturnToFleet, 0),
+            Row(Act.ReturnToFleet, Near(EnemyClearanceDefault)),
+            Row(Act.Sell, AtStation, CanSell),
+            Row(Act.GoToStation, (int)StationPick.Nearest, Repaired, Term.Greater(Value.Cargo, 95)),
+            Row(Act.CollectLoot, Repaired, Term.Less(Value.NearestLoot, 3000)),
+            Row(Act.GoToStation, (int)StationPick.Nearest, Repaired, CanSell),
+            Row(Act.ReturnToFleet, Always),
         ],
         Preset.Miner =>
         [
-            new(Cond.CargoAbove, 95, Act.GoToStation, (int)StationPick.Nearest),
-            new([new Term(Cond.StationInRange, 0), new Term(Cond.CargoToSell, 0)], Act.Sell, 0),
-            new(Cond.LootWithin, 600, Act.CollectLoot, 0),
-            new(Cond.AsteroidWithin, 20000, Act.Mine, 0),
-            new(Cond.Always, 0, Act.ReturnToFleet, 0),
+            Row(Act.GoToStation, (int)StationPick.Nearest, Term.Greater(Value.Cargo, 95)),
+            Row(Act.Sell, AtStation, CanSell),
+            Row(Act.CollectLoot, Term.Less(Value.NearestLoot, 600)),
+            Row(Act.Mine, Term.Less(Value.NearestAsteroid, 20000)),
+            Row(Act.ReturnToFleet, Always),
         ],
         // Buys the buy list where it is cheapest, then unloads all cargo into the owner's first crewed ship.
         Preset.SupplyRunner =>
         [
-            new(Cond.CargoAbove, 90, Act.ReturnToFleet, 0),
-            new(Cond.Always, 0, Act.GoToStation, (int)StationPick.Cheapest),
-            new([new Term(Cond.FleetBeyond, 300, Not: true)], Act.Unload, 0),
-            new(Cond.StationInRange, 0, Act.Buy, 0),
+            Row(Act.ReturnToFleet, Term.Greater(Value.Cargo, 90)),
+            Row(Act.GoToStation, (int)StationPick.Cheapest, Always),
+            Row(Act.Unload, Term.Greater(Value.NearestFleet, 300) with { Not = true }),
+            Row(Act.Buy, AtStation),
         ],
         // Spec 1079: like the Looter, it waits with the fleet until every other ship is repaired, so the crews keep the materials.
         Preset.Salvager =>
         [
-            new([new Term(Cond.FleetHealthAbove, RepairedPercent), new Term(Cond.CargoAbove, 95)], Act.GoToStation, (int)StationPick.Nearest),
-            new([new Term(Cond.StationInRange, 0), new Term(Cond.CargoToSell, 0)], Act.Sell, 0),
-            new([new Term(Cond.FleetHealthAbove, RepairedPercent), new Term(Cond.LootWithin, 3000)], Act.CollectLoot, 0),
-            new([new Term(Cond.FleetHealthAbove, RepairedPercent), new Term(Cond.WreckWithin, 3000)], Act.Salvage, 0),
-            new(Cond.Always, 0, Act.ReturnToFleet, 0),
+            Row(Act.GoToStation, (int)StationPick.Nearest, Repaired, Term.Greater(Value.Cargo, 95)),
+            Row(Act.Sell, AtStation, CanSell),
+            Row(Act.CollectLoot, Repaired, Term.Less(Value.NearestLoot, 3000)),
+            Row(Act.Salvage, Repaired, Term.Less(Value.NearestWreck, 3000)),
+            Row(Act.ReturnToFleet, Always),
         ],
         Preset.EscortDrone =>
         [
-            new(Cond.HealthBelow, 40, Act.ReturnToFleet, 0),
-            new(Cond.AllyUnderAttack, 0, Act.TargetAllyAttacker, 0),
-            new(Cond.EnemyWithin, EngageRangeDefault, Act.TargetNearest, 0),
-            new(Cond.Always, 0, Act.Guard, (int)GuardWho.Flagship),
+            Row(Act.ReturnToFleet, Term.Less(Value.Health, 40)),
+            Row(Act.TargetAllyAttacker, Term.Fact(Cond.AllyUnderAttack)),
+            Row(Act.TargetNearest, Near(EngageRangeDefault)),
+            Row(Act.Guard, (int)GuardWho.Flagship, Always),
         ],
         // Spec 427: no friendly fire, no ramming, a V behind the first ship.
         Preset.Formation =>
         [
-            new(Cond.AllyInLineOfFire, 0, Act.HoldFire, 0),
-            new(Cond.HealthBelow, 25, Act.RetreatToAlly, 0),
-            new(Cond.EnemyWithin, EngageRangeDefault, Act.TargetNearest, 0),
-            new(Cond.Always, 0, Act.KeepSpacing, 150),
-            new(Cond.Always, 0, Act.HoldFormation, 300),
+            Row(Act.HoldFire, 0, Term.Fact(Cond.AllyInLineOfFire)),
+            Row(Act.RetreatToAlly, Term.Less(Value.Health, 25)),
+            Row(Act.TargetNearest, Near(EngageRangeDefault)),
+            Row(Act.KeepSpacing, 150, Always),
+            Row(Act.HoldFormation, 300, Always),
         ],
         _ => throw new ArgumentOutOfRangeException(nameof(preset), preset, null),
     };
@@ -654,12 +677,40 @@ public static class ShipAiModel
         return (null, null);
     }
 
-    /// <summary>A term with a new condition keeps Not and its connector. The parameter resets when its kind changes.</summary>
-    public static Term WithCond(Term term, Cond cond) =>
-        term with { Cond = cond, Param = ParamOf(cond) == ParamOf(term.Cond) ? term.Param : DefaultParam(ParamOf(cond)) };
+    // ---- Edits (spec 419, 420, 2321)
+
+    /// <summary>A new body for a term: Not, the connector and the brackets stay.</summary>
+    public static TacticRow WithBody(TacticRow row, int j, TermBody body) => WithTerm(row, j, row.Terms[j] with { Body = body });
+
+    /// <summary>
+    /// Spec 419: the body that a pick in the condition list gives. A fact keeps its parameter when the kind matches. A value keeps the
+    /// comparison and the number when the unit matches, else starts at "&lt; the unit's default"; its arguments start at slot 1 and
+    /// the given resource.
+    /// </summary>
+    public static TermBody Picked(TermBody old, Cond cond) =>
+        new FactTerm(cond, old is FactTerm f && ParamOf(f.Cond) == ParamOf(cond) ? f.Param : ShipAiRegistry.Default(ParamOf(cond)));
+
+    public static TermBody Picked(TermBody old, Value value, string resource)
+    {
+        var def = ShipAiRegistry.Of(value);
+        var operand = def.Arg switch
+        {
+            ArgKind.None => new Operand(value),
+            ArgKind.Resource => new Operand(value, Resource: resource),
+            ArgKind.Design => new Operand(value, 1),
+            ArgKind.DesignResource => new Operand(value, 1, resource),
+            _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
+        };
+        return old is CompareTerm c && UnitOf(c.Left.Value) == def.Unit
+            ? c with { Left = operand, Right = c.Right is { } r && UnitOf(r.Value) == def.Unit ? r : null }
+            : new CompareTerm(operand, Op.Less, null, ShipAiRegistry.Default(def.Unit));
+    }
+
+    /// <summary>Spec 419: the comparison button turns &lt; into &gt;, &gt; into =, = into &lt;.</summary>
+    public static Op NextOp(Op op) => op switch { Op.Less => Op.Greater, Op.Greater => Op.Equal, Op.Equal => Op.Less, _ => throw new ArgumentOutOfRangeException(nameof(op), op, null) };
 
     public static TacticRow WithAct(TacticRow row, Act act) =>
-        row with { Act = act, ActParam = ParamOf(act) == ParamOf(row.Act) ? row.ActParam : DefaultParam(ParamOf(act)) };
+        row with { Act = act, ActParam = ParamOf(act) == ParamOf(row.Act) ? row.ActParam : ShipAiRegistry.Default(ParamOf(act)) };
 
     /// <summary>The row with term j replaced.</summary>
     public static TacticRow WithTerm(TacticRow row, int j, Term term)
@@ -670,13 +721,13 @@ public static class ShipAiModel
     }
 
     /// <summary>Spec 419: "+ AND" on the THEN line adds an Always term joined by AND at the end, outside every bracket.</summary>
-    public static TacticRow AddTerm(TacticRow row) => row with { Terms = [.. row.Terms, new Term(Cond.Always, 0)] };
+    public static TacticRow AddTerm(TacticRow row) => row with { Terms = [.. row.Terms, Always] };
 
     /// <summary>Spec 2321: a new Always term joined by AND right after term j, inside the same brackets as j.</summary>
     public static TacticRow InsertTerm(TacticRow row, int j)
     {
         var terms = row.Terms.ToList();
-        terms.Insert(j + 1, new Term(Cond.Always, 0, Close: terms[j].Close));
+        terms.Insert(j + 1, Always with { Close = terms[j].Close });
         terms[j] = terms[j] with { Close = 0 };
         return row with { Terms = [.. terms] };
     }

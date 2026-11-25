@@ -18,13 +18,19 @@ public enum FunnelChoice { ShipFilter, All, Value50, Value200, Value1000, Off }
 /// <summary>
 /// Spec 1062. The cargo settings of one ship. LootTypes not empty: the loot filter takes only these types; else it takes loot of
 /// unit value LootMinValue or more. Empty Sell: sell all cargo. Empty Mine: any ore. Empty Buy: buy nothing.
+/// Spec 1084: Designs holds BuildModel.MaxDesigns slots, each a design or null.
 /// </summary>
 public sealed record CargoSettings(int LootMinValue, string[] LootTypes, string[] Sell, string[] Mine, string[] Buy)
 {
     public static readonly CargoSettings Default = new(0, [], [], [], []);
 
+    public BuildDesign?[] Designs { get; init; } = new BuildDesign?[BuildModel.MaxDesigns];
+
+    /// <summary>The design of a slot (1 to MaxDesigns), or null when the slot is empty.</summary>
+    public BuildDesign? Design(int slot) => slot >= 1 && slot <= Designs.Length ? Designs[slot - 1] : throw new ArgumentOutOfRangeException(nameof(slot), slot, null);
+
     public bool Equals(CargoSettings? o) => o is not null && LootMinValue == o.LootMinValue && LootTypes.SequenceEqual(o.LootTypes)
-        && Sell.SequenceEqual(o.Sell) && Mine.SequenceEqual(o.Mine) && Buy.SequenceEqual(o.Buy);
+        && Sell.SequenceEqual(o.Sell) && Mine.SequenceEqual(o.Mine) && Buy.SequenceEqual(o.Buy) && Designs.SequenceEqual(o.Designs);
 
     public override int GetHashCode() => HashCode.Combine(LootMinValue, LootTypes.Length, Sell.Length, Mine.Length, Buy.Length);
 
@@ -55,6 +61,8 @@ public static class AutonomyModel
         sb.Append("|sell=").Append(string.Join(',', c.Sell));
         sb.Append("|mine=").Append(string.Join(',', c.Mine));
         sb.Append("|buy=").Append(string.Join(',', c.Buy));
+        string build = BuildModel.Encode(c.Designs);
+        if (build.Length > 0) sb.Append("|build=").Append(build);
         return sb.ToString();
     }
 
@@ -75,8 +83,10 @@ public static class AutonomyModel
             if (!parts.TryAdd(part[..eq], part[(eq + 1)..])) throw new FormatException($"cargo part '{part[..eq]}' repeats");
         }
         string[] names = ["loot", "sell", "mine", "buy"];
+        // Spec 1085: "build" is optional; without it every design slot is empty.
+        var designs = BuildModel.Decode(parts.Remove("build", out string? build) ? build : "");
         if (parts.Count != names.Length || names.Any(n => !parts.ContainsKey(n)))
-            throw new FormatException($"cargo text needs exactly {string.Join(", ", names)}");
+            throw new FormatException($"cargo text needs exactly {string.Join(", ", names)}, and optionally build");
         string[] List(string name)
         {
             string v = parts[name];
@@ -91,11 +101,11 @@ public static class AutonomyModel
         if (loot.StartsWith('v'))
         {
             if (!int.TryParse(loot[1..], NumberStyles.None, CultureInfo.InvariantCulture, out int min)) throw new FormatException($"cargo loot value '{loot}' is not a number");
-            return new CargoSettings(min, [], List("sell"), List("mine"), List("buy"));
+            return new CargoSettings(min, [], List("sell"), List("mine"), List("buy")) { Designs = designs };
         }
         var types = List("loot");
         if (types.Length == 0) throw new FormatException("cargo loot needs a value (v0) or resources");
-        return new CargoSettings(0, types, List("sell"), List("mine"), List("buy"));
+        return new CargoSettings(0, types, List("sell"), List("mine"), List("buy")) { Designs = designs };
     }
 
     /// <summary>Spec 1055: whether a Funnel with this setting takes a loot item of this type and unit value.</summary>

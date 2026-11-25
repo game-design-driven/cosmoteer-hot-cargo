@@ -170,7 +170,8 @@ internal static class AutonomyAutotest
             foreach (var s in named)
                 Log.Info($"AUTOTEST auto_log {arg}: {s.Metadata.PlainShipName} id={s.UniqueID} owner={s.Metadata.PlayerIndex} junk={s.IsJunk} parts={s.Parts.Count} " +
                          $"computers={s.Parts.Count(p => p.Rules.ID == Autonomous.ComputerId)} points={s.Commands.CommandPointsProvided} control={s.Commands.CanExecuteCommands} " +
-                         $"crew={s.Crew.Assigned.Count} cmd={s.Commands.CurConfirmedCommand?.GetType().Name} cargo={AutonomyWorld.CargoFill(s):0.00}");
+                         $"crew={s.Crew.Assigned.Count} cmd={s.Commands.CurConfirmedCommand?.GetType().Name} cargo={AutonomyWorld.CargoFill(s):0.00} " +
+                         $"blueprints={s.BlueprintParts.Count} queued={s.OptionalConstructionManager?.HasAnyQueued} legal={s.IsConstructionLegal} at={s.DetWorldCenter}");
         };
         Autotest.Fields["auto_autonomous"] = () => Autonomous.IsAutonomous(TestShip()) ? 1 : 0;
         Autotest.Fields["auto_owner"] = () => Sim().Ships.AllShips.Where(s => s.Metadata.PlainShipName == _shipName).MinBy(s => s.UniqueID)?.Metadata.PlayerIndex ?? -99;
@@ -258,6 +259,20 @@ internal static class AutonomyAutotest
             Sim().Ships.Remove(enemy, dispose: true, handleLostShip: false);
             _enemy = null;
         };
+        // auto_empty <id,id,...>: removes these resources from every ship of the test ship's owner, so the fleet lacks them. Sim change:
+        // use "mp" in co-op. Test only.
+        Autotest.Commands["auto_empty"] = arg =>
+        {
+            var types = arg.Split(',').Select(Resource).ToList();
+            foreach (var ship in Sim().Ships.HumanPlayerShips.Where(s => s.Metadata.PlayerIndex == TestShip().Metadata.PlayerIndex).ToList())
+                foreach (var type in types) ship.Resources.RemoveResources(type, ship.Resources.GetResourceTotal(type));
+        };
+        // Spec 1086 to 1090, for design slot 1 (build) and slot 2 (refit) of the test ship.
+        Autotest.Fields["auto_afford"] = () => Autonomy.Build.Affords(TestShip(), Autonomy.Build.InfoOf(Slot(1)).Cost) ? 1 : 0;
+        Autotest.Fields["auto_built"] = () => Autonomy.Build.Built(TestShip(), Autonomy.Build.InfoOf(Slot(1)));
+        Autotest.Fields["auto_built_done"] = () => Sim().Ships.Count(s => !s.IsJunk && ShipAi.ShipTactics.Of(s)?.BuiltFrom == Autonomy.Build.InfoOf(Slot(1)).Hash && s.PhysicalMatchesBlueprints);
+        Autotest.Fields["auto_refit"] = () => Autonomy.Build.BlueprintIs(TestShip(), Autonomy.Build.InfoOf(Slot(2))) ? 1 : 0;
+        Autotest.Fields["auto_refit_done"] = () => Autonomy.Build.BlueprintIs(TestShip(), Autonomy.Build.InfoOf(Slot(2))) && TestShip().PhysicalMatchesBlueprints ? 1 : 0;
         // auto_cargo <resource> <amount>: puts cargo straight into the test ship's storage bays (setup only).
         Autotest.Commands["auto_cargo"] = arg =>
         {
@@ -332,6 +347,9 @@ internal static class AutonomyAutotest
         // Salvage turrets (mining lasers) of the test ship that have a target now.
         Autotest.Fields["auto_laser_targets"] = () => TestShip().Weapons.Count(w => w is TurretWeapon { Target: not null } tw && AutonomyWorld.IsSalvageTurret(tw));
     }
+
+    static BuildDesign Slot(int slot) => (ShipAi.ShipTactics.Of(TestShip()) ?? throw new InvalidOperationException("the test ship has no AI settings"))
+        .Cargo.Design(slot) ?? throw new InvalidOperationException($"design slot {slot} of the test ship is empty");
 
     static string[] Args(string arg, int n)
     {
