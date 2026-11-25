@@ -138,6 +138,12 @@ internal sealed class MaydayObjective : Objective, IMissionMarkers
         else Complete();
     }
 
+    /// <summary>
+    /// Spec 2433: the red ring on the victim, moved to it each tick. Mayday.Start shows it at once too, so the fight starts with its ring
+    /// (#336: a check right after the start found no ring on the PC, where the script ran before the next sim tick).
+    /// </summary>
+    internal void ShowRing(SimRoot sim) => RingId = EscortGuard.WarningRing(sim, RingId, Victim.DetLocation());
+
     /// <summary>A moving player ship changes the victim's goal a little each tick. Its AI origin follows only past this distance.</summary>
     const float FollowSlack = 300f;
 
@@ -155,7 +161,7 @@ internal sealed class MaydayObjective : Objective, IMissionMarkers
             OnVictimKilled(null, EventArgs.Empty);
             return;
         }
-        RingId = EscortGuard.WarningRing(sim, RingId, Victim.DetLocation());
+        ShowRing(sim);
         if (AttackersLeft(sim) == 0)
         {
             Ux.UxKit.ChatLine(sim.RequireGame(), Strings.FormatText("HotCargoMissions/MaydayThanksFmt", Victim.GetXmlTargetName(sim)));

@@ -135,6 +135,7 @@ internal static class Mayday
 
         var mission = new Mission(game, Metatype, faction.ID);
         var objective = new MaydayObjective(new ObjectiveTargetShip(game, victim), attackers, tier);
+        objective.ShowRing(sim);
         mission.AddObjective(new SequentialObjective([objective, new ReceiveRewardsObjective(new ObjectiveTargetShip(sim, home.Station.MetaShip))]));
         mission.AddReward(new MoneyReward(mission, (int)Math.Round(GameData.StandardMissionMoney(tier) * t.MaydayMoneyFactor)));
         mission.AddReward(new FameReward((int)Math.Round(GameData.StandardMissionFame(tier) * t.MaydayFameFactor)));
