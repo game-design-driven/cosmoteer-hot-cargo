@@ -98,6 +98,15 @@ if [[ "$REPORT_RC" == 0 ]]; then echo "== MP AUTOTEST OK $TAG (host $HOST, clien
   for i in "${!CLIENTS[@]}"; do
     echo "=== vanilla game log, client ${CLIENTS[i]}"; [[ "${CLIENT_OUT[i]}" == *"<<<VANILLA LOG>>>"* ]] && echo "${CLIENT_OUT[i]#*<<<VANILLA LOG>>>}"
   done; } >> "$RUN_LOG"
+# On the PC a game crash shows only in the vanilla game log (the game catches it and exits). For each machine that did not finish,
+# print its exception lines.
+vanilla_exceptions() { # <name> <slot output>
+  grep -q 'AUTOTEST DONE' <<<"${2%%<<<VANILLA LOG>>>*}" && return 0
+  [[ "$2" == *"<<<VANILLA LOG>>>"* ]] || return 0
+  grep -m3 'Exception' <<<"${2#*<<<VANILLA LOG>>>}" | cut -c1-300 | sed "s/^/   $1 vanilla: /" | tee -a "$RUN_LOG" || true
+}
+vanilla_exceptions host "$HOST_OUT"
+for i in "${!CLIENTS[@]}"; do vanilla_exceptions "client ${CLIENTS[i]}" "${CLIENT_OUT[i]}"; done
 # Retry only when nothing ran: a session that ran reports each step, and a rerun would hide a flaky step.
 if [[ "$RETRY" -ge 1 ]] && ! grep -q 'AUTOTEST line' <<<"$HOST_LOG"; then
   release_all; trap - EXIT

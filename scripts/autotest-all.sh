@@ -110,7 +110,7 @@ fi
 # A co-op session prints its step lines and one result line with the reason (join failed, steps failed, desync, PC link).
 for t in $FAILED; do
   echo "--- $t"
-  if [[ "$t" == mp:* || "$t" == mp3:* ]]; then grep -E "^FAIL |^== result|^   " "$RUN_DIR/$t.out" | head -40
+  if [[ "$t" == mp:* || "$t" == mp3:* ]]; then coop_failure_lines "$RUN_DIR/$t.out"
   else grep -A60 "first run failed\|retry failed\|MP AUTOTEST FAILED" "$RUN_DIR/$t.out" | head -40; fi
 done
 echo "== failed: $FAILED ($RUN_DIR)"; exit 1

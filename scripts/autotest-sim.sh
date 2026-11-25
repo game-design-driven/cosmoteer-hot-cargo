@@ -108,7 +108,7 @@ if [[ -z "$FAILED" ]]; then echo "== all passed in the sim"; exit 0; fi
 for t in $FAILED; do
   echo "--- $t"
   # A co-op session: its step lines and one result line with the reason.
-  if [[ "$t" == mp:* ]]; then grep -E "^FAIL |^== result|^   |log /" "$RUN_DIR/$t.out" | head -40; else head -40 "$RUN_DIR/$t.out"; fi
+  if [[ "$t" == mp:* ]]; then coop_failure_lines "$RUN_DIR/$t.out"; else head -40 "$RUN_DIR/$t.out"; fi
 done
 echo "== failed in the sim: $FAILED"
 exit 1

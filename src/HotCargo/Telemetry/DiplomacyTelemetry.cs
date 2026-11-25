@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Cosmoteer.Modes.Career;
 using Cosmoteer.Ships;
+using Cosmoteer.Ships.AI.CommsModules;
 using Cosmoteer.Simulation;
 using HarmonyLib;
 using HotCargo.Core;
@@ -42,13 +43,17 @@ static class DiplomacyTelemetry
             long t0 = Stats.Enter();
             try
             {
-                int? offer = __instance.GetSurrenderForPrice(aiCaller, playerReceiver);
-                int? demand = offer is null ? __instance.GetSurrenderForPrice(playerReceiver, aiCaller) : null;
+                // Issue #327: GetSurrenderForPrice reads the caller's AIDialogueModule without a null check. A ship without one (an
+                // event carrier such as the escort Courier, a miner) is a valid caller; it has no surrender price.
+                bool talks = aiCaller.AI?.GetCommsModule<AIDialogueModule>() is not null;
+                int? offer = talks ? __instance.GetSurrenderForPrice(aiCaller, playerReceiver) : null;
+                int? demand = talks && offer is null ? __instance.GetSurrenderForPrice(playerReceiver, aiCaller) : null;
                 Tele.Emit(Cat.Diplomacy, "dip.hail", w =>
                 {
                     WriteAi(w, s, aiCaller);
                     w.WriteNumber("player", playerReceiver.Metadata.PlayerIndex);
                     w.WriteString("kind", offer is not null ? "offer_surrender" : demand is not null ? "demand_surrender" : "other");
+                    w.WriteBoolean("dialogue", talks);
                     if ((offer ?? demand) is { } price) w.WriteNumber("price", price);
                 });
             }
