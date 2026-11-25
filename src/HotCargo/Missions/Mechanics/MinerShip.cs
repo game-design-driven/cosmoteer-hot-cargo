@@ -25,7 +25,7 @@ internal static class MinerShip
     /// <summary>
     /// Nose: a mining laser on each side, their 270 degree arcs forward, and the manipulator beam (the collector) between them on the
     /// center line. Behind them the control room and the reactor, with a braking thruster on each flank. Then two storage bays (the hold:
-    /// about 2.5 to 3 minutes of mining, spec 1870) with an airlock and a side thruster on each flank close to where the ore falls (the crew
+    /// 80 hyperium or 40 iron, spec 1870) with an airlock and a side thruster on each flank close to where the ore falls (the crew
     /// fetch it through them), two crew quarters with their doors into the bays, a fire extinguisher on the spine, and six medium thrusters
     /// at the tail. Each part touches one placed before it. Every small thruster touches a room that crew walk (control room, reactor, bay),
     /// so crew bring it batteries: quarters let no crew through, and crew_quarters_med has doors on its top side only.
