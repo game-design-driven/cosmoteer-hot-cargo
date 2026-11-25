@@ -6,6 +6,7 @@ HotCargoWeld
 	HintPlace = "Click: weld here   R: turn   Right click: back"
 	HintCancel = "Right click: cancel the weld"
 	TargetOk = "Click: pick this piece"
+	TargetWelding = "Being welded. Click to place it again"
 	TargetTooFar = "Too far: fly closer"
 	TargetNotYours = "Not yours: only own ships and wrecks weld"
 	TargetOtherParts = "Cannot weld: not a hull of this kind"

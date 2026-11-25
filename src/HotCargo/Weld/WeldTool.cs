@@ -231,33 +231,69 @@ internal sealed class WeldToolState : BaseBuildState
         }
         var targets = WeldShip.Targets(run, ship, Game.LocalPlayerIndex); // determinism: UI only, the local player's own tool
         var hovered = Hovered(run, ship);
+        // A piece in a weld order shows the order (WeldDraw), not a target frame.
+        bool InOrder(Ship t) => run.State.Weld.Orders.Any(o => o.Target == t.UniqueID);
         foreach (var t in targets)
-            if (t != hovered?.Ship) DrawOutline(t, Rules.SelectedPartNineSlice, new Color(1f, 1f, 1f, 0.45f));
+            if (t != hovered?.Ship && !InOrder(t)) DrawFrame(t, fill: false);
         string hint = run.State.Weld.Orders.Any(o => o.Ship == ship.UniqueID) ? "\n" + Strings.GetText("HotCargoWeld/HintCancel") : "";
         if (hovered is var (h, verdict))
         {
-            DrawOutline(h, verdict == WeldTargetVerdict.Ok ? Rules.SelectedPartNineSlice : Rules.RemovePartNineSlice, Color.White);
-            DrawTextUnderCursor(Strings.GetText($"HotCargoWeld/Target{verdict}") + hint);
+            if (verdict == WeldTargetVerdict.Ok) DrawFrame(h, fill: true);
+            else DrawFrame(h, fill: false, WidgetRules.Instance.BadTextColor);
+            string key = verdict == WeldTargetVerdict.Ok && InOrder(h) ? "HotCargoWeld/TargetWelding" : $"HotCargoWeld/Target{verdict}";
+            Hint(Strings.GetText(key) + hint);
             return;
         }
-        DrawTextUnderCursor(Strings.GetText(targets.Count == 0 ? "HotCargoWeld/NoTarget" : "HotCargoWeld/HintPick") + hint);
+        Hint(Strings.GetText(targets.Count == 0 ? "HotCargoWeld/NoTarget" : "HotCargoWeld/HintPick") + hint);
     }
 
-    static void DrawOutline(Ship target, NineSlice slice, Color color)
+    /// <summary>Text under the cursor, or under the point that stands in for it (screenshots), as DrawTextUnderCursor places it.</summary>
+    void Hint(string text)
     {
-        using (App.Graphics.PushTransformMultiply(target.WorldTransform))
-            foreach (var part in target.Parts) slice.Draw((Rect)part.Rect, Direction.Zero, color);
+        if (HoverAt is not { } at)
+        {
+            DrawTextUnderCursor(text);
+            return;
+        }
+        DrawText(Sim.Viewport.TransformScreenPointFromWorld(at) + new Vector2(5f, 40f) * GuiRoot.GlobalUIScale, text);
+    }
+
+    /// <summary>
+    /// A box around the whole piece in the art of the vanilla selection box (SelectPartsState): thin edges that read at any zoom, and
+    /// with <paramref name="fill"/> the translucent fill. <paramref name="edge"/> replaces the vanilla edge color.
+    /// </summary>
+    void DrawFrame(Ship target, bool fill, Color? edge = null)
+    {
+        if (target.Parts.BoundingRect is not { } bounds) return;
+        // The ship selection box of the game (Ship.SelectionRect), a little tighter.
+        var rect = target.TransformShapeToWorld((RotRect)bounds).Inflate(0.5f, 0.5f);
+        var line = Rules.PartSelectionOutlineSprite;
+        if (fill)
+        {
+            App.Graphics.SetToMaterial(Rules.PartSelectionFillSprite);
+            App.Graphics.Draw<Quad>(new Quad(rect, Rules.PartSelectionFillSprite));
+        }
+        var color = edge ?? line.VertexColor;
+        App.Graphics.SetToMaterial(line);
+        // A filled box gets a second edge, so the piece under the cursor stands out from the other targets.
+        foreach (var r in fill ? [rect, rect.Inflate(0.3f, 0.3f)] : (RotRect[])[rect])
+        {
+            App.Graphics.Draw<Seg>(new Seg(r.Edge1, color, line.UVRect.LeftEdge));
+            App.Graphics.Draw<Seg>(new Seg(r.Edge2, color, line.UVRect.TopEdge));
+            App.Graphics.Draw<Seg>(new Seg(r.Edge3, color, line.UVRect.RightEdge));
+            App.Graphics.Draw<Seg>(new Seg(r.Edge4, color, line.UVRect.BottomEdge));
+        }
     }
 
     /// <summary>The picked piece in place, and its ghost at the place.</summary>
     void DrawPicked(Ship ship, Ship target)
     {
-        DrawOutline(target, Rules.SelectedPartNineSlice, Color.White);
+        DrawFrame(target, fill: true);
         var check = WeldShip.Check(ship, target, _placement);
         bool valid = check.Verdict == WeldVerdict.Ok;
         WeldDraw.Ghost(ship, target, _placement, valid);
         using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
             CutDraw.DrawDrag(check.Joints);
-        DrawTextUnderCursor(valid ? Strings.GetText("HotCargoWeld/HintPlace") : Strings.GetText($"HotCargoWeld/{check.Verdict}"));
+        Hint(valid ? Strings.GetText("HotCargoWeld/HintPlace") : Strings.GetText($"HotCargoWeld/{check.Verdict}"));
     }
 }

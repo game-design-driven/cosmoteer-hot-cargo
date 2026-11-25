@@ -139,6 +139,8 @@ public static class WeldArea
                     return new CutEdge { X = e.X, Y = e.Y, Down = e.Down, WorkX = work.X, WorkY = work.Y };
                 }).ToList();
                 order.Phase = WeldPhase.Join;
+                // Spec 2486: the piece snaps into place with the thud of a structure part put down in the editor.
+                Halfling.App.Audio.Play(sim.RequireGame().Rules.GameGui.Build.StructurePutdownSound, Cosmoteer.AudioGroups.Effects); // determinism: a sound only, nothing in the sim reads it
                 Log.Info($"weld: {target.Metadata.PlainShipName} holds at its place on {ship.Metadata.PlainShipName}, {order.Joints.Count} joints");
                 continue;
             }
