@@ -1,7 +1,15 @@
 // Weld (spec 2480 to 2490).
 HotCargoWeld
 {
-	ToolTip = "Weld\nSnap a nearby own ship or wreck onto this ship. Move the ghost with the cursor, R turns it, Tab picks another piece, click to weld. The ship pulls the piece in, and your crew join it.\nRight click: cancel the ship's weld."
+	ToolTip = "Weld\nSnap a nearby own ship or wreck onto this ship. Click a piece to pick it, move its ghost, R turns it, click to weld. The ship pulls the piece in, and your crew join it.\nRight click or Esc: pick another piece. With no piece picked, right click cancels the ship's weld."
+	HintPick = "Click a piece to weld it"
+	HintPlace = "Click: weld here   R: turn   Right click: back"
+	HintCancel = "Right click: cancel the weld"
+	TargetOk = "Click: pick this piece"
+	TargetTooFar = "Too far: fly closer"
+	TargetNotYours = "Not yours: only own ships and wrecks weld"
+	TargetOtherParts = "Cannot weld: not a hull of this kind"
+	TargetMission = "Cannot weld: a mission needs it"
 	JobName = "Weld hull"
 	NoTarget = "Nothing to weld nearby"
 	Covered = "Piece overlaps the ship"

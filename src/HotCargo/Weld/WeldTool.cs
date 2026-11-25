@@ -6,6 +6,8 @@ using Cosmoteer.Gui;
 using Cosmoteer.Input;
 using Cosmoteer.Localization;
 using Cosmoteer.Ships;
+using Cosmoteer.Ships.Parts;
+using Cosmoteer.Simulation.Overlays;
 using Halfling;
 using Halfling.Geometry;
 using Halfling.Graphics;
@@ -50,20 +52,29 @@ static class WeldTool
 }
 
 /// <summary>
-/// Spec 2482 to 2484: the Weld tool. It shows the picked target as a ghost in the ship's grid that follows the cursor; R turns it,
-/// Tab picks the next target, a click sends the order or shows why not, and a right click cancels the ship's order. UI only: the
-/// sim changes only through the MP inputs.
+/// Spec 2482 to 2484: the Weld tool. First the player picks a piece: every target shows an outline, the piece under the cursor a strong
+/// one, and an object that is not a target names the reason. A click picks a target; its ghost then follows the cursor in the part
+/// brush art, R turns it, a click sends the order or shows why not, and a right click or Esc goes back to picking. With no piece picked,
+/// a right click cancels the ship's order. UI only: the sim changes only through the MP inputs.
 /// </summary>
 internal sealed class WeldToolState : BaseBuildState
 {
     /// <summary>The state of the newest build window, for the screenshot commands.</summary>
     static WeldToolState? _current;
 
-    ObjectID? _target;
+    /// <summary>The picked target, or null while the player picks.</summary>
+    ObjectID? _picked;
     Placement _placement;
+    /// <summary>The tile of the picked target, in its own grid, that stays under the cursor.</summary>
+    Cell _grab;
     IntVector2? _mouseCell;
     /// <summary>A place set by the screenshot commands; the cursor does not move it.</summary>
     bool _pinned;
+    /// <summary>A world point that stands in for the cursor (screenshots, where the cursor cannot move).</summary>
+    internal Vector2? HoverAt;
+
+    /// <summary>No piece is picked: the player picks one.</summary>
+    internal bool IsPicking => _picked is null;
 
     public WeldToolState(GameRoot game, IBuildModeProvider buildModeProvider) : base(game, buildModeProvider) => _current = this;
 
@@ -71,28 +82,54 @@ internal sealed class WeldToolState : BaseBuildState
 
     public override void OnDeselected()
     {
-        _target = null;
+        Unpick();
+        HoverAt = null;
+    }
+
+    /// <summary>Esc with a picked piece goes back to picking, as Esc resets the vanilla select tool (GameGui.HandleHotkeys).</summary>
+    public override bool TryReset()
+    {
+        if (_picked is null) return false;
+        Unpick();
+        App.Audio.Play(Rules.CancelConstructionSound, AudioGroups.Interface);
+        return true;
+    }
+
+    void Unpick()
+    {
+        _picked = null;
         _mouseCell = null;
         _pinned = false;
     }
 
-    /// <summary>The picked target, or the nearest one when none is picked or the picked one is no longer a target.</summary>
-    Ship? Target(Run run, Ship ship)
+    Vector2 Cursor => HoverAt ?? Sim.WorldMouseLoc;
+
+    /// <summary>The object under the cursor other than the ship, with its target verdict, or null.</summary>
+    (Ship Ship, WeldTargetVerdict Verdict)? Hovered(Run run, Ship ship)
     {
-        var targets = WeldShip.Targets(run, ship, Game.LocalPlayerIndex); // determinism: UI only, picks the ghost of the local player
-        var picked = targets.FirstOrDefault(t => t.UniqueID == _target);
-        if (picked is null && targets.Count > 0) Pick(ship, targets[0]);
-        return picked ?? targets.FirstOrDefault();
+        var cursor = Cursor;
+        // Ships whose parts lie under the cursor, nearest center first, so a small piece next to a big wreck can be picked.
+        var hit = Sim.Ships.Where(s => s != ship && s.ExistsInSim(Sim) && s.DetWorldBoundingCircle.Contains(cursor)
+                && s.Parts[Ship.GetCellFromShipLoc(s.TransformPointFromWorld(cursor)), PartRectType.Physical] is not null)
+            .OrderBy(s => s.WorldCenter.DistanceTo(cursor)).ThenBy(s => s.UniqueID).FirstOrDefault();
+        return hit is not null && WeldShip.TargetVerdict(run, ship, hit, Game.LocalPlayerIndex) is { } v ? (hit, v) : null; // determinism: UI only, the local player's own tool
     }
+
+    Ship? Picked(Run run, Ship ship) =>
+        _picked is { } id && Sim.Ships[id] is { } t && WeldShip.IsTarget(run, ship, t, Game.LocalPlayerIndex) ? t : null; // determinism: UI only, the local player's own tool
 
     void Pick(Ship ship, Ship target)
     {
-        _target = target.UniqueID;
+        _picked = target.UniqueID;
         _placement = WeldShip.Snap(ship, target);
+        var local = target.TransformPointFromWorld(Cursor);
+        _grab = new Cell((int)MathF.Floor(local.X), (int)MathF.Floor(local.Y));
+        // Without a part under the cursor (screenshots, picks by command), the middle of the piece follows the cursor.
+        if (target.Parts[new IntVector2(_grab.X, _grab.Y), PartRectType.Physical] is null) _grab = Middle(target);
         _mouseCell = null;
     }
 
-    /// <summary>Puts a target and a place into the tool, as the cursor would (screenshots).</summary>
+    /// <summary>Puts a target and a place into the tool, as a pick and the cursor would (screenshots).</summary>
     internal void Show(Ship ship, Ship target, Placement p)
     {
         Pick(ship, target);
@@ -100,49 +137,73 @@ internal sealed class WeldToolState : BaseBuildState
         _pinned = true;
     }
 
+    /// <summary>A pick of a target, as a click on it does (screenshots).</summary>
+    internal void PickByCommand(Ship ship, Ship target) => Pick(ship, target);
+
     /// <summary>A click, as the left mouse button does (screenshots).</summary>
     internal void Click(Ship ship)
     {
-        if (Run.Current is { } run && Target(run, ship) is { } target) Submit(ship, target);
+        if (Run.Current is { } run && Picked(run, ship) is { } target) Submit(ship, target);
     }
 
-    /// <summary>The middle tile of the target's parts, in its own grid: the tile that follows the cursor.</summary>
+    /// <summary>The middle tile of the target's parts, in its own grid.</summary>
     static Cell Middle(Ship target)
     {
         var rect = target.Parts.BoundingRect ?? throw new InvalidOperationException("the target has no parts");
         return new Cell(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
     }
 
+    /// <summary>The place that puts the grab tile on <paramref name="cell"/> of the ship's grid.</summary>
+    Placement Follow(IntVector2 cell)
+    {
+        var grab = WeldModel.Place(_grab, _placement with { X = 0, Y = 0 });
+        return _placement with { X = cell.X - grab.X, Y = cell.Y - grab.Y };
+    }
+
     public override void InputImpl()
     {
         if (Run.Current is not { } run || !run.T.Weld.Enabled || Sim.PlayerInput.GetSingleSelectedShip() is not { } ship) return;
+        var local = ship.TransformPointFromWorld(Cursor);
+        var cell = new IntVector2((int)MathF.Floor(local.X), (int)MathF.Floor(local.Y));
+        if (Picked(run, ship) is not { } target)
+        {
+            if (_picked is not null) Unpick();
+            InputPicking(run, ship);
+            return;
+        }
+        if (Inputs.Game.CancelTool.WasPressed)
+        {
+            TryReset();
+            return;
+        }
+        if (App.Keyboard.HotkeyPressed(ViKey.R))
+        {
+            _placement = _placement.Turned();
+            if (!_pinned) _placement = Follow(cell);
+            App.Audio.Play(Rules.RotateRightSound, AudioGroups.Interface);
+        }
+        if (!_pinned && _mouseCell != cell) _placement = Follow(cell);
+        _mouseCell = cell;
+        if (Inputs.Game.UseTool.WasPressed) Submit(ship, target);
+    }
+
+    void InputPicking(Run run, Ship ship)
+    {
         if (Inputs.Game.CancelTool.WasPressed && run.State.Weld.Orders.Any(o => o.Ship == ship.UniqueID))
         {
             Game.NetManager.EnqueueInput(new WeldCancelInput(ship));
             App.Audio.Play(Rules.CancelConstructionSound, AudioGroups.Interface);
             return;
         }
-        if (Target(run, ship) is not { } target) return;
-        if (App.Keyboard.HotkeyPressed(ViKey.Tab))
+        if (!Inputs.Game.UseTool.WasPressed || Hovered(run, ship) is not var (hovered, verdict)) return;
+        if (verdict != WeldTargetVerdict.Ok)
         {
-            var targets = WeldShip.Targets(run, ship, Game.LocalPlayerIndex); // determinism: UI only, picks the ghost of the local player // determinism: UI only, picks the ghost of the local player
-            Pick(ship, targets[(targets.FindIndex(t => t.UniqueID == _target) + 1) % targets.Count]);
+            PlayErrorSound();
+            Game.Gui.CreateFloatingText(Strings.GetText($"HotCargoWeld/Target{verdict}"), Cursor, WidgetRules.Instance.BadTextColor, 1f, null, 1f, xmlFormatting: false);
             return;
         }
-        if (App.Keyboard.HotkeyPressed(ViKey.R))
-        {
-            _placement = _placement.Turned();
-            App.Audio.Play(Rules.RotateRightSound, AudioGroups.Interface);
-        }
-        var local = ship.TransformPointFromWorld(Sim.WorldMouseLoc);
-        var cell = new IntVector2((int)MathF.Floor(local.X), (int)MathF.Floor(local.Y));
-        if (!_pinned && _mouseCell is { } last && last != cell)
-        {
-            var middle = WeldModel.Place(Middle(target), _placement with { X = 0, Y = 0 });
-            _placement = _placement with { X = cell.X - middle.X, Y = cell.Y - middle.Y };
-        }
-        _mouseCell = cell;
-        if (Inputs.Game.UseTool.WasPressed) Submit(ship, target);
+        Pick(ship, hovered);
+        App.Audio.Play(Game.Gui.Rules.CopySound, AudioGroups.Interface);
     }
 
     void Submit(Ship ship, Ship target)
@@ -150,38 +211,53 @@ internal sealed class WeldToolState : BaseBuildState
         if (WeldArea.Refusal(ship, target, _placement) is { } verdict)
         {
             PlayErrorSound();
-            Game.Gui.CreateFloatingText(Strings.GetText($"HotCargoWeld/{verdict}"), ship.TransformPointToWorld(new Vector2(_placement.X, _placement.Y)),
-                WidgetRules.Instance.BadTextColor, 1f, null, 1f, xmlFormatting: false);
+            Game.Gui.CreateFloatingText(Strings.GetText($"HotCargoWeld/{verdict}"), Cursor, WidgetRules.Instance.BadTextColor, 1f, null, 1f, xmlFormatting: false);
             return;
         }
         // Spec 2475: in blueprint mode the weld waits for "Make it so"; in live mode it starts at once.
         Game.NetManager.EnqueueInput(new WeldOrderInput(ship, target, _placement, IsEditingBlueprints));
         if (IsEditingBlueprints) App.Audio.Play(Rules.BlueprintAddSound, AudioGroups.Interface);
         else App.Audio.Play(Rules.MakeItSoSound, AudioGroups.Effects);
+        Unpick();
     }
 
     public override void DrawOverlayImpl()
     {
         if (Run.Current is not { } run || Sim.PlayerInput.GetSingleSelectedShip() is not { } ship) return;
-        // While the ship has a weld order, the world shows it (WeldDraw), and the ghost would only cover the piece being welded.
-        if (run.State.Weld.Orders.Any(o => o.Ship == ship.UniqueID)) return;
-        if (Target(run, ship) is not { } target)
+        if (Picked(run, ship) is { } target)
         {
-            DrawTextUnderCursor(Strings.GetText("HotCargoWeld/NoTarget"));
+            DrawPicked(ship, target);
             return;
         }
-        var check = WeldShip.Check(ship, target, _placement);
-        var slice = check.Verdict == WeldVerdict.Ok ? Rules.RepairPartNineSlice : Rules.RemovePartNineSlice;
-        using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
+        var targets = WeldShip.Targets(run, ship, Game.LocalPlayerIndex); // determinism: UI only, the local player's own tool
+        var hovered = Hovered(run, ship);
+        foreach (var t in targets)
+            if (t != hovered?.Ship) DrawOutline(t, Rules.SelectedPartNineSlice, new Color(1f, 1f, 1f, 0.45f));
+        string hint = run.State.Weld.Orders.Any(o => o.Ship == ship.UniqueID) ? "\n" + Strings.GetText("HotCargoWeld/HintCancel") : "";
+        if (hovered is var (h, verdict))
         {
-            foreach (var part in target.Parts)
-            {
-                var r = part.Rect;
-                var (x, y, w, h) = WeldModel.Place((r.X, r.Y, r.Width, r.Height), _placement);
-                slice.Draw(new Rect(x, y, w, h), Direction.Zero, Color.White);
-            }
-            CutDraw.DrawDrag(check.Joints);
+            DrawOutline(h, verdict == WeldTargetVerdict.Ok ? Rules.SelectedPartNineSlice : Rules.RemovePartNineSlice, Color.White);
+            DrawTextUnderCursor(Strings.GetText($"HotCargoWeld/Target{verdict}") + hint);
+            return;
         }
-        if (check.Verdict != WeldVerdict.Ok) DrawTextUnderCursor(Strings.GetText($"HotCargoWeld/{check.Verdict}"));
+        DrawTextUnderCursor(Strings.GetText(targets.Count == 0 ? "HotCargoWeld/NoTarget" : "HotCargoWeld/HintPick") + hint);
+    }
+
+    static void DrawOutline(Ship target, NineSlice slice, Color color)
+    {
+        using (App.Graphics.PushTransformMultiply(target.WorldTransform))
+            foreach (var part in target.Parts) slice.Draw((Rect)part.Rect, Direction.Zero, color);
+    }
+
+    /// <summary>The picked piece in place, and its ghost at the place.</summary>
+    void DrawPicked(Ship ship, Ship target)
+    {
+        DrawOutline(target, Rules.SelectedPartNineSlice, Color.White);
+        var check = WeldShip.Check(ship, target, _placement);
+        bool valid = check.Verdict == WeldVerdict.Ok;
+        WeldDraw.Ghost(ship, target, _placement, valid);
+        using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
+            CutDraw.DrawDrag(check.Joints);
+        DrawTextUnderCursor(valid ? Strings.GetText("HotCargoWeld/HintPlace") : Strings.GetText($"HotCargoWeld/{check.Verdict}"));
     }
 }

@@ -86,7 +86,11 @@ public static class WeldArea
     static void End(Ship? ship, WeldOrder order, List<WeldOrder> orders)
     {
         foreach (var e in order.Joints) CutArea.DropJob(ship, e);
-        if (ship is not null) WeldShip.PassThrough(ship, ship.Sim.Ships[order.Target], on: false);
+        if (ship is not null && ship.Sim.Ships[order.Target] is var target)
+        {
+            WeldShip.PassThrough(ship, target, on: false);
+            if (target is not null && !order.Pending) WeldShip.Release(ship, target);
+        }
         orders.Remove(order);
     }
 

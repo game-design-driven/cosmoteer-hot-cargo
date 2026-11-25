@@ -1,0 +1,59 @@
+# Weld cancel (spec 2484, 2475): a right click during the pull, "Cancel all" during the joint work, a cancel just before the merge and
+# "Discard changes" of a pending weld each end the order. The piece is a free object again: it floats where it is, and a new weld works
+# and merges. Esc in the Weld tool returns from a picked piece to picking.
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+pause off
+wait 3
+weld_set PullSpeed 1
+weld_build arm
+wait 1
+weld_build piece
+weld_note
+# The tool: a pick, then Esc back to picking.
+weld_tool
+weld_pick
+expect weld_tool_picked == 1
+weld_esc
+expect weld_tool_picked == 0
+# During the pull: the right click of the tool.
+weld_auto
+waitfor weld_orders == 1 10
+wait 2
+expect weld_phase == 0
+weld_cancel
+waitfor weld_orders == 0 10
+wait 1
+expect weld_target_relspeed < 0.3
+# During the joint work: "Cancel all".
+weld_set PullSpeed 4
+weld_auto
+waitfor weld_crew > 0 120
+weld_button cancelall
+waitfor weld_orders == 0 10
+expect weld_jobs == 0
+wait 1
+expect weld_target_relspeed < 0.3
+# Just before the merge: the last joint has work left.
+weld_auto
+waitfor weld_phase == 1 120
+waitfor weld_work > 1 120
+weld_cancel
+waitfor weld_orders == 0 10
+expect weld_merges == 0
+# Blueprint mode: "Discard changes" drops the pending weld.
+weld_blueprint on
+weld_auto
+waitfor weld_pending == 1 10
+weld_button discard
+waitfor weld_orders == 0 10
+# A new weld after all of that merges.
+weld_blueprint off
+weld_auto
+waitfor weld_merges == 1 240
+expect weld_parts_kept == 1
+quit

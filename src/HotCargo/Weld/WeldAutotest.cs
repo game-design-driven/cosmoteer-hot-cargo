@@ -197,6 +197,33 @@ static class WeldAutotest
             };
             WeldToolState.RequireCurrent().Show(Me(), Target(), p);
         };
+        // weld_cancel: the ship's order is canceled through the MP input, as a right click of the Weld tool does.
+        Autotest.Commands["weld_cancel"] = _ => Autotest.RequireRun().Game.NetManager.EnqueueInput(new WeldCancelInput(Me()));
+        // weld_button apply|discard|cancelall: the vanilla buttons "Make it so", "Discard changes" and "Cancel all" of "me" (spec 2475).
+        Autotest.Commands["weld_button"] = arg => CutAutotest.Buttons(Me(), arg.Trim() switch
+        {
+            "apply" => "_constructBtn",
+            "discard" => "_discardBtn",
+            "cancelall" => "_cancelAllBtn",
+            var k => throw new InvalidOperationException($"weld_button needs apply, discard or cancelall, not '{k}'"),
+        });
+        // weld_pick: the Weld tool picks the target, as a click on it does. weld_esc: Esc in the Weld tool (back to picking).
+        // weld_hover target|none: the cursor stands on the target's middle, or off every ship (screenshots).
+        Autotest.Commands["weld_pick"] = _ => WeldToolState.RequireCurrent().PickByCommand(Me(), Target());
+        Autotest.Commands["weld_esc"] = _ => Log.Info($"AUTOTEST weld: Esc reset the tool: {WeldToolState.RequireCurrent().TryReset()}");
+        Autotest.Commands["weld_hover"] = arg => WeldToolState.RequireCurrent().HoverAt = arg.Trim() switch
+        {
+            "target" => Target().DetWorldCenter,
+            "none" => null,
+            var k => throw new InvalidOperationException($"weld_hover needs target or none, not '{k}'"),
+        };
+        Autotest.Fields["weld_tool_picked"] = () => WeldToolState.RequireCurrent().IsPicking ? 0 : 1;
+        // Spec 2484: the target's speed relative to the ship at its point (a canceled pull leaves it floating).
+        Autotest.Fields["weld_target_relspeed"] = () =>
+        {
+            var body = Target().Physics.Body;
+            return (body.LinearVelocity - Me().Physics.Body.GetLinearVelocityFromWorldPoint(body.WorldCenter)).Length();
+        };
         Autotest.Commands["weld_set"] = arg => Autotest.SetField(Autotest.RequireRun().T.Weld, arg);
         // Verdicts: 0 Ok, 1 Covered, 2 NoContact (WeldVerdict).
         Autotest.Fields["weld_verdict"] = () => (double)(_verdict ?? WeldVerdict.Ok);
