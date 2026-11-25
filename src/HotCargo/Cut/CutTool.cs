@@ -129,7 +129,7 @@ internal sealed class CutToolState : BaseBuildState
         var line = Rules.RemovePartXLine;
         using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
         {
-            foreach (var e in CutModel.Edges(_line)) CutDraw.DrawEdge(Sim, line, e, Color.White);
+            CutDraw.DrawDrag(CutModel.Edges(_line));
             if (_blocked is { } b) CutDraw.DrawBlocked(Sim, line, b);
         }
         if (_blocked is not null) DrawTextUnderCursor(Strings.GetText("HotCargoCut/Blocked"));

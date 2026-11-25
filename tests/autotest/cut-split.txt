@@ -7,6 +7,8 @@ ev_set StationEventChance 0
 ev_set ArrivalEventChance 0
 ev_set CourierChance 0
 godmode on
+# A slow cut, so the order outlives the save, the load and the wait after it on a fast machine (the PC finished the default cut in that wait).
+cut_set EdgeSeconds 20
 pause off
 wait 3
 cut_mark
