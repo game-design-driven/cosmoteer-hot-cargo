@@ -32,6 +32,9 @@ public static class Invariants
     {
         Run.Hooks.Tick += OnTick;
         Autotest.Fields["invariants_broken"] = () => Broken;
+        // invariants_check: runs every check now, also while the game is paused.
+        Autotest.Commands["invariants_check"] = _ => CheckAll(Run.Current ?? throw new InvalidOperationException("no run"),
+            Run.Current.Game.Sim ?? throw new InvalidOperationException("no sim"));
     }
 
     static bool On => Run.Current?.T.Invariants.Enabled == true;
@@ -53,16 +56,18 @@ public static class Invariants
         _sinceCheck += dt;
         if (_sinceCheck < run.T.Invariants.CheckSeconds) return;
         _sinceCheck = 0;
-        Errors.Guard("invariants", () =>
-        {
-            HeatRange(run);
-            TechInVaults(sim);
-            HostilesWaitForTrigger(run, sim);
-            MarkersEndWithMission(run, sim);
-            RivalsSymmetric(run, sim);
-            HuntersOneSide(sim);
-        });
+        CheckAll(run, sim);
     }
+
+    static void CheckAll(Run run, SimRoot sim) => Errors.Guard("invariants", () =>
+    {
+        HeatRange(run);
+        TechInVaults(sim);
+        HostilesWaitForTrigger(run, sim);
+        MarkersEndWithMission(run, sim);
+        RivalsSymmetric(run, sim);
+        HuntersOneSide(sim);
+    });
 
     /// <summary>
     /// Spec 1002: a hunter that the mod spawns has no human player index and is an enemy of every human ship. Players can take a
@@ -207,7 +212,7 @@ public static class Invariants
                 if (namesBack && rival.MissionID != m.MissionID) continue;
                 Fail("rival_symmetric", $"{m.MissionID}/{rival.MissionID}",
                     $"offer {m.MetatypeID} {m.MissionID} names rival {rival.MetatypeID} {rival.MissionID}, which does not name it back " +
-                    $"(group '{Contracts.ContractBook.Find(run, m)?.RivalGroup}')");
+                    $"(group '{Contracts.ContractBook.Preview(run, m)?.RivalGroup}')");
             }
         }
     }

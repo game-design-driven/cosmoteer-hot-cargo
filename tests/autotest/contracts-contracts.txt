@@ -42,6 +42,17 @@ contract_accept
 expect contract_accepted == 1
 expect contract_rival_offered == 0
 expect contract_rival_notices == 1
+# Spec 997: a new offer and the offers of its rules rival group name each other before the scan saves its terms. The pause stops the
+# scan. Sun Mining and the Mining Escort share the rules group ore_claims.
+mech_generate sunmining
+wait 2
+pause on
+waitreal 1
+mech_generate miningescort
+expect contract_unsaved_rivals >= 1
+invariants_check
+expect invariants_broken == 0
+pause off
 contract_stats end
 quit
 # tier: smoke

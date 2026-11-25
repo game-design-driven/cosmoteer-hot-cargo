@@ -218,6 +218,9 @@ public static class ContractsArea
                      $"rivals={offers.Count(t => t.RivalGroup.Length > 0)} flatHeat={offers.Count(t => t.FlatHeat > 0)} open={ContractBook.OpenWeight(run)}");
         };
 
+        // Offers that the scan did not see yet, with a rival group from their rules terms.
+        Autotest.Fields["contract_unsaved_rivals"] = () =>
+            ContractBook.Offers(Sim()).Count(o => ContractBook.Find(R(), o.Mission) is null && ContractBook.Preview(R(), o.Mission)?.RivalGroup is { Length: > 0 });
         Autotest.Fields["contract_offers"] = () => ContractBook.Offers(Sim()).Count(o => ContractBook.Find(R(), o.Mission) is not null);
         Autotest.Fields["contract_open"] = () => ContractBook.OpenWeight(R());
         Autotest.Fields["contract_trail"] = () => ContractBook.TrailPerMinute(R(), ContractBook.OpenWeight(R()));
