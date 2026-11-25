@@ -62,13 +62,16 @@ static class CutDraw
     static void DrawOrders(SimRoot sim)
     {
         if (Run.Current is not { } run || run.Game.Sim != sim) return;
-        var art = _art ??= LoadArt();
         foreach (var order in run.State.Cut.Orders)
-        {
-            if (sim.Ships[order.Ship] is not { } ship) continue;
-            using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
-                foreach (var e in order.Edges) DrawOrderEdge(art, e);
-        }
+            if (sim.Ships[order.Ship] is { } ship) DrawEdges(ship, order.Edges);
+    }
+
+    /// <summary>Spec 2468, 2490: the edges of a cut or a weld on a ship, in the world.</summary>
+    internal static void DrawEdges(Ship ship, IEnumerable<CutEdge> edges)
+    {
+        var art = _art ??= LoadArt();
+        using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
+            foreach (var e in edges) DrawOrderEdge(art, e);
     }
 
     static (Vector2 A, Vector2 B) Ends(Edge e) =>
