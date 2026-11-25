@@ -324,9 +324,10 @@ internal static class AutonomyWorld
         return result;
     }
 
-    internal static AsteroidRef? NearestAsteroid(Ship ship, CargoSettings c)
+    /// <summary>The nearest asteroid of <see cref="Asteroids"/> by edge distance; keep: only these count.</summary>
+    internal static AsteroidRef? NearestAsteroid(Ship ship, CargoSettings c, Func<AsteroidRef, bool>? keep = null)
     {
-        var all = Asteroids(ship, c);
+        var all = keep is null ? Asteroids(ship, c) : Asteroids(ship, c).Where(keep).ToList();
         var items = all.Select(a => (Math.Max(0f, EdgeDistance(ship, a.Center) - a.Radius), a.Id, (double?)0)).ToList();
         return AutonomyModel.Pick(items, useScore: false) is { } i ? all[i] : null;
     }

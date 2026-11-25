@@ -173,8 +173,7 @@ public static class MechanicsArea
             Ship ship = o.Escort.TargetShip ?? throw new InvalidOperationException("miner is not live");
             var sim = RequireSim();
             string cmd = ship.Commands.CurConfirmedCommand is Cosmoteer.Ships.Commands.MoveCommand { Location: { } to } ? $"move {to.DistanceTo(ship.DetWorldCenter):0} away" : ship.Commands.CurConfirmedCommand?.GetType().Name ?? "none";
-            var mine = new Autonomy.CargoSettings(0, [], [], [o.Ore.ToString()], []);
-            string rock = Autonomy.AutonomyWorld.NearestAsteroid(ship, mine) is { } a ? $"{a.Id} live={a.Live is not null} edge={Math.Max(0f, Autonomy.AutonomyWorld.EdgeDistance(ship, a.Center) - a.Radius):0}" : "none";
+            string rock = o.Rock(ship) is { } a ? $"{a.Id} live={a.Live is not null} edge={Math.Max(0f, Autonomy.AutonomyWorld.EdgeDistance(ship, a.Center) - a.Radius):0}" : "none";
             string weapons = string.Join("; ", ship.Weapons.Where(w => w.Part.Rules.ID.ToString().Contains("mining")).Select(w =>
                 $"{w.Part.Rules.ID.ToString().Replace("cosmoteer.", "")} target={(w is Cosmoteer.Ships.Parts.Weapons.TurretWeapon { Target: { } t } ? t.GetType().Name : "none")} " +
                 $"on={string.Join(",", w.Part.Components.OfType<Cosmoteer.Ships.Parts.Logic.IPartComponentToggle>().Where(c => ((Cosmoteer.Ships.Parts.PartComponent)c).Rules.ID.ToString() is "IsOperational" or "PowerToggle" or "AutoTargetToggle").Select(c => (c.IsToggleOn ? 1 : 0)))}"));
@@ -184,6 +183,57 @@ public static class MechanicsArea
                 if (sim.Nuggets[i].DetWorldLocation.DistanceTo(ship.DetWorldCenter) <= 1500f) loose += sim.Nuggets[i].Quantity;
             Log.Info($"AUTOTEST MINERDIAG {label}: ore {o.Mined}/{o.Goal} cmd={cmd} rock={rock} salvage={ship.Resources.GetSalvageJobs(Cosmoteer.Game.Multiplayer.MPValueType.Confirmed).Count()} " +
                      $"speed={(ship.Physics.Body?.LinearVelocity.Length() ?? 0f):0} pickups={ship.Resources.ManualTransferJobs.Count} loose1500={loose} crew=[{jobs}] weapons=[{weapons}]");
+        };
+        // mech_mine_away <distance>: the miner and the players this far from the field center. mech_mine_rock_in_field: 1 when the miner's
+        // next rock is inside its field and out of the heat (spec 1862), 0 when it picks another rock, -1 when it has none.
+        Autotest.Commands["mech_mine_away"] = arg =>
+        {
+            var o = Miner();
+            Ship miner = o.Escort.TargetShip ?? throw new InvalidOperationException("miner is not live");
+            var sim = RequireSim();
+            var spot = o.Field + new Vector2(float.Parse(arg, CultureInfo.InvariantCulture), 0f);
+            Autotest.Teleport(miner, Autotest.ClearSpotNear(sim, spot, 0f, miner.WorldBoundingRadius));
+            MissionArea.TeleportPlayers(miner.DetWorldCenter + new Vector2(0f, 600f));
+        };
+        Autotest.Fields["mech_mine_rock_in_field"] = () =>
+        {
+            var o = Miner();
+            Ship miner = o.Escort.TargetShip ?? throw new InvalidOperationException("miner is not live");
+            if (o.Rock(miner) is not { } rock) return -1;
+            bool inField = rock.Center.DistanceTo(o.Field) <= o.FieldSize;
+            Log.Info($"AUTOTEST miner rock {rock.Id} at {rock.Center} ({rock.Center.DistanceTo(o.Field):0} from the field center, radius {o.FieldSize:0}), miner {miner.DetWorldCenter.DistanceTo(o.Field):0} from it");
+            return inField && !Worlds.HeatZone.Touches(Worlds.HeatZone.Suns(RequireSim()), new Circle(rock.Center, rock.Radius)) ? 1 : 0;
+        };
+        // mech_mine_block <sun|hostile>: the field pick (spec 1860) on the field of the latest Mining Escort. Unblocked it picks the field (the
+        // control); blocked it does not. sun: a test sun whose heat zone reaches 500 into the field. hostile: a hostile ship inside the field,
+        // at 80 % of its radius.
+        Autotest.Commands["mech_mine_block"] = arg =>
+        {
+            var o = Miner();
+            var sim = RequireSim();
+            var field = new Circle(o.Field, o.FieldSize);
+            Autotest.Check(MiningEscortObjective.PickField(sim, [field]) is not null, $"unblocked, the field at {o.Field} is picked");
+            Ship? hostile = null;
+            switch (arg)
+            {
+                case "sun":
+                    Worlds.HeatZone.TestSuns.Add(new(o.Field + new Vector2(o.FieldSize + 1000f, 0f), 500f, 1500f));
+                    break;
+                case "hostile":
+                    int enemy = ((CareerSimModeManager)sim.Mode).AllocUniquePlayerIndex();
+                    float at = o.FieldSize * 0.8f;
+                    WaveSpawns.Spawn(sim, o.Field, 0f, 1, 1, RequireRun().T.Mechanics.MiningEscort.ShipTags, enemy, new ID<SimObjectSpawner>("hc_test_hostile"), at, at);
+                    hostile = sim.Ships.Single(s => s.Metadata.PlayerIndex == enemy);
+                    break;
+                default:
+                    throw new InvalidOperationException($"mech_mine_block needs sun or hostile, not '{arg}'");
+            }
+            try { Autotest.Check(MiningEscortObjective.PickField(sim, [field]) is null, $"blocked ({arg}), the field at {o.Field} is not picked"); }
+            finally
+            {
+                Worlds.HeatZone.TestSuns.Clear();
+                if (hostile is not null) sim.Ships.Remove(hostile, dispose: true, handleLostShip: false);
+            }
         };
         // mech_mine_set <MiningEscortTunables field> <value>: changes a Mining Escort tunable for this run. Test only.
         Autotest.Commands["mech_mine_set"] = arg => Autotest.SetField(RequireRun().T.Mechanics.MiningEscort, arg);
@@ -401,6 +451,7 @@ public static class MechanicsArea
     static PrototypeObjective Proto() => Require<PrototypeObjective>();
     static TowObjective Tow() => Require<TowObjective>();
     static MiningEscortObjective Miner() => Require<MiningEscortObjective>();
+
     static int _markedOre;
     static CaptureObjective Capture() => Require<CaptureObjective>();
     static SurveyObjective Survey() => Require<SurveyObjective>();

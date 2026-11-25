@@ -21,10 +21,13 @@ public static class HeatZone
 {
     public readonly record struct Sun(Vector2 Center, float KillRadius, float EdgeRadius);
 
+    /// <summary>Suns that an autotest adds for one check (the Mining Escort field test). Empty outside of that check.</summary>
+    internal static readonly List<Sun> TestSuns = [];
+
     /// <summary>Planets with a kill radius and a wider effects radius, that is suns.</summary>
     public static List<Sun> Suns(SimRoot sim)
     {
-        var suns = new List<Sun>();
+        var suns = new List<Sun>(TestSuns);
         foreach (var doodad in sim.Doodads)
         {
             if (doodad is not PlanetDoodad p || p.Rules.ProximityEffects is not { InstantKillRadiusFactor: { } kill, EffectsRadiusFactor: { } edge }) continue;
@@ -43,6 +46,9 @@ public static class HeatZone
     }
 
     public static float Depth(SimRoot sim, Vector2 at) => Depth(Suns(sim), at);
+
+    /// <summary>Whether any part of the circle lies in a heat zone.</summary>
+    public static bool Touches(IReadOnlyList<Sun> suns, Circle area) => suns.Any(s => area.Center.DistanceTo(s.Center) - area.Radius < s.EdgeRadius);
 
     // ---- HUD line: the deepest local ship in a heat zone. GUI only.
 
