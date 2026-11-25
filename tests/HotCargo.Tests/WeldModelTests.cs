@@ -33,6 +33,17 @@ public class WeldModelTests
     }
 
     [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void A_part_that_cannot_turn_keeps_rotation_0_in_a_turned_piece(int turns)
+    {
+        // Issue #347: the merge expected a turned structure part, but the game builds a part that cannot turn at rotation 0.
+        Assert.Equal(0, WeldModel.PartRotation(0, new Placement(turns, 0, 0), rotateable: false));
+        Assert.Equal((1 + turns) & 3, WeldModel.PartRotation(1, new Placement(turns, 0, 0), rotateable: true));
+    }
+
+    [Theory]
     [InlineData(0.1f, 2.4f, -3.6f, 0, 2, -4)]
     [InlineData(1.5f, 0f, 0f, 1, 0, 0)]
     [InlineData(-1.6f, 0f, 0f, 3, 0, 0)]

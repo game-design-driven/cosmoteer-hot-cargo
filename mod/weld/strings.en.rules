@@ -6,6 +6,8 @@ HotCargoWeld
 	NoTarget = "Nothing to weld nearby"
 	Covered = "Piece overlaps the ship"
 	NoContact = "Piece must touch the ship"
+	CannotTurn = "A part of the piece cannot turn this way"
+	Failed = "The weld failed. The piece stays free."
 	NoPull = "The weld could not pull the piece into place."
 	Blocked = "The weld stopped: something is in the way."
 }

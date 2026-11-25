@@ -6,6 +6,7 @@ using Cosmoteer.Simulation;
 using HotCargo.Core;
 using HotCargo.Cut;
 using HotCargo.Dev;
+using Halfling.Geometry;
 
 namespace HotCargo.Weld;
 
@@ -32,7 +33,7 @@ static class WeldAutotest
     /// The valid place nearest to where the target is now: the snapped turn first, then the smallest move, then by tile. Searches up to
     /// the weld range around the snapped place.
     /// </summary>
-    static Placement NearestValid(Ship ship, Ship target)
+    static Placement NearestValid(Ship ship, Ship target, int? turns = null)
     {
         var snap = WeldShip.Snap(ship, target);
         int r = (int)Autotest.RequireRun().T.Weld.Range;
@@ -40,11 +41,48 @@ static class WeldAutotest
                      from dx in Enumerable.Range(-r, 2 * r + 1)
                      from dy in Enumerable.Range(-r, 2 * r + 1)
                      let p = new Placement((snap.Turns + turn) & 3, snap.X + dx, snap.Y + dy)
+                     where turns is null || p.Turns == turns
                      orderby turn, dx * dx + dy * dy, dy, dx
                      select p;
         foreach (var p in places)
             if (WeldShip.Check(ship, target, p).Verdict == WeldVerdict.Ok) return p;
         throw new InvalidOperationException($"no valid place for {target.Metadata.PlainShipName} on {ship.Metadata.PlainShipName}");
+    }
+
+    /// <summary>
+    /// The valid place whose joints lie farthest from the ship's walkable tiles (the most tiles to the nearest one, for the joint
+    /// nearest to them). Issue #346: the crew path grid covers only the walkable tiles and a margin.
+    /// </summary>
+    static Placement FarthestValid(Ship ship, Ship target)
+    {
+        var walkable = ship.Parts.Where(q => q.Rules.CrewSpeedFactor.IsNonZero).SelectMany(q => q.PhysicalRect.Cast<IntVector2>()).ToList();
+        var shipTiles = ship.Parts.SelectMany(q => q.PhysicalRect.Cast<IntVector2>()).ToHashSet();
+        int Far(Edge e) => (shipTiles.Contains(new IntVector2(e.A.X, e.A.Y)) ? e.A : e.B) is var c
+            ? walkable.Min(w => Math.Max(Math.Abs(w.X - c.X), Math.Abs(w.Y - c.Y))) : 0;
+        var bounds = ship.Parts.BoundingRect ?? throw new InvalidOperationException("the ship has no parts");
+        var best = (from turn in Enumerable.Range(0, 4)
+                    from x in Enumerable.Range(bounds.Left - 8, bounds.Width + 16)
+                    from y in Enumerable.Range(bounds.Top - 8, bounds.Height + 16)
+                    let p = new Placement(turn, x, y)
+                    let check = WeldShip.Check(ship, target, p)
+                    where check.Verdict == WeldVerdict.Ok
+                    select (p, Far: check.Joints.Min(Far)))
+            .OrderByDescending(c => c.Far).ThenBy(c => c.p.Turns).ThenBy(c => c.p.Y).ThenBy(c => c.p.X).FirstOrDefault();
+        if (best.Far == 0) throw new InvalidOperationException($"no valid place for {target.Metadata.PlainShipName} away from the walkable tiles");
+        Log.Info($"AUTOTEST weld: the farthest joints are {best.Far} tiles from a walkable tile");
+        return best.p;
+    }
+
+    /// <summary>A test ship of vanilla parts in the sim, at a clear spot <paramref name="distance"/> to the right of <paramref name="near"/>.</summary>
+    static Ship Spawn(IReadOnlyList<ShipBuilder.PartAt> layout, string name, int playerIndex, Ship near, float distance)
+    {
+        var sim = Sim();
+        var ship = ShipBuilder.Build(near.Rules, layout, name, "weld test");
+        ship.Metadata.PlayerIndex = playerIndex;
+        ship.WorldCenter = Autotest.ClearSpotNear(sim, near.DetWorldCenter, distance, ship.WorldBoundingRadius);
+        sim.Ships.Add(ship);
+        ship.InitializeToMax();
+        return ship;
     }
 
     /// <summary>A place that puts the target's first tile on the ship's first tile.</summary>
@@ -69,6 +107,47 @@ static class WeldAutotest
             ? CutArea.LastPiece ?? throw new InvalidOperationException("no cut piece yet")
             : throw new InvalidOperationException("weld_target needs: piece");
         // weld_fill <n>: test only, single player. Stores n steel in the target.
+        // weld_build arm|piece: test only, single player.
+        // arm: an own ship with a crewed core (control room, reactor, quarters, corridors, an airlock) and an arm of 12 armor tiles,
+        // far out of the crew path grid (issue #346). It becomes "me".
+        // piece: a derelict of structure, armor and wedges, which cannot all turn (issue #347), next to "me". It becomes the target.
+        Autotest.Commands["weld_build"] = arg =>
+        {
+            if (Autotest.RequireRun().IsMultiplayer) throw new InvalidOperationException("weld_build is single player only");
+            switch (arg.Trim())
+            {
+                case "arm":
+                    var home = Autotest.ActingShip(Sim()) ?? throw new InvalidOperationException("the acting player has no ship");
+                    List<ShipBuilder.PartAt> arm =
+                    [
+                        // Corridors first: the automatic door rule adds doors only toward parts that the ship already has.
+                        .. Enumerable.Range(0, 6).Select(y => new ShipBuilder.PartAt("cosmoteer.corridor", 2, y, 0)),
+                        new("cosmoteer.crew_quarters_small", 1, 4, 0), new("cosmoteer.airlock", 2, 6, 0),
+                        new("cosmoteer.control_room_small", 0, 0, 0), new("cosmoteer.reactor_small", 0, 2, 0),
+                        // Up from the top corridor: a joint above the grid gives a negative index, which throws. Out to one
+                        // side, the flat index of the grid array stays in range and the search reads wrong cells without a throw.
+                        .. Enumerable.Range(1, 12).Select(i => new ShipBuilder.PartAt("cosmoteer.armor", 2, -i, 0)),
+                    ];
+                    // Far from the start ship and its neighbors, so the pieces find a clear spot next to it.
+                    var me = Spawn(arm, "Arm", home.Metadata.PlayerIndex, home, 300f);
+                    me.Crew.CreateCrewsAtRandomParts(me.Crew.TotalCrewCapacityWithConstruction);
+                    _me = me.UniqueID;
+                    Log.Info($"AUTOTEST weld: arm ship {me.UniqueID} with {me.Parts.Count} parts and {me.Crew.Assigned.Count} crew");
+                    break;
+                case "piece":
+                    List<ShipBuilder.PartAt> piece =
+                    [
+                        new("cosmoteer.structure", 0, 0, 0), new("cosmoteer.structure", 1, 0, 0), new("cosmoteer.structure", 2, 0, 0),
+                        new("cosmoteer.structure", 0, 1, 0), new("cosmoteer.structure", 1, 1, 0), new("cosmoteer.armor_wedge", 2, 1, 1),
+                        new("cosmoteer.armor_2x1", 0, 2, 0),
+                    ];
+                    var target = Spawn(piece, "Piece", Cosmoteer.PlayerIndexes.Junk, Me(), 25f);
+                    _target = target.UniqueID;
+                    Log.Info($"AUTOTEST weld: derelict piece {target.UniqueID} with {target.Parts.Count} parts");
+                    break;
+                default: throw new InvalidOperationException($"weld_build needs arm or piece, not '{arg.Trim()}'");
+            }
+        };
         Autotest.Commands["weld_fill"] = arg =>
         {
             if (Autotest.RequireRun().IsMultiplayer) throw new InvalidOperationException("weld_fill is single player only");
@@ -77,10 +156,16 @@ static class WeldAutotest
         };
         Autotest.Commands["weld_note"] = _ => _noted = Totals(Me(), Target());
         Autotest.Commands["weld_blueprint"] = arg => _blueprint = arg.Trim() == "on";
-        // weld_auto: the nearest valid place becomes an order through the MP input, as a click of the Weld tool does.
-        Autotest.Commands["weld_auto"] = _ =>
+        // weld_auto [<turns>|far]: the nearest valid place (with the given quarter turns in the ship's grid; or the place whose joints lie
+        // farthest from the walkable tiles) becomes an order through the MP input, as a click of the Weld tool does.
+        Autotest.Commands["weld_auto"] = arg =>
         {
-            var p = NearestValid(Me(), Target());
+            var p = arg.Trim() switch
+            {
+                "" => NearestValid(Me(), Target()),
+                "far" => FarthestValid(Me(), Target()),
+                var t => NearestValid(Me(), Target(), int.Parse(t, CultureInfo.InvariantCulture)),
+            };
             Log.Info($"AUTOTEST weld: place {p} (snapped {WeldShip.Snap(Me(), Target())})");
             Autotest.RequireRun().Game.NetManager.EnqueueInput(new WeldOrderInput(Me(), Target(), p, _blueprint));
         };

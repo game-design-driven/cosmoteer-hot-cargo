@@ -56,13 +56,20 @@ internal sealed class EdgeJob(CutEdge edge, Func<Run, float> seconds, string nam
     /// Any other tile (armor, a hull part) is a point near the hull that crew reach from outside, as vanilla construction does
     /// (ConstructPartJob): a crew member inside the ship never arrives at such a point (ShipCrew arrival needs Destination.Part).
     /// </summary>
-    public override Destination GetDestination(CrewSoul crew) => WorkPart is { } part && !part.IsDestroyed && part.Rules.CrewSpeedFactor.IsNonZero
+    public override Destination GetDestination(CrewSoul crew) => WalkablePart is { } part
         ? new Destination(part, WorkPoint)
         : new Destination(Ship!, WorkPoint, null, crew.Rules.ConstructDistance);
 
+    Part? WalkablePart => WorkPart is { } part && !part.IsDestroyed && part.Rules.CrewSpeedFactor.IsNonZero ? part : null;
+
+    /// <summary>
+    /// The crew search starts inside the ship only from a walkable work tile. The crew path grid covers only the walkable tiles and a
+    /// margin (PathManager.EnlargeToFit), so a search from armor far from them reads outside the grid and crashes the game. Any other
+    /// work tile is a point near the hull, as RepairPartJob.GetSearchOrigin does.
+    /// </summary>
     public override bool GetSearchOrigin(out Destination? origin, out float distanceToOrigin, List<Ship> additionalSearchShips)
     {
-        origin = WorkPart is { } part ? new Destination(part, WorkPoint) : new Destination(Ship!, WorkPoint);
+        origin = WalkablePart is { } part ? new Destination(part, WorkPoint) : new Destination(Ship!, WorkPoint);
         distanceToOrigin = 0f;
         GetNearbyConstructionHelperShips(Ship!, additionalSearchShips);
         return true;
