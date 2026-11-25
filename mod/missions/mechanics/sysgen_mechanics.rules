@@ -810,6 +810,8 @@ MiningEscort
 							// Spawns the miner (Missions/Mechanics/MinerShip.cs) next to the station as a civilian of the station's faction.
 							Type = HotCargoMiningEscort
 							FieldTag = asteroid_field_poi
+							// Spec 1860: only asteroid fields; vanilla ship graveyards carry the field tag too.
+							FieldPoi = cosmoteer.poi_asteroid_field
 							StationTag = { Mode=Nearest; Tag=trade_station; }
 							// Spec 1886: the longest escort (the trip, about 3 minutes of mining, the trip back), so 5 minutes alone.
 							LostSeconds = 300

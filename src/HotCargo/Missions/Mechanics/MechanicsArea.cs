@@ -184,6 +184,8 @@ public static class MechanicsArea
             Log.Info($"AUTOTEST MINERDIAG {label}: ore {o.Mined}/{o.Goal} cmd={cmd} rock={rock} salvage={ship.Resources.GetSalvageJobs(Cosmoteer.Game.Multiplayer.MPValueType.Confirmed).Count()} " +
                      $"speed={(ship.Physics.Body?.LinearVelocity.Length() ?? 0f):0} pickups={ship.Resources.ManualTransferJobs.Count} loose1500={loose} crew=[{jobs}] weapons=[{weapons}]");
         };
+        // mech_mine_skipped_pois: POIs with the field tag that the last Mining Escort offer skipped for their type (graveyards, spec 1860).
+        Autotest.Fields["mech_mine_skipped_pois"] = () => MiningEscortObjective.LastSkippedPois;
         // mech_mine_away <distance>: the miner and the players this far from the field center. mech_mine_rock_in_field: 1 when the miner's
         // next rock is inside its field and out of the heat (spec 1862), 0 when it picks another rock, -1 when it has none.
         Autotest.Commands["mech_mine_away"] = arg =>

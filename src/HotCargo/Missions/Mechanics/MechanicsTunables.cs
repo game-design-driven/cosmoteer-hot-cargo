@@ -121,7 +121,7 @@ public sealed class MiningEscortTunables
     /// <summary>The miner waits this far from the station center, in a random direction.</summary>
     [Serialize(Optional = true)] public float SpawnDistanceMin = 500f;
     [Serialize(Optional = true)] public float SpawnDistanceMax = 800f;
-    /// <summary>The most ore the miner must bring back. A smaller hold sets a smaller goal. About 2.5 min of mining for the miner alone.</summary>
+    /// <summary>The most ore the miner must bring back. A smaller hold sets a smaller goal. About 70 s of hyperium mining without help (spec 1870).</summary>
     [Serialize(Optional = true)] public int OreGoal = 35;
     /// <summary>The miner orders loose ore of its type within this distance of its hull to be collected, also ore that players drop.</summary>
     [Serialize(Optional = true)] public float CollectRadius = 1500f;

@@ -52,6 +52,11 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
     {
         /// <summary>The spawn tag of asteroid field POIs. The miner takes the nearest field to the station that has ore and no hostile ship.</summary>
         [Serialize, PortableHash] public ID<SimObjectSpawner> FieldTag;
+        /// <summary>
+        /// Spec 1860: the POI type of a mining field. Other POIs with the field tag are no mining fields: vanilla tags its ship graveyards
+        /// (75 to 100 junk wrecks) with asteroid_field_poi too.
+        /// </summary>
+        [Serialize, PortableHash] public ID<Cosmoteer.Simulation.Doodads.DoodadRules> FieldPoi;
         [Serialize, PortableHash] public SpawnedObjectSearch StationTag = null!;
         [Serialize(Optional = true), PortableHash] public int TierOffset;
         /// <summary>Spec 1886: game seconds alone before raiders take the miner. 0: Missions.EscortLostSeconds.</summary>
@@ -63,7 +68,10 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
             if (invalid) return null;
             var t = MechanicsArea.TunablesFor(sim.RequireGame()).MiningEscort;
             Vector2 at = station!.Location.Center;
-            var fields = objects.TryGetValue(FieldTag, out var list) ? list.Select(f => FieldArea(sim, f)).OrderBy(c => c.Center.DistanceTo(at)).ToList() : [];
+            var pois = objects.TryGetValue(FieldTag, out var list) ? list.Select(f => (Spawned: f, Poi: FieldPoiOf(sim, f))).ToList() : [];
+            var fields = pois.Where(f => f.Poi.Rules.ID == FieldPoi).Select(f => new Circle(f.Spawned.Location.Center, f.Poi.WorldUniformScale))
+                .OrderBy(c => c.Center.DistanceTo(at)).ToList();
+            LastSkippedPois = pois.Count - fields.Count;
             if (PickField(sim, fields) is not { } picked)
             {
                 Log.Info($"mining escort offer dropped: none of {fields.Count} asteroid fields has ore, no hostile ship and no sun heat");
@@ -94,16 +102,19 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
         }
     }
 
+    /// <summary>POIs with the field tag that the last offer skipped for their POI type (spec 1860). For the autotest.</summary>
+    internal static int LastSkippedPois { get; private set; }
+
     /// <summary>
-    /// Spec 1860: the field's area: the POI's center and its world scale, which is the radius of the vanilla field (AsteroidField/Radius,
-    /// the POI's ScaleFactor). The game draws and explores the POI with the same circle.
+    /// Spec 1860: the POI of a field. Its world scale is the field's radius (vanilla AsteroidField/Radius, the POI's ScaleFactor); the game
+    /// draws and explores the POI with the same circle.
     /// </summary>
-    static Circle FieldArea(SimRoot sim, SimSpawner.SpawnedObject field)
+    static Cosmoteer.Simulation.Doodads.POIDoodad FieldPoiOf(SimRoot sim, SimSpawner.SpawnedObject field)
     {
         var poi = field.UniqueID is { } id ? sim.Doodads[id] as Cosmoteer.Simulation.Doodads.POIDoodad : null;
         if (poi is null) throw new InvalidOperationException($"field {field.UniqueID} at {field.Location.Center} is no live POI doodad");
         if (!(poi.WorldUniformScale > 0f)) throw new InvalidOperationException($"field POI {poi.UniqueID} ({poi.Rules.ID}) has no size");
-        return new Circle(field.Location.Center, poi.WorldUniformScale);
+        return poi;
     }
 
     /// <summary>
@@ -162,7 +173,7 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
     [Serialize] public ObjectiveTargetShip Escort { get; private set; }
     [Serialize] public ObjectiveTargetShip Station { get; private set; }
     [Serialize] public Vector2 Field { get; private set; }
-    /// <summary>Spec 1860: the field's radius (<see cref="FieldArea"/>). The miner mines only asteroids inside it.</summary>
+    /// <summary>Spec 1860: the field's radius (<see cref="FieldPoiOf"/>). The miner mines only asteroids inside it.</summary>
     [Serialize] public float FieldSize { get; private set; }
     [Serialize] public ID<ResourceRules> Ore { get; private set; }
     [Serialize(Optional = true)] public int Tier { get; private set; }
