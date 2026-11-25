@@ -314,3 +314,7 @@ failure_lines() {
   grep -n -B2 -A4 -E 'AUTOTEST FAIL| ERROR |Exception|MP DESYNC|MPSTATE MISMATCH' "$1" | head -60 || true
   grep -q 'AUTOTEST DONE' "$1" || { echo "(no AUTOTEST DONE: the game exited early, timed out, or the PC link failed; first log lines:)"; grep -v "^$" "$1" | head -6; }
 }
+
+# The lines of a co-op runner's output (a file) that explain a failure, for the suite summaries: the step lines, the crash lines
+# of the processes, the report's detail lines and the result. The cap fits two machines' tails from coop-report.sh.
+coop_failure_lines() { grep -E "^FAIL |^STOPPED |^== crash|^== result|^   |log /" "$1" | head -120 || true; }
