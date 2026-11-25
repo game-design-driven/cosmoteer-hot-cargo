@@ -30,7 +30,11 @@ expect cut_parts_lost == 0
 waitfor cut_splits == 1 240
 expect cut_orders == 0
 expect cut_parts_lost > 0
+expect cut_piece_parts == cut_parts_lost
 # Spec 2466: the design lost the far side, so nothing waits to be rebuilt.
 wait 2
 expect cut_design_extra == 0
+# The cut-off piece stays in space.
+wait 20
+expect cut_piece_parts > 0
 quit

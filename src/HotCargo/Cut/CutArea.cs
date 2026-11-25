@@ -11,6 +11,9 @@ namespace HotCargo.Cut;
 /// </summary>
 public static class CutArea
 {
+    /// <summary>The first new piece of the newest split, for the tests. Not run state.</summary>
+    internal static ObjectID? LastPiece;
+
     public static void Register()
     {
         Run.Hooks.Tick += (run, sim, dt) => Errors.Guard("cut tick", () => OnTick(run, sim));
@@ -112,7 +115,7 @@ public static class CutArea
     {
         End(ship, order, orders);
         var gaps = order.Edges.Select(e => e.Edge).ToHashSet();
-        int before = sim.Ships.Count;
+        var before = sim.Ships.Select(s => s.UniqueID).ToHashSet();
         if (!CutShip.Split(ship, gaps))
         {
             Log.Info($"cut: {ship.Metadata.PlainShipName} did not split");
@@ -121,6 +124,10 @@ public static class CutArea
         }
         int trimmed = CutShip.TrimDesign(ship, gaps);
         run.State.Cut.Splits++;
-        Log.Info($"cut: {ship.Metadata.PlainShipName} split into {sim.Ships.Count - before + 1} ships, the design lost {trimmed} parts");
+        var pieces = sim.Ships.Where(s => !before.Contains(s.UniqueID)).OrderBy(s => s.UniqueID).ToList();
+        LastPiece = pieces.FirstOrDefault()?.UniqueID;
+        foreach (var piece in pieces) CutShip.PushApart(ship, piece, run.T.Cut.SeparationSpeed);
+        Log.Info($"cut: {ship.Metadata.PlainShipName} split, the design lost {trimmed} parts; new pieces: "
+            + string.Join(", ", pieces.Select(p => $"{p.UniqueID} ({p.Parts.Count} parts, player {p.Metadata.PlayerIndex}, junk {p.IsJunk})")));
     }
 }

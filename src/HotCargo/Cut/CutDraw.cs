@@ -33,14 +33,33 @@ static class CutDraw
         {
             if (sim.Ships[order.Ship] is not { } ship) continue;
             using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
-                foreach (var e in order.Edges) DrawEdge(line, e.Edge, e.Done ? Color.White * 0.3f : Color.White);
+                foreach (var e in order.Edges) DrawEdge(sim, line, e.Edge, e.Done ? Color.White * 0.3f : Color.White);
         }
     }
 
+    /// <summary>
+    /// Line thickness: 3 times the game's remove X (BaseBuildState.DrawRemovePartXRect scales by the square root of the camera scale),
+    /// so a cut line reads at a glance.
+    /// </summary>
+    static float Thickness(SimRoot sim) => 3f * Mathx.Sqrt(sim.Camera.UniformScale);
+
+    static (Vector2 A, Vector2 B) Ends(Edge e) =>
+        e.Down ? (new Vector2(e.X, e.Y + 1), new Vector2(e.X + 1, e.Y + 1)) : (new Vector2(e.X + 1, e.Y), new Vector2(e.X + 1, e.Y + 1));
+
     /// <summary>One edge, in ship space (the caller pushes the ship transform).</summary>
-    internal static void DrawEdge(Cosmoteer.Simulation.Overlays.CappedLine line, Edge e, Color color)
+    internal static void DrawEdge(SimRoot sim, Cosmoteer.Simulation.Overlays.CappedLine line, Edge e, Color color)
     {
-        var (a, b) = e.Down ? (new Vector2(e.X, e.Y + 1), new Vector2(e.X + 1, e.Y + 1)) : (new Vector2(e.X + 1, e.Y), new Vector2(e.X + 1, e.Y + 1));
-        line.Draw(a, b, color, 0.5f);
+        var (a, b) = Ends(e);
+        line.Draw(a, b, color, Thickness(sim));
+    }
+
+    /// <summary>Spec 2461: an X over a blocked edge, in ship space.</summary>
+    internal static void DrawBlocked(SimRoot sim, Cosmoteer.Simulation.Overlays.CappedLine line, Edge e)
+    {
+        var (a, b) = Ends(e);
+        var c = (a + b) * 0.5f;
+        const float r = 0.3f;
+        line.Draw(c + new Vector2(-r, -r), c + new Vector2(r, r), Color.White, Thickness(sim));
+        line.Draw(c + new Vector2(r, -r), c + new Vector2(-r, r), Color.White, Thickness(sim));
     }
 }

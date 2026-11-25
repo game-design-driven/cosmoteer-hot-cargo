@@ -3,6 +3,7 @@ using Cosmoteer.Ships;
 using Cosmoteer.Ships.Parts;
 using Halfling;
 using Halfling.Geometry;
+using Halfling.Physics2D.Dynamics;
 
 namespace HotCargo.Cut;
 
@@ -74,6 +75,21 @@ internal static class CutShip
             ((CommonBaseContiguityManager<Part>.IContiguousPartsSetMembers)set).SetIsContiguous(set.ContiguityNumber == stay, ship.Parts);
         cm.SplitIntoNewShips();
         return true;
+    }
+
+    /// <summary>
+    /// Spec 2465: the piece drifts away from the ship at <paramref name="speed"/> relative to it, from the ship's center toward the
+    /// piece's center. The momentum of the two stays the same.
+    /// </summary>
+    internal static void PushApart(Ship ship, Ship piece, float speed)
+    {
+        Body a = ship.Physics.Body, b = piece.Physics.Body;
+        var dir = piece.DetWorldCenter - ship.DetWorldCenter;
+        if (speed <= 0f || dir.Length < 1e-4f || a.Mass + b.Mass <= 0f) return;
+        dir = dir.Normalize();
+        float total = a.Mass + b.Mass;
+        b.LinearVelocity += dir * (speed * a.Mass / total);
+        a.LinearVelocity -= dir * (speed * b.Mass / total);
     }
 
     /// <summary>Spec 2466: removes the design parts on the far side of the cut, through the game's design-only update.</summary>

@@ -37,6 +37,9 @@ static class CutTool
         _button = btn;
     });
 
+    /// <summary>Picks the Cut tool, like a click on its button (screenshots).</summary>
+    internal static void Select() => (_button ?? throw new InvalidOperationException("the build window has no Cut button")).IsSelected = true;
+
     internal static void Register() => Run.Hooks.Frame += run => Ux.UxKit.Guard("cut button", () =>
     {
         if (_button is { } btn && btn.SelfActive != run.T.Cut.Enabled) btn.SelfActive = run.T.Cut.Enabled;
@@ -47,11 +50,32 @@ static class CutTool
 /// Spec 2461 to 2463: the Cut tool. A drag draws a line from corner to corner along tile edges; the release checks it and sends the
 /// order, or shows why not. A right click cancels the ship's order. UI only: the sim changes only through the MP inputs.
 /// </summary>
-internal sealed class CutToolState(GameRoot game, IBuildModeProvider buildModeProvider) : BaseBuildState(game, buildModeProvider)
+internal sealed class CutToolState : BaseBuildState
 {
+    /// <summary>The state of the newest build window, for the screenshot commands.</summary>
+    static CutToolState? _current;
+
     List<Corner>? _line;
     CutGrid? _grid;
     Edge? _blocked;
+
+    public CutToolState(GameRoot game, IBuildModeProvider buildModeProvider) : base(game, buildModeProvider) => _current = this;
+
+    internal static CutToolState RequireCurrent() => _current ?? throw new InvalidOperationException("no build window with a Cut tool");
+
+    /// <summary>A line as a drag leaves it (screenshots).</summary>
+    internal void ShowLine(List<Corner> line, Edge? blocked)
+    {
+        _line = line;
+        _blocked = blocked;
+    }
+
+    /// <summary>The release of the drag (screenshots).</summary>
+    internal void Release(Ship ship)
+    {
+        if (_line is not null) Submit(ship, _line);
+        OnDeselected();
+    }
 
     public override void OnDeselected()
     {
@@ -91,7 +115,9 @@ internal sealed class CutToolState(GameRoot game, IBuildModeProvider buildModePr
         if (CutArea.Refusal(ship, edges, out _) is { } verdict)
         {
             PlayErrorSound();
-            Game.Gui.CreateFloatingText(Strings.GetText($"HotCargoCut/{verdict}"), Sim.WorldMouseLoc, WidgetRules.Instance.BadTextColor, 1f, null, 1f, xmlFormatting: false);
+            // At the end of the line, where the cursor is at the release.
+            var at = ship.TransformPointToWorld(new Vector2(line[^1].X, line[^1].Y));
+            Game.Gui.CreateFloatingText(Strings.GetText($"HotCargoCut/{verdict}"), at, WidgetRules.Instance.BadTextColor, 1f, null, 1f, xmlFormatting: false);
             return;
         }
         Game.NetManager.EnqueueInput(new CutOrderInput(ship, edges));
@@ -103,8 +129,8 @@ internal sealed class CutToolState(GameRoot game, IBuildModeProvider buildModePr
         var line = Rules.RemovePartXLine;
         using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
         {
-            foreach (var e in CutModel.Edges(_line)) CutDraw.DrawEdge(line, e, Color.White);
-            if (_blocked is { } b) CutDraw.DrawEdge(line, b, new Color(1f, 0.15f, 0.15f));
+            foreach (var e in CutModel.Edges(_line)) CutDraw.DrawEdge(Sim, line, e, Color.White);
+            if (_blocked is { } b) CutDraw.DrawBlocked(Sim, line, b);
         }
         if (_blocked is not null) DrawTextUnderCursor(Strings.GetText("HotCargoCut/Blocked"));
     }
