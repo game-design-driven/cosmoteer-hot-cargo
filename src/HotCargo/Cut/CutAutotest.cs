@@ -79,6 +79,49 @@ static class CutAutotest
             Log.Info($"AUTOTEST cut: clean line of {edges.Count} edges from {edges[0]} to {edges[^1]}");
             Autotest.RequireRun().Game.NetManager.EnqueueInput(new CutOrderInput(Me(), edges));
         };
+        // cut_line <x1> <y1> <x2> <y2>: the straight line between two corners of "me" becomes an order through the MP input.
+        Autotest.Commands["cut_line"] = arg =>
+        {
+            var n = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(t => int.Parse(t, CultureInfo.InvariantCulture)).ToArray();
+            if (n.Length != 4) throw new InvalidOperationException("cut_line needs: x1 y1 x2 y2");
+            var line = new List<Corner> { new(n[0], n[1]) };
+            if (CutModel.Extend(line, new Corner(n[2], n[3]), Grid().Blocked) is { } b) throw new InvalidOperationException($"the line is blocked at {b}");
+            Autotest.RequireRun().Game.NetManager.EnqueueInput(new CutOrderInput(Me(), CutModel.Edges(line)));
+        };
+        // cut_twin: test only, single player. Builds an own ship of two halves, each with a control room, a reactor, crew quarters and
+        // a middle column of corridors, next to the first own ship, fills it with crew, and marks it as "me". The halves meet along the corner line x = 3.
+        Autotest.Commands["cut_twin"] = _ =>
+        {
+            if (Autotest.RequireRun().IsMultiplayer) throw new InvalidOperationException("cut_twin is single player only");
+            var sim = Sim();
+            var home = Autotest.ActingShip(sim) ?? throw new InvalidOperationException("the acting player has no ship");
+            var ship = new Ship(home.Rules, "Twin", home.Metadata.PlayerIndex, randSeed: 9002UL);
+            // Corridors first: the automatic door rule adds doors only toward parts that the ship already has (ShipBuilder.Build).
+            (string Part, int X, int Y)[] layout =
+            [
+                ("corridor", 2, 0), ("corridor", 2, 1), ("corridor", 2, 2), ("corridor", 2, 3),
+                ("corridor", 3, 0), ("corridor", 3, 1), ("corridor", 3, 2), ("corridor", 3, 3),
+                ("crew_quarters_small", 2, 4), ("crew_quarters_small", 3, 4),
+                ("control_room_small", 0, 0), ("control_room_small", 4, 0), ("reactor_small", 0, 2), ("reactor_small", 4, 2),
+            ];
+            foreach (var (part, x, y) in layout)
+            {
+                using var sui = ShipUpdateInfo.Alloc(ship);
+                var rules = home.Rules.PartsByID[new Cosmoteer.Data.ID<Cosmoteer.Ships.Parts.PartRules>("cosmoteer." + part)];
+                if (!sui.TryAddBlueprintPart(rules, new IntVector2(x, y), 0, flipX: false, mirrorPhysical: false, allowOverwrite: false, addDoors: true,
+                        hireCrew: false, out var reasons, force: false))
+                    throw new InvalidOperationException($"cut_twin: cannot add {part} at {x},{y}: {reasons}");
+                sui.Apply();
+            }
+            ship.MatchPhysicalToBlueprints();
+            ship.WorldCenter = Autotest.ClearSpotNear(sim, home.DetWorldCenter + new Vector2(60f, 0f), 60f, ship.WorldBoundingRadius);
+            sim.Ships.Add(ship);
+            ship.InitializeToMax();
+            ship.Crew.CreateCrewsAtRandomParts(ship.Crew.TotalCrewCapacityWithConstruction);
+            _me = ship.UniqueID;
+            _partsAtMark = ship.Parts.Count;
+            Log.Info($"AUTOTEST cut: twin ship {ship.UniqueID} with {ship.Parts.Count} parts and {ship.Crew.Assigned.Count} crew");
+        };
         // cut_try blocked|half|loose: checks a bad line as the drag tool does at the release and keeps the verdict (cut_verdict).
         // blocked: the line runs into a 2x1 part, so the drag stops at the part and the line it has does not go across.
         Autotest.Commands["cut_try"] = arg =>
@@ -125,6 +168,9 @@ static class CutAutotest
         // cut_follow <size>: cut_frame before the split, cut_frame_both after it (video frames that keep both pieces in view).
         Autotest.Commands["cut_follow"] = arg =>
             Autotest.Commands[CutArea.LastPiece is { } id && Sim().Ships[id] is not null ? "cut_frame_both" : "cut_frame"](arg);
+        // cut_select_piece: selects the newest cut-off piece, so the ships card shows it (screenshots).
+        Autotest.Commands["cut_select_piece"] = _ => Sim().PlayerInput.SelectSingleShip(
+            CutArea.LastPiece is { } pid && Sim().Ships[pid] is { } p ? p : throw new InvalidOperationException("no cut-off piece"));
         // cut_tool: selects "me", opens build mode and picks the Cut tool, like a click on its button.
         Autotest.Commands["cut_tool"] = _ =>
         {
@@ -156,6 +202,11 @@ static class CutAutotest
         Autotest.Fields["cut_ships"] = () => Sim().Ships.Count;
         // Parts of the piece that the newest split cut off (0 when it is gone).
         Autotest.Fields["cut_piece_parts"] = () => CutArea.LastPiece is { } id && Sim().Ships[id] is { } piece ? piece.Parts.Count : 0;
+        // Own ships among "me" and the newest cut-off piece: a human player's ship that is not a derelict (spec 2465).
+        Autotest.Fields["cut_own_pieces"] = () => new[] { (ObjectID?)Me().UniqueID, CutArea.LastPiece }
+            .Count(id => id is { } i && Sim().Ships[i] is { } s && s.IsHumanPlayerShip && !s.IsJunk);
+        // Crew of the newest cut-off piece.
+        Autotest.Fields["cut_piece_crew"] = () => CutArea.LastPiece is { } pid && Sim().Ships[pid] is { } p ? p.Crew.Assigned.Count : 0;
         // cut_set <field> <value>: sets one Cut tunable for this run (a slower cut for the video).
         Autotest.Commands["cut_set"] = arg => Autotest.SetField(Autotest.RequireRun().T.Cut, arg);
         // Parts that the ship lost since cut_mark: 0 until the split (no partial separation, spec 2465).

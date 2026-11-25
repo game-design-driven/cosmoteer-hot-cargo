@@ -1,0 +1,23 @@
+# Cut ships apart (spec 2465): a ship with a control room in each half splits into two own ships. Each keeps the crew aboard it and
+# its own design of its own parts.
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+pause off
+wait 3
+cut_twin
+wait 2
+expect cut_design_extra == 0
+cut_line 3 -1 3 7
+waitfor cut_orders == 1 10
+waitfor cut_splits == 1 240
+expect cut_parts_lost == 7
+expect cut_piece_parts == 7
+expect cut_own_pieces == 2
+expect cut_piece_crew > 0
+wait 2
+expect cut_design_extra == 0
+quit
