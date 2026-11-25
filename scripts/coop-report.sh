@@ -2,7 +2,8 @@
 # Verdict of a co-op session from its two Hot Cargo logs. It reads only the logs (no PC calls), so any runner can use it.
 # Usage: coop-report.sh <host log> <client log>
 # Prints one line per step, then "== result: PASS" or "== result: FAIL: <reasons>". Exit code 0 only on PASS.
-# Reasons: join failed, host did not finish, steps failed: <names>, desync, state differs, errors.
+# Reasons: join failed, no steps ran, steps failed: <names>, host did not finish, client did not finish, desync, start world differs,
+# state differs, state hash gap, errors.
 set -euo pipefail
 HOST="$(tr -d '\r' < "${1:?usage: coop-report.sh <host log> <client log>}")"
 CLIENT="$(tr -d '\r' < "${2:?usage: coop-report.sh <host log> <client log>}")"
@@ -21,15 +22,19 @@ if ! grep -q 'AUTOTEST MP game' <<<"$CLIENT"; then
 fi
 
 # Steps: every started step, failed when the host logged a STEP FAIL for it (a sim line can fail it after its result line).
+# A step with no result line is where the host stopped; "host did not finish" counts it.
 FAILED=()
 while read -r step; do
   [[ -z "$step" ]] && continue
   reason="$(grep -F "AUTOTEST STEP FAIL $step:" <<<"$HOST" | head -1 | sed "s/.*AUTOTEST STEP FAIL $step: //" || true)"
-  if [[ -n "$reason" ]]; then echo "FAIL $step: $reason"; FAILED+=("$step"); else echo "PASS $step"; fi
+  if [[ -n "$reason" ]]; then echo "FAIL $step: $reason"; FAILED+=("$step")
+  elif ! grep -qF "AUTOTEST STEP RESULT $step " <<<"$HOST"; then echo "STOPPED $step: the host stopped in this step"
+  else echo "PASS $step"; fi
 done < <(sed -n 's/.*AUTOTEST STEP START \([^ ]*\).*/\1/p' <<<"$HOST")
 grep -q 'AUTOTEST STEP START' <<<"$HOST" || REASONS+=("no steps ran")
 [[ ${#FAILED[@]} -gt 0 ]] && REASONS+=("steps failed: ${FAILED[*]}")
 grep -q 'AUTOTEST STEPS ' <<<"$HOST" && grep -q 'AUTOTEST DONE' <<<"$HOST" || REASONS+=("host did not finish")
+grep -q 'AUTOTEST MP game' <<<"$CLIENT" && ! grep -q 'AUTOTEST DONE' <<<"$CLIENT" && REASONS+=("client did not finish")
 
 # Desyncs that the game detected, with the step that ran at that sim tick.
 DESYNCS="$( { grep -h 'MP DESYNC' <<<"$HOST"; grep -h 'MP DESYNC' <<<"$CLIENT"; } || true)"
@@ -101,6 +106,19 @@ if [[ -n "$GAPS" ]]; then REASONS+=("state hash gap"); echo "   the state hash c
 # Other errors (for example a failing Harmony patch). Step failures, client "on" failures and desyncs are counted above.
 ERRORS="$( { grep -h ' ERROR ' <<<"$HOST"; grep -h ' ERROR ' <<<"$CLIENT"; } | grep -vE 'AUTOTEST STEP FAIL|AUTOTEST ON FAIL|MP DESYNC' || true)"
 if [[ -n "$ERRORS" ]]; then REASONS+=("errors"); head -5 <<<"$ERRORS" | sed 's/^/   /'; fi
+
+# A machine whose log has no AUTOTEST DONE stopped early (a crash, a hang, a kill). Its last script line, its exceptions and its
+# last log lines say why. Queue run 45616874495 said only "host did not finish". The runners print the process side of a crash
+# (the sim's "== crash:" lines, the vanilla game log on the PC).
+for side in host client; do
+  log="$([[ "$side" == host ]] && echo "$HOST" || echo "$CLIENT")"
+  grep -q 'AUTOTEST DONE' <<<"$log" && continue
+  if [[ -z "${log//[[:space:]]/}" ]]; then echo "   $side: the log is empty"; continue; fi
+  echo "   $side: did not finish; last script line: $(grep 'AUTOTEST line [0-9]*:' <<<"$log" | tail -1 | sed 's/.*AUTOTEST line/line/' || true)"
+  grep -m3 'Exception' <<<"$log" | sed "s/^/   $side exception: /" || true
+  echo "   $side: last 30 log lines (no state hash lines):"
+  grep -vE 'MPHASH|MPFIELDS|MPWORLD' <<<"$log" | tail -30 | cut -c1-300 | sed "s/^/   | /"
+done
 
 if [[ ${#REASONS[@]} -eq 0 ]]; then echo "== result: PASS"; exit 0; fi
 printf -v JOINED '%s; ' "${REASONS[@]}"
