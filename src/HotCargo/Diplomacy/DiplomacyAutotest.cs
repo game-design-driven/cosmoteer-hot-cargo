@@ -262,7 +262,7 @@ static class DiplomacyAutotest
         // comes from the sim random stream, so a test that checks the vanilla demand rule sets it.
         Autotest.Commands["dip_ai_accepts"] = _ =>
         {
-            var module = FirstSpawned().AI?.GetCommsModule<AIDialogueModule>() ?? throw new InvalidOperationException("the aispawn ship has no dialogue module");
+            var module = Situation.RolledDialogue(FirstSpawned()) ?? throw new InvalidOperationException("the aispawn ship has no dialogue module");
             module.WouldConsiderAcceptingSurrenderFromPlayer = true;
         };
         Autotest.Fields["dip_offers"] = () => DemandCheck(surrender: true);
@@ -270,7 +270,7 @@ static class DiplomacyAutotest
         // like dip_ai_accepts), so only its damage and the Hot Cargo rules decide.
         Autotest.Commands["dip_ai_offers"] = _ =>
         {
-            var module = FirstSpawned().AI?.GetCommsModule<AIDialogueModule>() ?? throw new InvalidOperationException("the aispawn ship has no dialogue module");
+            var module = Situation.RolledDialogue(FirstSpawned()) ?? throw new InvalidOperationException("the aispawn ship has no dialogue module");
             module.WouldConsiderSurrenderingToPlayer = true;
             module.ValueRatioDifferenceToSurrender = 1e6f;
         };
