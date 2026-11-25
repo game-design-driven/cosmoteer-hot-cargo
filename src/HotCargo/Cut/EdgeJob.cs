@@ -12,10 +12,10 @@ using HotCargo.Core;
 namespace HotCargo.Cut;
 
 /// <summary>
-/// Spec 2464: the crew job of one cut edge. One crew member stands in the work tile next to the edge and adds work until the edge has
-/// <see cref="CutTunables.EdgeSeconds"/>. Built like the game's door deconstruction and repair jobs (DeconstructDoorJob, RepairPartJob).
+/// Spec 2464, 2486: the crew job of one cut or weld edge. One crew member stands in the work tile next to the edge and adds work until
+/// the edge has <paramref name="seconds"/> of work. Built like the game's door deconstruction and repair jobs (DeconstructDoorJob, RepairPartJob).
 /// </summary>
-internal sealed class CutJob(CutEdge edge) : Job
+internal sealed class EdgeJob(CutEdge edge, Func<Run, float> seconds, string nameKey) : Job
 {
     public CutEdge Edge { get; } = edge;
 
@@ -51,7 +51,14 @@ internal sealed class CutJob(CutEdge edge) : Job
             || !ship.Sim.Doodads.ShouldAvoidLocation(shipCrew.Ship.DetWorldBoundingCircle, GameApp.Rules.Crew.AvoidableDoodadTags);
     }
 
-    public override Destination GetDestination(CrewSoul crew) => new(Ship, WorkPoint, null, crew.Rules.ConstructDistance);
+    /// <summary>
+    /// A walkable work tile (a corridor, a room) is a part destination: crew walk there inside the ship and arrive when they enter it.
+    /// Any other tile (armor, a hull part) is a point near the hull that crew reach from outside, as vanilla construction does
+    /// (ConstructPartJob): a crew member inside the ship never arrives at such a point (ShipCrew arrival needs Destination.Part).
+    /// </summary>
+    public override Destination GetDestination(CrewSoul crew) => WorkPart is { } part && !part.IsDestroyed && part.Rules.CrewSpeedFactor.IsNonZero
+        ? new Destination(part, WorkPoint)
+        : new Destination(Ship!, WorkPoint, null, crew.Rules.ConstructDistance);
 
     public override bool GetSearchOrigin(out Destination? origin, out float distanceToOrigin, List<Ship> additionalSearchShips)
     {
@@ -67,7 +74,7 @@ internal sealed class CutJob(CutEdge edge) : Job
         if (Edge.Done || Run.Current is not { } run) return;
         Edge.Work += (float)(dt.Seconds * crew.Rules.WorkPerSecond);
         if (WorkPart is { } part) crew.SpaceCrew?.RenewConstructionBeams(part);
-        if (Edge.Work >= run.T.Cut.EdgeSeconds) Edge.Done = true;
+        if (Edge.Work >= seconds(run)) Edge.Done = true;
         else newDest = GetDestination(crew);
     }
 
@@ -82,7 +89,7 @@ internal sealed class CutJob(CutEdge edge) : Job
         return value > 0 ? value : null;
     }
 
-    public override string GetJobName(CrewSoul c) => Strings.GetText("HotCargoCut/JobName");
+    public override string GetJobName(CrewSoul c) => Strings.GetText(nameKey);
 
     public override int GetTypeIntegrityHash() => 0x4843_4354; // "HCCT"
 

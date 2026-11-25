@@ -12,6 +12,8 @@ namespace HotCargo.Cut;
 static class CutAutotest
 {
     static ObjectID? _me;
+    /// <summary>The cut tests' ship, for the weld tests.</summary>
+    internal static ObjectID? MeId => _me;
     static int _partsAtMark;
     static CutVerdict? _verdict;
     /// <summary>cut_blueprint on: test orders are made as in blueprint mode, so they wait for cut_apply (spec 2475).</summary>
@@ -142,9 +144,11 @@ static class CutAutotest
 
     internal static void Register()
     {
-        Autotest.Commands["cut_mark"] = _ =>
+        Autotest.Commands["cut_mark"] = arg =>
         {
-            _me = (Autotest.ActingShip(Sim()) ?? throw new InvalidOperationException("the acting player has no ship")).UniqueID;
+            // cut_mark biggest: the human player ship with the most parts (screenshots with several own ships).
+            _me = (arg.Trim() == "biggest" ? Sim().Ships.HumanPlayerShips.OrderByDescending(x => x.Parts.Count).ThenBy(x => x.UniqueID).FirstOrDefault()
+                : Autotest.ActingShip(Sim())) is { } ship ? ship.UniqueID : throw new InvalidOperationException("the acting player has no ship");
             _partsAtMark = Me().Parts.Count;
         };
         // cut_clean: the clean cut of "me" becomes an order through the MP input, as a release of the drag does.
@@ -192,9 +196,12 @@ static class CutAutotest
             // Corridors first: the automatic door rule adds doors only toward parts that the ship already has (ShipBuilder.Build).
             (string Part, int X, int Y)[] layout =
             [
-                ("corridor", 2, 0), ("corridor", 2, 1), ("corridor", 2, 2), ("corridor", 2, 3),
-                ("corridor", 3, 0), ("corridor", 3, 1), ("corridor", 3, 2), ("corridor", 3, 3),
-                ("crew_quarters_small", 2, 4), ("crew_quarters_small", 3, 4),
+                ("corridor", 2, 0), ("corridor", 2, 1), ("corridor", 2, 2), ("corridor", 2, 3), ("corridor", 2, 4), ("corridor", 2, 5),
+                ("corridor", 3, 0), ("corridor", 3, 1), ("corridor", 3, 2), ("corridor", 3, 3), ("corridor", 3, 4), ("corridor", 3, 5),
+                // Small quarters open on their long sides, so each faces its own half's corridor.
+                ("crew_quarters_small", 1, 4), ("crew_quarters_small", 4, 4),
+                // An airlock under each corridor: crew build and cut from outside (EVA), as vanilla construction does.
+                ("airlock", 2, 6), ("airlock", 3, 6),
                 ("control_room_small", 0, 0), ("control_room_small", 4, 0), ("reactor_small", 0, 2), ("reactor_small", 4, 2),
             ];
             foreach (var (part, x, y) in layout)

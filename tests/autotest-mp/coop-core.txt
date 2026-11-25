@@ -319,6 +319,17 @@ on 1 waitfor cut_orders == 1 30
 waitfor cut_splits == 1 240
 on 1 waitfor cut_splits == 1 240
 
+step weld.join
+# Spec 2491: the client welds the piece it cut off back onto its ship. The pull, the joint work and the merge run in the sim on both
+# machines.
+on 1 weld_mark cut
+on 1 weld_target piece
+on 1 weld_auto
+waitfor weld_orders == 1 30
+on 1 waitfor weld_orders == 1 30
+waitfor weld_merges == 1 240
+on 1 waitfor weld_merges == 1 240
+
 step telemetry.relay
 # Spec 1592, 1593: the client's telemetry files reach the host's folder in many small chunks: the sessions of the join, the resync
 # and the load. Closed files arrive whole; the open file trails by at most the lines of the last moments. No copy breaks the format.

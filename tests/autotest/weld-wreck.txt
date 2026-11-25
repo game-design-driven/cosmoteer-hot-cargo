@@ -1,0 +1,32 @@
+# Weld (spec 2481, 2483, 2475): a derelict piece (a block cut out by a loop) is welded back on. A place that covers ship tiles is
+# refused; in blueprint mode the weld waits for "Make it so".
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+pause off
+wait 3
+cut_mark
+cut_shape loop
+waitfor cut_splits == 1 240
+expect cut_piece_junk == 1
+weld_mark cut
+weld_target piece
+weld_try covered
+expect weld_verdict == 1
+weld_note
+weld_blueprint on
+weld_auto
+waitfor weld_pending == 1 10
+wait 5
+expect weld_phase == 0
+expect weld_merges == 0
+cut_apply
+waitfor weld_pending == 0 10
+waitfor weld_crew > 0 60
+waitfor weld_merges == 1 240
+expect weld_target_live == 0
+expect weld_parts_kept == 1
+quit

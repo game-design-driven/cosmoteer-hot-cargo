@@ -52,7 +52,7 @@ static class ShipAlerts
         foreach (var ship in Tracked.Keys.Where(s => !Seen.Contains(s)).ToList())
         {
             Tracked.Remove(ship);
-            if (!on) continue;
+            if (!on || Weld.WeldArea.Welded.Contains(ship.UniqueID)) continue;
             if (ship.IsDisposed || ship.Parts.Count == 0) Show(game, Kind.Destroyed, ship.Metadata.PlainShipName, null);
             else if (ship.IsJunk) Show(game, Kind.Derelict, ship.Metadata.PlainShipName, null);
         }

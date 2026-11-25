@@ -44,6 +44,7 @@ public static class Mod
             Debris.DebrisArea.Register();
             Breach.BreachArea.Register();
             Cut.CutArea.Register();
+            Weld.WeldArea.Register();
             Thieves.ThievesArea.Register();
             Stash.StashArea.Register();
             Diplomacy.DiplomacyArea.Register();

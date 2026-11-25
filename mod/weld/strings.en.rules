@@ -1,0 +1,11 @@
+// Weld (spec 2480 to 2490).
+HotCargoWeld
+{
+	ToolTip = "Weld\nSnap a nearby own ship or wreck onto this ship. Move the ghost with the cursor, R turns it, Tab picks another piece, click to weld. The ship pulls the piece in, and your crew join it.\nRight click: cancel the ship's weld."
+	JobName = "Weld hull"
+	NoTarget = "Nothing to weld nearby"
+	Covered = "Piece overlaps the ship"
+	NoContact = "Piece must touch the ship"
+	NoPull = "The weld could not pull the piece into place."
+	Blocked = "The weld stopped: something is in the way."
+}

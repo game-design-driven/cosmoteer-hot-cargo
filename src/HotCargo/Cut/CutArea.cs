@@ -89,7 +89,29 @@ public static class CutArea
         orders.Remove(order);
     }
 
-    static void DropJob(Ship? ship, CutEdge e)
+    /// <summary>
+    /// Spec 2464, 2467, 2486: one crew job for each edge that still needs work. An edge whose work ended or that no longer needs work
+    /// is done and loses its job; a missing job (after a load or a split) is made again.
+    /// </summary>
+    internal static void KeepJobs(Ship ship, List<CutEdge> edges, Func<Edge, bool> needsWork, Func<Run, float> seconds, string nameKey, string what)
+    {
+        foreach (var e in edges)
+        {
+            if (!e.Done && !needsWork(e.Edge))
+            {
+                e.Done = true;
+                Log.Info($"{what}: edge {e.X},{e.Y} {(e.Down ? "down" : "right")} on {ship.Metadata.PlainShipName} needs no more work at {e.Work:0.0} s");
+            }
+            if (e.Done) DropJob(ship, e);
+            else if (e.Job?.Ship != ship)
+            {
+                e.Job = new EdgeJob(e, seconds, nameKey);
+                ship.Jobs.AddJob(e.Job);
+            }
+        }
+    }
+
+    internal static void DropJob(Ship? ship, CutEdge e)
     {
         if (e.Job is { } job && ship is not null && job.Ship == ship) ship.Jobs.RemoveJob(job, unassignCrew: true);
         e.Job = null;
@@ -114,20 +136,7 @@ public static class CutArea
                 foreach (var e in order.Edges) DropJob(ship, e);
                 continue;
             }
-            foreach (var e in order.Edges)
-            {
-                if (!e.Done && !CutShip.NeedsWork(ship, e.Edge))
-                {
-                    e.Done = true;
-                    Log.Info($"cut: edge {e.X},{e.Y} {(e.Down ? "down" : "right")} on {ship.Metadata.PlainShipName} needs no more work at {e.Work:0.0} s");
-                }
-                if (e.Done) DropJob(ship, e);
-                else if (e.Job?.Ship != ship)
-                {
-                    e.Job = new CutJob(e);
-                    ship.Jobs.AddJob(e.Job);
-                }
-            }
+            KeepJobs(ship, order.Edges, e => CutShip.NeedsWork(ship, e), r => r.T.Cut.EdgeSeconds, "HotCargoCut/JobName", "cut");
             if (order.Edges.All(e => e.Done)) Finish(run, sim, ship, order, orders);
         }
     }

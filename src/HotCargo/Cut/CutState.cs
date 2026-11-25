@@ -38,7 +38,7 @@ public sealed class CutEdge
     [Serialize] public int WorkY;
 
     /// <summary>The crew job of the edge. Not saved: the tick creates it again after a load (spec 2469).</summary>
-    internal CutJob? Job;
+    internal EdgeJob? Job;
 
     public Edge Edge => new(X, Y, Down);
     public Cell WorkCell => new(WorkX, WorkY);

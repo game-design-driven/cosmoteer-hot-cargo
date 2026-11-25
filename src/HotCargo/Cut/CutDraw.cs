@@ -54,6 +54,7 @@ static class CutDraw
 
     internal static void Register() => Run.Hooks.Frame += run => Ux.UxKit.Guard("cut draw", () =>
     {
+        WorkSound();
         // The overlay renderer belongs to the sim, and a jump makes a new sim: subscribe to each new one.
         if (run.Game.Sim is not { } sim || sim == _sim) return;
         _sim = sim;
@@ -77,28 +78,29 @@ static class CutDraw
             using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
                 DrawDrag(order.Edges.Where(e => !e.Done).Select(e => e.Edge));
         }
-        WorkSound(run, sim);
     }
 
-    /// <summary>Spec 2468: the edges of a cut on a ship, in the world.</summary>
+    /// <summary>Spec 2468, 2490: the edges of a cut or a weld on a ship, in the world.</summary>
     internal static void DrawEdges(Ship ship, IEnumerable<CutEdge> edges)
     {
         var art = _art ??= LoadArt();
+        bool inView = ship.Sim?.WorldViewRect.Contains(ship.WorldCenter) == true;
         using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
-            foreach (var e in edges) DrawOrderEdge(art, e);
+            foreach (var e in edges)
+                if (DrawOrderEdge(art, e) && inView) _workSeenAt = Now;
     }
 
     static SoundInstance? _workLoop;
+    /// <summary>When an edge of a cut or a weld on a ship in view last showed crew at work.</summary>
+    static double _workSeenAt = double.NegativeInfinity;
 
     /// <summary>
     /// Spec 2474: the crew construction sound loops while crew work on an edge of a ship in view, one loop for all cuts. Crew inside a
     /// ship get no construction beams, and only the beams carry the vanilla sound (SpaceCrew.RenewConstructionBeams).
     /// </summary>
-    static void WorkSound(Run run, SimRoot sim)
+    static void WorkSound()
     {
-        double now = Now;
-        bool working = run.State.Cut.Orders.Any(o => !o.Pending && sim.Ships[o.Ship] is { } s && sim.WorldViewRect.Contains(s.WorldCenter)
-            && o.Edges.Any(e => !e.Done && Looks.TryGetValue(e, out var look) && now - look.WorkedAt < SparkSeconds));
+        bool working = Now - _workSeenAt < 0.2;
         var art = _art ??= LoadArt();
         if (working && _workLoop is null) _workLoop = App.Audio.Play(art.WorkSound, AudioGroups.Effects, loop: true);
         else if (!working && _workLoop is not null)
@@ -139,10 +141,11 @@ static class CutDraw
         App.Graphics.Draw<Quad>(quad);
     }
 
-    static void DrawOrderEdge(Art art, CutEdge e)
+    /// <summary>Draws one edge; returns true while crew work on it.</summary>
+    static bool DrawOrderEdge(Art art, CutEdge e)
     {
         // An edge that was done before any work (in space, no contact, a loose end) shows nothing: there is nothing to cut there.
-        if (e.Done && e.Work <= 0f) return;
+        if (e.Done && e.Work <= 0f) return false;
         double now = Now;
         var look = Looks.GetValue(e, _ => new Look());
         if (e.Work > look.Work)
@@ -154,12 +157,13 @@ static class CutDraw
         var (a, b) = Ends(e.Edge);
         float glow = look.DoneAt is { } doneAt ? (float)Math.Clamp(1.0 - (now - doneAt) / FadeSeconds, 0.0, 1.0) : 1f;
         if (look.DoneAt is not null) art.Seam.Draw(a, b, SeamColor * (1f - glow), SeamThickness);
-        if (glow <= 0f) return;
+        if (glow <= 0f) return false;
         bool working = now - look.WorkedAt < SparkSeconds;
         float pulse = working ? 1f : 0.8f + 0.2f * MathF.Sin((float)(now * 3.0) + e.X + e.Y);
         art.Torch.Draw(a, b, Color.White * (pulse * glow), TorchThickness);
         if (look.DoneAt is null) DrawStitch(art.Seam, e.Edge, Stitch);
         if (working && look.DoneAt is null) DrawSpark(art.Spark, e.Edge, now);
+        return working && look.DoneAt is null;
     }
 
     /// <summary>Spec 2461, 2475: the line in progress or a pending cut, as marching dashes with stitches, in ship space.</summary>
