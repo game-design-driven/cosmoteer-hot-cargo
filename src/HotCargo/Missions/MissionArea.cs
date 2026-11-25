@@ -770,6 +770,9 @@ public static class MissionArea
         // A clear spot (#308): the route point can lie on a rock or ship that loads out of stasis around the freighter and holds it there.
         Vector2 at = Autotest.ClearSpotNear(RequireSim(), o.Start + (o.Destination - o.Start) * share, 0f, escort.WorldBoundingRadius);
         Autotest.Teleport(escort, at);
+        // The move order was made at the old place, with a path from there. A fresh one from the AI starts here (#308: freighters crawled
+        // after this teleport, and one never moved on).
+        escort.Commands.Clear();
         TeleportPlayers(at);
     }
 
