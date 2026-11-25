@@ -9,10 +9,11 @@ tunablesfile Heat { HeatPerGameMinute = 30; HeatCarryOverFraction = 0.5 }  Event
 mphost {PORT}
 mpstart {PLAYERS}
 mp godmode on
-# From here to the end of missions.escort-ambush the player ships take no damage and lose no crew: the steps test the tunables,
-# the hunters, the tactics, the resync and the escort, not who wins a fight. CI 2026-11-17: random fights took the client's only
-# ship. Queue run 45239133782: the fights before shipai.fight killed the client's crew, and a ship without crew takes no crew
-# orders, so hc_escort_bring found no own ship.
+# For the whole session the player ships take no damage and lose no crew: no step tests who wins a fight. CI 2026-11-17: random
+# fights took the client's only ship. Queue run 45239133782: the fights before shipai.fight killed the client's crew, and a ship
+# without crew takes no crew orders. Queue run 45513513863 (#305): with the shield off, the very hard wave of runmodes.difficulty
+# destroyed the client's only ship. The shield is a flag on each machine, so it stays on through the resync and the load. A step
+# that needs damage turns it off and on again itself.
 mp shieldplayers on
 mp maxhunters 4
 mp tacticlog on
@@ -235,11 +236,9 @@ pause off
 waitfor hc_lead_gap < 450 45
 on 1 waitfor hc_lead_gap < 450 45
 wait 5
-mp shieldplayers off
 
 step missions.mayday
 # Spec 2434: the mayday starts in the sim on both machines, with the same victim and attackers, and ends the same way.
-mp shieldplayers on
 mp hc_mayday_start
 waitfor hc_mayday_active == 1 15
 on 1 waitfor hc_mayday_active == 1 15
@@ -248,7 +247,6 @@ on 1 waitfor hc_mayday_attackers >= 2 15
 mp hc_mayday_kill_attackers
 waitfor hc_mayday_done == 1 15
 on 1 waitfor hc_mayday_done == 1 15
-mp shieldplayers off
 
 step core.save-load
 # Back to the game setup with the connection kept, load the save (from before the resync) for both players, start.
@@ -271,7 +269,6 @@ on 1 expect hc_trap_state == 2
 step worlds.close-pass
 # Spec 2445: Close the Pass in co-op. The clock, the convoy spawn and the win run in the sim on both machines. Built in this system
 # (worlds closepass_here), because the session does not jump to a Mining Belt.
-mp shieldplayers on
 mp worlds closepass_here
 mp worlds goto closepass
 waitfor worlds_closepass_running == 1 15
@@ -282,12 +279,10 @@ mp worlds kill hc_closepass_freighter
 waitfor worlds_closepass_done == 1 15
 on 1 waitfor worlds_closepass_done == 1 15
 mp worlds kill hc_closepass_escort
-mp shieldplayers off
 
 step runmodes.difficulty
 # Spec 680 to 685: the host changes the difficulty through the vanilla settings inputs. The client sees the same effective
 # heat rate, hunter count and tier, tech value and fees. The state hash compares the heat that time adds at the new rate.
-# Late in the session: the very hard fight can destroy a ship that earlier steps check.
 rm_difficulty very_hard slow scarce
 rm_log host
 on 1 expect rm_heatrate > 1
