@@ -1,0 +1,58 @@
+// Art of the cut line (spec 2468), read by Cut/CutDraw.cs. Vanilla textures by reference, no copies:
+// the crew salvage beam (crew/salvage_beam.png) as the cutting torch, the thin selection line as the seam and the stitches, the dashed
+// selection line (as the remove tool, gui/game/designer/build_gui.rules RemovePartXLine) for the line being drawn, and the particle
+// spark (common_effects/particles/spark.png) where crew work.
+Torch
+{
+	LineSprite
+	{
+		Texture
+		{
+			File = "./Data/crew/salvage_beam.png"
+			SampleMode = Linear
+			MipLevels = max
+		}
+	}
+	LineThickness = 1
+}
+
+Seam
+{
+	LineSprite
+	{
+		Texture
+		{
+			File = "./Data/gui/game/overlay_selection_thin.png"
+			SampleMode = Linear
+			MipLevels = max
+		}
+	}
+	LineThickness = 1
+}
+
+Drag
+{
+	LineSprite
+	{
+		Texture
+		{
+			File = "./Data/gui/game/overlay_selection_dashed.png"
+			SampleMode = Linear
+			MipLevels = max
+			UMode = Wrap
+		}
+		UVRect = [.25, 0, .5, 1]
+	}
+	LineThickness = 1
+	LineUPerLength = 2
+}
+
+Spark
+{
+	Texture
+	{
+		File = "./Data/common_effects/particles/spark.png"
+		SampleMode = Linear
+		MipLevels = max
+	}
+}
