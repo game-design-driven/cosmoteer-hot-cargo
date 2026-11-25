@@ -93,14 +93,18 @@ internal static class Resupply
     public static bool InPoolRange(Ship a, Ship b) =>
         a.DetWorldBoundingCircle.DistanceTo(b.DetWorldBoundingCircle) <= GameApp.Rules.Crew.LoseHomeShipWarningDistance;
 
-    /// <summary>Spec 1308: the nearest friendly station (requirement 1069's list), live or in stasis. Ties go to the lower ID.</summary>
-    public static StationRef? FindStation(Ship ship) =>
-        AutonomyWorld.Stations(ship).Where(s => s.Live is null || Situation.IsStation(s.Live))
-            .OrderBy(s => Math.Max(0f, AutonomyWorld.EdgeDistance(ship, s.Center) - s.Radius)).ThenBy(s => s.Id).Cast<StationRef?>().FirstOrDefault();
+    /// <summary>
+    /// Spec 1308: the stations that trade with the ship now: live stations of requirement 1069's list. A station in stasis never trades,
+    /// and an AI ship that comes near does not wake it as a player ship does (#343: a fleeing ship waited next to one and never docked).
+    /// </summary>
+    static IEnumerable<StationRef> Trading(Ship ship) => AutonomyWorld.Stations(ship).Where(s => s.Live is { } live && Situation.IsStation(live));
 
-    /// <summary>The station with this ID, while it is still friendly to the ship.</summary>
-    public static StationRef? Station(Ship ship, ObjectID id) =>
-        AutonomyWorld.Stations(ship).Where(s => s.Id == id && (s.Live is null || Situation.IsStation(s.Live))).Cast<StationRef?>().FirstOrDefault();
+    /// <summary>Spec 1308: the nearest station that trades with the ship now. Ties go to the lower ID.</summary>
+    public static StationRef? FindStation(Ship ship) =>
+        Trading(ship).OrderBy(s => Math.Max(0f, AutonomyWorld.EdgeDistance(ship, s.Center) - s.Radius)).ThenBy(s => s.Id).Cast<StationRef?>().FirstOrDefault();
+
+    /// <summary>The station with this ID, while it still trades with the ship: friendly and live.</summary>
+    public static StationRef? Station(Ship ship, ObjectID id) => Trading(ship).Where(s => s.Id == id).Cast<StationRef?>().FirstOrDefault();
 
     /// <summary>True when the live station allows trade with the ship (vanilla AllowResourceTrade: friendly and within 400).</summary>
     public static bool AtStation(Ship ship, StationRef station) =>
