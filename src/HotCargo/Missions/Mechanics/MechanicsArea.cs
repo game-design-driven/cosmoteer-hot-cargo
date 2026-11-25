@@ -206,31 +206,40 @@ public static class MechanicsArea
             Log.Info($"AUTOTEST miner rock {rock.Id} at {rock.Center} ({rock.Center.DistanceTo(o.Field):0} from the field center, radius {o.FieldSize:0}), miner {miner.DetWorldCenter.DistanceTo(o.Field):0} from it");
             return inField && !Worlds.HeatZone.Touches(Worlds.HeatZone.Suns(RequireSim()), new Circle(rock.Center, rock.Radius)) ? 1 : 0;
         };
-        // mech_mine_block <sun|hostile>: the field pick (spec 1860) on the field of the latest Mining Escort. Unblocked it picks the field (the
-        // control); blocked it does not. sun: a test sun whose heat zone reaches 500 into the field. hostile: a hostile ship inside the field,
-        // at 80 % of its radius.
+        // mech_mine_block <sun|pirate|wanderer>: the field pick of the rules (spec 1860) on the field of the latest Mining Escort. Unblocked it
+        // picks the field (the control). sun: a test sun whose heat zone reaches 500 into the field; not picked. pirate: a hostile ship
+        // with a spawn tag of the field's own group, at 80 % of its radius; not picked. wanderer: a hostile ship without such a tag at the
+        // same place; still picked.
         Autotest.Commands["mech_mine_block"] = arg =>
         {
             var o = Miner();
             var sim = RequireSim();
+            var spawner = MiningSpawner(sim);
             var field = new Circle(o.Field, o.FieldSize);
-            Autotest.Check(MiningEscortObjective.PickField(sim, [field]) is not null, $"unblocked, the field at {o.Field} is picked");
+            Log.Info($"AUTOTEST field own ship tags: [{string.Join(" ", spawner.OwnShipTags(sim).Order())}]");
+            Autotest.Check(spawner.PickField(sim, [field]) is not null, $"unblocked, the field at {o.Field} is picked");
             Ship? hostile = null;
             switch (arg)
             {
                 case "sun":
                     Worlds.HeatZone.TestSuns.Add(new(o.Field + new Vector2(o.FieldSize + 1000f, 0f), 500f, 1500f));
                     break;
-                case "hostile":
+                case "pirate" or "wanderer":
                     int enemy = ((CareerSimModeManager)sim.Mode).AllocUniquePlayerIndex();
                     float at = o.FieldSize * 0.8f;
-                    WaveSpawns.Spawn(sim, o.Field, 0f, 1, 1, RequireRun().T.Mechanics.MiningEscort.ShipTags, enemy, new ID<SimObjectSpawner>("hc_test_hostile"), at, at);
+                    var tag = arg == "pirate" ? spawner.OwnShipTags(sim).Order().First() : new ID<SimObjectSpawner>("hc_test_wanderer");
+                    WaveSpawns.Spawn(sim, o.Field, 0f, 1, 1, RequireRun().T.Mechanics.MiningEscort.ShipTags, enemy, tag, at, at);
                     hostile = sim.Ships.Single(s => s.Metadata.PlayerIndex == enemy);
                     break;
                 default:
-                    throw new InvalidOperationException($"mech_mine_block needs sun or hostile, not '{arg}'");
+                    throw new InvalidOperationException($"mech_mine_block needs sun, pirate or wanderer, not '{arg}'");
             }
-            try { Autotest.Check(MiningEscortObjective.PickField(sim, [field]) is null, $"blocked ({arg}), the field at {o.Field} is not picked"); }
+            try
+            {
+                bool picked = spawner.PickField(sim, [field]) is not null;
+                bool want = arg == "wanderer";
+                Autotest.Check(picked == want, $"with a {arg}, the field at {o.Field} is {(want ? "" : "not ")}picked");
+            }
             finally
             {
                 Worlds.HeatZone.TestSuns.Clear();
@@ -453,6 +462,15 @@ public static class MechanicsArea
     static PrototypeObjective Proto() => Require<PrototypeObjective>();
     static TowObjective Tow() => Require<TowObjective>();
     static MiningEscortObjective Miner() => Require<MiningEscortObjective>();
+
+    /// <summary>The Mining Escort objective spawner of the rules (the group hc_mech_miningescort of this system's sector).</summary>
+    static MiningEscortObjective.Spawner MiningSpawner(SimRoot sim)
+    {
+        var group = MissionArea.FindGroup(sim, Find("miningescort").GroupTag);
+        IEnumerable<ObjectiveSpawner> Flat(IEnumerable<ObjectiveSpawner> all) =>
+            all.SelectMany(o => o is SequentialObjective.Spawner seq ? Flat(seq.SubObjectives).Prepend(o) : [o]);
+        return MissionArea.AllSpawners([group]).OfType<MissionSpawner>().SelectMany(m => Flat(m.Objectives)).OfType<MiningEscortObjective.Spawner>().Single();
+    }
 
     static int _markedOre;
     static CaptureObjective Capture() => Require<CaptureObjective>();

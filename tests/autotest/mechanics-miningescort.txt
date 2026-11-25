@@ -72,7 +72,8 @@ wait 3
 mech_mine_kill
 wait 2
 expect mech_state_miningescort == 2
-# Spec 1860: no new offer uses a field that a sun's heat zone reaches or that a hostile ship sits in.
+# Spec 1860: no offer for a field that a sun's heat zone reaches or that one of its own pirates sits in; a passing wanderer does not block it.
 mech_mine_block sun
-mech_mine_block hostile
+mech_mine_block pirate
+mech_mine_block wanderer
 quit

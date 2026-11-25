@@ -62,6 +62,24 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
         /// <summary>Spec 1886: game seconds alone before raiders take the miner. 0: Missions.EscortLostSeconds.</summary>
         [Serialize(Optional = true), PortableHash] public float LostSeconds;
 
+        /// <summary>
+        /// Spec 1860: the ship spawn tags of the field POI's own spawner group: every ship spawner in a rules group that also spawns a POI
+        /// of type FieldPoi (vanilla AsteroidFieldWithMaybePirates: its pirates and platforms). Only ships with one of these tags block a
+        /// field; wanderers and station defenses that pass by do not.
+        /// </summary>
+        internal HashSet<ID<SimObjectSpawner>> OwnShipTags(SimRoot sim)
+        {
+            var tags = new HashSet<ID<SimObjectSpawner>>();
+            foreach (var group in MissionArea.AllSpawners(((CareerSimModeManager)sim.Mode).SectorType.SystemGenerator.Spawners).OfType<SimObjectSpawner>())
+                if (group.SubSpawners is { } subs && subs.OfType<DoodadSpawner>().Any(d => d.DoodadTypes.Any(t => t.Type == FieldPoi)))
+                    foreach (var ships in MissionArea.AllSpawners(subs).OfType<ShipSpawner>()) tags.UnionWith(ships.Tags ?? []);
+            return tags;
+        }
+
+        /// <summary>Spec 1860: the field pick with this spawner's own-ship tags. Internal for the autotest.</summary>
+        internal (Circle Area, ID<ResourceRules> Ore)? PickField(SimRoot sim, IEnumerable<Circle> fieldsNearestFirst) =>
+            MiningEscortObjective.PickField(sim, fieldsNearestFirst, OwnShipTags(sim));
+
         public override Objective? CreateObjectiveImpl(SimRoot sim, Mission mission, Rand rand, SpawnedObjectCollection objects, Vector2 loc, out bool invalid)
         {
             invalid = !objects.TryFindObject(StationTag, loc, rand, out var station);
@@ -118,16 +136,16 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
     }
 
     /// <summary>
-    /// Spec 1860: the first field (nearest first) that has ore, no ship hostile to the players inside it, and no part in a sun's heat zone.
-    /// Vanilla puts pirates or defense platforms in most fields (sysgen_asteroids.rules); a civilian miner avoids them.
+    /// Spec 1860: the first field (nearest first) that has ore, none of its own hostile ships inside it (ownShipTags), and no part in a
+    /// sun's heat zone. Vanilla puts pirates or defense platforms in most fields (sysgen_asteroids.rules); a civilian miner avoids them.
     /// </summary>
-    internal static (Circle Area, ID<ResourceRules> Ore)? PickField(SimRoot sim, IEnumerable<Circle> fieldsNearestFirst)
+    static (Circle Area, ID<ResourceRules> Ore)? PickField(SimRoot sim, IEnumerable<Circle> fieldsNearestFirst, IReadOnlySet<ID<SimObjectSpawner>> ownShipTags)
     {
         var suns = Worlds.HeatZone.Suns(sim);
         var rejected = new List<string>();
         foreach (var area in fieldsNearestFirst)
         {
-            string? why = Worlds.HeatZone.Touches(suns, area) ? "sun heat" : HostileIn(sim, area) is { } hostile ? $"hostile {hostile}" : null;
+            string? why = Worlds.HeatZone.Touches(suns, area) ? "sun heat" : HostileIn(sim, area, ownShipTags) is { } hostile ? $"hostile {hostile}" : null;
             if (why is null && FieldOre(sim, area) is { } ore) return (area, ore);
             rejected.Add($"{area.Center} r{area.Radius:0}: {why ?? "no ore"}");
         }
@@ -157,16 +175,20 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
         return counts.Count == 0 ? null : new ID<ResourceRules>(counts.MaxBy(kv => kv.Value).Key);
     }
 
-    /// <summary>A ship in the area, live or in stasis, that is an enemy of the human players: its name and distance, or null.</summary>
-    static string? HostileIn(SimRoot sim, Circle area)
+    /// <summary>
+    /// One of the field's own ships (a spawn tag in ownShipTags) in the area, live or in stasis, that is an enemy of the human players: its
+    /// name and distance, or null.
+    /// </summary>
+    static string? HostileIn(SimRoot sim, Circle area, IReadOnlySet<ID<SimObjectSpawner>> ownShipTags)
     {
         var (center, radius) = (area.Center, area.Radius);
         var humans = sim.RequireGame().HumanPlayersIndexes;
         bool Hostile(int playerIndex) => humans.Any(h => sim.Mode.AreEnemies(playerIndex, h));
+        bool Own(HashSet<ID<SimObjectSpawner>>? tags) => tags is not null && tags.Overlaps(ownShipTags);
         for (int i = 0; i < sim.Ships.Count; i++)
-            if (sim.Ships[i] is { IsJunk: false } s && s.DetWorldCenter.DistanceTo(center) <= radius && Hostile(s.Metadata.PlayerIndex))
+            if (sim.Ships[i] is { IsJunk: false } s && Own(s.Tags) && s.DetWorldCenter.DistanceTo(center) <= radius && Hostile(s.Metadata.PlayerIndex))
                 return $"{s.Metadata.PlainShipName} at {s.DetWorldCenter.DistanceTo(center):0}";
-        return sim.Stasis.OfType<StasisShipSpawner>().FirstOrDefault(s => s.Location.DistanceTo(center) <= radius && Hostile(s.ObjectAllegiance)) is { } st
+        return sim.Stasis.OfType<StasisShipSpawner>().FirstOrDefault(s => Own(s.Tags) && s.Location.DistanceTo(center) <= radius && Hostile(s.ObjectAllegiance)) is { } st
             ? $"{st.ObjectName} [{string.Join(" ", st.Tags ?? [])}] at {st.Location.DistanceTo(center):0} (stasis)" : null;
     }
 
