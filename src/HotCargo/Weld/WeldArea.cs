@@ -1,3 +1,4 @@
+using Cosmoteer.Game;
 using Cosmoteer.Localization;
 using Cosmoteer.Ships;
 using Cosmoteer.Simulation;
@@ -13,6 +14,12 @@ namespace HotCargo.Weld;
 /// </summary>
 public static class WeldArea
 {
+    /// <summary>
+    /// Spec 2488: ships that a weld joined to another ship in this session. The ship-loss alert (Ux/ShipAlerts) skips them, since a
+    /// weld is not a loss. Not run state: nothing in the sim reads it.
+    /// </summary>
+    internal static readonly HashSet<ObjectID> Welded = [];
+
     public static void Register()
     {
         Run.Hooks.Tick += (run, sim, dt) => Errors.Guard("weld tick", () => OnTick(run, sim, (float)dt));
@@ -141,6 +148,7 @@ public static class WeldArea
             End(ship, order, orders);
             string name = target.Metadata.PlainShipName;
             int parts = target.Parts.Count;
+            Welded.Add(target.UniqueID);
             WeldShip.Merge(ship, target, p);
             CutDraw.Clunk(); // determinism: a sound only, nothing in the sim reads it
             run.State.Weld.Merges++;

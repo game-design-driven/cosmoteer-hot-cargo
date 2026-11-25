@@ -31,4 +31,7 @@ expect weld_parts_kept == 1
 expect weld_crew_kept == 1
 expect weld_health_kept == 1
 expect weld_stored_kept == 1
+# Spec 2488: a weld is not a loss, so no ship-loss alert.
+wait 2
+expect ux_ship_alerts == 0
 quit

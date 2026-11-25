@@ -62,6 +62,8 @@ internal sealed class WeldToolState : BaseBuildState
     ObjectID? _target;
     Placement _placement;
     IntVector2? _mouseCell;
+    /// <summary>A place set by the screenshot commands; the cursor does not move it.</summary>
+    bool _pinned;
 
     public WeldToolState(GameRoot game, IBuildModeProvider buildModeProvider) : base(game, buildModeProvider) => _current = this;
 
@@ -71,6 +73,7 @@ internal sealed class WeldToolState : BaseBuildState
     {
         _target = null;
         _mouseCell = null;
+        _pinned = false;
     }
 
     /// <summary>The picked target, or the nearest one when none is picked or the picked one is no longer a target.</summary>
@@ -94,7 +97,7 @@ internal sealed class WeldToolState : BaseBuildState
     {
         Pick(ship, target);
         _placement = p;
-        _mouseCell = new IntVector2(int.MinValue, int.MinValue);
+        _pinned = true;
     }
 
     /// <summary>A click, as the left mouse button does (screenshots).</summary>
@@ -133,7 +136,7 @@ internal sealed class WeldToolState : BaseBuildState
         }
         var local = ship.TransformPointFromWorld(Sim.WorldMouseLoc);
         var cell = new IntVector2((int)MathF.Floor(local.X), (int)MathF.Floor(local.Y));
-        if (_mouseCell is { } last && last != cell)
+        if (!_pinned && _mouseCell is { } last && last != cell)
         {
             var middle = WeldModel.Place(Middle(target), _placement with { X = 0, Y = 0 });
             _placement = _placement with { X = cell.X - middle.X, Y = cell.Y - middle.Y };
@@ -160,6 +163,8 @@ internal sealed class WeldToolState : BaseBuildState
     public override void DrawOverlayImpl()
     {
         if (Run.Current is not { } run || Sim.PlayerInput.GetSingleSelectedShip() is not { } ship) return;
+        // While the ship has a weld order, the world shows it (WeldDraw), and the ghost would only cover the piece being welded.
+        if (run.State.Weld.Orders.Any(o => o.Ship == ship.UniqueID)) return;
         if (Target(run, ship) is not { } target)
         {
             DrawTextUnderCursor(Strings.GetText("HotCargoWeld/NoTarget"));

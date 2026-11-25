@@ -1,0 +1,124 @@
+# Weld screenshots (spec 2481, 2485 to 2487): a drifting wreck piece (cut off the starter ship, a derelict) welded back on.
+# PC: scripts/screens.sh tests/screens/weld-wreck.txt <out-dir>
+render on
+newgame run
+wait 10
+ev_set Enabled false
+closepanel
+wait 1
+pause off
+godmode on
+cut_set EdgeSeconds 2
+weld_set EdgeSeconds 6
+cut_mark biggest
+cut_set EdgeSeconds 1
+cut_shape l
+waitfor cut_splits == 1 120
+wait 6
+weld_mark cut
+weld_target piece
+weld_tool
+wait 1
+cut_frame_both 30
+wait 0.5
+weld_show auto
+wait 0.5
+screenshot wreck-1-ghost
+weld_auto
+cut_follow 30
+screenshot wreck-v000
+wait 0.6
+cut_follow 30
+screenshot wreck-v001
+wait 0.6
+cut_follow 30
+screenshot wreck-v002
+wait 0.6
+cut_follow 30
+screenshot wreck-v003
+wait 0.6
+cut_follow 30
+screenshot wreck-v004
+wait 0.6
+cut_follow 30
+screenshot wreck-v005
+wait 0.6
+cut_follow 30
+screenshot wreck-v006
+wait 0.6
+cut_follow 30
+screenshot wreck-v007
+wait 0.6
+cut_follow 30
+screenshot wreck-v008
+wait 0.6
+cut_follow 30
+screenshot wreck-v009
+wait 0.6
+cut_follow 30
+screenshot wreck-v010
+wait 0.6
+cut_follow 30
+screenshot wreck-v011
+wait 0.6
+cut_follow 30
+screenshot wreck-v012
+wait 0.6
+cut_follow 30
+screenshot wreck-v013
+wait 0.6
+cut_follow 30
+screenshot wreck-v014
+wait 0.6
+cut_follow 30
+screenshot wreck-v015
+wait 0.6
+cut_follow 30
+screenshot wreck-v016
+wait 0.6
+cut_follow 30
+screenshot wreck-v017
+wait 0.6
+cut_follow 30
+screenshot wreck-v018
+wait 0.6
+cut_follow 30
+screenshot wreck-v019
+wait 0.6
+cut_follow 30
+screenshot wreck-v020
+wait 0.6
+cut_follow 30
+screenshot wreck-v021
+wait 0.6
+cut_follow 30
+screenshot wreck-v022
+wait 0.6
+cut_follow 30
+screenshot wreck-v023
+wait 0.6
+cut_follow 30
+screenshot wreck-v024
+wait 0.6
+cut_follow 30
+screenshot wreck-v025
+wait 0.6
+cut_follow 30
+screenshot wreck-v026
+wait 0.6
+cut_follow 30
+screenshot wreck-v027
+wait 0.6
+cut_follow 30
+screenshot wreck-v028
+wait 0.6
+cut_follow 30
+screenshot wreck-v029
+wait 0.6
+waitfor weld_merges == 1 150
+wait 1
+cut_frame 30
+wait 0.5
+screenshot wreck-2-merged
+quit
+

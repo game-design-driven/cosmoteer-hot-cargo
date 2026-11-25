@@ -144,9 +144,11 @@ static class CutAutotest
 
     internal static void Register()
     {
-        Autotest.Commands["cut_mark"] = _ =>
+        Autotest.Commands["cut_mark"] = arg =>
         {
-            _me = (Autotest.ActingShip(Sim()) ?? throw new InvalidOperationException("the acting player has no ship")).UniqueID;
+            // cut_mark biggest: the human player ship with the most parts (screenshots with several own ships).
+            _me = (arg.Trim() == "biggest" ? Sim().Ships.HumanPlayerShips.OrderByDescending(x => x.Parts.Count).ThenBy(x => x.UniqueID).FirstOrDefault()
+                : Autotest.ActingShip(Sim())) is { } ship ? ship.UniqueID : throw new InvalidOperationException("the acting player has no ship");
             _partsAtMark = Me().Parts.Count;
         };
         // cut_clean: the clean cut of "me" becomes an order through the MP input, as a release of the drag does.
