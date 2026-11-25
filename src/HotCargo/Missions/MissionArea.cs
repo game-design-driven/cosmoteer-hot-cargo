@@ -381,15 +381,26 @@ public static class MissionArea
             RequireSim().Ships.Remove(v, dispose: true, handleLostShip: false);
         };
         // hc_mayday_collect: the players at the station that pays (the mission's ReceiveRewards contact), then its receive payment button.
+        // #313: the paying station gives missions (it has a mission module), so the pay step can register there.
+        Autotest.Fields["hc_mayday_payer_missions"] = () => MaydayPayer().GetProvidedMissions() is null ? 0 : 1;
+        // hc_military_goto: the players next to the nearest military station, live or in stasis, so a mayday that starts now finds it
+        // nearest. Test only.
+        Autotest.Commands["hc_military_goto"] = _ =>
+        {
+            var sim = RequireSim();
+            Vector2 from = sim.Ships.HumanPlayerSignificantShips.First().DetWorldCenter;
+            var military = TaggedShips(sim, "military_station").MinBy(t => t.Location.DistanceTo(from));
+            if (military == default) throw new InvalidOperationException("no military station in this system");
+            Log.Info($"AUTOTEST military station {military.Id} at {military.Location}");
+            var at = Autotest.ClearSpotNear(sim, military.Location, 900f, sim.Ships.HumanPlayerSignificantShips.Max(s => s.WorldBoundingRadius));
+            foreach (Ship s in sim.Ships.HumanPlayerSignificantShips.ToList()) Autotest.Teleport(s, at);
+            Autotest.Wait(3);
+        };
         Autotest.Commands["hc_mayday_collect"] = _ =>
         {
             var m = _mayday ?? throw new InvalidOperationException("no mayday; run hc_mayday_start first");
-            var objectives = new List<Cosmoteer.Modes.Career.Missions.Objectives.Objective>();
-            m.GetObjectives(objectives);
-            var contact = objectives.OfType<Cosmoteer.Modes.Career.Missions.Objectives.ReceiveRewardsObjective>().Single().ContactShip
-                ?? throw new InvalidOperationException("the mayday pays at no station");
             var sim = RequireSim();
-            var station = SpaceStation.GetStations(sim, onlyOperating: false).Single(st => st.StationID == contact.ShipID);
+            var station = MaydayPayer();
             var me = sim.Ships.HumanPlayerSignificantShips.First();
             var at = Autotest.ClearSpotNear(sim, station.DetWorldCenter, 900f, me.WorldBoundingRadius);
             foreach (Ship s in sim.Ships.HumanPlayerSignificantShips.ToList()) Autotest.Teleport(s, at);
@@ -668,6 +679,17 @@ public static class MissionArea
 
     static EscortObjective RequireEscort() => RequireObjective<EscortObjective>();
     static Mission? _mayday;
+
+    /// <summary>The station where the newest mayday pays: the contact of its ReceiveRewards step.</summary>
+    static MetaSpaceStation MaydayPayer()
+    {
+        var m = _mayday ?? throw new InvalidOperationException("no mayday; run hc_mayday_start first");
+        var objectives = new List<Cosmoteer.Modes.Career.Missions.Objectives.Objective>();
+        m.GetObjectives(objectives);
+        var contact = objectives.OfType<Cosmoteer.Modes.Career.Missions.Objectives.ReceiveRewardsObjective>().Single().ContactShip
+            ?? throw new InvalidOperationException("the mayday pays at no station");
+        return SpaceStation.GetStations(RequireSim(), onlyOperating: false).Single(st => st.StationID == contact.ShipID);
+    }
     static MaydayObjective RequireMayday()
     {
         var m = _mayday = _mayday ?? RequireRun().Mode.Missions.LastOrDefault(x => x.MetatypeID.Equals(Mayday.Metatype))
