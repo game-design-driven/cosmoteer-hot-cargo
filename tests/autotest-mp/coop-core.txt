@@ -182,9 +182,11 @@ step missions.escort-ambush
 # Playtest 2026-11-15: after a resync, the convoy freighter reached the ambush point at a different tick on each machine,
 # the raiders spawned at different spots, and the game desynced (spec 1512). Objectives read the sim position of their ships.
 # No hunter fights the freighter on its way: on main (CI 2026-11-16) a hunter of the steps before held it up past the limit.
+# The hunters go, also the ones in stasis. Parked in stasis (stasishunters), a hunter woke when the advance put the fleet near it, and the
+# freighter flew on at half speed with its hull turned to the hunter (#331, queue run 45615338866).
 mp godmode on
 mp maxhunters 0
-mp stasishunters
+mp worlds kill hc_hunter
 mp hc_generate escort
 mp hc_accept escort
 mp hc_escort_goto
@@ -211,11 +213,11 @@ waitfor hc_escort_progress > 50 45
 mp hc_escort_advance 0.29
 # The ambush raiders spawn when the freighter reaches 0.3.
 pause off
-# #308: the freighter flies on at once after the advance. The advance clears its old move order; with it the freighter steered to its
-# old path and crawled (30 to 180 in 30 s, once not at all), and with a fresh one it flies 290 to 620 in 8 s. The mark waits one second,
-# so it is taken after the advance ran in the sim.
+# #308: the freighter flies on at once after the advance. The advance clears its old move order (with it the freighter steered to its
+# old path and crawled) and parks the players behind it, off its route. It also sets the progress mark in the sim at its own tick, so the
+# wait (game seconds) counts the flight from the advance. "wait 1" lets the advance run first, so the diag shows the state after it.
 wait 1
-hc_mark
+hc_escort_diag advance
 waitfor hc_escort_progress > 150 15
 waitfor hc_escort_raiders >= 2 60
 on 1 waitfor hc_escort_raiders >= 2 60

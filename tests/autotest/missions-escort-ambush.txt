@@ -15,9 +15,7 @@ hc_escort_ready
 # Just before the ambush point. The freighter flies on and springs the ambush itself.
 hc_escort_advance 0.25
 pause off
-# #308: the freighter flies on at once after the advance (a fresh move order, not the one from its old place).
-wait 1
-hc_mark
+# #308: the freighter flies on at once after the advance (a fresh move order, not the one from its old place). The advance sets the mark.
 waitfor hc_escort_progress > 150 15
 waitfor hc_escort_raiders >= 2 60
 hc_escort_diag ambush
