@@ -103,17 +103,23 @@ public static class ContractBook
     /// </summary>
     public static List<(Mission Mission, string? Station)> RivalsOf(Run run, SimRoot sim, Mission m)
     {
-        string group = run.T.Contracts.RivalsEnabled ? Preview(run, m)?.RivalGroup ?? "" : "";
+        string group = RivalGroup(run, m);
         if (group.Length == 0) return [];
         // One offer can sit in several lists as separate copies with the same MissionID, so offers compare by MissionID.
         var offers = Offers(sim);
         var mine = offers.FirstOrDefault(o => o.Mission.MissionID == m.MissionID).List;
-        return offers.Where(o => o.Mission.MissionID != m.MissionID && Find(run, o.Mission)?.RivalGroup == group)
+        return offers.Where(o => o.Mission.MissionID != m.MissionID && RivalGroup(run, o.Mission) == group)
             .GroupBy(o => o.Mission.MissionID)
             .Select(copies => copies.FirstOrDefault(o => o.List == mine) is { Mission: not null } own ? (own.Mission, (string?)null)
                 : (copies.First().Mission, StationName(sim, copies.First().List)))
             .ToList();
     }
+
+    /// <summary>
+    /// The rival group of an offer, "" for none. It reads the preview terms: a new offer has no saved terms until the next scan, but its
+    /// rules group already counts, on both sides of a rival pair (spec 997).
+    /// </summary>
+    static string RivalGroup(Run run, Mission m) => run.T.Contracts.RivalsEnabled ? Preview(run, m)?.RivalGroup ?? "" : "";
 
     /// <summary>The name of the station that offers the missions of a list, or null for the system and galaxy lists.</summary>
     static string? StationName(SimRoot sim, MissionList list)
@@ -219,7 +225,7 @@ public static class ContractBook
         // RivalsEnabled off also stops the rival groups that offers saved before the switch.
         if (run.T.Contracts.RivalsEnabled && terms.RivalGroup.Length > 0)
             foreach (var (o, list) in Offers(sim))
-                if (o.MissionID != m.MissionID && Find(run, o)?.RivalGroup == terms.RivalGroup)
+                if (o.MissionID != m.MissionID && RivalGroup(run, o) == terms.RivalGroup)
                 {
                     list.RemoveMission(o);
                     Missions.MissionMarkers.RemoveOf(run, sim, o, "dismissed");
