@@ -584,7 +584,7 @@ internal sealed class TacticsEditor : WindowBox
     // Spec 419: column starts and widths in percent of the rule line, at the 1,300 minimum width. A term line: the group list, the entry
     // list, then for a fact its parameter, for a value its argument, the comparison, the other side and its switch.
     const float ColMarker = 0f, ColJoin = 3f, ColNot = 8f, ColGroup = 13f, GroupWidth = 9f, ColEntry = 22f, EntryWidth = 19f,
-        ColArg = 41f, ArgWidth = 12f, ColOp = 53f, OpWidth = 4f, ColRight = 57f, RightWidth = 15f, ColSwitch = 72f, SwitchWidth = 4f, ColEnd = 76f;
+        ColArg = 41f, ArgWidth = 12f, ColOp = 53f, OpWidth = 4f, ColRight = 57f, RightWidth = 15f, ColSwitch = 72f, SwitchWidth = 6f, ColEnd = 78f;
 
     // Spec 2321: each bracket level indents the term line by IndentStep. Limit: the indent stops at MaxIndent levels, so the
     // group list keeps room for its longest name; deeper levels show only their brackets. Revisit if players nest deeper.
@@ -592,9 +592,9 @@ internal sealed class TacticsEditor : WindowBox
     const int MaxIndent = 4;
 
     /// <summary>Spec 419: the groups of the condition list, in list order, and the facts and values of each, in registry order.</summary>
-    static readonly Group[] TermGroups = [Group.Always, Group.Ship, Group.Enemies, Group.Fleet, Group.World, Group.Run, Group.Build, Group.Flags];
+    static readonly Group[] TermGroups = [Group.Always, Group.Ship, Group.Enemies, Group.Fleet, Group.World, Group.Run, Group.Cargo, Group.Flags];
 
-    static readonly Group[] ActGroups = [Group.Target, Group.Move, Group.Fire, Group.Facing, Group.Trade, Group.Flags];
+    static readonly Group[] ActGroups = [Group.Target, Group.Move, Group.Fire, Group.Facing, Group.Trade, Group.Build, Group.Flags];
 
     static Group GroupOf(TermBody body) => body switch
     {
@@ -716,7 +716,8 @@ internal sealed class TacticsEditor : WindowBox
         // The switch: a number on the other side, or a value of the same unit (when there is one to offer).
         if (c.Right is not null || RightChoices(c.Left).Count > 0)
             Place(line, Ui.FlatButton.New(Text(c.Right is null ? "RightValue" : "RightNumber"),
-                () => EditBody(i, j, _ => c.Right is null ? c with { Right = RightChoices(c.Left)[0] } : c with { Right = null }), Text("RightTip")), ColSwitch, SwitchWidth);
+                () => EditBody(i, j, _ => c.Right is null ? c with { Right = RightChoices(c.Left)[0] } : c with { Right = null }),
+                Text(c.Right is null ? "RightValueTip" : "RightNumberTip")), ColSwitch, SwitchWidth);
     }
 
     /// <summary>Spec 2322: the arguments that a value can take: every offered resource, every design slot, or each filled slot with
@@ -1028,7 +1029,7 @@ internal sealed class TacticsEditor : WindowBox
         bool live = t is { Auto: true, Waiting: false } && t.Text == ShipAiModel.Encode(_rows);
         for (int i = 0; i < _markers.Count; i++)
         {
-            bool on = live && t is not null && (i == t.TargetRow || i == t.MoveRow || i == t.FacingRow || i == t.TradeRow ||
+            bool on = live && t is not null && (i == t.TargetRow || i == t.MoveRow || i == t.FacingRow || i == t.TradeRow || i == t.BuildRow ||
                 ((t.Matched & (1 << i)) != 0 && ShipAiModel.KindOf(_rows[i].Act) == ActKind.Weapons));
             _markers[i].Text = on ? $"<good>{i + 1}</good>" : $"<gray>{i + 1}</gray>";
         }

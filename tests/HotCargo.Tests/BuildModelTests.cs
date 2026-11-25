@@ -26,10 +26,10 @@ public class BuildModelTests
         Assert.Throws<FormatException>(() => BuildModel.Decode(build));
 
     [Fact]
-    public void Build_and_refit_are_trade_rows()
+    public void Build_and_refit_are_build_rows()
     {
-        Assert.Equal(ActKind.Trade, ShipAiModel.KindOf(Act.BuildShip));
-        Assert.Equal(ActKind.Trade, ShipAiModel.KindOf(Act.RefitShip));
+        Assert.Equal(ActKind.Build, ShipAiModel.KindOf(Act.BuildShip));
+        Assert.Equal(ActKind.Build, ShipAiModel.KindOf(Act.RefitShip));
     }
 
     [Fact]

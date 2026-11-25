@@ -75,11 +75,11 @@ public readonly record struct Hysteresis(float Margin, double MinHoldSeconds)
 }
 
 /// <summary>
-/// Result of one evaluation (spec 403, 1067). TargetRow, MoveRow, FacingRow and TradeRow are row indexes or -1.
+/// Result of one evaluation (spec 403, 1067). TargetRow, MoveRow, FacingRow, TradeRow and BuildRow are row indexes or -1.
 /// Matched holds, for each row, whether its conditions held and its action could run. Weapon rows resolve per weapon (WeaponAct);
 /// every matched flag row runs (spec 2326). Memory is the new term memory of all rows, in term order.
 /// </summary>
-public sealed record Decision(int TargetRow, int MoveRow, int FacingRow, bool[] Matched, TermMemory[] Memory, int TradeRow = -1)
+public sealed record Decision(int TargetRow, int MoveRow, int FacingRow, bool[] Matched, TermMemory[] Memory, int TradeRow = -1, int BuildRow = -1)
 {
     public static readonly Decision None = new(-1, -1, -1, [], []);
 }
@@ -282,7 +282,7 @@ public static class ShipAiModel
     /// <summary>
     /// Spec 403. Rows run top to bottom. A row matches when its conditions hold and canRun says its action can run now
     /// (for example, a target action needs a target). The first matching row of each kind wins: one target row, one move row,
-    /// one facing row, one trade row, and per weapon the first matching weapons row of its group (WeaponAct). canRun is called only
+    /// one facing row, one trade row, one build row, and per weapon the first matching weapons row of its group (WeaponAct). canRun is called only
     /// for rows whose conditions hold. memory is the Memory of the last decision for the same rows, or null; a memory of another
     /// length is ignored.
     /// </summary>
@@ -293,7 +293,7 @@ public static class ShipAiModel
         if (memory is not null && memory.Count != termCount) memory = null;
         var output = new TermMemory[termCount];
         var matched = new bool[rows.Count];
-        int target = -1, move = -1, facing = -1, trade = -1, start = 0;
+        int target = -1, move = -1, facing = -1, trade = -1, build = -1, start = 0;
         for (int i = 0; i < rows.Count; i++)
         {
             var row = rows[i];
@@ -306,9 +306,10 @@ public static class ShipAiModel
                 case ActKind.Move when move < 0: move = i; break;
                 case ActKind.Facing when facing < 0: facing = i; break;
                 case ActKind.Trade when trade < 0: trade = i; break;
+                case ActKind.Build when build < 0: build = i; break;
             }
         }
-        return new Decision(target, move, facing, matched, output, trade);
+        return new Decision(target, move, facing, matched, output, trade, build);
     }
 
     /// <summary>Spec 2326: the flags after the matched flag rows ran, in row order. flags: bit n-1 = flag n.</summary>

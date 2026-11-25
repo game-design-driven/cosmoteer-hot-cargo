@@ -121,20 +121,23 @@ internal static class ShipAiController
         int moveParam = !t.Recall && d.MoveRow >= 0 ? rows[d.MoveRow].ActParam : 0;
         var attack = Move(ship, t, tun, view, move, moveParam, target, guarded, fresh: before != move || facing != facingBefore);
         if (attack is not null && facing is { } side) Face(attack, side);
+        // Spec 1087: the build row runs before the trade row, so a sale in the same tick cannot take what "can afford" counted first.
+        if (d.BuildRow >= 0) Build(run, ship, t, view, rows[d.BuildRow]);
         if (d.TradeRow >= 0) Trade(run, ship, t, view, rows[d.TradeRow]);
         t.Flags = ShipAiModel.ApplyFlags(rows, d.Matched, t.Flags);
         int mask = 0;
         for (int i = 0; i < d.Matched.Length; i++) if (d.Matched[i]) mask |= 1 << i;
         Weapons(ship, t, tun, rows, t.Matched, mask, target, view.Caller);
-        if (mask != t.Matched || d.TargetRow != t.TargetRow || d.MoveRow != t.MoveRow || d.FacingRow != t.FacingRow || d.TradeRow != t.TradeRow
+        if (mask != t.Matched || d.TargetRow != t.TargetRow || d.MoveRow != t.MoveRow || d.FacingRow != t.FacingRow || d.TradeRow != t.TradeRow || d.BuildRow != t.BuildRow
             || target?.UniqueID != t.Target)
             Trace(ship, tun, $"target row {d.TargetRow} ({target?.Metadata.PlainShipName ?? "-"}) move row {d.MoveRow} ({move?.ToString() ?? "-"}) " +
-                             $"facing row {d.FacingRow} trade row {d.TradeRow} matched {Convert.ToString(mask, 2)} " +
+                             $"facing row {d.FacingRow} trade row {d.TradeRow} build row {d.BuildRow} matched {Convert.ToString(mask, 2)} " +
                              $"nearest enemy {(view.NearestEnemy is { } e ? $"{e.Metadata.PlainShipName} p{e.Metadata.PlayerIndex} at {e.DetWorldCenter.DistanceTo(ship.DetWorldCenter):0}" : "-")}");
         t.TargetRow = d.TargetRow;
         t.MoveRow = d.MoveRow;
         t.FacingRow = d.FacingRow;
         t.TradeRow = d.TradeRow;
+        t.BuildRow = d.BuildRow;
         t.Memory = d.Memory;
         t.Matched = mask;
         t.Target = target?.UniqueID;
@@ -164,7 +167,7 @@ internal static class ShipAiController
             }
         }
         t.Matched = 0;
-        t.TargetRow = t.MoveRow = t.FacingRow = t.TradeRow = -1;
+        t.TargetRow = t.MoveRow = t.FacingRow = t.TradeRow = t.BuildRow = -1;
         t.Memory = null;
         t.Target = null;
         t.Anchor = null;
@@ -329,6 +332,24 @@ internal static class ShipAiController
     }
 
     /// <summary>Spec 1073, 1074, 1067: the trade row runs at once each AI tick.</summary>
+    /// <summary>Spec 1087, 1090: the build row runs at once each AI tick.</summary>
+    static void Build(Run run, Ship ship, ShipTactics t, View view, TacticRow row)
+    {
+        var design = view.Cargo.Design(row.ActParam) ?? throw new InvalidOperationException($"{row.Act} ran with an empty slot");
+        switch (row.Act)
+        {
+            case Act.BuildShip:
+                var spot = Autonomy.Build.Spot(ship, Autonomy.Build.InfoOf(design), run.T.Autonomy.BuildGap) ?? throw new InvalidOperationException("BuildShip ran without a spot");
+                t.Building = Autonomy.Build.Start(ship, design, spot).UniqueID;
+                break;
+            case Act.RefitShip:
+                Autonomy.Build.Refit(ship, design);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(row), row.Act, "not a build action");
+        }
+    }
+
     static void Trade(Run run, Ship ship, ShipTactics t, View view, TacticRow row)
     {
         switch (row.Act)
@@ -338,14 +359,6 @@ internal static class ShipAiController
                 break;
             case Act.Buy:
                 Autonomy.AutonomyWorld.Buy(ship, view.InRange ?? throw new InvalidOperationException("Buy ran out of range"), view.Cargo, run.T.Autonomy.BuyReserve);
-                break;
-            case Act.BuildShip:
-                var design = view.Cargo.Design(row.ActParam) ?? throw new InvalidOperationException("BuildShip ran with an empty slot");
-                var spot = Autonomy.Build.Spot(ship, Autonomy.Build.InfoOf(design), run.T.Autonomy.BuildGap) ?? throw new InvalidOperationException("BuildShip ran without a spot");
-                t.Building = Autonomy.Build.Start(ship, design, spot).UniqueID;
-                break;
-            case Act.RefitShip:
-                Autonomy.Build.Refit(ship, view.Cargo.Design(row.ActParam) ?? throw new InvalidOperationException("RefitShip ran with an empty slot"));
                 break;
             case Act.Unload:
                 Autonomy.AutonomyWorld.Unload(ship, view.CrewedInRange ?? throw new InvalidOperationException("Unload ran without a crewed ship"));
@@ -978,9 +991,13 @@ internal static class ShipAiController
                 Act.Sell => InRange is not null && HotCargo.Autonomy.AutonomyWorld.HasCargoToSell(_self, Cargo),
                 Act.Buy => InRange is not null && Cargo.Buy.Length > 0 && CargoRoom,
                 Act.Unload => CrewedInRange is not null && HotCargo.Autonomy.AutonomyWorld.CargoFill(_self) is > 0f,
+                _ => throw new ArgumentOutOfRangeException(nameof(row), row.Act, "not a trade action"),
+            },
+            ActKind.Build => row.Act switch
+            {
                 Act.BuildShip => CanBuild(row.ActParam),
                 Act.RefitShip => CanRefit(row.ActParam),
-                _ => throw new ArgumentOutOfRangeException(nameof(row), row.Act, "not a trade action"),
+                _ => throw new ArgumentOutOfRangeException(nameof(row), row.Act, "not a build action"),
             },
             _ => true,
         };

@@ -39,7 +39,7 @@ public enum Act
 }
 
 /// <summary>Spec 403: the first matching row of each kind runs; every matching flag row runs.</summary>
-public enum ActKind { Target, Move, Weapons, Facing, Trade, Flag }
+public enum ActKind { Target, Move, Weapons, Facing, Trade, Build, Flag }
 
 /// <summary>Spec 2323: the unit of a value. Comparisons of two values need the same unit.</summary>
 public enum Unit { Percent, Distance, Seconds, Count, Stage, Money, Amount }
@@ -48,7 +48,7 @@ public enum Unit { Percent, Distance, Seconds, Count, Stage, Money, Amount }
 public enum ArgKind { None, Resource, Design, DesignResource }
 
 /// <summary>Spec 419: the groups of the condition list and the action list.</summary>
-public enum Group { Always, Ship, Enemies, Fleet, World, Run, Build, Flags, Target, Move, Fire, Facing, Trade }
+public enum Group { Always, Ship, Enemies, Fleet, World, Run, Cargo, Flags, Target, Move, Fire, Facing, Trade, Build }
 
 /// <summary>What the parameter of a fact or an action means. An enum kind writes the entry's name in the text form (spec 405).</summary>
 public enum ParamKind { None, PartKind, ShipClass, WeaponGroup, GuardWho, Side, Station, Spacing, Design, Flag }
@@ -93,9 +93,9 @@ public static class ShipAiRegistry
         new(Cond.StationInRange, ParamKind.None, Group.World),
         new(Cond.HuntersInSystem, ParamKind.None, Group.Run),
         new(Cond.LossTimerRunning, ParamKind.None, Group.Run),
-        new(Cond.CargoToSell, ParamKind.None, Group.Build),
-        new(Cond.CanAffordDesign, ParamKind.Design, Group.Build),
-        new(Cond.CanAffordRefit, ParamKind.Design, Group.Build),
+        new(Cond.CargoToSell, ParamKind.None, Group.Cargo),
+        new(Cond.CanAffordDesign, ParamKind.Design, Group.Cargo),
+        new(Cond.CanAffordRefit, ParamKind.Design, Group.Cargo),
         new(Cond.Flag, ParamKind.Flag, Group.Flags),
     ];
 
@@ -120,10 +120,10 @@ public static class ShipAiRegistry
         new(Value.HeatStage, Unit.Stage, ArgKind.None, Group.Run),
         new(Value.StrikeIn, Unit.Seconds, ArgKind.None, Group.Run),
         new(Value.Money, Unit.Money, ArgKind.None, Group.Run),
-        new(Value.Resource, Unit.Amount, ArgKind.Resource, Group.Build),
-        new(Value.Cost, Unit.Amount, ArgKind.DesignResource, Group.Build),
-        new(Value.RefitCost, Unit.Amount, ArgKind.DesignResource, Group.Build),
-        new(Value.ShipsOf, Unit.Count, ArgKind.Design, Group.Build),
+        new(Value.Resource, Unit.Amount, ArgKind.Resource, Group.Cargo),
+        new(Value.Cost, Unit.Amount, ArgKind.DesignResource, Group.Cargo),
+        new(Value.RefitCost, Unit.Amount, ArgKind.DesignResource, Group.Cargo),
+        new(Value.ShipsOf, Unit.Count, ArgKind.Design, Group.Cargo),
     ];
 
     public static readonly IReadOnlyList<ActDef> Acts =
@@ -163,8 +163,8 @@ public static class ShipAiRegistry
         new(Act.Sell, ActKind.Trade, ParamKind.None, Group.Trade),
         new(Act.Buy, ActKind.Trade, ParamKind.None, Group.Trade),
         new(Act.Unload, ActKind.Trade, ParamKind.None, Group.Trade),
-        new(Act.BuildShip, ActKind.Trade, ParamKind.Design, Group.Trade),
-        new(Act.RefitShip, ActKind.Trade, ParamKind.Design, Group.Trade),
+        new(Act.BuildShip, ActKind.Build, ParamKind.Design, Group.Build),
+        new(Act.RefitShip, ActKind.Build, ParamKind.Design, Group.Build),
         new(Act.SetFlag, ActKind.Flag, ParamKind.Flag, Group.Flags),
         new(Act.ClearFlag, ActKind.Flag, ParamKind.Flag, Group.Flags),
     ];
