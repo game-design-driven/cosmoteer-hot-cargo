@@ -1,0 +1,131 @@
+# Cut ships apart screenshots (spec 2461, 2462): an L cut, and a closed loop that cuts out an inner block which stays in its hole.
+# Mac: RUNNER=mac scripts/screens.sh tests/screens/cut-shapes.txt <out-dir>. Video: ffmpeg over the loop-v*.png frames.
+render on
+newgame run
+wait 10
+ev_set Enabled false
+closepanel
+wait 1
+pause off
+godmode on
+cut_set EdgeSeconds 6
+cut_mark
+cut_tool
+wait 1
+cut_frame 26
+wait 1
+cut_frame 26
+wait 1
+cut_drag bigloop
+wait 0.3
+screenshot loop-1-line
+cut_release
+wait 0.5
+cut_frame 26
+screenshot loop-v000
+wait 0.6
+cut_frame 26
+screenshot loop-v001
+wait 0.6
+cut_frame 26
+screenshot loop-v002
+wait 0.6
+cut_frame 26
+screenshot loop-v003
+wait 0.6
+cut_frame 26
+screenshot loop-v004
+wait 0.6
+cut_frame 26
+screenshot loop-v005
+wait 0.6
+cut_frame 26
+screenshot loop-v006
+wait 0.6
+cut_frame 26
+screenshot loop-v007
+wait 0.6
+cut_frame 26
+screenshot loop-v008
+wait 0.6
+cut_frame 26
+screenshot loop-v009
+wait 0.6
+cut_frame 26
+screenshot loop-v010
+wait 0.6
+cut_frame 26
+screenshot loop-v011
+wait 0.6
+cut_frame 26
+screenshot loop-v012
+wait 0.6
+cut_frame 26
+screenshot loop-v013
+wait 0.6
+waitfor cut_splits == 1 120
+cut_frame 26
+wait 0.5
+screenshot loop-2-split
+cut_fly 0 0 60
+cut_frame 26
+screenshot loop-v014
+wait 0.6
+cut_frame 26
+screenshot loop-v015
+wait 0.6
+cut_frame 26
+screenshot loop-v016
+wait 0.6
+cut_frame 26
+screenshot loop-v017
+wait 0.6
+cut_frame 26
+screenshot loop-v018
+wait 0.6
+cut_frame 26
+screenshot loop-v019
+wait 0.6
+cut_frame 26
+screenshot loop-v020
+wait 0.6
+cut_frame 26
+screenshot loop-v021
+wait 0.6
+cut_frame 26
+screenshot loop-v022
+wait 0.6
+cut_frame 26
+screenshot loop-v023
+wait 0.6
+cut_frame 26
+screenshot loop-v024
+wait 0.6
+cut_frame 26
+screenshot loop-v025
+wait 0.6
+cut_frame 26
+screenshot loop-v026
+wait 0.6
+cut_frame 26
+screenshot loop-v027
+wait 0.6
+cut_frame 26
+screenshot loop-v028
+wait 0.6
+cut_frame 26
+screenshot loop-v029
+wait 0.6
+cut_frame 26
+wait 0.5
+screenshot loop-3-turned
+cut_drag l
+wait 0.3
+screenshot l-1-line
+cut_release
+waitfor cut_splits == 2 120
+wait 3
+cut_frame_both 20
+wait 0.5
+screenshot l-2-split
+quit

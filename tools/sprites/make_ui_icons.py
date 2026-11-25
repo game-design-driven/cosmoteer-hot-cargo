@@ -4,8 +4,8 @@
 # ///
 """
 Draws the HUD icons of Hot Cargo buttons in the vanilla HUD icon style. Run: uv run tools/sprites/make_ui_icons.py
-Writes mod/tactics/sprites/share_on.png and share_off.png (spec 1318), and mod/shipai/sprites/ai_on.png, ai_off.png and
-ai_mixed.png (spec 410).
+Writes mod/tactics/sprites/share_on.png and share_off.png (spec 1318), mod/shipai/sprites/ai_on.png, ai_off.png and
+ai_mixed.png (spec 410), and mod/cut/sprites/tool_cut.png (spec 2460).
 
 The vanilla HUD icons (gui/game/*/hud_*.png and the *_on/*_off tool icons), measured, no art copied: 96 x 96 px, a flat glyph
 about 55 px wide, blue 0,183,255 when off or neutral, green 10,212,97 when on, and a soft glow of the same hue around the glyph.
@@ -80,6 +80,30 @@ def ai_glyph():
     return np.asarray(m.resize((SIZE, SIZE), Image.LANCZOS), np.float32) / 255
 
 
+def cut_glyph():
+    """A cursor arrow at the top left, as the vanilla build tool icons (tool_delete.png), and a dashed line that steps along tile
+    edges at the bottom right: the cut line."""
+    s = SIZE * K
+    m = Image.new("L", (s, s), 0)
+    d = ImageDraw.Draw(m)
+
+    def p(x, y):
+        return (x * K, y * K)
+
+    d.polygon([p(14, 10), p(46, 30), p(30, 34), p(22, 48)], fill=255)
+    path = [(40, 88), (40, 66), (62, 66), (62, 44), (86, 44)]
+    dash, gap, width = 7.0, 4.5, 5.5
+    for (x0, y0), (x1, y1) in zip(path, path[1:]):
+        length = math.hypot(x1 - x0, y1 - y0)
+        t = 0.0
+        while t < length:
+            t1 = min(t + dash, length)
+            d.line([p(x0 + (x1 - x0) * t / length, y0 + (y1 - y0) * t / length),
+                    p(x0 + (x1 - x0) * t1 / length, y0 + (y1 - y0) * t1 / length)], fill=255, width=int(width * K))
+            t = t1 + gap
+    return np.asarray(m.resize((SIZE, SIZE), Image.LANCZOS), np.float32) / 255
+
+
 def icon(glyph, color):
     """The glyph in its colour with a soft glow of a darker shade of the same hue, as vanilla HUD icons."""
     glow = np.clip(ndimage.gaussian_filter(glyph, 3.5) * 1.6, 0, 1) * 0.75
@@ -106,4 +130,5 @@ if __name__ == "__main__":
     # Some of the selected ships have their AI on: the left half on, the right half off.
     mixed = np.where((np.arange(SIZE) < SIZE // 2)[None, :, None], np.asarray(on), np.asarray(off))
     save("shipai", "ai_mixed", Image.fromarray(mixed.astype(np.uint8), "RGBA"))
+    save("cut", "tool_cut", icon(cut_glyph(), OFF))
     print(f"icons written under {MOD}")

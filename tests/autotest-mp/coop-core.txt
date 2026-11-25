@@ -307,6 +307,15 @@ rm_log host-after
 on 1 expect rm_tiers >= 1
 on 1 rm_log client-after
 
+step cut.split
+# Spec 2469: the client cuts its own ship. The order, the crew work and the split run in the sim on both machines.
+on 1 cut_mark
+on 1 cut_clean
+waitfor cut_orders == 1 30
+on 1 waitfor cut_orders == 1 30
+waitfor cut_splits == 1 240
+on 1 waitfor cut_splits == 1 240
+
 step telemetry.relay
 # Spec 1592, 1593: the client's telemetry files reach the host's folder in many small chunks: the sessions of the join, the resync
 # and the load. Closed files arrive whole; the open file trails by at most the lines of the last moments. No copy breaks the format.

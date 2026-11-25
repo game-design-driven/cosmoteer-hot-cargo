@@ -1,0 +1,26 @@
+# Cut ships apart (spec 2462, 2465): a closed loop cuts out an inner block. The block fits its hole exactly, so the walls stop the
+# drift: it stays in the hole as its own piece and rides along when the ship flies and turns, with no jitter.
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+pause off
+wait 3
+cut_mark
+cut_shape loop
+waitfor cut_orders == 1 10
+waitfor cut_splits == 1 240
+expect cut_piece_parts == cut_parts_lost
+expect cut_piece_parts > 0
+wait 2
+cut_note_dist
+cut_fly 400 0 90
+wait 8
+expect cut_piece_drift < 0.05
+expect cut_piece_relspeed < 0.5
+wait 12
+expect cut_piece_drift < 0.05
+expect cut_piece_parts > 0
+quit

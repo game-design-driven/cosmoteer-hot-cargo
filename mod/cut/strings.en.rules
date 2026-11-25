@@ -1,0 +1,10 @@
+// Cut ships apart (spec 2460 to 2468).
+HotCargoCut
+{
+	ToolTip = "Cut\nDrag a line along the edges between tiles to cut off a part, or draw a loop to cut out a piece. Your crew do the work; the pieces separate when every edge is cut.\nRight click: cancel the ship's cut."
+	JobName = "Cut hull"
+	OnePiece = "Cut must cut off a part"
+	NotNow = "Cannot cut this ship now"
+	Blocked = "Cannot cut through a part"
+	NoSplit = "The cut did not split the ship."
+}
