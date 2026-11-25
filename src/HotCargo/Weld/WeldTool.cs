@@ -76,7 +76,7 @@ internal sealed class WeldToolState : BaseBuildState
     /// <summary>The picked target, or the nearest one when none is picked or the picked one is no longer a target.</summary>
     Ship? Target(Run run, Ship ship)
     {
-        var targets = WeldShip.Targets(run, ship, Game.LocalPlayerIndex);
+        var targets = WeldShip.Targets(run, ship, Game.LocalPlayerIndex); // determinism: UI only, picks the ghost of the local player
         var picked = targets.FirstOrDefault(t => t.UniqueID == _target);
         if (picked is null && targets.Count > 0) Pick(ship, targets[0]);
         return picked ?? targets.FirstOrDefault();
@@ -122,7 +122,7 @@ internal sealed class WeldToolState : BaseBuildState
         if (Target(run, ship) is not { } target) return;
         if (App.Keyboard.HotkeyPressed(ViKey.Tab))
         {
-            var targets = WeldShip.Targets(run, ship, Game.LocalPlayerIndex);
+            var targets = WeldShip.Targets(run, ship, Game.LocalPlayerIndex); // determinism: UI only, picks the ghost of the local player // determinism: UI only, picks the ghost of the local player
             Pick(ship, targets[(targets.FindIndex(t => t.UniqueID == _target) + 1) % targets.Count]);
             return;
         }
