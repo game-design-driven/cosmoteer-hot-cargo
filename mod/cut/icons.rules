@@ -1,0 +1,11 @@
+// Icon of the Cut build tool (spec 2460), drawn by tools/sprites/make_ui_icons.py. Read by Cut/CutTool.cs.
+// Same texture settings as the vanilla build tool icons (gui/game/designer/build_gui.rules, RemovePartSprite).
+Tool
+{
+	Texture
+	{
+		File = "sprites/tool_cut.png"
+		MipLevels = 2
+		SampleMode = Linear
+	}
+}

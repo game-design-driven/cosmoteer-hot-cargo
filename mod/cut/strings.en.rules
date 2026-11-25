@@ -1,0 +1,13 @@
+// Cut ships apart (spec 2460 to 2468).
+HotCargoCut
+{
+	ToolTip = "Cut\nDrag a line along the edges between tiles to cut the ship in two. Your crew do the work; the pieces separate when every edge is cut.\nRight click: cancel the ship's cut."
+	JobName = "Cut hull"
+	NotOnShip = "Cut line must cross the ship"
+	NotAcross = "Cut must go all the way across"
+	TooManyPieces = "Cut makes more than two pieces"
+	LooseEnd = "Cut line has a loose end"
+	NotNow = "Cannot cut this ship now"
+	Blocked = "Cannot cut through a part"
+	NoSplit = "The cut did not split the ship."
+}

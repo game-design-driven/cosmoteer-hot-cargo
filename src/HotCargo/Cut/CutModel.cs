@@ -31,8 +31,8 @@ public readonly record struct Edge(int X, int Y, bool Down)
     };
 }
 
-/// <summary>Spec 2462: why a line is not a clean cut.</summary>
-public enum CutVerdict { Ok, NotOnShip, NotAcross, TooManyPieces, LooseEnd }
+/// <summary>Spec 2462: why a line is not a clean cut. <see cref="NotNow"/>: the ship takes no order now (spec 2470).</summary>
+public enum CutVerdict { Ok, NotOnShip, NotAcross, TooManyPieces, LooseEnd, NotNow }
 
 /// <summary>
 /// A ship grid as the cut rules see it: the part that holds each tile, and whether two different parts are in contact across an edge

@@ -1,0 +1,36 @@
+# Cut ships apart (spec 2463 to 2469): a clean cut becomes an order with crew work. The ship stays one ship until the last edge is
+# done, then splits; the design loses the far side. The order and its work survive a save and a load.
+# tier: smoke
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+pause off
+wait 3
+cut_mark
+expect cut_design_extra == 0
+cut_clean
+waitfor cut_orders == 1 10
+expect cut_edges_left > 0
+# Spec 2464: crew take the jobs and work.
+waitfor cut_work > 0 90
+expect cut_splits == 0
+expect cut_parts_lost == 0
+# Spec 2469: a save and a load keep the order and its work; the tick makes the jobs again.
+save cut
+load cut
+wait 8
+expect cut_orders == 1
+expect cut_work > 0
+waitfor cut_crew > 0 60
+# Spec 2465: no partial separation while edges are left.
+expect cut_parts_lost == 0
+waitfor cut_splits == 1 240
+expect cut_orders == 0
+expect cut_parts_lost > 0
+# Spec 2466: the design lost the far side, so nothing waits to be rebuilt.
+wait 2
+expect cut_design_extra == 0
+quit
