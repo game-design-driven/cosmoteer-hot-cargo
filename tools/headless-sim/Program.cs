@@ -45,16 +45,30 @@ static void Run()
     var sw = System.Diagnostics.Stopwatch.StartNew();
     // The log decides, like on the PC: an exception after AUTOTEST DONE (shutdown, for example a cancelled stasis preload
     // in StasisDoodadSpawner.CancelPreload) is no failure. An exception during the script leaves no AUTOTEST DONE.
+    Exception? crash = null;
     try { Cosmoteer.GameApp.Instance.ApplicationMain(argv); }
-    catch (Exception ex) { Out.Line($"game loop threw: {ex}"); }
+    catch (Exception ex) { crash = ex; Out.Line($"game loop threw: {ex}"); }
     Out.Line($"game loop ended after {sw.Elapsed.TotalSeconds:0.0} s wall time, {Halfling.App.Director?.FrameCount} frames");
     // Same rule as scripts/autotest.sh: pass only with AUTOTEST DONE and no AUTOTEST FAIL or ERROR line.
     var log = File.ReadAllLines(Path.Combine(modRoot, "csharp", "hot_cargo_log.txt"));
     var bad = log.Where(l => l.Contains(" ERROR ") || l.Contains("AUTOTEST FAIL")).ToList();
     bool done = log.Any(l => l.Contains("AUTOTEST DONE"));
     bad.ForEach(Out.Line);
+    // One line near the end: the runners keep only the last lines of this output, and the full text above is longer (#307: a crash
+    // in SimStasisManager.FixedUpdate kept only stack frames, not the message).
+    if (crash is not null) Out.Line($"crash: {CrashLine(crash)}");
     Out.Line(done && bad.Count == 0 ? "== AUTOTEST PASSED" : "== AUTOTEST FAILED");
     Environment.Exit(done && bad.Count == 0 ? 0 : 1);
+}
+
+/// <summary>The innermost exception, its message and its first stack frame, on one line. The outer type when it wraps another.</summary>
+static string CrashLine(Exception ex)
+{
+    var inner = ex.GetBaseException();
+    // An inner exception that was built, not thrown, has no stack: then the outer one's first frame.
+    string frame = (inner.StackTrace ?? ex.StackTrace)?.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "(no stack)";
+    string outer = inner == ex ? "" : $"{ex.GetType().Name} -> ";
+    return $"{outer}{inner.GetType().FullName}: {inner.Message.ReplaceLineEndings(" ")} {frame}";
 }
 
 static class Out
