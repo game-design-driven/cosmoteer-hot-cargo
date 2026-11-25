@@ -1,4 +1,4 @@
-// Art of the cut line (spec 2468), read by Cut/CutDraw.cs. Vanilla textures by reference, no copies:
+// Art and sounds of the cut line (spec 2468, 2474), read by Cut/CutDraw.cs. Vanilla textures by reference, no copies:
 // the crew salvage beam (crew/salvage_beam.png) as the cutting torch, the thin selection line as the seam and the stitches, the dashed
 // selection line (as the remove tool, gui/game/designer/build_gui.rules RemovePartXLine) for the line being drawn, and the particle
 // spark (common_effects/particles/spark.png) where crew work.
@@ -55,4 +55,18 @@ Spark
 		SampleMode = Linear
 		MipLevels = max
 	}
+}
+
+// Sounds (spec 2474): the crew construction loop (crew/crew.rules, ConstructionBeams) for crew at work inside a ship, and the door
+// deconstruct sound as the clunk of the separation.
+WorkSound
+{
+	Sound = "./Data/crew/construction.wav"
+	Volume = 0.6
+}
+
+Clunk
+{
+	Sound = "./Data/ships/common/sounds/door_deconstruct.wav"
+	Volume = 1.5
 }

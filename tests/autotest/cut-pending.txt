@@ -1,0 +1,35 @@
+# Cut ships apart (spec 2475): a cut follows the vanilla edit flow. In blueprint mode it waits: no crew work, "Discard changes" drops
+# it, and "Make it so" applies it even when it is the only edit. In live mode it starts at once and "Cancel all" cancels it.
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+pause off
+wait 3
+cut_mark
+cut_blueprint on
+cut_clean
+waitfor cut_orders == 1 10
+expect cut_pending == 1
+wait 10
+expect cut_work == 0
+cut_discard
+waitfor cut_orders == 0 10
+cut_clean
+waitfor cut_pending == 1 10
+cut_apply
+waitfor cut_pending == 0 10
+waitfor cut_work > 0 90
+cut_cancelall
+waitfor cut_orders == 0 10
+cut_blueprint off
+cut_clean
+waitfor cut_orders == 1 10
+expect cut_pending == 0
+waitfor cut_work > 0 90
+cut_cancelall
+waitfor cut_orders == 0 10
+expect cut_splits == 0
+quit
