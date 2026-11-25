@@ -7,6 +7,9 @@ ev_set Enabled false
 # claim jumpers and the mining escort share ore_claims). With rivals on, an open contract dismisses every new offer of its group.
 contract_set RivalsEnabled off
 godmode on
+# The Mining Escort first: its field must be free of hostile ships (spec 1860), and the listening post below puts its base in a field.
+mech_generate miningescort
+mech_accept miningescort
 mech_generate prototype
 mech_accept prototype
 mech_proto_goto
@@ -24,8 +27,6 @@ mech_accept sunmining
 mech_generate listening nonebula
 mech_accept listening
 # Mining Escort (spec 1860): saved while it mines, with its goal and ore count.
-mech_generate miningescort
-mech_accept miningescort
 mech_mine_goto
 pause off
 waitfor mech_mine_hailed == 1 60

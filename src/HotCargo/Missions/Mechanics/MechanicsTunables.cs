@@ -77,8 +77,8 @@ public sealed class MechanicsTunables
         Require(t.SurveyScanSeconds > 0f, "SurveyScanSeconds must be above 0");
         var m = t.MiningEscort;
         Require(m.SpawnDistanceMin >= 0f && m.SpawnDistanceMax >= m.SpawnDistanceMin, "MiningEscort: SpawnDistanceMax must be at least SpawnDistanceMin");
-        Require(m.OreGoal > 0 && m.FieldRadius > 0f && m.HostileRadius >= 0f && m.CollectRadius > 0f && m.StepSeconds > 0f && m.DockGap >= 0f && t.DeliveryRadius > m.DockGap,
-            "MiningEscort: OreGoal, FieldRadius, CollectRadius and StepSeconds must be above 0, and DeliveryRadius above DockGap");
+        Require(m.OreGoal > 0 && m.CollectRadius > 0f && m.StepSeconds > 0f && m.DockGap >= 0f && t.DeliveryRadius > m.DockGap,
+            "MiningEscort: OreGoal, CollectRadius and StepSeconds must be above 0, and DeliveryRadius above DockGap");
         Require(m.WaveShares.Length > 0 && m.WaveShares.All(s => s is > 0f and < 1f), "MiningEscort.WaveShares must hold shares between 0 and 1");
         Require(m.ShipsBase >= 0f && m.ShipsPerTier >= 0f && m.MaxLiveShips >= 0 && m.ShipTierMax >= 1 && m.ShipTags.Length > 0,
             "MiningEscort: ship counts must not be negative, ShipTierMax must be 1 or more, ShipTags must not be empty");
@@ -123,13 +123,6 @@ public sealed class MiningEscortTunables
     [Serialize(Optional = true)] public float SpawnDistanceMax = 800f;
     /// <summary>The most ore the miner must bring back. A smaller hold sets a smaller goal. About 2.5 min of mining for the miner alone.</summary>
     [Serialize(Optional = true)] public int OreGoal = 35;
-    /// <summary>The miner works on asteroids within this distance of the field center. Its ore type is the most common ore there.</summary>
-    [Serialize(Optional = true)] public float FieldRadius = 3000f;
-    /// <summary>
-    /// A field with a ship hostile to the players within this distance of its center offers no job. Vanilla field pirates and platforms
-    /// sit within 750 of it; wanderers and bounty targets nearby do not block the offer.
-    /// </summary>
-    [Serialize(Optional = true)] public float HostileRadius = 1000f;
     /// <summary>The miner orders loose ore of its type within this distance of its hull to be collected, also ore that players drop.</summary>
     [Serialize(Optional = true)] public float CollectRadius = 1500f;
     /// <summary>Game seconds between two work steps of the miner (move order, salvage and collect orders).</summary>

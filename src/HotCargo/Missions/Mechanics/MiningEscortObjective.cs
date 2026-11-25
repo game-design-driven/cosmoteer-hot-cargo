@@ -63,16 +63,15 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
             if (invalid) return null;
             var t = MechanicsArea.TunablesFor(sim.RequireGame()).MiningEscort;
             Vector2 at = station!.Location.Center;
-            var fields = objects.TryGetValue(FieldTag, out var list) ? list.Select(f => f.Location.Center).OrderBy(c => c.DistanceTo(at)).ToList() : [];
-            // Spec 1860: vanilla puts pirates or defense platforms in most fields (sysgen_asteroids.rules); a civilian miner avoids them.
-            var picked = fields.Select(c => (Center: c, Ore: FieldOre(sim, c, t.FieldRadius))).FirstOrDefault(f => f.Ore is not null && !HostileNear(sim, f.Center, t.HostileRadius));
-            if (picked.Ore is not { } ore)
+            var fields = objects.TryGetValue(FieldTag, out var list) ? list.Select(f => FieldArea(sim, f)).OrderBy(c => c.Center.DistanceTo(at)).ToList() : [];
+            if (PickField(sim, fields) is not { } picked)
             {
-                Log.Info($"mining escort offer dropped: none of {fields.Count} asteroid fields has ore and no hostile ship");
+                Log.Info($"mining escort offer dropped: none of {fields.Count} asteroid fields has ore, no hostile ship and no sun heat");
                 invalid = true;
                 return null;
             }
-            Vector2 center = picked.Center;
+            var (area, ore) = picked;
+            Vector2 center = area.Center;
             ObjectID stationId = station!.UniqueID ?? throw new InvalidOperationException($"station tag {StationTag} found an object without an ID");
             int stationPlayer = sim.Ships[stationId]?.Metadata.PlayerIndex
                 ?? (sim.Stasis.FirstOrDefault(s => s.ReservedObjectID == stationId) as StasisShipSpawner)?.ObjectAllegiance
@@ -86,7 +85,7 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
             Vector2 start = station.Location.Center + Vector2.FromAngle(rand.Direction()) * rand.Single(new Range<float>(t.SpawnDistanceMin, t.SpawnDistanceMax));
             var miner = MinerShip.Spawn(sim, rand, faction, start, rand.Direction());
             var game = sim.RequireGame();
-            return new MiningEscortObjective(new ObjectiveTargetShip(game, miner), new ObjectiveTargetShip(game, sim.NodeId(), stationId), center, ore)
+            return new MiningEscortObjective(new ObjectiveTargetShip(game, miner), new ObjectiveTargetShip(game, sim.NodeId(), stationId), area, ore)
             {
                 Start = start,
                 Tier = Math.Max(1, ((CareerSimModeManager)sim.Mode).TierFields.GetTier(center) + TierOffset),
@@ -96,11 +95,42 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
     }
 
     /// <summary>
-    /// Spec 1860: the most common ore of the asteroids within the radius, live or in stasis; ties go to the lower resource ID.
+    /// Spec 1860: the field's area: the POI's center and its world scale, which is the radius of the vanilla field (AsteroidField/Radius,
+    /// the POI's ScaleFactor). The game draws and explores the POI with the same circle.
+    /// </summary>
+    static Circle FieldArea(SimRoot sim, SimSpawner.SpawnedObject field)
+    {
+        var poi = field.UniqueID is { } id ? sim.Doodads[id] as Cosmoteer.Simulation.Doodads.POIDoodad : null;
+        if (poi is null) throw new InvalidOperationException($"field {field.UniqueID} at {field.Location.Center} is no live POI doodad");
+        if (!(poi.WorldUniformScale > 0f)) throw new InvalidOperationException($"field POI {poi.UniqueID} ({poi.Rules.ID}) has no size");
+        return new Circle(field.Location.Center, poi.WorldUniformScale);
+    }
+
+    /// <summary>
+    /// Spec 1860: the first field (nearest first) that has ore, no ship hostile to the players inside it, and no part in a sun's heat zone.
+    /// Vanilla puts pirates or defense platforms in most fields (sysgen_asteroids.rules); a civilian miner avoids them.
+    /// </summary>
+    internal static (Circle Area, ID<ResourceRules> Ore)? PickField(SimRoot sim, IEnumerable<Circle> fieldsNearestFirst)
+    {
+        var suns = Worlds.HeatZone.Suns(sim);
+        var rejected = new List<string>();
+        foreach (var area in fieldsNearestFirst)
+        {
+            string? why = Worlds.HeatZone.Touches(suns, area) ? "sun heat" : HostileIn(sim, area) is { } hostile ? $"hostile {hostile}" : null;
+            if (why is null && FieldOre(sim, area) is { } ore) return (area, ore);
+            rejected.Add($"{area.Center} r{area.Radius:0}: {why ?? "no ore"}");
+        }
+        Log.Info($"mining escort: no field: [{string.Join("; ", rejected)}]");
+        return null;
+    }
+
+    /// <summary>
+    /// Spec 1860: the most common ore of the asteroids in the area, live or in stasis; ties go to the lower resource ID.
     /// Null when there is none. A live asteroid counts once for each ore that its parts hold.
     /// </summary>
-    internal static ID<ResourceRules>? FieldOre(SimRoot sim, Vector2 center, float radius)
+    internal static ID<ResourceRules>? FieldOre(SimRoot sim, Circle area)
     {
+        var (center, radius) = (area.Center, area.Radius);
         var counts = new SortedDictionary<string, int>(StringComparer.Ordinal);
         void Count(string ore) => counts[ore] = counts.GetValueOrDefault(ore) + 1;
         for (int i = 0; i < sim.Ships.Count; i++)
@@ -116,19 +146,24 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
         return counts.Count == 0 ? null : new ID<ResourceRules>(counts.MaxBy(kv => kv.Value).Key);
     }
 
-    /// <summary>A ship within the radius, live or in stasis, that is an enemy of the human players.</summary>
-    static bool HostileNear(SimRoot sim, Vector2 center, float radius)
+    /// <summary>A ship in the area, live or in stasis, that is an enemy of the human players: its name and distance, or null.</summary>
+    static string? HostileIn(SimRoot sim, Circle area)
     {
+        var (center, radius) = (area.Center, area.Radius);
         var humans = sim.RequireGame().HumanPlayersIndexes;
         bool Hostile(int playerIndex) => humans.Any(h => sim.Mode.AreEnemies(playerIndex, h));
         for (int i = 0; i < sim.Ships.Count; i++)
-            if (sim.Ships[i] is { IsJunk: false } s && s.DetWorldCenter.DistanceTo(center) <= radius && Hostile(s.Metadata.PlayerIndex)) return true;
-        return sim.Stasis.OfType<StasisShipSpawner>().Any(s => s.Location.DistanceTo(center) <= radius && Hostile(s.ObjectAllegiance));
+            if (sim.Ships[i] is { IsJunk: false } s && s.DetWorldCenter.DistanceTo(center) <= radius && Hostile(s.Metadata.PlayerIndex))
+                return $"{s.Metadata.PlainShipName} at {s.DetWorldCenter.DistanceTo(center):0}";
+        return sim.Stasis.OfType<StasisShipSpawner>().FirstOrDefault(s => s.Location.DistanceTo(center) <= radius && Hostile(s.ObjectAllegiance)) is { } st
+            ? $"{st.ObjectName} [{string.Join(" ", st.Tags ?? [])}] at {st.Location.DistanceTo(center):0} (stasis)" : null;
     }
 
     [Serialize] public ObjectiveTargetShip Escort { get; private set; }
     [Serialize] public ObjectiveTargetShip Station { get; private set; }
     [Serialize] public Vector2 Field { get; private set; }
+    /// <summary>Spec 1860: the field's radius (<see cref="FieldArea"/>). The miner mines only asteroids inside it.</summary>
+    [Serialize] public float FieldSize { get; private set; }
     [Serialize] public ID<ResourceRules> Ore { get; private set; }
     [Serialize(Optional = true)] public int Tier { get; private set; }
     [Serialize(Optional = true)] public MiningEscortPhase Phase { get; private set; }
@@ -157,11 +192,13 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
 
     public override string ScriptTypeName => "HotCargoMiningEscort";
 
-    public MiningEscortObjective(ObjectiveTargetShip miner, ObjectiveTargetShip station, Vector2 field, ID<ResourceRules> ore)
+    public MiningEscortObjective(ObjectiveTargetShip miner, ObjectiveTargetShip station, Circle field, ID<ResourceRules> ore)
     {
         Escort = miner ?? throw new ArgumentNullException(nameof(miner));
         Station = station ?? throw new ArgumentNullException(nameof(station));
-        Field = field;
+        if (!(field.Radius > 0f)) throw new ArgumentOutOfRangeException(nameof(field), field, "a field needs a radius above 0");
+        Field = field.Center;
+        FieldSize = field.Radius;
         Ore = ore;
     }
 
@@ -200,7 +237,7 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
         {
             MiningEscortPhase.Meet => Escort.DetLocation() is { } at ? new Circle(at, MissionArea.TunablesFor(game).EscortMarkerRadius) : null,
             MiningEscortPhase.Return => Station.TargetShip is { } st ? ShipDelivery.Area(game, st.DetWorldBoundingCircle) : Station.DetLocation() is { } s ? ShipDelivery.Area(game, new Circle(s, 0f)) : null,
-            _ => new Circle(Field, Settings(game).FieldRadius),
+            _ => new Circle(Field, FieldSize),
         };
     }
 
@@ -337,8 +374,8 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
                     if (ship.Commands.CurConfirmedCommand is not null) ship.Commands.Clear();
                     break;
                 }
-                MoveTo(ship, Field, null, t.FieldRadius * 0.25f);
-                if (ship.DetWorldCenter.DistanceTo(Field) <= t.FieldRadius * 0.5f) SetPhase(MiningEscortPhase.Mining, "at the field");
+                MoveTo(ship, Field, null, FieldSize * 0.25f);
+                if (ship.DetWorldCenter.DistanceTo(Field) <= FieldSize * 0.5f) SetPhase(MiningEscortPhase.Mining, "at the field");
                 break;
             case MiningEscortPhase.Mining:
                 Mine(sim, ship, t);
@@ -388,9 +425,9 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
         int loose = CollectLoose(sim, ship, t);
         var mine = new CargoSettings(0, [], [], [Ore.ToString()], []);
         var a = Run.Current?.T.Autonomy ?? throw new InvalidOperationException("no run for the autonomy tunables");
-        if (AutonomyWorld.NearestAsteroid(ship, mine) is not { } rock)
+        if (Rock(ship) is not { } rock)
         {
-            if (loose == 0) SetPhase(MiningEscortPhase.Return, "no asteroid with the ore is left");
+            if (loose == 0) SetPhase(MiningEscortPhase.Return, "no asteroid with the ore is left in the field");
             return;
         }
         if (rock.Live is not { } live)
@@ -400,6 +437,17 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
         }
         if (AutonomyWorld.WorkSpot(ship, live, mine, a.MineDistance, a.MineReach) is { } work) MoveTo(ship, work.Spot, work.Rotation, a.MineDistance * 0.25f);
         if (AutonomyWorld.EdgeDistance(ship, live.DetWorldCenter) - live.WorldBoundingRadius <= a.MineDistance * 3f) AutonomyWorld.OrderSalvage(ship, live, mine, a.SalvageJobs);
+    }
+
+    /// <summary>
+    /// Spec 1862: the nearest asteroid with the ore whose center is in the field and that no sun's heat zone touches. Asteroids drift, so
+    /// the heat check runs for each rock too. A rock in stasis counts with its place only. Internal for the autotest.
+    /// </summary>
+    internal AsteroidRef? Rock(Ship ship)
+    {
+        var suns = Worlds.HeatZone.Suns(Hunters.HunterOrders.Sim(ship));
+        return AutonomyWorld.NearestAsteroid(ship, new CargoSettings(0, [], [], [Ore.ToString()], []),
+            a => a.Center.DistanceTo(Field) <= FieldSize && !Worlds.HeatZone.Touches(suns, new Circle(a.Center, a.Radius)));
     }
 
     /// <summary>Spec 1865, 1877: flies DockGap from the station's hull; arrival (ShipDelivery) completes the objective, and the pay waits at the station.</summary>
