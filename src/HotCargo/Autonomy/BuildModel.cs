@@ -11,9 +11,6 @@ public static class BuildModel
 {
     public const int MaxDesigns = 3;
     public const int MaxName = 32;
-    /// <summary>Spec 2322: "Fewer than N ships of design X" packs the slot and N into one parameter: slot × CountBase + N.</summary>
-    public const int CountBase = 100;
-    public const int MaxCount = CountBase - 1;
 
     /// <summary>A design name without the separators of the cargo text and without control characters, trimmed and cut to MaxName.</summary>
     public static string CleanName(string name)
@@ -53,26 +50,6 @@ public static class BuildModel
     }
 
     static bool IsBase64Char(char c) => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '+' or '/' or '=';
-
-    public static int Pack(int slot, int count) => slot * CountBase + count;
-
-    public static (int Slot, int Count) Unpack(int param) => (param / CountBase, param % CountBase);
-
-    /// <summary>Spec 2322: "&lt;slot&gt;x&lt;N&gt;".</summary>
-    public static string CountText(int param) =>
-        $"{(param / CountBase).ToString(CultureInfo.InvariantCulture)}x{(param % CountBase).ToString(CultureInfo.InvariantCulture)}";
-
-    /// <summary>Parses CountText. Throws FormatException on any other text or a slot or count out of range.</summary>
-    public static int ParseCount(string text)
-    {
-        int x = text.IndexOf('x');
-        if (x <= 0 || !int.TryParse(text[..x], NumberStyles.None, CultureInfo.InvariantCulture, out int slot)
-            || !int.TryParse(text[(x + 1)..], NumberStyles.None, CultureInfo.InvariantCulture, out int count))
-            throw new FormatException($"'{text}' is not <slot>x<count>");
-        if (slot is < 1 or > MaxDesigns) throw new FormatException($"design slot {slot} is outside 1 to {MaxDesigns}");
-        if (count is < 1 or > MaxCount) throw new FormatException($"count {count} is outside 1 to {MaxCount}");
-        return Pack(slot, count);
-    }
 
     /// <summary>Spec 1086: every resource type of the cost is available at least in that amount.</summary>
     public static bool Affords(IEnumerable<KeyValuePair<string, int>> cost, Func<string, int> available) =>

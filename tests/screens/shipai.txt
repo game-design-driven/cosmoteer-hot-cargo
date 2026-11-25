@@ -22,7 +22,7 @@ wait 3
 screenshot shipai-editor-live
 tactics_editor apply VaultGuard
 tactics_editor add
-tactics_editor cond 5 ShieldsBelow
+tactics_editor cond 5 Shields
 tactics_editor act 5 HoldFire
 wait 2
 screenshot shipai-editor-edited
@@ -32,11 +32,11 @@ tactics_editor addterm 1
 tactics_editor cond 1 CarryingTech 2
 tactics_editor not 1 2
 tactics_editor addterm 1
-tactics_editor cond 1 EnemiesAtLeast 3
-tactics_editor param 1 4 3
+tactics_editor cond 1 Enemies 3
+tactics_editor num 1 4 3
 tactics_editor or 1 3
 tactics_editor add
-tactics_editor cond 6 CratesWithin
+tactics_editor cond 6 NearestCrate
 tactics_editor addterm 6
 tactics_editor cond 6 HuntersInSystem 2
 tactics_editor not 6 2
@@ -50,11 +50,11 @@ screenshot shipai-editor-chains
 # Spec 2321: brackets. Row 1 becomes: IF Always AND (NOT CarryingTech OR HealthBelow 30) OR EnemiesAtLeast 4.
 tactics_editor bracket 1 2
 tactics_editor insertterm 1 2
-tactics_editor cond 1 HealthBelow 3
+tactics_editor cond 1 Health 3
 tactics_editor or 1 3
 tactics_editor bracket 6 1
 tactics_editor insertterm 6 1
-tactics_editor cond 6 EnemyWithin 2
+tactics_editor cond 6 NearestEnemy 2
 tactics_editor bracket 6 2
 tactics_editor insertterm 6 2
 tactics_editor cond 6 AllyUnderAttack 3
@@ -69,7 +69,7 @@ screenshot shipai-editor-min
 tactics_editor close
 tactics_presets_reset
 # Spec 415: Face=1 (+90 degrees) turns the left side of the ship to the target.
-tactics HC1:Always>TargetNearest;Always>CloseIn;Always>Face=1
+tactics HC2:Always->TargetNearest;Always->CloseIn;Always->Face=BroadsideLeft
 waitfor tactics_face == 90 30
 wait 12
 vault focus

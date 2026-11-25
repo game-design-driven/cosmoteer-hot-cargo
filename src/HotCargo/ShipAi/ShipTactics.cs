@@ -55,6 +55,8 @@ internal sealed class ShipTactics
     [Serialize(Optional = true)] public int? BuiltFrom;
     /// <summary>Spec 1088: the ship that this ship's last build started. Build ship waits while its construction is not done.</summary>
     [Serialize(Optional = true)] public ObjectID? Building;
+    /// <summary>Spec 2326: bit n-1 = flag n is set.</summary>
+    [Serialize(Optional = true)] public int Flags;
 
     /// <summary>Spec 418: the term memory of the last decision, in term order (ShipAiModel.TermMemory as two lists).</summary>
     [Serialize(Optional = true)] public List<bool> MemoryOn = [];
@@ -112,6 +114,7 @@ internal sealed class ShipTactics
         for (int i = 0; i < MemoryOn.Count; i++) iHash.AddHash(MemoryOn[i] ? 1 : 0);
         iHash.AddHash((int)(NextTick.Seconds * 10));
         iHash.AddHash(BuiltFrom ?? 0);
+        iHash.AddHash(Flags);
         if (Building is { } building) building.GetIntegrityHash(iHash);
         else iHash.AddHash(0);
     }
@@ -134,8 +137,9 @@ internal sealed class ShipTactics
     {
         try
         {
-            ShipAiModel.Decode(text);
+            var rows = ShipAiModel.Decode(text);
             Autonomy.Cargo.Decode(cargo);
+            if (ShipAiModel.ResourceError(rows, Autonomy.Cargo.IsCargoResource) is { } error) throw new FormatException(error);
             return true;
         }
         catch (FormatException ex)

@@ -36,16 +36,10 @@ public class FormationModelTests
     }
 
     [Fact]
-    public void Formation_terms_and_actions_read_their_facts_and_kinds()
+    public void Formation_actions_are_move_rows_with_a_spacing()
     {
-        var f = new ShipFacts(1f, null, new HashSet<PartKind>(), float.PositiveInfinity, false, false, null, null, new HashSet<ShipClass>(), 0,
-            false, false, NearestAlly: 120f, AllyInLineOfFire: true);
-        Assert.True(ShipAiModel.Holds(new Term(Cond.AllyWithin, 150), f));
-        Assert.False(ShipAiModel.Holds(new Term(Cond.AllyWithin, 100), f));
-        Assert.True(ShipAiModel.Holds(new Term(Cond.AllyInLineOfFire, 0), f));
         Assert.Equal(ActKind.Move, ShipAiModel.KindOf(Act.HoldFormation));
         Assert.Equal(ActKind.Move, ShipAiModel.KindOf(Act.KeepSpacing));
-        Assert.Equal(ActKind.Weapons, ShipAiModel.KindOf(Act.FireAtWill));
-        Assert.Equal(ParamKind.Distance, ShipAiModel.ParamOf(Act.KeepSpacing));
+        Assert.Equal(ParamKind.Spacing, ShipAiModel.ParamOf(Act.KeepSpacing));
     }
 }

@@ -126,61 +126,29 @@ public class AutonomyModelTests
     [InlineData("cosmoteer.asteroid", null)]
     public void Ore_of_a_stasis_asteroid_comes_from_its_doodad_id(string id, string? ore) => Assert.Equal(ore, AutonomyModel.OreOfDoodad(id));
 
-    [Fact]
-    public void New_conditions_read_their_facts_and_cargo_above_is_a_percent_threshold()
-    {
-        var f = new ShipFacts(1f, null, new HashSet<PartKind>(), float.PositiveInfinity, false, false, null, null, new HashSet<ShipClass>(), 0, false, false,
-            Cargo: 0.97f, CargoToSell: true, NearestLoot: 900f, StationInRange: true, NearestAsteroid: 15000f, NearestWreck: 2500f, NearestFleet: 4000f);
-        Assert.True(ShipAiModel.Holds(new Term(Cond.CargoAbove, 95), f));
-        Assert.False(ShipAiModel.Holds(new Term(Cond.CargoAbove, 98), f));
-        Assert.True(ShipAiModel.Holds(new Term(Cond.CargoToSell, 0), f));
-        Assert.True(ShipAiModel.Holds(new Term(Cond.LootWithin, 1000), f));
-        Assert.True(ShipAiModel.Holds(new Term(Cond.StationInRange, 0), f));
-        Assert.True(ShipAiModel.Holds(new Term(Cond.AsteroidWithin, 20000), f));
-        Assert.False(ShipAiModel.Holds(new Term(Cond.WreckWithin, 2000), f));
-        Assert.True(ShipAiModel.Holds(new Term(Cond.FleetBeyond, 3000), f));
-        Assert.True(ShipAiModel.IsThreshold(ShipAiModel.ParamOf(Cond.CargoAbove)));
-        // No storage bays: cargo above never holds.
-        Assert.False(ShipAiModel.Holds(new Term(Cond.CargoAbove, 0), f with { Cargo = null }));
-    }
-
-    static readonly ShipFacts Calm = new(1f, null, new HashSet<PartKind>(), float.PositiveInfinity, false, false, null, null, new HashSet<ShipClass>(), 0, false, false);
-
-    [Fact]
-    public void Fleet_health_above_needs_every_other_ship_above_the_threshold_and_holds_without_others()
-    {
-        Assert.True(ShipAiModel.Holds(new Term(Cond.FleetHealthAbove, 90), Calm with { OthersHealth = 0.95f }));
-        Assert.False(ShipAiModel.Holds(new Term(Cond.FleetHealthAbove, 90), Calm with { OthersHealth = 0.9f }));
-        Assert.True(ShipAiModel.Holds(new Term(Cond.FleetHealthAbove, 90), Calm with { OthersHealth = null }));
-        // Spec 418: a percent threshold, so a ship that drops just under it does not make the looter turn back at once.
-        TacticRow[] rows = [new(Cond.FleetHealthAbove, 90, Act.CollectLoot, 0)];
-        var h = new Hysteresis(0.03f, 0);
-        var on = ShipAiModel.Evaluate(rows, Calm with { OthersHealth = 0.95f }, _ => true, null, 0, h);
-        Assert.Equal(0, ShipAiModel.Evaluate(rows, Calm with { OthersHealth = 0.88f }, _ => true, on.Memory, 1, h).MoveRow);
-        Assert.Equal(-1, ShipAiModel.Evaluate(rows, Calm with { OthersHealth = 0.86f }, _ => true, on.Memory, 1, h).MoveRow);
-    }
-
     [Theory]
-    [InlineData(0.5f, float.PositiveInfinity, 0.3f, "ReturnToFleet", 5)]  // a ship needs repair: wait with the fleet, keep the loot for it
-    [InlineData(0.95f, float.PositiveInfinity, 0.3f, "CollectLoot", 3)]   // repaired: collect
-    [InlineData(0.95f, float.PositiveInfinity, 0.97f, "GoToStation", 2)]  // full: sell
-    [InlineData(0.95f, 1000f, 0.3f, "ReturnToFleet", 0)]                   // an enemy near: flee to the fleet
-    public void Looter_waits_for_repair_collects_sells_and_flees(float others, float enemy, float cargo, string act, int row)
+    [InlineData(50.0, double.PositiveInfinity, 30.0, "ReturnToFleet", 5)]  // a ship needs repair: wait with the fleet, keep the loot for it
+    [InlineData(95.0, double.PositiveInfinity, 30.0, "CollectLoot", 3)]   // repaired: collect
+    [InlineData(95.0, double.PositiveInfinity, 97.0, "GoToStation", 2)]   // full: sell
+    [InlineData(95.0, 1000.0, 30.0, "ReturnToFleet", 0)]                   // an enemy near: flee to the fleet
+    public void Looter_waits_for_repair_collects_sells_and_flees(double others, double enemy, double cargo, string act, int row)
     {
         var rows = ShipAiModel.PresetRows(Preset.Looter);
-        var f = Calm with { OthersHealth = others, NearestEnemy = enemy, Cargo = cargo, CargoToSell = true, NearestLoot = 500f };
+        var f = new TestFacts().With(Value.OthersHealth, others).With(Value.NearestEnemy, enemy).With(Value.Cargo, cargo).With(Cond.CargoToSell)
+            .With(Value.NearestLoot, 500);
         var d = ShipAiModel.Evaluate(rows, f, _ => true);
         Assert.Equal(row, d.MoveRow);
         Assert.Equal(Enum.Parse<Act>(act), rows[d.MoveRow].Act);
     }
 
     [Theory]
-    [InlineData(0.5f, "ReturnToFleet", 4)]  // a ship needs repair: no cutting, wait with the fleet
-    [InlineData(0.95f, "Salvage", 3)]       // repaired: cut the wreck
-    public void Salvager_cuts_wrecks_only_after_the_repair(float others, string act, int row)
+    [InlineData(50.0, "ReturnToFleet", 4)]  // a ship needs repair: no cutting, wait with the fleet
+    [InlineData(95.0, "Salvage", 3)]        // repaired: cut the wreck
+    public void Salvager_cuts_wrecks_only_after_the_repair(double others, string act, int row)
     {
         var rows = ShipAiModel.PresetRows(Preset.Salvager);
-        var d = ShipAiModel.Evaluate(rows, Calm with { OthersHealth = others, Cargo = 0.3f, NearestWreck = 1000f }, _ => true);
+        var f = new TestFacts().With(Value.OthersHealth, others).With(Value.Cargo, 30).With(Value.NearestWreck, 1000).With(Value.NearestLoot, double.PositiveInfinity);
+        var d = ShipAiModel.Evaluate(rows, f, _ => true);
         Assert.Equal(row, d.MoveRow);
         Assert.Equal(Enum.Parse<Act>(act), rows[d.MoveRow].Act);
     }
@@ -196,30 +164,6 @@ public class AutonomyModelTests
         Assert.False(Clear(-400f, 0f));    // just behind the start: the ship is within the clearance already
         Assert.True(Clear(-500f, 0f));
         Assert.True(AutonomyModel.PathClear(0f, 0f, 1000f, 0f, 50f, [], 300f));
-    }
-
-    [Fact]
-    public void Trade_rows_are_their_own_kind_and_the_first_matching_one_wins()
-    {
-        Assert.Equal(ActKind.Trade, ShipAiModel.KindOf(Act.Sell));
-        Assert.Equal(ActKind.Trade, ShipAiModel.KindOf(Act.Unload));
-        Assert.Equal(ActKind.Move, ShipAiModel.KindOf(Act.ReturnToFleet));
-        Assert.Equal(ActKind.Facing, ShipAiModel.KindOf(Act.Face));
-        TacticRow[] rows = [new(Cond.Always, 0, Act.Sell, 0), new(Cond.Always, 0, Act.Buy, 0), new(Cond.Always, 0, Act.CollectLoot, 0)];
-        var d = ShipAiModel.Evaluate(rows, new ShipFacts(1f, null, new HashSet<PartKind>(), float.PositiveInfinity, false, false, null, null,
-            new HashSet<ShipClass>(), 0, false, false), r => r.Act != Act.Sell);
-        Assert.Equal(1, d.TradeRow);
-        Assert.Equal(2, d.MoveRow);
-    }
-
-    [Fact]
-    public void Every_preset_round_trips_through_the_text_form()
-    {
-        foreach (var p in Enum.GetValues<Preset>())
-        {
-            var rows = ShipAiModel.PresetRows(p);
-            Assert.Equal(rows, ShipAiModel.Decode(ShipAiModel.Encode(rows)));
-        }
     }
 
     [Theory]

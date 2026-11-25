@@ -36,8 +36,8 @@ tactics_editor close
 tactics_ship 0
 tactics_editor open
 tactics_editor apply Aggressive
-tactics_editor cond 1 HealthBelow
-tactics_editor param 1 30
+tactics_editor cond 1 Health
+tactics_editor num 1 30
 tactics_editor act 1 FleeJump
 tactics_editor auto on
 wait 4

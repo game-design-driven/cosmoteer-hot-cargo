@@ -21,6 +21,8 @@ using HotCargo.Core;
 using HotCargo.Hunters;
 using HotCargo.Tech;
 
+using V = HotCargo.ShipAi.Value;
+
 namespace HotCargo.ShipAi;
 
 /// <summary>
@@ -65,10 +67,13 @@ internal static class ShipAiController
         if (Run.Current is { } run && ShipAiModel.StageError(rows, run.T.Heat.Stages.Length) is { } error) throw new FormatException(error);
         var settings = Autonomy.Cargo.Decode(cargo);
         if (ShipAiModel.DesignError(rows, slot => settings.Design(slot) is not null) is { } designError) throw new FormatException(designError);
+        if (ShipAiModel.ResourceError(rows, Autonomy.Cargo.IsCargoResource) is { } resourceError) throw new FormatException(resourceError);
         var t = ShipTactics.For(ship);
         Release(ship, t);
         t.SetRows(text);
         t.SetCargo(cargo);
+        // Spec 2326: new rows start with every flag clear.
+        t.Flags = 0;
         t.Auto = auto;
         t.Recall = recall;
         t.NextTick = sim.LogicalTime;
@@ -102,7 +107,7 @@ internal static class ShipAiController
         t.Waiting = false;
         var rows = t.Rows;
         var view = new View(run, ship, t);
-        var d = ShipAiModel.Evaluate(rows, view.Facts(), view.CanRun, t.Memory, HunterOrders.Sim(ship).LogicalTime.Seconds,
+        var d = ShipAiModel.Evaluate(rows, view, view.CanRun, t.Memory, HunterOrders.Sim(ship).LogicalTime.Seconds,
             new Hysteresis(tun.HysteresisMargin, tun.MinHoldSeconds));
         Ship? target = d.TargetRow >= 0 ? view.TargetFor(rows[d.TargetRow]) : null;
         // Spec 1064: "return to me" replaces the move rows.
@@ -117,6 +122,7 @@ internal static class ShipAiController
         var attack = Move(ship, t, tun, view, move, moveParam, target, guarded, fresh: before != move || facing != facingBefore);
         if (attack is not null && facing is { } side) Face(attack, side);
         if (d.TradeRow >= 0) Trade(run, ship, t, view, rows[d.TradeRow]);
+        t.Flags = ShipAiModel.ApplyFlags(rows, d.Matched, t.Flags);
         int mask = 0;
         for (int i = 0; i < d.Matched.Length; i++) if (d.Matched[i]) mask |= 1 << i;
         Weapons(ship, t, tun, rows, t.Matched, mask, target, view.Caller);
@@ -681,7 +687,7 @@ internal static class ShipAiController
     }
 
     /// <summary>What one ship sees in one tick: enemies on its team's radar, enemies with an attack order, and friendly human ships.</summary>
-    sealed class View
+    sealed class View : IShipFacts
     {
         readonly Run _run;
         readonly Ship _self;
@@ -692,8 +698,6 @@ internal static class ShipAiController
         /// <summary>Tech crates that this ship's team sees, in nugget order.</summary>
         public readonly List<Nugget> Crates = [];
         readonly Dictionary<(Act, float?), Ship?> _targets = [];
-        /// <summary>The conditions that the rows use: costly facts (loot, stations, asteroids, wrecks) are only read for them.</summary>
-        readonly HashSet<Cond> _uses;
         public readonly Autonomy.CargoSettings Cargo;
         public Autonomy.AutonomyTunables Autonomy => _run.T.Autonomy;
 
@@ -703,7 +707,6 @@ internal static class ShipAiController
             _self = self;
             _tactics = t;
             Cargo = t.Cargo;
-            _uses = t.Rows.SelectMany(r => r.Terms).Select(term => term.Cond).ToHashSet();
             var sim = HunterOrders.Sim(self);
             for (int i = 0; i < sim.Nuggets.Count; i++)
             {
@@ -789,57 +792,84 @@ internal static class ShipAiController
             return Allies.Any(ally => FormationModel.BlocksLine(a.X, a.Y, b.X, b.Y, ally.DetWorldCenter.X, ally.DetWorldCenter.Y, ally.WorldBoundingRadius));
         }
 
-        public ShipFacts Facts()
+        // ---- Spec 2324, 2325: facts and values, read only when a term names them, each at most once per tick.
+
+        readonly Dictionary<Operand, double?> _values = [];
+
+        public bool Fact(Cond cond, int param) => cond switch
+        {
+            Cond.Always => true,
+            Cond.PartLost => _self.DestroyedParts.Any(dp => KindsOf(dp.Rules).Contains((PartKind)param)),
+            Cond.TargetedByEnemy => _attackers.Any(a => AttackTarget(a) == _self),
+            Cond.AllyUnderAttack => _attackers.Any(a => AttackTarget(a) is { } v && HelpsAlly(v)),
+            Cond.EnemyClassNear => _enemies.Any(e => ClassOf(e) == (ShipClass)param),
+            Cond.CarryingTech => _self.Resources.GetResourceTotal(Vaults.TechId) > 0,
+            Cond.VaultDamaged => Fact(Cond.PartLost, (int)PartKind.Vault) || Vaults.VaultParts(_self).Any(p => p.Health < p.Rules.MaxHealth),
+            Cond.HuntersInSystem => HunterSpawner.Hunters(HunterOrders.Sim(_self)).Any(),
+            Cond.LossTimerRunning => LossTimer.IsRunning(_run),
+            Cond.EnemyHoldsTech => _enemies.Any(HoldsTech),
+            Cond.EnemyCalling => Caller is not null,
+            Cond.CargoToSell => HotCargo.Autonomy.AutonomyWorld.HasCargoToSell(_self, Cargo),
+            Cond.StationInRange => InRange is not null,
+            Cond.AllyInLineOfFire => AllyInLine(),
+            Cond.CanAffordDesign => Design(param) is { } info && HotCargo.Autonomy.Build.Affords(_self, info.Cost),
+            Cond.CanAffordRefit => Design(param) is { } refit && HotCargo.Autonomy.Build.Affords(_self, HotCargo.Autonomy.Build.RefitCost(_self, refit)),
+            Cond.Flag => (_tactics.Flags & (1 << (param - 1))) != 0,
+            _ => throw new ArgumentOutOfRangeException(nameof(cond), cond, null),
+        };
+
+        public double? Value(Operand o)
+        {
+            if (!_values.TryGetValue(o, out var v)) _values[o] = v = ReadValue(o);
+            return v;
+        }
+
+        double? ReadValue(Operand o)
+        {
+            double? Far(float? d) => d ?? double.PositiveInfinity;
+            double? P(float? fraction) => fraction is { } f ? f * 100.0 : null;
+            return o.Value switch
+            {
+                V.Health => P(HunterOrders.HealthFraction(_self)),
+                V.Shields => P(ShieldFraction()),
+                V.Ammo => P(Fraction(_self, AmmoIds(_self.Rules))),
+                V.Battery => P(Fraction(_self, [Battery])),
+                V.Cargo => P(HotCargo.Autonomy.AutonomyWorld.CargoFill(_self)),
+                V.OthersHealth => Allies.Count > 0 ? Allies.Min(HullHealth) * 100.0 : 100.0,
+                V.NearestEnemy => Far(NearestEnemy is { } n ? Distance(n) : null),
+                V.Enemies => _enemies.Count,
+                V.NearestAlly => Far(NearestAlly is { } ally ? Distance(ally) : null),
+                V.NearestFleet => Far(NearestCrewed is { } home ? Distance(home) : null),
+                V.FleetSize => HunterOrders.Sim(_self).Ships.HumanPlayerShips.Count(s => !s.IsJunk && s.Metadata.PlayerIndex == _self.Metadata.PlayerIndex),
+                V.NearestLoot => Far(NearestLoot is { } loot ? LootDistance(loot) : null),
+                V.NearestStation => Far(Station(StationPick.Nearest) is { } st ? EdgeTo(st.Center, st.Radius) : null),
+                V.NearestAsteroid => Far(Asteroid is { } rock ? EdgeTo(rock.Center, rock.Radius) : null),
+                V.NearestWreck => Far(Wreck is { } wreck ? Distance(wreck) : null),
+                V.NearestCrate => Far(NearestCrate is { } crate ? CrateDistance(crate) : null),
+                V.HeatStage => _run.State.StagesStarted,
+                V.StrikeIn => _run.SecondsToStrikeWave,
+                V.Money => HunterOrders.Sim(_self).RequireGame().GetPlayerState(_self.Metadata.PlayerIndex, deterministic: true).Money,
+                V.Resource => _self.Resources.GetResourceTotal(new Cosmoteer.Data.ID<ResourceRules>(o.Resource)),
+                V.Cost => Design(o.Slot)?.Cost.GetValueOrDefault(o.Resource),
+                V.RefitCost => Design(o.Slot) is { } info ? HotCargo.Autonomy.Build.RefitCost(_self, info).GetValueOrDefault(o.Resource) : null,
+                V.ShipsOf => Design(o.Slot) is { } built ? HotCargo.Autonomy.Build.Built(_self, built) : null,
+                _ => throw new ArgumentOutOfRangeException(nameof(o), o.Value, null),
+            };
+        }
+
+        float? ShieldFraction()
         {
             long shield = 0, shieldMax = 0;
             foreach (var part in _self.Parts)
                 foreach (var c in part.Components)
                     if (c is ArcShield { ResourceStorage: { } rs }) { shield += rs.Resources; shieldMax += rs.MaxResources; }
-            var lost = new HashSet<PartKind>();
-            foreach (var dp in _self.DestroyedParts) lost.UnionWith(KindsOf(dp.Rules));
-            var classes = new HashSet<ShipClass>();
-            foreach (var e in _enemies)
-                classes.Add(e.Thrusters.Count == 0 ? ShipClass.Station : e.BaseBlueprintCost >= _self.BaseBlueprintCost ? ShipClass.Large : ShipClass.Small);
-            bool vaultHit = lost.Contains(PartKind.Vault) || Vaults.VaultParts(_self).Any(p => p.Health < p.Rules.MaxHealth);
-            return new ShipFacts(
-                Health: HunterOrders.HealthFraction(_self),
-                Shields: shieldMax > 0 ? (float)shield / shieldMax : null,
-                LostParts: lost,
-                NearestEnemy: NearestEnemy is { } n ? Distance(n) : float.PositiveInfinity,
-                TargetedByEnemy: _attackers.Any(a => AttackTarget(a) == _self),
-                AllyUnderAttack: _attackers.Any(a => AttackTarget(a) is { } v && HelpsAlly(v)),
-                Ammo: Fraction(_self, AmmoIds(_self.Rules)),
-                Battery: Fraction(_self, [Battery]),
-                EnemyClasses: classes,
-                Enemies: _enemies.Count,
-                CarryingTech: _self.Resources.GetResourceTotal(Vaults.TechId) > 0,
-                VaultDamaged: vaultHit,
-                HeatStage: _run.State.StagesStarted,
-                HuntersInSystem: HunterSpawner.Hunters(HunterOrders.Sim(_self)).Any(),
-                StrikeIn: _run.SecondsToStrikeWave is { } s ? (float)s : null,
-                LossTimerRunning: LossTimer.IsRunning(_run),
-                NearestCrate: NearestCrate is { } crate ? CrateDistance(crate) : float.PositiveInfinity,
-                EnemyHoldsTech: _enemies.Any(HoldsTech),
-                EnemyCalling: Caller is not null,
-                Cargo: HotCargo.Autonomy.AutonomyWorld.CargoFill(_self),
-                CargoToSell: _uses.Contains(Cond.CargoToSell) && HotCargo.Autonomy.AutonomyWorld.HasCargoToSell(_self, Cargo),
-                NearestLoot: _uses.Contains(Cond.LootWithin) && NearestLoot is { } loot ? LootDistance(loot) : float.PositiveInfinity,
-                StationInRange: _uses.Contains(Cond.StationInRange) && InRange is not null,
-                NearestAsteroid: _uses.Contains(Cond.AsteroidWithin) && Asteroid is { } rock ? EdgeTo(rock.Center, rock.Radius) : float.PositiveInfinity,
-                NearestWreck: _uses.Contains(Cond.WreckWithin) && Wreck is { } wreck ? Distance(wreck) : float.PositiveInfinity,
-                NearestFleet: _uses.Contains(Cond.FleetBeyond) && NearestCrewed is { } home ? Distance(home) : float.PositiveInfinity,
-                NearestAlly: NearestAlly is { } ally ? Distance(ally) : float.PositiveInfinity,
-                AllyInLineOfFire: _uses.Contains(Cond.AllyInLineOfFire) && AllyInLine(),
-                OthersHealth: _uses.Contains(Cond.FleetHealthAbove) && Allies.Count > 0 ? Allies.Min(HullHealth) : null,
-                Affordable: _uses.Contains(Cond.CanAffordDesign) ? PerSlot(info => HotCargo.Autonomy.Build.Affords(_self, info.Cost), false) : null,
-                AffordableRefit: _uses.Contains(Cond.CanAffordRefit)
-                    ? PerSlot(info => HotCargo.Autonomy.Build.Affords(_self, HotCargo.Autonomy.Build.RefitCost(_self, info)), false) : null,
-                DesignShips: _uses.Contains(Cond.FewerOfDesign) ? PerSlot(info => HotCargo.Autonomy.Build.Built(_self, info), 0) : null);
+            return shieldMax > 0 ? (float)shield / shieldMax : null;
         }
 
-        /// <summary>Spec 1086: one fact per design slot; an empty slot gets the empty value.</summary>
-        T[] PerSlot<T>(Func<HotCargo.Autonomy.Build.Info, T> fact, T empty) =>
-            Cargo.Designs.Select(d => d is null ? empty : fact(HotCargo.Autonomy.Build.InfoOf(d))).ToArray();
+        ShipClass ClassOf(Ship e) => e.Thrusters.Count == 0 ? ShipClass.Station : e.BaseBlueprintCost >= _self.BaseBlueprintCost ? ShipClass.Large : ShipClass.Small;
+
+        /// <summary>The design of a slot, or null when the slot is empty.</summary>
+        HotCargo.Autonomy.Build.Info? Design(int slot) => Cargo.Design(slot) is { } d ? HotCargo.Autonomy.Build.InfoOf(d) : null;
 
         /// <summary>Spec 1087, 1090: the slot's design fits this ship's rules and the run builds with crew.</summary>
         HotCargo.Autonomy.Build.Info? Buildable(int slot) =>
