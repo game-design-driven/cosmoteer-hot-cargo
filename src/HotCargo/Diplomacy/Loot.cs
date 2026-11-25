@@ -118,8 +118,7 @@ public static class Loot
     public static List<string> Surrender(Run run, SimRoot sim, Ship ai, Ship player, int payout, ulong seed)
     {
         var career = Situation.Career(sim);
-        var module = ai.AI?.GetCommsModule<Cosmoteer.Ships.AI.CommsModules.AIDialogueModule>();
-        if (module is not null) module.WouldConsiderSurrenderingToPlayer = false;
+        if (Situation.RolledDialogue(ai) is { } module) module.WouldConsiderSurrenderingToPlayer = false;
         if (Situation.Faction(ai) is null && ai.AI?.GetStrategyModule<AIExitSectorModule>() is { } exit) exit.IsActivated = true;
         career.SurrenderedAIs.Add(ai.UniqueID);
         career.AddTruce(ai, player, career.Rules.Dialogue.AISurrenderDuration);
