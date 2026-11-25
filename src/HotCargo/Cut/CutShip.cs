@@ -26,11 +26,13 @@ internal static class CutShip
     /// Two parts touch across an edge and both allow contact on that side, the game's rule
     /// (CommonBaseContiguityManager.ProcessPartsNeedingSets: the second part's contiguity is turned by 180 degrees).
     /// </summary>
-    static bool InContact(CommonBasePart a, CommonBasePart b, Edge e)
+    static bool InContact(CommonBasePart a, CommonBasePart b, Edge e) => InContact(a.Rules, a.Rotation, a.FlipX, b.Rules, b.Rotation, b.FlipX, e);
+
+    /// <summary>The contact rule for parts by rules, rotation and flip: <paramref name="ra"/> holds tile A of the edge.</summary>
+    internal static bool InContact(PartRules ra, int rotA, bool flipA, PartRules rb, int rotB, bool flipB, Edge e)
     {
         var side = e.Down ? AdjacencyFlags.Bottom : AdjacencyFlags.Right;
-        return (a.Rules.GetAllowedContiguity(a.Rotation, a.FlipX) & side) != 0
-            && (b.Rules.GetAllowedContiguity(Mathx.Wrap(b.Rotation + 2, 4), b.FlipX) & side) != 0;
+        return (ra.GetAllowedContiguity(rotA, flipA) & side) != 0 && (rb.GetAllowedContiguity(Mathx.Wrap(rotB + 2, 4), flipB) & side) != 0;
     }
 
     static Part? PartAt(Ship ship, Cell c) => ship.Parts[new IntVector2(c.X, c.Y), PartRectType.Physical];
