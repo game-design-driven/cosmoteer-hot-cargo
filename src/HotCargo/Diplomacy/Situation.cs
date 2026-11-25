@@ -47,6 +47,18 @@ public static class Situation
 
     public static FactionRules? Faction(Ship ship) => FactionRules.GetFaction(ship.Metadata.Team);
 
+    /// <summary>
+    /// The ship's vanilla dialogue module with its surrender rolls made, or null without one. Vanilla makes the rolls on the ship's first
+    /// AI tick (AIDialogueModule.FillWillingToValues, from the ship ID), and that tick overwrites any value set before it. Set a roll
+    /// only through this (#336: a test set them a few milliseconds after the spawn, before that tick, and the first tick undid them).
+    /// </summary>
+    public static Cosmoteer.Ships.AI.CommsModules.AIDialogueModule? RolledDialogue(Ship ship)
+    {
+        if (ship.AI is not { } ai || ai.GetCommsModule<Cosmoteer.Ships.AI.CommsModules.AIDialogueModule>() is not { } module) return null;
+        if (!module._surrenderConsiderationsSet) module.FillWillingToValues(ship, ai);
+        return module;
+    }
+
     /// <summary>Reputation with the ship's faction, -1..1. Ships without a faction give 0.</summary>
     public static float Reputation(Run run, Ship ship) =>
         Faction(ship) is { } f ? DiplomacyModel.ReputationShare(run.Mode.GetFactionReputation(f.ID), run.T.Diplomacy.ReputationScale) : 0f;

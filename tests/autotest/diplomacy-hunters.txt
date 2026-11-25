@@ -12,6 +12,9 @@ dip_set HunterYieldChance 0
 dip_set HunterLeaveSeconds 2
 # Fight in open space: a station's faction can take a side (the start station's owner changes with the system layout).
 openspace 5000
+# The player ship's guns fire at hunters 250 to 300 away. Its fights differ on the PC from run to run (#336: they killed the first hunter
+# during the combos), so every hunter keeps its health. Pay-offs and bluffs still read the players' firepower.
+dip_shield hunters
 expect dip_vaulttech == 8
 # The page: pay-off rows with their own sliders (tech, money, crew if any can go), then pay off, bluff, demand surrender and fight.
 spawnstage Warning
@@ -56,8 +59,10 @@ dip_set PayTechChance 0.9
 dip_set PayMoneyChance 5
 dip_set PayChanceCap 1
 dip_set HandOverHeatDrop 100
+dip_shield off
 killhunter 0
 wait 2
+dip_shield hunters
 spawnstage Warning
 wait 2
 dip_near hunter 250
@@ -109,8 +114,10 @@ expect dip_vaulttech == 3
 expect hunters == 1
 expect heat >= 10
 # More hunters near the hailed one make a pay-off harder: × (1 − others ÷ 7) with PayMaxOtherHunters 6, and 0 above the limit.
+dip_shield off
 killhunter 0
 wait 2
+dip_shield hunters
 spawnstage Warning
 wait 2
 dip_near hunters 300

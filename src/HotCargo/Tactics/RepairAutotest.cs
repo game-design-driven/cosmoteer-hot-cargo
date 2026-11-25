@@ -23,6 +23,9 @@ static class RepairAutotest
             Autotest.Fields[$"tactic_{name}"] = () => TacticsLog.Count(name);
         Autotest.Fields["ai_fb_active"] = () => Modules().Count(m => m.Plan != RepairPlan.None);
         Autotest.Fields["ai_fb_in_cover"] = () => Hostile().Count(s => s.AI?.GetStrategyModule<FallBackStrategy>()?.InCover(s) == true);
+        // Fleeing test ships that checked for a station (spec 1314), and those that picked one, also one lost since.
+        Autotest.Fields["ai_flee_checked"] = () => Hostile().Count(s => s.AI?.GetStrategyModule<Ai.FleeStrategy>() is { Fleeing: true, Checked: true });
+        Autotest.Fields["ai_flee_picked"] = () => Hostile().Count(s => s.AI?.GetStrategyModule<Ai.FleeStrategy>() is { PickedStation: true });
         Autotest.Fields["ai_flee_to_station"] = () => Hostile().Count(s => s.AI?.GetStrategyModule<Ai.FleeStrategy>()?.StationCenter(s) is not null);
         Autotest.Fields["ai_flee_supplied"] = () => Hostile().Count(s => s.AI?.GetStrategyModule<Ai.FleeStrategy>() is { Supplied: true });
         Autotest.Fields["ai_fb_supplied"] = () => Modules().Count(m => m.Supplied);
@@ -168,7 +171,12 @@ static class RepairAutotest
             {
                 var at = ship.AI?.GetStrategyModule<FallBackStrategy>()?.TargetCenter(ship) ?? ship.AI?.GetStrategyModule<Ai.FleeStrategy>()?.StationCenter(ship);
                 if (at is not { } target) continue;
-                Autotest.Teleport(ship, Autotest.ClearSpotNear(ship.Sim!, target.Center, target.Radius + d, ship.WorldBoundingRadius));
+                // On the side of the target away from the nearest player ship: a fleeing ship flees again from an enemy within FleeDistance
+                // before it docks (#336: placed between the station and the player, it never docked).
+                var player = ship.Sim!.Ships.HumanPlayerSignificantShips.MinBy(h => h.DetWorldCenter.DistanceTo(target.Center));
+                var away = player is null || player.DetWorldCenter.DistanceTo(target.Center) < 1f ? new Halfling.Geometry.Vector2(1f, 0f)
+                    : Halfling.Geometry.Vector2.FromAngle(player.DetWorldCenter.DirectionTo(target.Center));
+                Autotest.Teleport(ship, Autotest.ClearSpotNear(ship.Sim!, target.Center + away * (target.Radius + d), 0f, ship.WorldBoundingRadius));
                 Log.Info($"AUTOTEST {ship.Metadata.PlainShipName} moved {d:0} from its repair target");
             }
         };

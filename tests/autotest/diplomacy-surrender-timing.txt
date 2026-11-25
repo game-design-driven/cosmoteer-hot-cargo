@@ -18,9 +18,10 @@ dip_set SurrenderMinDamage 0.95
 # damage is enough). Its value ratio roll is set, so the ship ID does not decide. The player ship's guns stay on: vanilla needs the
 # players' firepower.
 aispawn pirates 1 1
+# Right after the spawn, before the ship's first AI tick, which makes the vanilla rolls (#336: that tick undid a roll set before it).
+dip_ai_offers
 ainew_watch 0 300
 aidamage new 0.9
-dip_ai_offers
 wait 3
 # A few seconds into the fight it does not offer its surrender, and its page offers the players' surrender.
 expect dip_offers == 0

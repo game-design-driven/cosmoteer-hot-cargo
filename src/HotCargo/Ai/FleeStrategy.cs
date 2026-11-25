@@ -67,6 +67,10 @@ internal sealed class FleeStrategy : AIStrategyModule
 
     public bool Fleeing => _fleeing;
     public bool Supplied => _supplied;
+    /// <summary>True when the fleeing ship checked what it lacks and picked a station, or none (spec 1314). For autotests.</summary>
+    public bool Checked => _checked;
+    /// <summary>True when the fleeing ship picked a station, also one that it has since lost. For autotests.</summary>
+    public bool PickedStation => _station != default;
 
     /// <summary>True when the fleeing ship is next to its station.</summary>
     public bool AtStation(Ship ship) => _fleeing && _station != default && Resupply.Station(ship, _station) is { } s && Resupply.AtStation(ship, s);

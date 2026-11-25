@@ -1,0 +1,31 @@
+# Flee with every station in stasis (#343, spec 1308, 1314): the player ship is 5000 from every station, so no station is live, and
+# a station in stasis never trades. A fleeing ship short of crew picks no station then and repairs where it is. Before, it flew to
+# one, waited next to it and never docked.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+scav_set Enabled false
+fr_set PayForwardChance 0
+tacticlog on
+aiset FallBackEnabled false
+aiset RegroupOnVanilla false
+aiset CallOnVanilla false
+aiset CoverEnabled false
+aiset BaitEnabled false
+aiset TeamEnabled false
+aiset FleeChance 1
+dip_set RiskEnabled false
+openspace 5000
+fr_kill_enemies
+aispawn monolith 1 1 hull=Iota
+aialone
+wait 3
+# Clear of the player ship (FleeDistance 1500), so the ship checks for a station as soon as it flees.
+aiaway 2200
+aistrip new resources
+aistrip new crew 2
+aidamage new 0.2
+waitfor ai_flee_checked >= 1 60
+expect ai_flee_picked == 0
+quit
