@@ -47,6 +47,14 @@ static class WeldAutotest
         throw new InvalidOperationException($"no valid place for {target.Metadata.PlainShipName} on {ship.Metadata.PlainShipName}");
     }
 
+    /// <summary>A place that puts the target's first tile on the ship's first tile.</summary>
+    static Placement CoveredPlace()
+    {
+        var shipTile = Me().Parts.OrderBy(q => q.Location.Y).ThenBy(q => q.Location.X).First().PhysicalRect.Location;
+        var targetTile = Target().Parts.OrderBy(q => q.Location.Y).ThenBy(q => q.Location.X).First().PhysicalRect.Location;
+        return new Placement(0, shipTile.X - targetTile.X, shipTile.Y - targetTile.Y);
+    }
+
     internal static void Register()
     {
         // weld_mark cut|acting: "me" is the cut tests' ship or the acting player's first ship.
@@ -80,30 +88,31 @@ static class WeldAutotest
         Autotest.Commands["weld_try"] = arg =>
         {
             if (arg.Trim() != "covered") throw new InvalidOperationException("weld_try needs: covered");
-            var shipTile = Me().Parts.OrderBy(q => q.Location.Y).ThenBy(q => q.Location.X).First().PhysicalRect.Location;
-            var targetTile = Target().Parts.OrderBy(q => q.Location.Y).ThenBy(q => q.Location.X).First().PhysicalRect.Location;
-            _verdict = WeldArea.Refusal(Me(), Target(), new Placement(0, shipTile.X - targetTile.X, shipTile.Y - targetTile.Y));
+            _verdict = WeldArea.Refusal(Me(), Target(), CoveredPlace());
             Log.Info($"AUTOTEST weld: covered place, verdict {_verdict?.ToString() ?? "Ok"}");
-        };
-        // weld_debug: logs each joint job's wanted crew, priority and the crew that count it valid (diagnostics).
-        Autotest.Commands["weld_debug"] = _ =>
-        {
-            var ship = Me();
-            foreach (var e in Order()?.Joints ?? [])
-            {
-                var job = e.Job;
-                var valid = ship.Crew.Assigned.Count(c => job?.IsValidFor(c) == true);
-                Log.Info($"AUTOTEST weld: joint {e.Edge} work cell {e.WorkCell} part {ship.Parts[new Halfling.Geometry.IntVector2(e.WorkX, e.WorkY), Cosmoteer.Ships.Parts.PartRectType.Physical]?.Rules.ID} "
-                    + $"job on {job?.Ship?.Metadata.PlainShipName} desired {job?.DesiredCrew} base {job?.GetBaseRolePriority(null)} valid {valid}/{ship.Crew.Assigned.Count}");
-            }
-            Log.Info($"AUTOTEST weld: doors " + string.Join(" ", ship.Doors.Select(d => $"{d.Location.Cell}-{d.Location.OppositeCell}")));
-            foreach (var c in ship.Crew.Assigned)
-                Log.Info($"AUTOTEST weld: crew {c.UniqueID} job {c.Job?.GetType().Name} {(c.Job is EdgeJob j ? j.Edge.Edge.ToString() + " joint " + (Order()?.Joints.Contains(j.Edge) == true) : "")} "
-                    + $"home {c.HomeShip?.Metadata.PlainShipName} on {c.CurrentShip?.Metadata.PlainShipName} at {c.ShipCrew?.Location} space {c.SpaceCrew is not null}");
         };
         Autotest.Fields["weld_crew"] = () => Order()?.Joints.Sum(e => e.Job?.AssignedCrew.Count ?? 0) ?? 0;
         Autotest.Fields["weld_work"] = () => Order()?.Joints.Sum(e => e.Work) ?? 0;
         Autotest.Fields["weld_jobs"] = () => Order()?.Joints.Count(e => e.Job?.Ship is not null) ?? 0;
+        // Screenshots, UI only. weld_tool: selects "me", opens build mode and picks the Weld tool. weld_show auto|covered: the ghost at the
+        // nearest valid place, or on the ship's first tile (red). weld_set <field> <value>: one Weld tunable for this run.
+        Autotest.Commands["weld_tool"] = _ =>
+        {
+            Sim().PlayerInput.SelectSingleShip(Me());
+            Autotest.RequireRun().Game.Gui.ShipGui.BuildButton.IsSelected = true;
+            WeldTool.Select();
+        };
+        Autotest.Commands["weld_show"] = arg =>
+        {
+            var p = arg.Trim() switch
+            {
+                "auto" => NearestValid(Me(), Target()),
+                "covered" => CoveredPlace(),
+                var k => throw new InvalidOperationException($"weld_show needs auto or covered, not '{k}'"),
+            };
+            WeldToolState.RequireCurrent().Show(Me(), Target(), p);
+        };
+        Autotest.Commands["weld_set"] = arg => Autotest.SetField(Autotest.RequireRun().T.Weld, arg);
         // Verdicts: 0 Ok, 1 Covered, 2 NoContact (WeldVerdict).
         Autotest.Fields["weld_verdict"] = () => (double)(_verdict ?? WeldVerdict.Ok);
         Autotest.Fields["weld_orders"] = () => Autotest.RequireRun().State.Weld.Orders.Count;

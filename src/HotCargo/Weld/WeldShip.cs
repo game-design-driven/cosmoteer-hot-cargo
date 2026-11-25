@@ -186,8 +186,9 @@ internal static class WeldShip
         {
             var world = target.DetTransformPointToWorld(crew.Location);
             target.Crew.RemoveCrew(crew, unregisterWithSim: false);
-            crew.SetLocation(ship.DetTransformPointFromWorld(world), lerpFromPrevious: false, queueGeometryRefresh: true, clearPath: true);
+            // Add first: a crew member's location update needs its ship (ShipCrew.SetLocation).
             ship.Crew.AddCrew(crew, registerWithSim: false);
+            crew.SetLocation(ship.DetTransformPointFromWorld(world), lerpFromPrevious: false, queueGeometryRefresh: true, clearPath: true);
         }
         sim.Ships.Remove(target, dispose: true, handleLostShip: false);
     }
