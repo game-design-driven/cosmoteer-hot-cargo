@@ -21,7 +21,14 @@ static class WeldDraw
         {
             if (Run.Current is not { } r || r.Game.Sim != sim) return;
             foreach (var order in r.State.Weld.Orders)
-                if (order.Phase == WeldPhase.Join && sim.Ships[order.Ship] is { } ship) CutDraw.DrawEdges(ship, order.Joints);
+            {
+                if (sim.Ships[order.Ship] is not { } ship) continue;
+                if (order.Phase == WeldPhase.Join) CutDraw.DrawEdges(ship, order.Joints);
+                else if (order.Pending && sim.Ships[order.Target] is { } target)
+                    // Spec 2475: a pending weld shows its joints as the pending cut lines do.
+                    using (Halfling.App.Graphics.PushTransformMultiply(ship.WorldTransform))
+                        CutDraw.DrawDrag(WeldShip.Check(ship, target, order.Placement).Joints);
+            }
         });
     });
 }

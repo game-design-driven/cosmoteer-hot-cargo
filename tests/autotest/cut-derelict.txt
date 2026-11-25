@@ -1,0 +1,25 @@
+# Cut ships apart (spec 2476): a new piece without command becomes a derelict after a split, whatever crew or beds it has: after a cut,
+# and after explosions split the ship. The ship that stays keeps its owner, even when the blast took its control room.
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+pause off
+wait 3
+cut_mark
+save before
+cut_clean
+waitfor cut_splits == 1 240
+expect cut_piece_beds > 0
+expect cut_piece_junk == 1
+expect cut_own_pieces == 1
+load before
+wait 8
+cut_mark
+cut_blast
+waitfor cut_blast_new >= 1 30
+wait 2
+expect cut_me_own == 1
+expect cut_blast_own == 0
+quit

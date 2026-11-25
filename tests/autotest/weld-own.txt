@@ -1,0 +1,34 @@
+# Weld (spec 2481 to 2487): a ship cut into two own ships is welded back. The ship pulls the piece into place, crew join the edges,
+# and the piece becomes part of the ship again with its parts, health, stored resources and crew.
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+pause off
+wait 3
+cut_twin
+wait 2
+cut_line 3 -1 3 8
+waitfor cut_splits == 1 240
+expect cut_own_pieces == 2
+wait 3
+weld_mark cut
+weld_target piece
+weld_fill 20
+wait 1
+weld_note
+weld_auto
+waitfor weld_orders == 1 10
+expect weld_pending == 0
+waitfor weld_phase == 1 60
+expect weld_joints_left > 0
+waitfor weld_crew > 0 60
+waitfor weld_merges == 1 240
+expect weld_target_live == 0
+expect weld_parts_kept == 1
+expect weld_crew_kept == 1
+expect weld_health_kept == 1
+expect weld_stored_kept == 1
+quit

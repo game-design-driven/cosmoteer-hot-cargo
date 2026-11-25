@@ -5,7 +5,7 @@
 """
 Draws the HUD icons of Hot Cargo buttons in the vanilla HUD icon style. Run: uv run tools/sprites/make_ui_icons.py
 Writes mod/tactics/sprites/share_on.png and share_off.png (spec 1318), mod/shipai/sprites/ai_on.png, ai_off.png and
-ai_mixed.png (spec 410), and mod/cut/sprites/tool_cut.png (spec 2460).
+ai_mixed.png (spec 410), mod/cut/sprites/tool_cut.png (spec 2460), and mod/weld/sprites/tool_weld.png (spec 2480).
 
 The vanilla HUD icons (gui/game/*/hud_*.png and the *_on/*_off tool icons), measured, no art copied: 96 x 96 px, a flat glyph
 about 55 px wide, blue 0,183,255 when off or neutral, green 10,212,97 when on, and a soft glow of the same hue around the glyph.
@@ -104,6 +104,25 @@ def cut_glyph():
     return np.asarray(m.resize((SIZE, SIZE), Image.LANCZOS), np.float32) / 255
 
 
+def weld_glyph():
+    """A cursor arrow at the top left, as the vanilla build tool icons, and two blocks that meet along a seam with a spark: the weld."""
+    s = SIZE * K
+    m = Image.new("L", (s, s), 0)
+    d = ImageDraw.Draw(m)
+
+    def p(x, y):
+        return (x * K, y * K)
+
+    d.polygon([p(14, 10), p(46, 30), p(30, 34), p(22, 48)], fill=255)
+    d.rectangle([p(36, 54), p(58, 82)], outline=255, width=int(5 * K))
+    d.rectangle([p(62, 54), p(84, 82)], fill=255)
+    # A four-point spark on the seam between the blocks.
+    cx, cy = 60, 50
+    for dx, dy in ((0, -11), (0, 11), (-11, 0), (11, 0)):
+        d.polygon([p(cx + dx, cy + dy), p(cx + dy * 0.25, cy - dx * 0.25), p(cx - dy * 0.25, cy + dx * 0.25)], fill=255)
+    return np.asarray(m.resize((SIZE, SIZE), Image.LANCZOS), np.float32) / 255
+
+
 def icon(glyph, color):
     """The glyph in its colour with a soft glow of a darker shade of the same hue, as vanilla HUD icons."""
     glow = np.clip(ndimage.gaussian_filter(glyph, 3.5) * 1.6, 0, 1) * 0.75
@@ -131,4 +150,5 @@ if __name__ == "__main__":
     mixed = np.where((np.arange(SIZE) < SIZE // 2)[None, :, None], np.asarray(on), np.asarray(off))
     save("shipai", "ai_mixed", Image.fromarray(mixed.astype(np.uint8), "RGBA"))
     save("cut", "tool_cut", icon(cut_glyph(), OFF))
+    save("weld", "tool_weld", icon(weld_glyph(), OFF))
     print(f"icons written under {MOD}")

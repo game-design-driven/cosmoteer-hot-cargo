@@ -29,6 +29,8 @@ public sealed class WeldOrder
     [Serialize] public double PullSince;
     /// <summary>Spec 2486: the joint edges in the ship's grid, set when the target holds at its place.</summary>
     [Serialize] public List<CutEdge> Joints = [];
+    /// <summary>Spec 2475, 2484: a weld made in blueprint mode waits for the vanilla "Make it so". No pull and no crew work.</summary>
+    [Serialize(Optional = true)] public bool Pending;
 
     public Placement Placement => new(Turns, X, Y);
 }

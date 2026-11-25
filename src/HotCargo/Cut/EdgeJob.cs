@@ -51,7 +51,14 @@ internal sealed class EdgeJob(CutEdge edge, Func<Run, float> seconds, string nam
             || !ship.Sim.Doodads.ShouldAvoidLocation(shipCrew.Ship.DetWorldBoundingCircle, GameApp.Rules.Crew.AvoidableDoodadTags);
     }
 
-    public override Destination GetDestination(CrewSoul crew) => new(Ship, WorkPoint, null, crew.Rules.ConstructDistance);
+    /// <summary>
+    /// A walkable work tile (a corridor, a room) is a part destination: crew walk there inside the ship and arrive when they enter it.
+    /// Any other tile (armor, a hull part) is a point near the hull that crew reach from outside, as vanilla construction does
+    /// (ConstructPartJob): a crew member inside the ship never arrives at such a point (ShipCrew arrival needs Destination.Part).
+    /// </summary>
+    public override Destination GetDestination(CrewSoul crew) => WorkPart is { } part && !part.IsDestroyed && part.Rules.CrewSpeedFactor.IsNonZero
+        ? new Destination(part, WorkPoint)
+        : new Destination(Ship!, WorkPoint, null, crew.Rules.ConstructDistance);
 
     public override bool GetSearchOrigin(out Destination? origin, out float distanceToOrigin, List<Ship> additionalSearchShips)
     {

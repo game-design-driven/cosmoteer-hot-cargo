@@ -1,0 +1,21 @@
+# Issue #327 (spec 1583): a hail from an AI ship without a dialogue module (an event carrier such as the escort Courier) made the
+# telemetry hail throw, because vanilla GetSurrenderForPrice reads that module without a null check. The caller is an enemy here,
+# so vanilla reaches the module. The hail must give one dip.hail event (kind other, dialogue false) and no ERROR line.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+aiset FleeEnabled false
+scav_set SpawnChance 0
+fr_set PayForwardChance 0
+openspace 6000
+fr_kill_enemies
+dip_set DemandHailChance 0
+aispawn pirates 1 1
+ainew_watch 0 600
+wait 2
+dip_mute_hail
+wait 2
+teleflush
+telecount dip.hail >= 1
+quit

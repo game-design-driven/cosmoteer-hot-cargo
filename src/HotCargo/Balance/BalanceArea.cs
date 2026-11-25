@@ -155,6 +155,8 @@ public static class BalanceArea
         Autotest.Fields["balance_station_fuel_gap"] = () => StationFuelFloor.LeastStationFuel(Autotest.RequireRun()) - StationFuelFloor.CurrentFloor(Autotest.RequireRun().Game.Sim);
         // balance_station_fuel_move: the crew of a loaded trade station start an internal fuel move (StationFuelFloor.MoveStationFuel).
         Autotest.Commands["balance_station_fuel_move"] = _ => StationFuelFloor.MoveStationFuel(Autotest.RequireRun());
+        // balance_crew_overdraw: a crew member asked for more than it carries gives what it carries, without a crash (#307).
+        Autotest.Commands["balance_crew_overdraw"] = _ => CrewCarryOverdraw.Check(Autotest.RequireRun());
         // Fuel in the hands of the crews of the loaded stations: a station that goes into stasis now must keep it (spec 304).
         Autotest.Fields["balance_station_fuel_carried"] = () => SpaceStation.GetStations(Autotest.RequireRun().Game.Sim, onlyOperating: true)
             .Select(st => st.PhysicalShip).OfType<Cosmoteer.Ships.Ship>()

@@ -1,6 +1,9 @@
 using Cosmoteer;
 using Cosmoteer.Ships;
+using Cosmoteer.Data;
+using Cosmoteer.Resources;
 using Cosmoteer.Ships.Parts;
+using Cosmoteer.Ships.Parts.Resources;
 using Halfling.Geometry;
 using HotCargo.Core;
 using HotCargo.Cut;
@@ -146,20 +149,32 @@ internal static class WeldShip
             }
             sui.Apply();
         }
+        // Storage of the part itself (a reactor's battery, a vault, a tank) moves into the same component of the rebuilt part; the game
+        // builds a part's components in rules order, so the same index is the same component.
+        var moved = new Dictionary<ID<ResourceRules>, int>();
         foreach (var (from, loc, rot) in placed)
         {
             var built = ship.Parts[loc, PartRectType.Normal]
                 ?? throw new InvalidOperationException($"weld: {from.Rules.ID} was not built at {loc}");
             if (built.Rules.ID != from.Rules.ID || built.Rotation != rot) throw new InvalidOperationException($"weld: {built.Rules.ID} rot {built.Rotation} at {loc}, expected {from.Rules.ID} rot {rot}");
             built.Health = from.Health;
+            for (int i = 0; i < from.Components.Count; i++)
+            {
+                if (from.Components[i] is not ISimpleResourceStorage a || built.Components[i] is not ISimpleResourceStorage b || a.ResourceType != b.ResourceType) continue;
+                int n = Math.Min(a.Resources, b.MaxResources);
+                b.Resources = n;
+                moved[a.ResourceType] = moved.GetValueOrDefault(a.ResourceType) + n;
+            }
         }
 
+        // The rest (cargo in flexible storage) goes into the ship's storage by type; what does not fit drops next to the ship.
         foreach (var res in GameApp.Rules.Resources.OrderBy(r => r.ID.ToString(), StringComparer.Ordinal))
         {
-            int n = target.Resources.GetResourceTotal(res.ID, includeStored: true, includeCarried: false);
+            int n = target.Resources.GetResourceTotal(res.ID, includeStored: true, includeCarried: false) - moved.GetValueOrDefault(res.ID);
             if (n <= 0) continue;
             int left = n - ship.Resources.AddResources(res.ID, n, excludeConstructionSinks: true);
             if (left > 0) SimQueries.DropLoose(sim, ship.DetWorldCenter, ship.WorldBoundingRadius, res.ID, left);
+            Log.Info($"weld: {n} {res.ID} from {target.Metadata.PlainShipName} into the ship's storage, {left} dropped");
         }
 
         foreach (var soul in target.Crew.Assigned.OrderBy(c => c.UniqueID).ToList())

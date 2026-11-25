@@ -89,6 +89,16 @@ static class DiplomacyAutotest
         // dip_focus <target>: pins a ship as the target "focus". dip_picks and dip_paychance read it (else the first hunter).
         Autotest.Commands["dip_focus"] = arg => _focus = Target(arg.Trim()).UniqueID;
         Autotest.Commands["dip_set"] = arg => Autotest.SetField(R().T.Diplomacy, arg);
+        // dip_mute_hail: the aispawn ship loses its dialogue module (like an event carrier) and hails the acting player ship.
+        // Test only, single player: issue #327, the telemetry hail threw for such a caller.
+        Autotest.Commands["dip_mute_hail"] = _ =>
+        {
+            if (R().IsMultiplayer) throw new InvalidOperationException("dip_mute_hail is single player only");
+            var ai = FirstSpawned();
+            var shipAi = ai.AI ?? throw new InvalidOperationException("the aispawn ship has no AI");
+            foreach (var m in shipAi.CommsModules.OfType<AIDialogueModule>().ToList()) shipAi.RemoveModule(m);
+            Situation.Career(Sim()).AIHailPlayer(ai, Me());
+        };
         // dip_spawn friend|ally|enemy|trader [distance]: a combat ship near the acting ship: of the system faction (friend), of the corporation's
         // ally faction (ally, military), on a new hostile side (enemy), or a trade ship (trader). friend, ally and trader become "friend".
         Autotest.Commands["dip_spawn"] = arg =>

@@ -116,6 +116,7 @@ internal sealed class WeldToolState : BaseBuildState
         if (Inputs.Game.CancelTool.WasPressed && run.State.Weld.Orders.Any(o => o.Ship == ship.UniqueID))
         {
             Game.NetManager.EnqueueInput(new WeldCancelInput(ship));
+            App.Audio.Play(Rules.CancelConstructionSound, AudioGroups.Interface);
             return;
         }
         if (Target(run, ship) is not { } target) return;
@@ -125,7 +126,11 @@ internal sealed class WeldToolState : BaseBuildState
             Pick(ship, targets[(targets.FindIndex(t => t.UniqueID == _target) + 1) % targets.Count]);
             return;
         }
-        if (App.Keyboard.HotkeyPressed(ViKey.R)) _placement = _placement.Turned();
+        if (App.Keyboard.HotkeyPressed(ViKey.R))
+        {
+            _placement = _placement.Turned();
+            App.Audio.Play(Rules.RotateRightSound, AudioGroups.Interface);
+        }
         var local = ship.TransformPointFromWorld(Sim.WorldMouseLoc);
         var cell = new IntVector2((int)MathF.Floor(local.X), (int)MathF.Floor(local.Y));
         if (_mouseCell is { } last && last != cell)
@@ -146,7 +151,10 @@ internal sealed class WeldToolState : BaseBuildState
                 WidgetRules.Instance.BadTextColor, 1f, null, 1f, xmlFormatting: false);
             return;
         }
-        Game.NetManager.EnqueueInput(new WeldOrderInput(ship, target, _placement));
+        // Spec 2475: in blueprint mode the weld waits for "Make it so"; in live mode it starts at once.
+        Game.NetManager.EnqueueInput(new WeldOrderInput(ship, target, _placement, IsEditingBlueprints));
+        if (IsEditingBlueprints) App.Audio.Play(Rules.BlueprintAddSound, AudioGroups.Interface);
+        else App.Audio.Play(Rules.MakeItSoSound, AudioGroups.Effects);
     }
 
     public override void DrawOverlayImpl()

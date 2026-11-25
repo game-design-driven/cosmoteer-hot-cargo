@@ -360,14 +360,16 @@ static class WorldsAutotest
                 Teleport(lair + new Vector2(float.Parse(distText, CultureInfo.InvariantCulture), 0f));
                 break;
             }
-            // kill <tag>: removes the live ships with the spawn tag.
+            // kill <tag>: removes the ships with the spawn tag, live and in stasis (a ship in stasis wakes when players come near).
             case ["kill", var tag]:
             {
                 var sim = Sim();
-                int killed = 0;
-                foreach (var t in SimQueries.TaggedShips(sim, new ID<SimObjectSpawner>(tag)))
+                var id = new ID<SimObjectSpawner>(tag);
+                int killed = 0, stasis = 0;
+                foreach (var t in SimQueries.TaggedShips(sim, id))
                     if (t.Live is { } ship) { sim.Ships.Remove(ship, dispose: true, handleLostShip: false); killed++; }
-                Log.Info($"AUTOTEST killed {killed} ships tagged {tag}");
+                foreach (var s in sim.Stasis.Where(s => s.HasTag(id)).ToList()) { sim.Stasis.RemoveStasisSpawner(s); stasis++; }
+                Log.Info($"AUTOTEST killed {killed} ships tagged {tag}, {stasis} more in stasis");
                 Autotest.Wait(2);
                 break;
             }

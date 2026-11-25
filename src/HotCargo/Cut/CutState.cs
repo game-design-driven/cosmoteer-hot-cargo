@@ -19,6 +19,8 @@ public sealed class CutOrder
     [Serialize] public ObjectID Ship;
     /// <summary>Every edge of the line, in line order. The split uses all of them as gaps.</summary>
     [Serialize] public List<CutEdge> Edges = [];
+    /// <summary>Spec 2475: a cut made in blueprint mode waits for the vanilla "Make it so". No crew work on it.</summary>
+    [Serialize(Optional = true)] public bool Pending;
 }
 
 [ReflectiveSerialization(Explicit = true)]

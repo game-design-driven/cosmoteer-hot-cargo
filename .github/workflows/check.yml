@@ -99,6 +99,8 @@ jobs:
       - run: dotnet run --project tests/HotCargo.Tests
       # The Windows player installer keeps the player's files (spec 2260). The runner has pwsh; install-mac.sh needs a Mac.
       - run: scripts/test-install-keep.sh
+      # The co-op verdict on fake logs: a host that stops in a step, and a session that passes.
+      - run: scripts/test-coop-report.sh
   # The game tests of the set, split over a few full jobs (scripts/ci-sim-tests.sh). A runner has 4 cores and 16 GB, and one
   # sim takes about one core and 2 GB, so each job runs 4 sims at once. The set decides the job count, at most 6
   # (scripts/ci-test-set.sh): two merge queue groups fit in the ~20 parallel jobs of the free plan.

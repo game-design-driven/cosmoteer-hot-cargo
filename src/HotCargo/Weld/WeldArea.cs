@@ -19,6 +19,17 @@ public static class WeldArea
         WeldTool.Register();
         WeldDraw.Register();
         WeldAutotest.Register();
+        CutApplyHooks.Edits.Add(new WeldEdits());
+    }
+
+    /// <summary>Spec 2484: weld orders follow the vanilla edit flow, as cuts do (spec 2475).</summary>
+    sealed class WeldEdits : IShipEdits
+    {
+        static WeldOrder? OrderOf(Run run, Ship ship) => run.State.Weld.Orders.FirstOrDefault(o => o.Ship == ship.UniqueID);
+        public bool Pending(Run run, Ship ship) => OrderOf(run, ship) is { Pending: true };
+        public bool Running(Run run, Ship ship) => OrderOf(run, ship) is { Pending: false };
+        public Cosmoteer.Game.Multiplayer.MPInput Apply(Ship ship, bool discard) => new WeldApplyInput(ship, discard);
+        public Cosmoteer.Game.Multiplayer.MPInput Cancel(Ship ship) => new WeldCancelInput(ship);
     }
 
     /// <summary>Spec 2483: why the target cannot go to the place now, or null when it can.</summary>
@@ -26,16 +37,34 @@ public static class WeldArea
         WeldShip.Check(ship, target, p).Verdict is var v && v == WeldVerdict.Ok ? null : v;
 
     /// <summary>Spec 2484: makes or replaces the ship's order. Sim only (an MP input).</summary>
-    internal static bool Order(Run run, Ship ship, Ship target, Placement p, int playerIndex)
+    internal static bool Order(Run run, Ship ship, Ship target, Placement p, int playerIndex, bool pending)
     {
         if (!run.T.Weld.Enabled || !WeldShip.IsTarget(run, ship, target, playerIndex) || Refusal(ship, target, p) is not null) return false;
         var orders = run.State.Weld.Orders;
         if (orders.FirstOrDefault(o => o.Ship == ship.UniqueID) is { } old) End(ship, old, orders);
         // A target belongs to one order: a second ship's order on it replaces the first.
         if (orders.FirstOrDefault(o => o.Target == target.UniqueID) is { } other) End(ship.Sim.Ships[other.Ship], other, orders);
-        orders.Add(new WeldOrder { Ship = ship.UniqueID, Target = target.UniqueID, Turns = p.Turns, X = p.X, Y = p.Y, PullSince = run.State.GameSeconds });
-        Log.Info($"weld: order on {ship.Metadata.PlainShipName} for {target.Metadata.PlainShipName} at {p}");
+        orders.Add(new WeldOrder { Ship = ship.UniqueID, Target = target.UniqueID, Turns = p.Turns, X = p.X, Y = p.Y, PullSince = run.State.GameSeconds, Pending = pending });
+        Log.Info($"weld: {(pending ? "pending " : "")}order on {ship.Metadata.PlainShipName} for {target.Metadata.PlainShipName} at {p}");
         return true;
+    }
+
+    /// <summary>Spec 2475: "Make it so" applies the ship's pending weld; the pull starts now. Sim only.</summary>
+    internal static void Apply(Run run, Ship ship)
+    {
+        if (run.State.Weld.Orders.FirstOrDefault(o => o.Ship == ship.UniqueID && o.Pending) is not { } order) return;
+        order.Pending = false;
+        order.PullSince = run.State.GameSeconds;
+        Log.Info($"weld: order on {ship.Metadata.PlainShipName} applied");
+    }
+
+    /// <summary>Spec 2475: "Discard changes" drops the ship's pending weld. Sim only.</summary>
+    internal static void Discard(Run run, Ship ship)
+    {
+        var orders = run.State.Weld.Orders;
+        if (orders.FirstOrDefault(o => o.Ship == ship.UniqueID && o.Pending) is not { } order) return;
+        End(ship, order, orders);
+        Log.Info($"weld: pending order on {ship.Metadata.PlainShipName} discarded");
     }
 
     /// <summary>Spec 2484: cancels the ship's order. Sim only.</summary>
@@ -74,7 +103,7 @@ public static class WeldArea
                 Log.Info("weld: an order ended, its ship or target is not in this system");
                 continue;
             }
-            if (!run.T.Weld.Enabled) continue;
+            if (!run.T.Weld.Enabled || order.Pending) continue;
             var p = order.Placement;
             if (order.Phase == WeldPhase.Pull)
             {
@@ -113,6 +142,7 @@ public static class WeldArea
             string name = target.Metadata.PlainShipName;
             int parts = target.Parts.Count;
             WeldShip.Merge(ship, target, p);
+            CutDraw.Clunk(); // determinism: a sound only, nothing in the sim reads it
             run.State.Weld.Merges++;
             Log.Info($"weld: {name} ({parts} parts) joined {ship.Metadata.PlainShipName}, now {ship.Parts.Count} parts");
         }
