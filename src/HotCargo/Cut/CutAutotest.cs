@@ -14,6 +14,9 @@ static class CutAutotest
     static ObjectID? _me;
     static int _partsAtMark;
     static CutVerdict? _verdict;
+    /// <summary>cut_blueprint on: test orders are made as in blueprint mode, so they wait for cut_apply (spec 2475).</summary>
+    static bool _blueprint;
+    static HashSet<ObjectID> _beforeBlast = [];
     static double _notedDist;
 
     static SimRoot Sim() => Autotest.RequireRun().Game.Sim;
@@ -121,6 +124,22 @@ static class CutAutotest
         _ => throw new InvalidOperationException($"unknown shape '{kind}' (l, loop or bigloop)"),
     };
 
+    /// <summary>Selects "me", opens its build window in the mode of cut_blueprint and clicks a vanilla button of it.</summary>
+    static void Buttons(string button)
+    {
+        var game = Autotest.RequireRun().Game;
+        Sim().PlayerInput.SelectSingleShip(Me());
+        game.Gui.ShipGui.BuildButton.IsSelected = true;
+        var box = game.Gui.ShipGui.BuildToolbox;
+        switch (button)
+        {
+            case "_constructBtn": box.OnConstructClicked(null, EventArgs.Empty); break;
+            case "_discardBtn": box.OnDiscardBlueprintChangesClicked(null, EventArgs.Empty); break;
+            case "_cancelAllBtn": box.OnCancelAllClicked(null, EventArgs.Empty); break;
+            default: throw new InvalidOperationException($"unknown button {button}");
+        }
+    }
+
     internal static void Register()
     {
         Autotest.Commands["cut_mark"] = _ =>
@@ -133,14 +152,14 @@ static class CutAutotest
         {
             var edges = CutModel.Edges(CleanLine(Grid()));
             Log.Info($"AUTOTEST cut: clean line of {edges.Count} edges from {edges[0]} to {edges[^1]}");
-            Autotest.RequireRun().Game.NetManager.EnqueueInput(new CutOrderInput(Me(), edges));
+            Autotest.RequireRun().Game.NetManager.EnqueueInput(new CutOrderInput(Me(), edges, _blueprint));
         };
         // cut_shape l|loop: the L line or the loop line of "me" becomes an order through the MP input.
         Autotest.Commands["cut_shape"] = arg =>
         {
             var line = Shape(arg.Trim());
             Log.Info($"AUTOTEST cut: {arg.Trim()} line through corners {string.Join(" ", line.Select(c => $"{c.X},{c.Y}"))}");
-            Autotest.RequireRun().Game.NetManager.EnqueueInput(new CutOrderInput(Me(), CutModel.Edges(line)));
+            Autotest.RequireRun().Game.NetManager.EnqueueInput(new CutOrderInput(Me(), CutModel.Edges(line), _blueprint));
         };
         // cut_fly <dx> <dy> <degrees>: test only, single player. "me" flies to its position plus the offset and turns to the angle
         // (a move order), so a test sees how a cut-out piece rides along.
@@ -160,7 +179,7 @@ static class CutAutotest
             if (n.Length != 4) throw new InvalidOperationException("cut_line needs: x1 y1 x2 y2");
             var line = new List<Corner> { new(n[0], n[1]) };
             if (CutModel.Extend(line, new Corner(n[2], n[3]), Grid().Blocked) is { } b) throw new InvalidOperationException($"the line is blocked at {b}");
-            Autotest.RequireRun().Game.NetManager.EnqueueInput(new CutOrderInput(Me(), CutModel.Edges(line)));
+            Autotest.RequireRun().Game.NetManager.EnqueueInput(new CutOrderInput(Me(), CutModel.Edges(line), _blueprint));
         };
         // cut_twin: test only, single player. Builds an own ship of two halves, each with a control room, a reactor, crew quarters and
         // a middle column of corridors, next to the first own ship, fills it with crew, and marks it as "me". The halves meet along the corner line x = 3.
@@ -211,6 +230,35 @@ static class CutAutotest
             _verdict = CutArea.Refusal(Me(), edges, out _);
             Log.Info($"AUTOTEST cut: {arg.Trim()} line of {edges.Count} edges, verdict {_verdict?.ToString() ?? "Ok"}");
         };
+        // cut_blueprint on|off: later test orders come as from blueprint mode (pending) or live mode.
+        Autotest.Commands["cut_blueprint"] = arg => _blueprint = arg.Trim() == "on";
+        // cut_apply | cut_discard | cut_cancelall: the vanilla buttons "Make it so", "Discard changes" and "Cancel all" of "me",
+        // clicked in its build window (spec 2475).
+        Autotest.Commands["cut_apply"] = _ => Buttons("_constructBtn");
+        Autotest.Commands["cut_discard"] = _ => Buttons("_discardBtn");
+        Autotest.Commands["cut_cancelall"] = _ => Buttons("_cancelAllBtn");
+        // cut_blast: test only, single player. Destroys the parts on the staying side of the clean line of "me", as explosions would,
+        // so the game splits the ship by itself (spec 2476).
+        Autotest.Commands["cut_blast"] = _ =>
+        {
+            if (Autotest.RequireRun().IsMultiplayer) throw new InvalidOperationException("cut_blast is single player only");
+            var ship = Me();
+            var layout = CutShip.Grid(ship.Parts);
+            var check = CutModel.Check(layout.Grid, CutModel.Edges(CleanLine(layout.Grid)));
+            int stay = CutModel.StayPiece(check.Pieces, i => layout.Parts[i].Rules.ContiguityOriginPriority, i => CutShip.Area(layout.Parts[i]));
+            _beforeBlast = Sim().Ships.Select(x => x.UniqueID).ToHashSet();
+            var hit = check.Work.Select(e => layout.Grid.PartAt(CutModel.WorkCell(layout.Grid, check.Pieces, stay, e))).OfType<int>().Distinct().Select(i => layout.Parts[i]).ToList();
+            foreach (var part in hit) part.Health = 0;
+            Log.Info($"AUTOTEST cut: blast destroyed {hit.Count} parts of {ship.Metadata.PlainShipName}");
+        };
+        // Ships that appeared since cut_blast, and how many of them are a human player's ship.
+        Autotest.Fields["cut_blast_new"] = () => Sim().Ships.Count(x => !_beforeBlast.Contains(x.UniqueID));
+        Autotest.Fields["cut_blast_own"] = () => Sim().Ships.Count(x => !_beforeBlast.Contains(x.UniqueID) && x.IsHumanPlayerShip);
+        Autotest.Fields["cut_me_own"] = () => Me().IsHumanPlayerShip ? 1 : 0;
+        // 1 when the newest cut-off piece is a derelict.
+        Autotest.Fields["cut_piece_junk"] = () => Piece() is { IsJunk: true } ? 1 : 0;
+        Autotest.Fields["cut_piece_beds"] = () => Piece() is { } p ? p.Crew.TotalCrewCapacityWithConstruction : 0;
+        Autotest.Fields["cut_pending"] = () => Order() is { Pending: true } ? 1 : 0;
         // cut_interrupt: every crew member leaves the cut jobs, as when a higher priority job takes them (the tick puts the jobs back).
         Autotest.Commands["cut_interrupt"] = _ =>
         {

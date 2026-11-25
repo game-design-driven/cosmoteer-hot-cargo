@@ -95,7 +95,15 @@ internal sealed class CutToolState : BaseBuildState
             _grid = CutShip.Grid(ship.Parts).Grid;
             _blocked = null;
         }
-        else if (_line is not null && _grid is not null && (bool)Inputs.Game.UseTool) _blocked = CutModel.Extend(_line, corner, _grid.Blocked);
+        else if (_line is not null && _grid is not null && (bool)Inputs.Game.UseTool)
+        {
+            // Spec 2474: a tick for each edge added, the error sound when the line runs into a part.
+            int before = _line.Count;
+            var wasBlocked = _blocked;
+            _blocked = CutModel.Extend(_line, corner, _grid.Blocked);
+            if (_line.Count > before) App.Audio.Play(Rules.BlueprintAddSound, AudioGroups.Interface);
+            if (_blocked is not null && _blocked != wasBlocked) PlayErrorSound();
+        }
         if (_line is not null && Inputs.Game.UseTool.WasReleased)
         {
             Submit(ship, _line);
@@ -105,6 +113,7 @@ internal sealed class CutToolState : BaseBuildState
         {
             OnDeselected();
             Game.NetManager.EnqueueInput(new CutCancelInput(ship));
+            App.Audio.Play(Rules.CancelConstructionSound, AudioGroups.Interface);
         }
     }
 
@@ -120,12 +129,20 @@ internal sealed class CutToolState : BaseBuildState
             Game.Gui.CreateFloatingText(Strings.GetText($"HotCargoCut/{verdict}"), at, WidgetRules.Instance.BadTextColor, 1f, null, 1f, xmlFormatting: false);
             return;
         }
-        Game.NetManager.EnqueueInput(new CutOrderInput(ship, edges));
+        // Spec 2475: in blueprint mode the cut waits for "Make it so"; in live mode it starts at once, as the remove tool's edits do.
+        Game.NetManager.EnqueueInput(new CutOrderInput(ship, edges, IsEditingBlueprints));
+        if (IsEditingBlueprints) App.Audio.Play(Rules.BlueprintAddSound, AudioGroups.Interface);
+        else App.Audio.Play(Rules.MakeItSoSound, AudioGroups.Effects);
     }
 
     public override void DrawOverlayImpl()
     {
-        if (_line is null || Sim.PlayerInput.GetSingleSelectedShip() is not { } ship) return;
+        if (Sim.PlayerInput.GetSingleSelectedShip() is not { } ship) return;
+        if (_line is null)
+        {
+            DrawHover(ship);
+            return;
+        }
         var line = Rules.RemovePartXLine;
         using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
         {
@@ -133,5 +150,14 @@ internal sealed class CutToolState : BaseBuildState
             if (_blocked is { } b) CutDraw.DrawBlocked(Sim, line, b);
         }
         if (_blocked is not null) DrawTextUnderCursor(Strings.GetText("HotCargoCut/Blocked"));
+    }
+
+    /// <summary>Spec 2473: the edge nearest to the cursor and the corner where a press starts the line.</summary>
+    void DrawHover(Ship ship)
+    {
+        if (Game.Gui.Reacted) return;
+        var local = ship.TransformPointFromWorld(Sim.WorldMouseLoc);
+        using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
+            CutDraw.DrawHover(local.X, local.Y);
     }
 }

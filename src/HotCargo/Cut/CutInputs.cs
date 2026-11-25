@@ -16,9 +16,12 @@ internal sealed class CutOrderInput : MPInput
     [Serialize] public ObjectID Ship { get; private set; }
     /// <summary>The line edges as X, Y, down (0 or 1) triples, in line order.</summary>
     [Serialize] public int[] Edges { get; private set; } = [];
+    /// <summary>Spec 2475: made in blueprint mode, so the order waits for "Make it so".</summary>
+    [Serialize(Optional = true)] public bool Pending { get; private set; }
 
-    public CutOrderInput(Ship ship, IReadOnlyList<Edge> edges)
+    public CutOrderInput(Ship ship, IReadOnlyList<Edge> edges, bool pending)
     {
+        Pending = pending;
         Ship = ship.UniqueID;
         Edges = [.. edges.SelectMany(e => new[] { e.X, e.Y, e.Down ? 1 : 0 })];
     }
@@ -30,7 +33,7 @@ internal sealed class CutOrderInput : MPInput
         if (Run.Current is not { } run || run.Game != game || CutInputs.OwnShip(game, Ship, playerIndex) is not { } ship) return;
         if (Edges.Length % 3 != 0) throw new InvalidOperationException($"cut order: {Edges.Length} numbers are no edge triples");
         var edges = Enumerable.Range(0, Edges.Length / 3).Select(i => new Edge(Edges[3 * i], Edges[3 * i + 1], Edges[3 * i + 2] == 1)).ToList();
-        if (!CutArea.Order(run, ship, edges)) Log.Info($"cut: order of player {playerIndex} refused in the sim");
+        if (!CutArea.Order(run, ship, edges, Pending)) Log.Info($"cut: order of player {playerIndex} refused in the sim");
     });
 }
 
@@ -51,6 +54,30 @@ internal sealed class CutCancelInput : MPInput
     });
 }
 
+/// <summary>Spec 2475: "Make it so" applies the pending cut of a ship, or "Discard changes" drops it. Runs in lockstep on every machine.</summary>
+[ReflectiveSerialization(Explicit = true)]
+[SerialDerivedType(TypeName = "HotCargoCutApply")]
+internal sealed class CutApplyInput : MPInput
+{
+    [Serialize] public ObjectID Ship { get; private set; }
+    [Serialize] public bool Discard { get; private set; }
+
+    public CutApplyInput(Ship ship, bool discard)
+    {
+        Ship = ship.UniqueID;
+        Discard = discard;
+    }
+
+    CutApplyInput() { }
+
+    public override void Execute(GameRoot game, int playerIndex, MessengerID playerID, bool force = false) => Errors.Guard("cut apply", () =>
+    {
+        if (Run.Current is not { } run || run.Game != game || CutInputs.OwnShip(game, Ship, playerIndex) is not { } ship) return;
+        if (Discard) CutArea.Discard(run, ship);
+        else CutArea.Apply(run, ship);
+    });
+}
+
 static class CutInputs
 {
     /// <summary>Spec 2470: the ship, when it is a human player's ship in this system that the player commands (as MPUpdateShipInput checks).</summary>
@@ -63,7 +90,7 @@ static class AllowCutInputsPatch
 {
     static void Postfix(MPInput mpInput, ref bool __result)
     {
-        if (mpInput is CutOrderInput or CutCancelInput) __result = true;
+        if (mpInput is CutOrderInput or CutCancelInput or CutApplyInput) __result = true;
     }
 }
 
@@ -78,6 +105,9 @@ static class CutHash
         iHash.AddHash(cut.Splits);
         iHash.AddHash(cut.Orders.Count);
         foreach (var order in cut.Orders)
+        {
+            iHash.AddHash(order.Pending ? 1 : 0);
             foreach (var e in order.Edges) iHash.AddHash((int)(e.Work * 1000) + (e.Done ? 1 : 0));
+        }
     }
 }

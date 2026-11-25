@@ -6,6 +6,7 @@ using Cosmoteer.Ships;
 using Cosmoteer.Simulation;
 using Halfling;
 using Halfling.Geometry;
+using Halfling.Audio;
 using Halfling.Graphics;
 using HotCargo.Core;
 
@@ -19,10 +20,11 @@ namespace HotCargo.Cut;
 /// </summary>
 static class CutDraw
 {
-    sealed class Art(CappedLine torch, CappedLine seam, CappedLine drag, ISprite spark)
+    sealed class Art(CappedLine torch, CappedLine seam, CappedLine drag, ISprite spark, ISoundEffect workSound, ISoundEffect clunk)
     {
         public readonly CappedLine Torch = torch, Seam = seam, Drag = drag;
         public readonly ISprite Spark = spark;
+        public readonly ISoundEffect WorkSound = workSound, Clunk = clunk;
     }
 
     /// <summary>What the eye saw of an edge in earlier frames: its work and when it last grew, and when it was first seen done.</summary>
@@ -46,7 +48,8 @@ static class CutDraw
     {
         var file = new OTFile(Path.Combine(Mod.ModRoot, "cut/lines.rules"));
         T Read<T>(string name) where T : class => App.ObjectTextSerializer.ReadFromPath<T>(file, name) ?? throw new InvalidDataException($"{name} missing in cut/lines.rules");
-        return new(Read<CappedLine>("Torch"), Read<CappedLine>("Seam"), Read<CappedLine>("Drag"), Read<ISprite>("Spark"));
+        return new(Read<CappedLine>("Torch"), Read<CappedLine>("Seam"), Read<CappedLine>("Drag"), Read<ISprite>("Spark"),
+            Read<ISoundEffect>("WorkSound"), Read<ISoundEffect>("Clunk"));
     }
 
     internal static void Register() => Run.Hooks.Frame += run => Ux.UxKit.Guard("cut draw", () =>
@@ -62,13 +65,54 @@ static class CutDraw
     static void DrawOrders(SimRoot sim)
     {
         if (Run.Current is not { } run || run.Game.Sim != sim) return;
-        var art = _art ??= LoadArt();
         foreach (var order in run.State.Cut.Orders)
         {
             if (sim.Ships[order.Ship] is not { } ship) continue;
+            if (!order.Pending)
+            {
+                DrawEdges(ship, order.Edges);
+                continue;
+            }
+            // Spec 2475: a pending cut shows as the line it was drawn as, with the other pending design edits.
             using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
-                foreach (var e in order.Edges) DrawOrderEdge(art, e);
+                DrawDrag(order.Edges.Where(e => !e.Done).Select(e => e.Edge));
         }
+        WorkSound(run, sim);
+    }
+
+    /// <summary>Spec 2468, 2490: the edges of a cut or a weld on a ship, in the world.</summary>
+    internal static void DrawEdges(Ship ship, IEnumerable<CutEdge> edges)
+    {
+        var art = _art ??= LoadArt();
+        using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
+            foreach (var e in edges) DrawOrderEdge(art, e);
+    }
+
+    static SoundInstance? _workLoop;
+
+    /// <summary>
+    /// Spec 2474: the crew construction sound loops while crew work on an edge of a ship in view, one loop for all cuts. Crew inside a
+    /// ship get no construction beams, and only the beams carry the vanilla sound (SpaceCrew.RenewConstructionBeams).
+    /// </summary>
+    static void WorkSound(Run run, SimRoot sim)
+    {
+        double now = Now;
+        bool working = run.State.Cut.Orders.Any(o => !o.Pending && sim.Ships[o.Ship] is { } s && sim.WorldViewRect.Contains(s.WorldCenter)
+            && o.Edges.Any(e => !e.Done && Looks.TryGetValue(e, out var look) && now - look.WorkedAt < SparkSeconds));
+        var art = _art ??= LoadArt();
+        if (working && _workLoop is null) _workLoop = App.Audio.Play(art.WorkSound, AudioGroups.Effects, loop: true);
+        else if (!working && _workLoop is not null)
+        {
+            _workLoop.Stop();
+            _workLoop = null;
+        }
+    }
+
+    /// <summary>Spec 2465, 2474: the clunk of the separation. A sound only; the sim calls it at the split on every machine.</summary>
+    internal static void Clunk()
+    {
+        var art = _art ??= LoadArt();
+        App.Audio.Play(art.Clunk, AudioGroups.Effects);
     }
 
     static (Vector2 A, Vector2 B) Ends(Edge e) =>
@@ -118,17 +162,35 @@ static class CutDraw
         if (working && look.DoneAt is null) DrawSpark(art.Spark, e.Edge, now);
     }
 
-    /// <summary>Spec 2461: the line in progress, as marching dashes with stitches, in ship space.</summary>
-    internal static void DrawDrag(IEnumerable<Edge> edges)
+    /// <summary>Spec 2461, 2475: the line in progress or a pending cut, as marching dashes with stitches, in ship space.</summary>
+    internal static void DrawDrag(IEnumerable<Edge> edges, float alpha = 1f)
     {
         var art = _art ??= LoadArt();
         float march = (float)(-Now * 1.5);
         foreach (var e in edges)
         {
             var (a, b) = Ends(e);
-            art.Drag.Draw(a, b, DragColor, DragThickness, march);
-            DrawStitch(art.Seam, e, Stitch);
+            art.Drag.Draw(a, b, DragColor * alpha, DragThickness, march);
+            DrawStitch(art.Seam, e, Stitch * alpha);
         }
+    }
+
+    /// <summary>
+    /// Spec 2473: the tile edge nearest to a ship point (<paramref name="x"/>, <paramref name="y"/>), faint, and a mark at the nearest
+    /// corner, in ship space.
+    /// </summary>
+    internal static void DrawHover(float x, float y)
+    {
+        var art = _art ??= LoadArt();
+        int cx = (int)MathF.Round(x), cy = (int)MathF.Round(y);
+        int fx = (int)MathF.Floor(x), fy = (int)MathF.Floor(y);
+        // The nearer of the horizontal edge on the nearest grid row and the vertical edge on the nearest grid column.
+        var edge = MathF.Abs(y - cy) <= MathF.Abs(x - cx) ? Edge.Along(new Corner(fx, cy), new Corner(fx + 1, cy)) : Edge.Along(new Corner(cx, fy), new Corner(cx, fy + 1));
+        DrawDrag([edge], 0.55f);
+        var c = new Vector2(cx, cy);
+        const float r = 0.2f;
+        art.Seam.Draw(c - new Vector2(r, 0f), c + new Vector2(r, 0f), Stitch, StitchThickness);
+        art.Seam.Draw(c - new Vector2(0f, r), c + new Vector2(0f, r), Stitch, StitchThickness);
     }
 
     /// <summary>

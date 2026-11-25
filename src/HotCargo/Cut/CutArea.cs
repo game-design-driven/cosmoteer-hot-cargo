@@ -32,14 +32,14 @@ public static class CutArea
     }
 
     /// <summary>Spec 2463: makes or replaces the ship's order. Sim only (an MP input or a test command in single player).</summary>
-    internal static bool Order(Run run, Ship ship, IReadOnlyList<Edge> edges)
+    internal static bool Order(Run run, Ship ship, IReadOnlyList<Edge> edges, bool pending)
     {
         if (!run.T.Cut.Enabled || Refusal(ship, edges, out var check) is not null || check is null) return false;
         var layout = CutShip.Grid(ship.Parts);
         int stay = CutModel.StayPiece(check.Pieces, i => layout.Parts[i].Rules.ContiguityOriginPriority, i => CutShip.Area(layout.Parts[i]));
         var orders = run.State.Cut.Orders;
         var old = orders.FirstOrDefault(o => o.Ship == ship.UniqueID);
-        var order = new CutOrder { Ship = ship.UniqueID };
+        var order = new CutOrder { Ship = ship.UniqueID, Pending = pending };
         foreach (var e in edges.Distinct())
         {
             var work = CutModel.WorkCell(layout.Grid, check.Pieces, stay, e);
@@ -53,8 +53,25 @@ public static class CutArea
         }
         if (old is not null) End(ship, old, orders);
         orders.Add(order);
-        Log.Info($"cut: order on {ship.Metadata.PlainShipName}, {check.Work.Count} edges need work{(old is null ? "" : " (replaces the old order)")}");
+        Log.Info($"cut: {(pending ? "pending " : "")}order on {ship.Metadata.PlainShipName}, {check.Work.Count} edges need work{(old is null ? "" : " (replaces the old order)")}");
         return true;
+    }
+
+    /// <summary>Spec 2475: "Make it so" applies the ship's pending order, so the work starts. Sim only.</summary>
+    internal static void Apply(Run run, Ship ship)
+    {
+        if (run.State.Cut.Orders.FirstOrDefault(o => o.Ship == ship.UniqueID && o.Pending) is not { } order) return;
+        order.Pending = false;
+        Log.Info($"cut: order on {ship.Metadata.PlainShipName} applied");
+    }
+
+    /// <summary>Spec 2475: "Discard changes" drops the ship's pending order. Sim only.</summary>
+    internal static void Discard(Run run, Ship ship)
+    {
+        var orders = run.State.Cut.Orders;
+        if (orders.FirstOrDefault(o => o.Ship == ship.UniqueID && o.Pending) is not { } order) return;
+        End(ship, order, orders);
+        Log.Info($"cut: pending order on {ship.Metadata.PlainShipName} discarded");
     }
 
     /// <summary>Spec 2463: cancels the ship's order. Sim only.</summary>
@@ -92,6 +109,11 @@ public static class CutArea
                 continue;
             }
             if (!run.T.Cut.Enabled) continue;
+            if (order.Pending)
+            {
+                foreach (var e in order.Edges) DropJob(ship, e);
+                continue;
+            }
             foreach (var e in order.Edges)
             {
                 if (!e.Done && !CutShip.NeedsWork(ship, e.Edge))
@@ -122,6 +144,7 @@ public static class CutArea
             if (ship.IsHumanPlayerShip) Ux.UxKit.ChatLine(sim.RequireGame(), Cosmoteer.Localization.Strings.GetText("HotCargoCut/NoSplit"));
             return;
         }
+        CutDraw.Clunk(); // determinism: a sound only, nothing in the sim reads it
         int trimmed = CutShip.TrimDesign(ship, gaps);
         run.State.Cut.Splits++;
         var pieces = sim.Ships.Where(s => !before.Contains(s.UniqueID)).OrderBy(s => s.UniqueID).ToList();
