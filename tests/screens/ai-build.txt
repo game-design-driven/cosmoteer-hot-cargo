@@ -19,7 +19,7 @@ tactics_editor design 1 Drone
 wait 1
 tactics_editor design 2 Builder
 wait 1
-tactics HC1:CanAffordDesign=1&FewerOfDesign=1x3>BuildShip=1;CanAffordRefit=2>RefitShip=2;LootWithin=3000>CollectLoot;Always>ReturnToFleet
+tactics HC2:CanAffordDesign=1&ShipsOf[1]<3->BuildShip=1;CanAffordRefit=2->RefitShip=2;NearestLoot<3000->CollectLoot;Always->ReturnToFleet
 tacticsauto on
 wait 2
 screenshot ai-build-editor

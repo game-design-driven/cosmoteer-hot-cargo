@@ -466,11 +466,15 @@ public static class ShipAiArea
             float f = float.Parse(arg, CultureInfo.InvariantCulture);
             foreach (var part in TestShip().Parts.ToList()) part.Health = Math.Max(1, (int)(part.Rules.MaxHealth * f));
         };
-        // tactics_strings: every condition, action, preset and parameter name has a string.
+        // tactics_strings: every fact, value, action, group, unit, preset and parameter name has a string, and each entry a tooltip.
         Autotest.Commands["tactics_strings"] = _ =>
         {
-            var keys = Enum.GetNames<Cond>().Select(n => "Cond_" + n)
-                .Concat(Enum.GetNames<Act>().Select(n => "Act_" + n))
+            var keys = Enum.GetNames<Cond>().SelectMany(n => new[] { "Cond_" + n, "Desc_" + n })
+                .Concat(Enum.GetNames<Value>().SelectMany(n => new[] { "Value_" + n, "Desc_" + n }))
+                .Concat(Enum.GetNames<Act>().SelectMany(n => new[] { "Act_" + n, "Desc_" + n }))
+                .Concat(Enum.GetNames<Group>().Select(n => "Group_" + n))
+                .Concat(Enum.GetNames<Unit>().Select(n => "Unit" + n + "Fmt"))
+                .Concat(Enum.GetNames<StationPick>().Select(n => "Station_" + n))
                 .Concat(Enum.GetNames<Preset>().Select(n => "Preset_" + n))
                 .Concat(Enum.GetNames<PartKind>().Select(n => "PartKind_" + n))
                 .Concat(Enum.GetNames<ShipClass>().Select(n => "ShipClass_" + n))

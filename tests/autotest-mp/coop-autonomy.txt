@@ -50,7 +50,7 @@ tactics_editor open
 tactics_editor design 1 CoopDrone
 wait 1
 tactics_editor close
-tactics HC1:CanAffordDesign=1&FewerOfDesign=1x1>BuildShip=1;Always>ReturnToFleet
+tactics HC2:CanAffordDesign=1&ShipsOf[1]<1->BuildShip=1;Always->ReturnToFleet
 tacticsauto on
 # What the design costs lies next to the builder (loose resources near it count for construction).
 mp auto_loot steel 20 4 60

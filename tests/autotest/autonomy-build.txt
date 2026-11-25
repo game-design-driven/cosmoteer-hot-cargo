@@ -27,7 +27,7 @@ tactics_editor design 2 Refit
 wait 1
 tactics_editor close
 # No "near my crewed ship" term: Build ship runs only where crew can reach the new ship (spec 1087), so it waits until the builder is back.
-tactics HC1:CanAffordDesign=1&FewerOfDesign=1x1>BuildShip=1;LootWithin=5000>CollectLoot;Always>ReturnToFleet
+tactics HC2:CanAffordDesign=1&ShipsOf[1]<1->BuildShip=1;NearestLoot<5000->CollectLoot;Always->ReturnToFleet
 tacticsauto on
 # The fleet's steel and coil lie next to the builder (the start ship stores none). Loose resources there count for construction.
 auto_loot steel 20 4 60
@@ -46,7 +46,7 @@ waitfor auto_built_done == 1 400
 wait 20
 expect auto_built == 1
 # Refit: the builder's blueprint becomes the refit design once; the crew take the last thruster off.
-tactics HC1:CanAffordRefit=2>RefitShip=2;Always>ReturnToFleet
+tactics HC2:CanAffordRefit=2->RefitShip=2;Always->ReturnToFleet
 waitfor auto_refit == 1 30
 waitfor auto_refit_done == 1 300
 quit
