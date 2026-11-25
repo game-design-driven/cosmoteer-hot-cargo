@@ -26,6 +26,9 @@ openspace 6000
 fr_kill_enemies
 # A fixed hull: the random pick depends on the sim random stream (#209 moved it; the other pick, Erato, never came into combat with the player ship).
 aispawn pirates 1 3 trade hull=Chalcis
+# Other ships near the test ship leave: fr_kill_enemies keeps ships that are enemies of the pirates only. On the PC one of them
+# (Recusant) fought the test ship while it fell back, and the ship was gone when the check came (#336).
+aialone
 wait 3
 aistrip 0 resources
 aidamage 0 0.3
