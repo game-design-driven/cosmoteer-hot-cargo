@@ -40,8 +40,32 @@ internal static class WeldShip
         return WeldModel.Snap((float)target.DetRotation - (float)ship.DetRotation, origin.X, origin.Y);
     }
 
+    /// <summary>A target part and its part in the ship at a place, with the rotation and flip that the game gives it there.</summary>
+    internal readonly record struct PlacedPart(Part From, PartInfo Info);
+
+    /// <summary>The target's parts at a place in the ship's grid, in a stable order (top to bottom, then left to right).</summary>
+    internal static List<PlacedPart> PlaceParts(Ship ship, Ship target, Placement p) =>
+        target.Parts.OrderBy(q => q.Location.Y).ThenBy(q => q.Location.X).Select(part =>
+        {
+            var r = part.Rect;
+            var (x, y, _, _) = WeldModel.Place((r.X, r.Y, r.Width, r.Height), p);
+            var rules = ship.Rules.PartsByID[part.Rules.ID];
+            return new PlacedPart(part, new PartInfo(rules, new IntVector2(x, y), WeldModel.PartRotation(part.Rotation, p, rules.IsRotateable), rules.IsFlippable && part.FlipX));
+        }).ToList();
+
+    /// <summary>
+    /// A part that cannot turn keeps its footprint, so a turn changes its shape when it is not square. No vanilla or Hot Cargo part is
+    /// like that (all are square), but a part of another mod can be.
+    /// </summary>
+    static bool KeepsShape(PlacedPart placed, Placement p)
+    {
+        var r = placed.From.Rect;
+        var (_, _, w, h) = WeldModel.Place((r.X, r.Y, r.Width, r.Height), p);
+        return placed.Info.Rect.Size == new IntVector2(w, h);
+    }
+
     /// <summary>The ship's parts and the target's parts at a place, in one grid of the ship. Target parts come after the ship's.</summary>
-    internal sealed record Layout(CutGrid Both, HashSet<Cell> ShipTiles, List<Cell> TargetTiles, int ShipParts);
+    internal sealed record Layout(CutGrid Both, HashSet<Cell> ShipTiles, List<Cell> TargetTiles, int ShipParts, bool KeepsShape);
 
     internal static Layout Place(Ship ship, Ship target, Placement p)
     {
@@ -61,28 +85,29 @@ internal static class WeldShip
         foreach (var part in ship.BlueprintParts)
             foreach (IntVector2 c in part.PhysicalRect) shipTiles.Add(new Cell(c.X, c.Y));
         var targetTiles = new List<Cell>();
-        foreach (var part in target.Parts.OrderBy(q => q.Location.Y).ThenBy(q => q.Location.X))
+        var placed = PlaceParts(ship, target, p);
+        foreach (var (_, info) in placed)
         {
-            foreach (IntVector2 c in part.PhysicalRect)
+            foreach (IntVector2 c in info.PhysicalRect)
             {
-                var placed = WeldModel.Place(new Cell(c.X, c.Y), p);
-                cells[placed] = parts.Count;
-                targetTiles.Add(placed);
+                cells[new Cell(c.X, c.Y)] = parts.Count;
+                targetTiles.Add(new Cell(c.X, c.Y));
             }
-            parts.Add((part.Rules, WeldModel.PartRotation(part.Rotation, p), part.FlipX));
+            parts.Add((info.Rules, info.Rotation, info.FlipX));
         }
         var grid = new CutGrid(cells, e =>
         {
             var (a, b) = (parts[cells[e.A]], parts[cells[e.B]]);
             return CutShip.InContact(a.Rules, a.Rot, a.Flip, b.Rules, b.Rot, b.Flip, e);
         });
-        return new(grid, shipTiles, targetTiles, shipParts);
+        return new(grid, shipTiles, targetTiles, shipParts, placed.All(x => KeepsShape(x, p)));
     }
 
     /// <summary>Spec 2483: the check of a place.</summary>
     internal static WeldCheck Check(Ship ship, Ship target, Placement p)
     {
         var layout = Place(ship, target, p);
+        if (!layout.KeepsShape) return new(WeldVerdict.CannotTurn, []);
         return WeldModel.Check(layout.ShipTiles, layout.TargetTiles, layout.Both, i => i >= layout.ShipParts);
     }
 
@@ -111,6 +136,21 @@ internal static class WeldShip
         return false;
     }
 
+    /// <summary>
+    /// Spec 2485: while a weld runs, the target and the ship do not collide. So the piece can turn through the hull on its way to its
+    /// place, and a held piece does not push the ship. The fixtures of both bodies share a negative collision group: such fixtures
+    /// never collide (Fixture.CollisionGroup, ContactManager.ShouldCollide). The game uses no collision groups. The ship's fixtures
+    /// change with its parts, so the tick sets the group again each step. Two welds whose ship IDs share the group also pass through
+    /// each other; revisit if that shows in play.
+    /// </summary>
+    internal static void PassThrough(Ship ship, Ship? target, bool on)
+    {
+        short group = on ? (short)-(1 + (int)(ship.UniqueID._id % 32000)) : (short)0;
+        foreach (var body in target is null ? [ship.Physics.Body] : (Halfling.Physics2D.Dynamics.Body[])[ship.Physics.Body, target.Physics.Body])
+            foreach (var fixture in body.FixtureList)
+                if (fixture.CollisionGroup != group) fixture.CollisionGroup = group;
+    }
+
     /// <summary>Spec 2485: the target sits exactly at its place and moves with the ship.</summary>
     internal static void Hold(Ship ship, Ship target, Placement p)
     {
@@ -132,35 +172,32 @@ internal static class WeldShip
     internal static void Merge(Ship ship, Ship target, Placement p)
     {
         var sim = ship.Sim;
-        var parts = target.Parts.OrderBy(q => q.Location.Y).ThenBy(q => q.Location.X).ToList();
-        var placed = new List<(Part From, IntVector2 Loc, int Rot)>();
+        // Checked before any change: a place that is not valid leaves both ships as they were.
+        if (Check(ship, target, p).Verdict is var verdict && verdict != WeldVerdict.Ok)
+            throw new InvalidOperationException($"weld: {target.Metadata.PlainShipName} cannot join {ship.Metadata.PlainShipName} at {p}: {verdict}");
+        var placed = PlaceParts(ship, target, p);
         using (var sui = ShipUpdateInfo.Alloc(ship))
         {
-            foreach (var part in parts)
-            {
-                var r = part.Rect;
-                var (x, y, _, _) = WeldModel.Place((r.X, r.Y, r.Width, r.Height), p);
-                var loc = new IntVector2(x, y);
-                int rot = WeldModel.PartRotation(part.Rotation, p);
-                var rules = ship.Rules.PartsByID[part.Rules.ID];
-                if (!sui.TryAddBlueprintPart(rules, loc, rot, part.FlipX, mirrorPhysical: true, allowOverwrite: false, addDoors: true, hireCrew: false, out var reasons, force: true))
-                    throw new InvalidOperationException($"weld: {ship.Metadata.PlainShipName} cannot take {rules.ID} at {loc} rot {rot}: {reasons}");
-                placed.Add((part, loc, rot));
-            }
+            foreach (var (_, info) in placed)
+                if (!sui.TryAddBlueprintPart(info.Rules, info.Location, info.Rotation, info.FlipX, mirrorPhysical: true, allowOverwrite: false, addDoors: true, hireCrew: false, out var reasons, force: true))
+                    throw new InvalidOperationException($"weld: {ship.Metadata.PlainShipName} cannot take {info.Rules.ID} at {info.Location} rot {info.Rotation}: {reasons}");
             sui.Apply();
+        }
+        var built = placed.Select(x => (x.From, Built: x.Info.GetPart(ship))).ToList();
+        if (built.FirstOrDefault(b => b.Built is null) is { From: { } missing })
+        {
+            Undo(ship, placed);
+            throw new InvalidOperationException($"weld: {missing.Rules.ID} was not built as planned on {ship.Metadata.PlainShipName}; the weld was undone");
         }
         // Storage of the part itself (a reactor's battery, a vault, a tank) moves into the same component of the rebuilt part; the game
         // builds a part's components in rules order, so the same index is the same component.
         var moved = new Dictionary<ID<ResourceRules>, int>();
-        foreach (var (from, loc, rot) in placed)
+        foreach (var (from, part) in built)
         {
-            var built = ship.Parts[loc, PartRectType.Normal]
-                ?? throw new InvalidOperationException($"weld: {from.Rules.ID} was not built at {loc}");
-            if (built.Rules.ID != from.Rules.ID || built.Rotation != rot) throw new InvalidOperationException($"weld: {built.Rules.ID} rot {built.Rotation} at {loc}, expected {from.Rules.ID} rot {rot}");
-            built.Health = from.Health;
+            part!.Health = from.Health;
             for (int i = 0; i < from.Components.Count; i++)
             {
-                if (from.Components[i] is not ISimpleResourceStorage a || built.Components[i] is not ISimpleResourceStorage b || a.ResourceType != b.ResourceType) continue;
+                if (from.Components[i] is not ISimpleResourceStorage a || part.Components[i] is not ISimpleResourceStorage b || a.ResourceType != b.ResourceType) continue;
                 int n = Math.Min(a.Resources, b.MaxResources);
                 b.Resources = n;
                 moved[a.ResourceType] = moved.GetValueOrDefault(a.ResourceType) + n;
@@ -191,5 +228,14 @@ internal static class WeldShip
             crew.SetLocation(ship.DetTransformPointFromWorld(world), lerpFromPrevious: false, queueGeometryRefresh: true, clearPath: true);
         }
         sim.Ships.Remove(target, dispose: true, handleLostShip: false);
+    }
+
+    /// <summary>Removes the parts that a failed merge added, with their design, so the ship is as it was before the merge.</summary>
+    static void Undo(Ship ship, List<PlacedPart> placed)
+    {
+        var design = placed.SelectMany(x => x.Info.Rect.Select(c => ship.BlueprintParts[c])).OfType<Cosmoteer.Ships.Blueprints.BlueprintPart>().Distinct().ToList();
+        using var sui = ShipUpdateInfo.Alloc(ship);
+        sui.TryRemoveBlueprintParts(design, mirrorPhysical: true, out _, force: true);
+        sui.Apply();
     }
 }

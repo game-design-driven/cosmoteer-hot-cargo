@@ -86,6 +86,7 @@ public static class WeldArea
     static void End(Ship? ship, WeldOrder order, List<WeldOrder> orders)
     {
         foreach (var e in order.Joints) CutArea.DropJob(ship, e);
+        if (ship is not null) WeldShip.PassThrough(ship, ship.Sim.Ships[order.Target], on: false);
         orders.Remove(order);
     }
 
@@ -111,6 +112,7 @@ public static class WeldArea
                 continue;
             }
             if (!run.T.Weld.Enabled || order.Pending) continue;
+            WeldShip.PassThrough(ship, target, on: true);
             var p = order.Placement;
             if (order.Phase == WeldPhase.Pull)
             {
@@ -149,7 +151,19 @@ public static class WeldArea
             string name = target.Metadata.PlainShipName;
             int parts = target.Parts.Count;
             Welded.Add(target.UniqueID);
-            WeldShip.Merge(ship, target, p);
+            try
+            {
+                WeldShip.Merge(ship, target, p);
+            }
+            catch (Exception ex)
+            {
+                // A failed merge changes nothing (WeldShip.Merge checks first and undoes its parts). The error fails every test, and in
+                // play the piece stays a free object.
+                Welded.Remove(target.UniqueID);
+                Errors.Report("weld merge", ex.Message, ex);
+                if (ship.IsHumanPlayerShip) Ux.UxKit.ChatLine(sim.RequireGame(), Strings.GetText("HotCargoWeld/Failed"));
+                continue;
+            }
             CutDraw.Clunk(); // determinism: a sound only, nothing in the sim reads it
             run.State.Weld.Merges++;
             Log.Info($"weld: {name} ({parts} parts) joined {ship.Metadata.PlainShipName}, now {ship.Parts.Count} parts");

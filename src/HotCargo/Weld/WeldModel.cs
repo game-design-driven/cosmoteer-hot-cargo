@@ -12,7 +12,7 @@ public readonly record struct Placement(int Turns, int X, int Y)
 }
 
 /// <summary>Spec 2483: why a place is not valid.</summary>
-public enum WeldVerdict { Ok, Covered, NoContact }
+public enum WeldVerdict { Ok, Covered, NoContact, CannotTurn }
 
 /// <summary>The check of a place: the verdict and the joint edges, in the ship's grid.</summary>
 public sealed record WeldCheck(WeldVerdict Verdict, IReadOnlyList<Edge> Joints);
@@ -46,8 +46,11 @@ public static class WeldModel
         return (Math.Min(ax, bx) + p.X, Math.Min(ay, by) + p.Y, Math.Abs(bx - ax), Math.Abs(by - ay));
     }
 
-    /// <summary>A target part's rotation in the ship. A flip stays, because the game flips a part before it turns it.</summary>
-    public static int PartRotation(int rotation, Placement p) => (rotation + p.Turns) & 3;
+    /// <summary>
+    /// A target part's rotation in the ship. A flip stays, because the game flips a part before it turns it. A part that cannot turn
+    /// (structure, armor, corridors) always has rotation 0, as the game builds it (the CommonBasePart constructor).
+    /// </summary>
+    public static int PartRotation(int rotation, Placement p, bool rotateable) => rotateable ? (rotation + p.Turns) & 3 : 0;
 
     /// <summary>An angle in radians, wrapped to more than minus pi and at most pi.</summary>
     public static float Wrap(float angle)
