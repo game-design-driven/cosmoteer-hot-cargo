@@ -81,7 +81,7 @@ Category switches are in the `Telemetry` tunables section. The table names the s
 | `combat.damage` | Combat | per side of the damaged ship: `damage`, `repaired`, `parts_lost`. Summed over `AccrualSeconds`. Side `vault` holds the Tech Vault part of the player damage again. |
 | `debt.overdraft` | Economy | `player`, `lender` (faction ID), `amount`, `balance`, `new` (the overdraft opened the debt). Money below 0 became a debt (spec 1417). |
 | `debt.hail` | Economy | `player`, `lender`, `balance`, `cause` (`overdraft`). The lender of an overdraft debt gets in touch (spec 1418). |
-| `dip.hail` | Diplomacy | AI fields, `player`, `kind` (`offer_surrender`, `demand_surrender`, `other`), `price`. A vanilla AI hail. |
+| `dip.hail` | Diplomacy | AI fields, `player`, `kind` (`offer_surrender`, `demand_surrender`, `other`), `price`, `dialogue` (false: the caller has no dialogue module, so it has no surrender price). A vanilla AI hail. |
 | `dip.surrender` | Diplomacy | AI fields, `player`, `by` (`players`, `ai`), `price`, `accepted`. A vanilla surrender input. |
 | `dip.deal` | Diplomacy | AI fields, `player`, `offer` (the hail choice, spec 561 to 596), `amount`, `price`, `chance`, `roll`, `accepted`. Chance, roll and accepted only for a choice with a roll. |
 | `ai.switch` | Ai | `ship`, `name`, `side`, `ai`, `from`, `to` (module types), `integrity`, `dist` |
