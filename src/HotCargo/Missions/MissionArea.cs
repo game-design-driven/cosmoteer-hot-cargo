@@ -758,7 +758,8 @@ public static class MissionArea
     {
         var o = RequireEscort();
         Ship escort = o.Escort.TargetShip ?? throw new InvalidOperationException("escort is not live; run hc_escort_goto and wait first");
-        Vector2 at = o.Start + (o.Destination - o.Start) * share;
+        // A clear spot (#308): the route point can lie on a rock or ship that loads out of stasis around the freighter and holds it there.
+        Vector2 at = Autotest.ClearSpotNear(RequireSim(), o.Start + (o.Destination - o.Start) * share, 0f, escort.WorldBoundingRadius);
         Autotest.Teleport(escort, at);
         TeleportPlayers(at);
     }

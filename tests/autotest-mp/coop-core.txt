@@ -211,6 +211,11 @@ waitfor hc_escort_progress > 50 45
 mp hc_escort_advance 0.29
 # The ambush raiders spawn when the freighter reaches 0.3.
 pause off
+# #308: first the freighter moves on from its new spot. A freighter that does not move fails here, apart from a slow flight (CI: 3 to
+# 36 s to the ambush in 60 runs, once never). The mark waits one second, so it is taken after the advance ran in the sim.
+wait 1
+hc_mark
+waitfor hc_escort_progress > 20 30
 waitfor hc_escort_raiders >= 2 60
 on 1 waitfor hc_escort_raiders >= 2 60
 # Spec 1881, 1882: both players leave the freighter. It holds alone, and its raid spawns at the same tick and place on both machines.
