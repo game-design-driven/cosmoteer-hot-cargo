@@ -76,6 +76,24 @@ while read -r hline; do
   break
 done <<<"$HOST_WORLDS"
 
+# The hash trail that both machines log at a desync (Dev/HashTrail.cs): the first input tick whose parts differ, the parts, and the
+# ships whose own hash differs. Lines are keyed by "game=N input=T". A part named "last" differs one tick after the real split.
+trail() { sed -n "s/.*$1 \(game=[0-9]* input=[0-9]* .*\)/\1/p" <<<"$2" | sed 's/ sim=[0-9]*//' | sort -u; }
+SPLIT="$(comm -3 <(trail MPHASHTRAIL "$HOST") <(trail MPHASHTRAIL "$CLIENT") | sed 's/^\t//' | cut -d' ' -f1,2 | sort | uniq -d \
+  | sed 's/game=\([0-9]*\) input=\([0-9]*\)/\1 \2/' | sort -n -k1,1 -k2,2 | head -1)"
+if [[ -n "$SPLIT" ]]; then
+  read -r GAME INPUT <<<"$SPLIT"
+  key="game=$GAME input=$INPUT"
+  words() { trail "$1" "$2" | grep "^$key " | cut -d' ' -f3- | tr ' ' '\n' | sort; }
+  echo "   hash trail: game $GAME splits at input tick $INPUT in: $(comm -3 <(words MPHASHTRAIL "$HOST") <(words MPHASHTRAIL "$CLIENT") | sed 's/^\t//; s/=.*//' | sort -u | tr '\n' ' ')"
+  ships="$(comm -3 <(words MPHASHSHIPS "$HOST") <(words MPHASHSHIPS "$CLIENT") | sed 's/^\t//; s/:.*//' | sort -u)"
+  if [[ -n "$ships" ]]; then
+    echo "   ships that differ: $(tr '\n' ' ' <<<"$ships")"
+    # The name of each ship, from any log line that prints "id=<ship>".
+    while read -r id; do grep -h -m1 -o "[A-Za-z][^:]\{0,40\} id=$id\b" <<<"$HOST$CLIENT" | sed 's/^INFO //; s/^/      /' || true; done <<<"$ships"
+  fi
+fi
+
 # A member that the hash cannot serialize is a gap that hides desyncs in it.
 GAPS="$(sed -n 's/.*MPHASH cannot serialize \([^ ]*\) .*/\1/p' <<<"$HOST$CLIENT" | sort -u | tr '\n' ' ')"
 if [[ -n "$GAPS" ]]; then REASONS+=("state hash gap"); echo "   the state hash cannot serialize: $GAPS"; fi

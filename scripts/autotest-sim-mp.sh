@@ -43,9 +43,16 @@ done
 wait "$HOST_PID"
 [[ -n "$CLIENT_PID" ]] && wait "$CLIENT_PID"
 
+# The end of a process's output, and its first exception line: a crash prints a long stack after the message, so the
+# last 20 lines alone lost the message (#305, queue run 45476572706: both machines crashed in SimStasisManager.FixedUpdate).
+process_tail() {
+  [[ -f "$1" ]] || return 0
+  grep -m1 -B2 -A3 'Exception' "$1" | sed 's/^/   first exception: /' || true
+  tail -20 "$1"
+}
 RUN_LOG="$LOG_DIR/mp-$NAME.$(date +%Y%m%d-%H%M%S).sim.log"
 { echo "=== host"; cat "$HOST_LOG" 2>/dev/null; echo "=== client"; cat "$CLIENT_LOG" 2>/dev/null
-  echo "=== host process"; tail -20 "$HOST_SAVE/out.txt"; echo "=== client process"; tail -20 "$CLIENT_SAVE/out.txt" 2>/dev/null; } > "$RUN_LOG"
+  echo "=== host process"; process_tail "$HOST_SAVE/out.txt"; echo "=== client process"; process_tail "$CLIENT_SAVE/out.txt"; } > "$RUN_LOG"
 echo "== timing mp-$NAME (sim) total=$((SECONDS - T0)) port=$PORT" | tee -a "$RUN_LOG"
 echo "== $NAME: log $RUN_LOG"
 RC=0

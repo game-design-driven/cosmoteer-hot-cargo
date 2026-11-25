@@ -651,6 +651,7 @@ static class DesyncPatch
             return;
         }
         MpAutotest.Desyncs++;
+        HashTrail.Dump();
         var s = Run.Current?.State;
         Log.Error($"MP DESYNC at input tick {__instance._curInputTick}, game={MpAutotest._mpGames} sim tick={Autotest.Game?.Sim.Tick} (host={__instance.IsHost}); the game resyncs from the host. " +
                   $"Hot Cargo state: heat={s?.Heat:0.000} stages={s?.StagesStarted} sector={s?.SectorIndex} tech={s?.FleetTech} result={s?.Result}");
