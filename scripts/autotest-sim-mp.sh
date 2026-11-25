@@ -43,16 +43,13 @@ done
 wait "$HOST_PID"
 [[ -n "$CLIENT_PID" ]] && wait "$CLIENT_PID"
 
-# The end of a process's output, and its first exception line: a crash prints a long stack after the message, so the
-# last 20 lines alone lost the message (#305, queue run 45476572706: both machines crashed in SimStasisManager.FixedUpdate).
-process_tail() {
-  [[ -f "$1" ]] || return 0
-  grep -m1 -B2 -A3 'Exception' "$1" | sed 's/^/   first exception: /' || true
-  tail -20 "$1"
-}
+# The end of a process's output. A crash ends it with a "crash: <type>: <message> <frame>" line (tools/headless-sim/Program.cs, #312),
+# so the message survives the cut of a long stack (#307).
+process_tail() { [[ -f "$1" ]] && tail -20 "$1" || true; }
 RUN_LOG="$LOG_DIR/mp-$NAME.$(date +%Y%m%d-%H%M%S).sim.log"
 { echo "=== host"; cat "$HOST_LOG" 2>/dev/null; echo "=== client"; cat "$CLIENT_LOG" 2>/dev/null
   echo "=== host process"; process_tail "$HOST_SAVE/out.txt"; echo "=== client process"; process_tail "$CLIENT_SAVE/out.txt"; } > "$RUN_LOG"
+grep -h "^crash: " "$HOST_SAVE/out.txt" "$CLIENT_SAVE/out.txt" 2>/dev/null | sed 's/^/== /' | tee -a "$RUN_LOG" || true
 echo "== timing mp-$NAME (sim) total=$((SECONDS - T0)) port=$PORT" | tee -a "$RUN_LOG"
 echo "== $NAME: log $RUN_LOG"
 RC=0
