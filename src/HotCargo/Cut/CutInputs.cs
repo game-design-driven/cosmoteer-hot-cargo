@@ -66,3 +66,18 @@ static class AllowCutInputsPatch
         if (mpInput is CutOrderInput or CutCancelInput) __result = true;
     }
 }
+
+/// <summary>Spec 2469: the cut orders and their work in the mode's integrity hash, so a co-op divergence shows at once.</summary>
+[HarmonyLib.HarmonyPatch(typeof(CareerGameModeManager), nameof(CareerGameModeManager.GetIntegrityHash))]
+static class CutHash
+{
+    static void Postfix(CareerGameModeManager __instance, IntegrityHash iHash)
+    {
+        if (Run.Current is not { } run || run.Mode != __instance) return;
+        var cut = run.State.Cut;
+        iHash.AddHash(cut.Splits);
+        iHash.AddHash(cut.Orders.Count);
+        foreach (var order in cut.Orders)
+            foreach (var e in order.Edges) iHash.AddHash((int)(e.Work * 1000) + (e.Done ? 1 : 0));
+    }
+}

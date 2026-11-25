@@ -6,7 +6,7 @@ using HotCargo.Dev;
 
 namespace HotCargo.Cut;
 
-/// <summary>Test commands of the cut (spec 2472). "me" is the first player ship at cut_mark.</summary>
+/// <summary>Test commands of the cut (spec 2472). "me" is the acting player's first ship at cut_mark.</summary>
 static class CutAutotest
 {
     static ObjectID? _me;
@@ -41,7 +41,7 @@ static class CutAutotest
     {
         Autotest.Commands["cut_mark"] = _ =>
         {
-            _me = Sim().Ships.HumanPlayerSignificantShips.OrderBy(s => s.UniqueID).First().UniqueID;
+            _me = (Autotest.ActingShip(Sim()) ?? throw new InvalidOperationException("the acting player has no ship")).UniqueID;
             _partsAtMark = Me().Parts.Count;
         };
         // cut_clean: the first straight clean cut of "me" becomes an order through the MP input, as a release of the drag does.

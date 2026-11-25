@@ -17,7 +17,16 @@ mp godmode on
 mp shieldplayers on
 mp maxhunters 4
 mp tacticlog on
-# Small telemetry relay chunks on the client, so the session sends many of them (step telemetry.relay).
+# Small telemetry relay chunks on the client, so the session sends many of them (step cut.split
+# Spec 2469: the client cuts its own ship. The order, the crew work and the split run in the sim on both machines.
+on 1 cut_mark
+on 1 cut_clean
+waitfor cut_orders == 1 30
+on 1 waitfor cut_orders == 1 30
+waitfor cut_splits == 1 240
+on 1 waitfor cut_splits == 1 240
+
+step telemetry.relay).
 on 1 telerelaychunk 4096
 
 step core.tunables
