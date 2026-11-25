@@ -42,6 +42,7 @@ internal sealed class TacticsEditor : WindowBox
     readonly List<DropList> _choiceLists = [];
     readonly List<DropList> _paramLists = [];
     readonly SimpleBox _cargoBar;
+    readonly SimpleBox _designBar;
     CargoPicker? _picker;
 
     List<TacticRow> _rows = [];
@@ -118,7 +119,7 @@ internal sealed class TacticsEditor : WindowBox
     /// up &lt;row&gt; | cond &lt;row&gt; &lt;Cond&gt; [term] | param &lt;row&gt; &lt;n&gt; [term] | act &lt;row&gt; &lt;Act&gt; | actparam &lt;row&gt; &lt;n&gt; |
     /// addterm &lt;row&gt; | removeterm|insertterm|bracket|unbracket &lt;row&gt; &lt;term&gt; | not &lt;row&gt; &lt;term&gt; | or &lt;row&gt; &lt;term&gt; | copy | paste [text] |
     /// savepreset &lt;name&gt; | deletepreset &lt;name&gt; | toselected | loot v&lt;n&gt;|&lt;id,id&gt; | sell|mine|buy &lt;id,id&gt;|none |
-    /// recall on|off. Rows and terms count from 1, like the window shows them.
+    /// recall on|off | design &lt;slot&gt; &lt;test design&gt;|clear. Rows and terms count from 1, like the window shows them.
     /// </summary>
     internal static void TestCommand(Run run, Ship ship, string arg)
     {
@@ -177,6 +178,11 @@ internal sealed class TacticsEditor : WindowBox
             case "mine": e.EditCargo(e._cargo with { Mine = List(a[1]) }); break;
             case "buy": e.EditCargo(e._cargo with { Buy = List(a[1]) }); break;
             case "recall": e._recall = a[1] == "on"; e.Send(); break;
+            // design <slot> <test design name>|clear: picks a design for the slot, as the ship library would (spec 1084).
+            case "design":
+                if (a[2] == "clear") e.SetDesign(Num(1), null);
+                else e.PickedDesign(Num(1), ShipAiArea.DesignPath(a[2]));
+                break;
             default: throw new InvalidOperationException($"unknown tactics_editor verb '{a[0]}'");
         }
     }
@@ -296,6 +302,8 @@ internal sealed class TacticsEditor : WindowBox
 
         _cargoBar = Strip(36f);
         page.Children.Add(_cargoBar);
+        _designBar = Strip(36f);
+        page.Children.Add(_designBar);
 
         _status = NewLabel(18);
         page.Children.Add(_status);
@@ -377,7 +385,7 @@ internal sealed class TacticsEditor : WindowBox
         return drop;
     }
 
-    static string ParamName(ParamKind kind, int value) => kind switch
+    string ParamName(ParamKind kind, int value) => kind switch
     {
         ParamKind.Percent => Format("PercentFmt", value),
         ParamKind.Distance => Format("DistanceFmt", value),
@@ -390,8 +398,13 @@ internal sealed class TacticsEditor : WindowBox
         ParamKind.Seconds => Format("SecondsFmt", value),
         ParamKind.Side => Text("Side_" + (Side)value),
         ParamKind.Station => Text("Station_" + (StationPick)value),
+        ParamKind.Design => SlotName(value),
+        ParamKind.DesignCount => Format("DesignCountFmt", SlotName(Autonomy.BuildModel.Unpack(value).Slot), Autonomy.BuildModel.Unpack(value).Count),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
+
+    /// <summary>Spec 2322: a design slot as the lists show it: its number and its design name, or that it is empty.</summary>
+    string SlotName(int slot) => _cargo.Design(slot) is { } d ? Format("DesignFmt", slot, d.Name) : Format("DesignEmptyFmt", slot);
 
     void BuildRows()
     {
@@ -411,6 +424,7 @@ internal sealed class TacticsEditor : WindowBox
             }
             _add.SelfInputActive = _rows.Count < ShipAiModel.MaxRows;
             BuildCargo();
+            BuildDesigns();
         }
         finally { _updating = false; }
     }
@@ -439,6 +453,48 @@ internal sealed class TacticsEditor : WindowBox
         if (!Autonomy.Autonomous.IsAutonomous(_ship)) return;
         var recall = Ui.FlatButton.New(AText(_recall ? "ReturnOn" : "ReturnOff"), () => { _recall = !_recall; Send(); _dirty = true; }, AText("ReturnTip"));
         Place(_cargoBar, recall, 78f, 22f);
+    }
+
+    /// <summary>Spec 1084: a button per design slot that picks a saved design from the vanilla ship library, and one that clears it.</summary>
+    void BuildDesigns()
+    {
+        _designBar.Children.Clear();
+        var title = new Label { Text = AText("Designs") };
+        title.ToolTips.TextProvider = new Ux.LiveText(() => AText("DesignsTip"));
+        Place(_designBar, title, 0f, 6f);
+        for (int slot = 1; slot <= Autonomy.BuildModel.MaxDesigns; slot++)
+        {
+            int s = slot;
+            float left = 6f + (s - 1) * 31f;
+            string text = _cargo.Design(s) is { } d ? AFormat("DesignSlotFmt", s, d.Name) : AFormat("DesignPickFmt", s);
+            Place(_designBar, Ui.FlatButton.New(text, () => ShowLibrary(s), AText("DesignPickTip")), left, 26f);
+            if (_cargo.Design(s) is not null) Place(_designBar, Ui.FlatButton.New(AText("DesignClear"), () => SetDesign(s, null), AText("DesignClearTip")), left + 26f, 5f);
+        }
+    }
+
+    async void ShowLibrary(int slot)
+    {
+        string? path = await ShipLibraryDialog.Show(ShipDialogMode.Load);
+        if (path is not null && _open == this) Errors.Guard("tactics editor design pick", () => PickedDesign(slot, path));
+    }
+
+    /// <summary>Spec 1084: copies the design file into the slot. A design of another ship class is refused, as vanilla refuses it.</summary>
+    void PickedDesign(int slot, string path)
+    {
+        Autonomy.BuildDesign d;
+        try { d = Autonomy.Build.FromFile(path); }
+        catch (FormatException ex) { Note(Format("PasteBadFmt", ex.Message)); return; }
+        if (Autonomy.Build.InfoOf(d).Rules != _ship.Rules.ID) { Note(AText("DesignWrongClass")); return; }
+        SetDesign(slot, d);
+    }
+
+    /// <summary>A slot that a row names cannot be cleared: the tactics input would refuse the rows (spec 2322).</summary>
+    void SetDesign(int slot, Autonomy.BuildDesign? d)
+    {
+        var designs = (Autonomy.BuildDesign?[])_cargo.Designs.Clone();
+        designs[slot - 1] = d;
+        if (d is null && _rows.Any(r => ShipAiModel.DesignSlots(r).Contains(slot))) { Note(AText("DesignInUse")); return; }
+        EditCargo(_cargo with { Designs = designs });
     }
 
     static IReadOnlyList<Cosmoteer.Resources.ResourceRules> Offered(bool mine) => CargoPicker.Offered(mine);
@@ -648,6 +704,7 @@ internal sealed class TacticsEditor : WindowBox
         {
             var rows = ShipAiModel.Decode(lines[0]);
             var cargo = lines.Length > 1 ? Autonomy.Cargo.Decode(lines[1]) : _cargo;
+            if (ShipAiModel.DesignError(rows, slot => cargo.Design(slot) is not null) is { } error) throw new FormatException(error);
             (_rows, _cargo) = (rows, cargo);
         }
         catch (FormatException ex) { Note(Format("PasteBadFmt", ex.Message)); return; }
@@ -752,7 +809,7 @@ internal sealed class TacticsEditor : WindowBox
             if (_sent is not null && (sim == _sent || now > _sentAt + SendWaitSeconds)) _sent = null;
             if (_sent is null && sim != _shown) LoadFromSim();
             bool commandable = _ship.Commands.IsCommandableByLocalPlayer;
-            if (_list.SelfInputActive != commandable) { _list.SelfInputActive = commandable; _autoToggle.SelfInputActive = commandable; _cargoBar.SelfInputActive = commandable; }
+            if (_list.SelfInputActive != commandable) { _list.SelfInputActive = commandable; _autoToggle.SelfInputActive = commandable; _cargoBar.SelfInputActive = commandable; _designBar.SelfInputActive = commandable; }
             int others = SelectedOthers().Count();
             _toSelected.Text = Format("ToSelectedButtonFmt", others);
             _toSelected.SelfInputActive = others > 0;

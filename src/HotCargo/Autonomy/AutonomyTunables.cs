@@ -24,5 +24,7 @@ public sealed class AutonomyTunables
     /// Spec 1083: a player ship collects no loot and goes to no station when the loot, the station or the straight path there comes this
     /// close to the hull of an enemy on radar, edge to edge. 0 turns it off.
     /// </summary>
+    /// <summary>Spec 1087: build ship puts the new ship this far from the builder's hull, edge to edge of their circles.</summary>
+    [Serialize(Optional = true)] public float BuildGap = 100f;
     [Serialize(Optional = true)] public float EnemyClearance = ShipAi.ShipAiModel.EnemyClearanceDefault;
 }

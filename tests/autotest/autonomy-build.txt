@@ -1,0 +1,52 @@
+# Build ship and refit (spec 1084 to 1090): an autonomous ship collects what the fleet lacks for a saved design, "Can afford" turns
+# true, one new ship starts and the crew finish it, and no second one starts. Then a refit row rebuilds the builder into a design
+# without one thruster, once.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+shipai Log on
+aialone
+# The design to build: one Computer (16 steel, 40 coil, 4 processors), so the builder's 4 storage tiles hold its whole cost. Built 2,000
+# away: its parts do not count for the builder, and its sensors show the loot there.
+auto_build Drone 0,-2000 yarden_zamir.computer@0,0
+tactics_ship Drone
+savedesign Drone
+# The builder, next to the first ship, and its refit design: the same parts without the last thruster.
+auto_build Refit 0,-4500 yarden_zamir.computer@2,0 yarden_zamir.targeted_reactor@2,1 cosmoteer.storage_2x2@0,0 yarden_zamir.funnel@0,2 cosmoteer.thruster_small@0,4 cosmoteer.thruster_small@3,3 cosmoteer.thruster_small@0,-2,2 cosmoteer.thruster_small@3,-2,2 cosmoteer.thruster_small@-2,0,1 cosmoteer.thruster_small@-2,2,1 cosmoteer.thruster_small@4,0,3
+tactics_ship Refit
+savedesign Refit
+auto_build Builder player yarden_zamir.computer@2,0 yarden_zamir.targeted_reactor@2,1 cosmoteer.storage_2x2@0,0 yarden_zamir.funnel@0,2 cosmoteer.thruster_small@0,4 cosmoteer.thruster_small@3,3 cosmoteer.thruster_small@0,-2,2 cosmoteer.thruster_small@3,-2,2 cosmoteer.thruster_small@-2,0,1 cosmoteer.thruster_small@-2,2,1 cosmoteer.thruster_small@4,0,3 cosmoteer.thruster_small@4,1,3
+tactics_ship Builder
+# The fleet has no processors.
+auto_empty processor
+tactics_editor open
+tactics_editor design 1 Drone
+wait 1
+tactics_editor design 2 Refit
+wait 1
+tactics_editor close
+# No "near my crewed ship" term: Build ship runs only where crew can reach the new ship (spec 1087), so it waits until the builder is back.
+tactics HC1:CanAffordDesign=1&FewerOfDesign=1x1>BuildShip=1;LootWithin=5000>CollectLoot;Always>ReturnToFleet
+tacticsauto on
+# The fleet's steel and coil lie next to the builder (the start ship stores none). Loose resources there count for construction.
+auto_loot steel 20 4 60
+auto_loot coil 40 4 60
+wait 3
+expect auto_afford == 0
+expect auto_built == 0
+# The missing resources lie next to the Drone, in sight but far from the builder: the builder collects them, then it can afford the
+# design. Loose resources within 400 of the builder would count at once (vanilla construction fetches them).
+auto_ship Drone
+auto_loot processor 1 4 150
+auto_ship Builder
+waitfor auto_afford == 1 300
+waitfor auto_built == 1 300
+waitfor auto_built_done == 1 400
+wait 20
+expect auto_built == 1
+# Refit: the builder's blueprint becomes the refit design once; the crew take the last thruster off.
+tactics HC1:CanAffordRefit=2>RefitShip=2;Always>ReturnToFleet
+waitfor auto_refit == 1 30
+waitfor auto_refit_done == 1 300
+quit
