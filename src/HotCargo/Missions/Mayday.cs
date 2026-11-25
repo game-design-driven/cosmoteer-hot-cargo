@@ -95,13 +95,16 @@ internal static class Mayday
         var player = sim.Ships.HumanPlayerSignificantShips.OrderBy(s => s.UniqueID).FirstOrDefault();
         if (player is null) return Skip("no player ship");
         var humans = game.HumanPlayersIndexes;
-        // The nearest station of a faction that is not hostile to the players: its faction owns the victim, and it pays.
+        // The nearest station of a faction that is not hostile to the players: its faction owns the victim, and it pays. It must give
+        // missions: the pay step (vanilla ReceiveRewardsObjective) asks its AI for pending rewards, and a station without a mission
+        // module (a military station) throws there, which crashed both co-op machines when the mayday was won (#313).
         var home = SpaceStation.GetStations(sim, onlyOperating: true)
+            .Where(s => s.GetProvidedMissions() is not null)
             .Select(s => (Station: s, Faction: FactionRules.GetShipFaction(s.MetaShip)))
             .Where(x => x.Faction is { } f && !humans.Any(h => sim.Mode.AreEnemies(f.CivilianPlayerIndex, h)))
             .OrderBy(x => x.Station.DetWorldCenter.DistanceTo(player.DetWorldCenter)).ThenBy(x => x.Station.StationID)
             .FirstOrDefault();
-        if (home.Faction is not { } faction) return Skip("no station of a faction that is not hostile");
+        if (home.Faction is not { } faction) return Skip("no station that gives missions, of a faction that is not hostile");
         int tier = Math.Max(1, mode.TierFields.GetTier(player.DetWorldCenter));
 
         Vector2 at = WaveSpawns.Location(sim, player.DetWorldCenter, sim.Rand.Direction(), t.MaydayDistanceMin, t.MaydayDistanceMax);

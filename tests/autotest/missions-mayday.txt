@@ -36,4 +36,12 @@ hc_mayday_kill_victim
 wait 3
 expect hc_mayday_failed == 1
 expect hc_mayday_active == 0
+# #313: a mayday next to a military station pays at a station that gives missions. Paid at the military station, the win crashed the game.
+hc_military_goto
+hc_mayday_start
+wait 2
+expect hc_mayday_payer_missions == 1
+hc_mayday_kill_attackers
+wait 3
+expect hc_mayday_done == 1
 quit
