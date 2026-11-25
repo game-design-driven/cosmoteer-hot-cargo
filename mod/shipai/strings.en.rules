@@ -45,7 +45,7 @@ HotCargoShipAi
 	Down = "Down"
 	Remove = "X"
 	NoRows = "<gray>No rows. Apply a preset or add a row.</gray>"
-	Help = "<gray>Once a second, the AI reads the rows from top to bottom. Each action has a kind: Target, Move, Fire, Face, Trade or Flags. "\
+	Help = "<gray>Once a second, the AI reads the rows from top to bottom. Each action has a kind: Target, Move, Fire, Face, Trade, Build or Flags. "\
 	       "For each kind, the first row that matches wins, and a green number marks it; every matching flag row runs. A condition is a fact (yes or no) or a value "\
 	       "compared with a number or another value: pick its group, then the entry. A row can have any number of conditions, joined by AND and OR; AND goes first, and brackets change the order. "\
 	       "Each weapon group follows its first Fire row that matches. A weapon group is a part control group (1 to 10) of the ship. "\
@@ -88,14 +88,15 @@ HotCargoShipAi
 
 	// Groups of the condition and action lists (spec 419)
 	GroupTip = "What the condition is about. The list to the right holds its facts and values."
-	ActGroupTip = "The kind of action. For each kind, the first row that matches runs; every matching flag row runs."
+	ActGroupTip = "The kind of action. For each kind, the first row that matches runs; every matching flag row runs. Trade and Build rows can run in the same second."
 	Group_Always = "Always"
 	Group_Ship = "My ship"
 	Group_Enemies = "Enemies"
 	Group_Fleet = "My fleet"
 	Group_World = "Nearby"
 	Group_Run = "The run"
-	Group_Build = "Cargo"
+	Group_Cargo = "Cargo"
+	Group_Build = "Build"
 	Group_Flags = "Flags"
 	Group_Target = "Target"
 	Group_Move = "Move"
@@ -277,9 +278,10 @@ HotCargoShipAi
 	UnitAmountFmt = "{0} units"
 	DistanceFmt = "{0} m"
 	OpTip = "The comparison: less than, more than, or equal to. Click to change it. NOT turns < into 'at least'."
-	RightValue = "#"
-	RightNumber = "v"
-	RightTip = "Compare with a number, or with another value of the same kind (for example a resource with a design's cost)."
+	RightValue = "value"
+	RightNumber = "number"
+	RightValueTip = "Compare with another value of the same kind instead of a number, for example a resource with a design's cost."
+	RightNumberTip = "Compare with a number instead of a value."
 	ArgFmt = "{0} {1}"
 	Arg2Fmt = "{0} {1}, {2}"
 	ArgPairFmt = "{0}, {1}"

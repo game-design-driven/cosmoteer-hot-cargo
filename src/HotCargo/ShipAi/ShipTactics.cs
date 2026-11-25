@@ -44,6 +44,8 @@ internal sealed class ShipTactics
     [Serialize(Optional = true)] public int FacingRow = -1;
     /// <summary>Spec 1067: the trade row of the last decision.</summary>
     [Serialize(Optional = true)] public int TradeRow = -1;
+    /// <summary>Spec 1087: the build row of the last decision.</summary>
+    [Serialize(Optional = true)] public int BuildRow = -1;
     /// <summary>Bit i = row i matched in the last decision. Weapon modes come from it (ShipAiModel.WeaponAct).</summary>
     [Serialize(Optional = true)] public int Matched;
     [Serialize(Optional = true)] public ObjectID? Target;
@@ -111,6 +113,7 @@ internal sealed class ShipTactics
         iHash.AddHash(Matched);
         iHash.AddHash(TargetRow * 10000 + MoveRow * 100 + FacingRow);
         iHash.AddHash(TradeRow);
+        iHash.AddHash(BuildRow);
         for (int i = 0; i < MemoryOn.Count; i++) iHash.AddHash(MemoryOn[i] ? 1 : 0);
         iHash.AddHash((int)(NextTick.Seconds * 10));
         iHash.AddHash(BuiltFrom ?? 0);

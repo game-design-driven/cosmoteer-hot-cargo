@@ -349,12 +349,13 @@ public class ShipAiModelTests
     }
 
     [Fact]
-    public void First_matching_facing_and_trade_rows_win()
+    public void First_matching_facing_trade_and_build_rows_win_and_a_build_row_does_not_take_the_trade_slot()
     {
-        TacticRow[] rows = [Row(Always, Act.Face, (int)Side.Stern), Row(Always, Act.Face, (int)Side.Nose), Row(Always, Act.Sell), Row(Always, Act.BuildShip, 1)];
+        TacticRow[] rows = [Row(Always, Act.Face, (int)Side.Stern), Row(Always, Act.Face, (int)Side.Nose), Row(Always, Act.BuildShip, 1), Row(Always, Act.Sell), Row(Always, Act.RefitShip, 2)];
         var d = ShipAiModel.Evaluate(rows, new TestFacts(), _ => true);
         Assert.Equal(0, d.FacingRow);
-        Assert.Equal(2, d.TradeRow);
+        Assert.Equal(3, d.TradeRow);
+        Assert.Equal(2, d.BuildRow);
     }
 
     [Fact]
