@@ -80,7 +80,7 @@ static class CutDraw
         WorkSound(run, sim);
     }
 
-    /// <summary>Spec 2468, 2490: the edges of a cut or a weld on a ship, in the world.</summary>
+    /// <summary>Spec 2468: the edges of a cut on a ship, in the world.</summary>
     internal static void DrawEdges(Ship ship, IEnumerable<CutEdge> edges)
     {
         var art = _art ??= LoadArt();
