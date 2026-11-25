@@ -1,0 +1,146 @@
+# Cut ships apart screenshots (spec 2473, 2475, 2476): the hover edge, a pending cut in blueprint mode with the vanilla "Make it so"
+# button, the applied cut, and the cut-off piece that becomes a derelict. PC: scripts/screens.sh tests/screens/cut-apply.txt <out-dir>
+render on
+newgame run
+wait 10
+ev_set Enabled false
+closepanel
+wait 1
+pause off
+godmode on
+cut_set EdgeSeconds 8
+cut_mark
+cut_tool
+wait 1
+cut_frame 26
+wait 1
+cut_frame 26
+cut_hover
+wait 0.5
+screenshot apply-1-hover
+cut_blueprints on
+wait 1
+cut_tool
+wait 0.5
+cut_drag clean
+cut_release
+wait 1
+screenshot apply-2-pending
+cut_apply
+wait 1
+cut_blueprints off
+wait 0.5
+cut_follow 26
+screenshot apply-v000
+wait 0.5
+cut_follow 26
+screenshot apply-v001
+wait 0.5
+cut_follow 26
+screenshot apply-v002
+wait 0.5
+cut_follow 26
+screenshot apply-v003
+wait 0.5
+cut_follow 26
+screenshot apply-v004
+wait 0.5
+cut_follow 26
+screenshot apply-v005
+wait 0.5
+cut_follow 26
+screenshot apply-v006
+wait 0.5
+cut_follow 26
+screenshot apply-v007
+wait 0.5
+cut_follow 26
+screenshot apply-v008
+wait 0.5
+cut_follow 26
+screenshot apply-v009
+wait 0.5
+cut_follow 26
+screenshot apply-v010
+wait 0.5
+cut_follow 26
+screenshot apply-v011
+wait 0.5
+cut_follow 26
+screenshot apply-v012
+wait 0.5
+cut_follow 26
+screenshot apply-v013
+wait 0.5
+cut_follow 26
+screenshot apply-v014
+wait 0.5
+cut_follow 26
+screenshot apply-v015
+wait 0.5
+cut_follow 26
+screenshot apply-v016
+wait 0.5
+cut_follow 26
+screenshot apply-v017
+wait 0.5
+cut_follow 26
+screenshot apply-v018
+wait 0.5
+cut_follow 26
+screenshot apply-v019
+wait 0.5
+cut_follow 26
+screenshot apply-v020
+wait 0.5
+cut_follow 26
+screenshot apply-v021
+wait 0.5
+cut_follow 26
+screenshot apply-v022
+wait 0.5
+cut_follow 26
+screenshot apply-v023
+wait 0.5
+cut_follow 26
+screenshot apply-v024
+wait 0.5
+cut_follow 26
+screenshot apply-v025
+wait 0.5
+cut_follow 26
+screenshot apply-v026
+wait 0.5
+cut_follow 26
+screenshot apply-v027
+wait 0.5
+cut_follow 26
+screenshot apply-v028
+wait 0.5
+cut_follow 26
+screenshot apply-v029
+wait 0.5
+cut_follow 26
+screenshot apply-v030
+wait 0.5
+cut_follow 26
+screenshot apply-v031
+wait 0.5
+cut_follow 26
+screenshot apply-v032
+wait 0.5
+cut_follow 26
+screenshot apply-v033
+wait 0.5
+cut_follow 26
+screenshot apply-v034
+wait 0.5
+cut_follow 26
+screenshot apply-v035
+wait 0.5
+waitfor cut_splits == 1 120
+wait 2
+cut_frame_both 24
+wait 0.5
+screenshot apply-3-derelict
+quit

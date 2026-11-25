@@ -57,6 +57,8 @@ internal sealed class CutToolState : BaseBuildState
 
     List<Corner>? _line;
     CutGrid? _grid;
+    /// <summary>A ship point that stands in for the cursor (screenshots, where the cursor cannot move).</summary>
+    internal Vector2? HoverAt;
     Edge? _blocked;
 
     public CutToolState(GameRoot game, IBuildModeProvider buildModeProvider) : base(game, buildModeProvider) => _current = this;
@@ -156,7 +158,7 @@ internal sealed class CutToolState : BaseBuildState
     void DrawHover(Ship ship)
     {
         if (Game.Gui.Reacted) return;
-        var local = ship.TransformPointFromWorld(Sim.WorldMouseLoc);
+        var local = HoverAt ?? ship.TransformPointFromWorld(Sim.WorldMouseLoc);
         using (App.Graphics.PushTransformMultiply(ship.WorldTransform))
             CutDraw.DrawHover(local.X, local.Y);
     }

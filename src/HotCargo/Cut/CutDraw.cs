@@ -186,9 +186,9 @@ static class CutDraw
         int fx = (int)MathF.Floor(x), fy = (int)MathF.Floor(y);
         // The nearer of the horizontal edge on the nearest grid row and the vertical edge on the nearest grid column.
         var edge = MathF.Abs(y - cy) <= MathF.Abs(x - cx) ? Edge.Along(new Corner(fx, cy), new Corner(fx + 1, cy)) : Edge.Along(new Corner(cx, fy), new Corner(cx, fy + 1));
-        DrawDrag([edge], 0.55f);
+        DrawDrag([edge], 0.9f);
         var c = new Vector2(cx, cy);
-        const float r = 0.2f;
+        const float r = 0.3f;
         art.Seam.Draw(c - new Vector2(r, 0f), c + new Vector2(r, 0f), Stitch, StitchThickness);
         art.Seam.Draw(c - new Vector2(0f, r), c + new Vector2(0f, r), Stitch, StitchThickness);
     }

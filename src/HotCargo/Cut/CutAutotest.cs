@@ -314,6 +314,14 @@ static class CutAutotest
             };
             CutToolState.RequireCurrent().ShowLine(line, blocked);
         };
+        // cut_hover: the Cut tool's cursor stands near the top corner of the clean line (screenshots).
+        Autotest.Commands["cut_hover"] = _ =>
+        {
+            var c = CleanLine(Grid())[0];
+            CutToolState.RequireCurrent().HoverAt = new Vector2(c.X + 0.15f, c.Y + 1.6f);
+        };
+        // cut_blueprints on|off: the build window's blueprint mode toggle (screenshots).
+        Autotest.Commands["cut_blueprints"] = arg => Autotest.RequireRun().Game.Gui.ShipGui.BuildToolbox._blueprintsToggle.IsSelected = arg.Trim() == "on";
         Autotest.Commands["cut_release"] = _ => CutToolState.RequireCurrent().Release(Me());
 
         Autotest.Fields["cut_verdict"] = () => (double)(_verdict ?? CutVerdict.Ok);
