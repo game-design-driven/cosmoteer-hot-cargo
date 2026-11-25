@@ -238,6 +238,9 @@ waitfor hc_lead_waiting == 0 15
 on 1 waitfor hc_lead_waiting == 0 15
 mp hc_lead_lead 700
 pause off
+# #308: the gap check waits until the move above ran in the sim. Before, the host measured the gap before the players moved, and only
+# the client's check was real.
+wait 1
 waitfor hc_lead_gap < 450 45
 on 1 waitfor hc_lead_gap < 450 45
 wait 5

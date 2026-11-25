@@ -274,7 +274,7 @@ public static class MissionArea
         {
             var o = RequireLead();
             Vector2 at = o.Escort.DetLocation() ?? throw new InvalidOperationException("courier is not in this system");
-            TeleportPlayers(at + (o.Destination - at).Normalize() * float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture));
+            TeleportPlayers(at + (o.Destination - at).Normalize() * float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture), clear: true);
         };
         // hc_lead_advance <share>: the live courier at this share of its route, the players next to it on the jump point side.
         Autotest.Commands["hc_lead_advance"] = arg =>
@@ -736,11 +736,20 @@ public static class MissionArea
                  $"dest={o.Destination} dist={ship.DetWorldCenter.DistanceTo(o.Destination):0} player={ship.Metadata.PlayerIndex} players={player} paused={sim.IsPaused.Confirmed} clockPaused={sim.Clock.Paused} scale={sim.Clock.ScaleFactor} t={sim.LogicalTime} runSeconds={RequireRun().State.GameSeconds:0.0}");
     }
 
-    internal static void TeleportPlayers(Vector2 near)
+    /// <summary>
+    /// Test only. Each player ship next to a point: the first 400 away, each next one 250 farther. With <paramref name="clear"/>, each spot
+    /// moves to a clear spot (Autotest.ClearSpotNear) when it lies on a ship, rock or gate, live or in stasis (#308: the blind courier never
+    /// reached players that landed there). Off by default: many steps rely on the exact distances.
+    /// </summary>
+    internal static void TeleportPlayers(Vector2 near, bool clear = false)
     {
+        var sim = RequireSim();
         int i = 0;
-        foreach (Ship s in RequireSim().Ships.HumanPlayerSignificantShips.ToList())
-            Autotest.Teleport(s, near + new Vector2(400 + 250 * i++, 0));
+        foreach (Ship s in sim.Ships.HumanPlayerSignificantShips.ToList())
+        {
+            var spot = near + new Vector2(400 + 250 * i++, 0);
+            Autotest.Teleport(s, clear ? Autotest.ClearSpotNear(sim, spot, 0f, s.WorldBoundingRadius) : spot);
+        }
         Autotest.Wait(3);
     }
 
