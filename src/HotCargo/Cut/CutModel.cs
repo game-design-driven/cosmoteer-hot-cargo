@@ -31,8 +31,8 @@ public readonly record struct Edge(int X, int Y, bool Down)
     };
 }
 
-/// <summary>Spec 2462: why a line is not a clean cut. <see cref="NotNow"/>: the ship takes no order now (spec 2470).</summary>
-public enum CutVerdict { Ok, NotOnShip, NotAcross, TooManyPieces, LooseEnd, NotNow }
+/// <summary>Spec 2462: <see cref="OnePiece"/>: the line cuts off no part. <see cref="NotNow"/>: the ship takes no order now (spec 2470).</summary>
+public enum CutVerdict { Ok, OnePiece, NotNow }
 
 /// <summary>
 /// A ship grid as the cut rules see it: the part that holds each tile, and whether two different parts are in contact across an edge
@@ -119,26 +119,15 @@ public static class CutModel
         line.Zip(line.Skip(1), Edge.Along).Distinct().ToList();
 
     /// <summary>
-    /// Spec 2462: a clean cut has at least one edge that needs work, makes exactly two pieces, and every edge that needs work has its
-    /// two sides in different pieces. The ship must be one piece before the cut.
+    /// Spec 2462: a line is a cut when its edges split the ship's parts into two or more pieces. The line can turn and can close on
+    /// itself. Work goes only to edges that need work and have their two sides in different pieces; the other edges of the line (in
+    /// space, between parts that are not in contact, or loose ends inside one piece) need none. The ship must be one piece before.
     /// </summary>
     public static CutCheck Check(CutGrid grid, IReadOnlyList<Edge> edges)
     {
-        var work = edges.Distinct().Where(grid.NeedsWork).ToList();
         var pieces = grid.Pieces(edges.ToHashSet());
-        CutVerdict verdict;
-        if (work.Count == 0) verdict = CutVerdict.NotOnShip;
-        else
-        {
-            int count = pieces.Values.Distinct().Count();
-            verdict = count switch
-            {
-                1 => CutVerdict.NotAcross,
-                > 2 => CutVerdict.TooManyPieces,
-                _ => work.Any(e => pieces[grid.Parts[e.A]] == pieces[grid.Parts[e.B]]) ? CutVerdict.LooseEnd : CutVerdict.Ok,
-            };
-        }
-        return new(verdict, work, pieces);
+        var work = edges.Distinct().Where(e => grid.NeedsWork(e) && pieces[grid.Parts[e.A]] != pieces[grid.Parts[e.B]]).ToList();
+        return new(work.Count > 0 ? CutVerdict.Ok : CutVerdict.OnePiece, work, pieces);
     }
 
     /// <summary>

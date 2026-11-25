@@ -1,18 +1,19 @@
-# Cut ships apart (spec 2461, 2462): lines that are not a clean cut are refused at the release, and nothing reaches the sim.
+# Cut ships apart (spec 2461, 2462): a line that cuts off no part is refused at the release, and nothing reaches the sim. A loose
+# end does not spoil a cut: it gets no work.
 newgame run
 wait 8
 godmode on
 pause off
 wait 3
 cut_mark
-# Verdicts: 0 Ok, 1 NotOnShip, 2 NotAcross, 3 TooManyPieces, 4 LooseEnd (CutVerdict).
-# A line that runs into a 2x1 part stops at the part, so it does not go across.
+# Verdicts: 0 Ok, 1 OnePiece (CutVerdict).
+# A line that runs into a 2x1 part stops at the part, so it cuts off nothing.
 cut_try blocked
-expect cut_verdict == 2
+expect cut_verdict == 1
 cut_try half
-expect cut_verdict == 2
+expect cut_verdict == 1
 cut_try loose
-expect cut_verdict == 4
+expect cut_verdict == 0
 wait 2
 expect cut_orders == 0
 quit

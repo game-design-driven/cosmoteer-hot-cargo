@@ -65,33 +65,61 @@ public class CutModelTests
     }
 
     [Fact]
-    public void A_line_that_stops_halfway_is_not_across()
+    public void A_line_that_stops_halfway_cuts_off_nothing()
     {
         var grid = Grid(null, "ABCD", "EFGH");
-        Assert.Equal(CutVerdict.NotAcross, CutModel.Check(grid, Line((2, 0), (2, 1))).Verdict);
+        Assert.Equal(CutVerdict.OnePiece, CutModel.Check(grid, Line((2, 0), (2, 1))).Verdict);
     }
 
     [Fact]
-    public void A_line_in_space_is_not_on_the_ship()
+    public void A_line_in_space_cuts_off_nothing()
     {
         var grid = Grid(null, "AB");
-        Assert.Equal(CutVerdict.NotOnShip, CutModel.Check(grid, Line((0, 3), (1, 3))).Verdict);
+        Assert.Equal(CutVerdict.OnePiece, CutModel.Check(grid, Line((0, 3), (1, 3))).Verdict);
     }
 
     [Fact]
-    public void Two_crossing_lines_make_too_many_pieces()
+    public void A_line_with_turns_cuts_off_a_corner()
+    {
+        // An L around the top right tile D: down, then right, out into space.
+        var grid = Grid(null, "ABCD", "EFGH");
+        var check = CutModel.Check(grid, Line((3, -1), (3, 0), (3, 1), (4, 1), (5, 1)));
+        Assert.Equal(CutVerdict.Ok, check.Verdict);
+        Assert.Equal([new Edge(2, 0, false), new Edge(3, 0, true)], check.Work);
+        Assert.NotEqual(check.Pieces['D'], check.Pieces['C']);
+        Assert.Equal(check.Pieces['C'], check.Pieces['H']);
+    }
+
+    [Fact]
+    public void A_closed_loop_cuts_out_an_inner_piece()
+    {
+        var grid = Grid(null, "ABC", "DEF", "GHI");
+        var check = CutModel.Check(grid, Line((1, 1), (2, 1), (2, 2), (1, 2), (1, 1)));
+        Assert.Equal(CutVerdict.Ok, check.Verdict);
+        Assert.Equal(4, check.Work.Count);
+        Assert.Equal(2, check.Pieces.Values.Distinct().Count());
+        Assert.NotEqual(check.Pieces['E'], check.Pieces['A']);
+    }
+
+    [Fact]
+    public void Two_crossing_lines_make_four_pieces()
     {
         var grid = Grid(null, "ABCD", "EFGH", "IJKL", "MNOP");
         var edges = Line((2, 0), (2, 1), (2, 2), (2, 3), (2, 4)).Concat(Line((0, 2), (1, 2), (2, 2), (3, 2), (4, 2))).ToList();
-        Assert.Equal(CutVerdict.TooManyPieces, CutModel.Check(grid, edges).Verdict);
+        var check = CutModel.Check(grid, edges);
+        Assert.Equal(CutVerdict.Ok, check.Verdict);
+        Assert.Equal(4, check.Pieces.Values.Distinct().Count());
     }
 
     [Fact]
-    public void An_extra_edge_inside_one_piece_is_a_loose_end()
+    public void A_loose_end_inside_one_piece_gets_no_work()
     {
         var grid = Grid(null, "ABCD", "EFGH");
         var edges = Line((2, 0), (2, 1), (2, 2)).Append(new Edge(0, 0, false)).ToList();
-        Assert.Equal(CutVerdict.LooseEnd, CutModel.Check(grid, edges).Verdict);
+        var check = CutModel.Check(grid, edges);
+        Assert.Equal(CutVerdict.Ok, check.Verdict);
+        Assert.DoesNotContain(new Edge(0, 0, false), check.Work);
+        Assert.Equal(2, check.Work.Count);
     }
 
     [Fact]

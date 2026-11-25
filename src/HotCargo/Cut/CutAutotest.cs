@@ -14,10 +14,12 @@ static class CutAutotest
     static ObjectID? _me;
     static int _partsAtMark;
     static CutVerdict? _verdict;
+    static double _notedDist;
 
     static SimRoot Sim() => Autotest.RequireRun().Game.Sim;
     static Ship Me() => _me is { } id ? Sim().Ships[id] ?? throw new InvalidOperationException("the cut ship is gone") : throw new InvalidOperationException("cut_mark first");
     static CutOrder? Order() => Autotest.RequireRun().State.Cut.Orders.FirstOrDefault(o => o.Ship == Me().UniqueID);
+    static Ship? Piece() => CutArea.LastPiece is { } id ? Sim().Ships[id] : null;
     static CutGrid Grid() => CutShip.Grid(Me().Parts).Grid;
 
     /// <summary>The straight lines across the ship, first every column line, then every row line, each from space to space.</summary>
@@ -50,6 +52,52 @@ static class CutAutotest
         StraightLines(grid).Select(ends => Drag(grid, ends)).FirstOrDefault(d => d.Blocked is not null && d.Line.Count >= 2) is { Line: not null } d
             ? d : throw new InvalidOperationException("no straight line of the cut ship runs into a part of two or more tiles");
 
+    /// <summary>An L line: down a column from space, then along a row out into space on the right. Of the L lines that cut off one
+    /// piece, the one with the most work.</summary>
+    static List<Corner> LLine(CutGrid grid)
+    {
+        var cells = grid.Parts.Keys.ToList();
+        int left = cells.Min(c => c.X), right = cells.Max(c => c.X) + 1, top = cells.Min(c => c.Y), bottom = cells.Max(c => c.Y) + 1;
+        var lines = new List<(List<Corner> Line, int Work)>();
+        for (int x = left + 1; x < right; x++)
+            for (int y = top + 1; y < bottom; y++)
+            {
+                var line = new List<Corner> { new(x, top - 1) };
+                if (CutModel.Extend(line, new Corner(x, y), grid.Blocked) is not null || CutModel.Extend(line, new Corner(right + 1, y), grid.Blocked) is not null) continue;
+                var check = CutModel.Check(grid, CutModel.Edges(line));
+                if (check.Verdict == CutVerdict.Ok && check.Pieces.Values.Distinct().Count() == 2) lines.Add((line, check.Work.Count));
+            }
+        return lines.Count > 0 ? lines.MaxBy(l => l.Work).Line : throw new InvalidOperationException("no L cut line on the cut ship");
+    }
+
+    /// <summary>
+    /// Spec 2462: the smallest closed rectangle loop of at least <paramref name="minArea"/> tiles that cuts out an inner block: every
+    /// tile inside holds a part, every tile just outside it holds a part (the block is enclosed), and no edge of the loop is blocked.
+    /// </summary>
+    static List<Corner> LoopLine(CutGrid grid, int minArea)
+    {
+        var cells = grid.Parts.Keys.ToList();
+        int left = cells.Min(c => c.X), right = cells.Max(c => c.X) + 1, top = cells.Min(c => c.Y), bottom = cells.Max(c => c.Y) + 1;
+        var sizes = from w in Enumerable.Range(1, 4) from h in Enumerable.Range(1, 4) orderby w * h, w select (w, h);
+        foreach (var (w, h) in sizes.Where(s => s.w * s.h >= minArea))
+            for (int y = top + 1; y + h < bottom; y++)
+                for (int x = left + 1; x + w < right; x++)
+                {
+                    bool Has(int cx, int cy) => grid.PartAt(new Cell(cx, cy)) is not null;
+                    bool inside = Enumerable.Range(x, w).All(cx => Enumerable.Range(y, h).All(cy => Has(cx, cy)));
+                    bool ring = Enumerable.Range(x - 1, w + 2).All(cx => Has(cx, y - 1) && Has(cx, y + h))
+                        && Enumerable.Range(y, h).All(cy => Has(x - 1, cy) && Has(x + w, cy));
+                    if (!inside || !ring) continue;
+                    var line = new List<Corner> { new(x, y) };
+                    if (CutModel.Extend(line, new Corner(x + w, y), grid.Blocked) is not null
+                        || CutModel.Extend(line, new Corner(x + w, y + h), grid.Blocked) is not null
+                        || CutModel.Extend(line, new Corner(x, y + h), grid.Blocked) is not null
+                        || CutModel.Extend(line, new Corner(x, y), grid.Blocked) is not null) continue;
+                    if (CutModel.Check(grid, CutModel.Edges(line)).Verdict == CutVerdict.Ok) return line;
+                }
+        throw new InvalidOperationException("no enclosed block to cut out of the cut ship");
+    }
+
     /// <summary>The clean line up to half of its work edges.</summary>
     static List<Corner> HalfLine(CutGrid grid)
     {
@@ -65,6 +113,14 @@ static class CutAutotest
         grid.Parts.Keys.OrderBy(c => c.Y).ThenBy(c => c.X).Select(c => new Edge(c.X, c.Y, false))
             .First(e => grid.NeedsWork(e) && !clean.Contains(e));
 
+    static List<Corner> Shape(string kind) => kind switch
+    {
+        "l" => LLine(Grid()),
+        "loop" => LoopLine(Grid(), 1),
+        "bigloop" => LoopLine(Grid(), 4),
+        _ => throw new InvalidOperationException($"unknown shape '{kind}' (l, loop or bigloop)"),
+    };
+
     internal static void Register()
     {
         Autotest.Commands["cut_mark"] = _ =>
@@ -78,6 +134,24 @@ static class CutAutotest
             var edges = CutModel.Edges(CleanLine(Grid()));
             Log.Info($"AUTOTEST cut: clean line of {edges.Count} edges from {edges[0]} to {edges[^1]}");
             Autotest.RequireRun().Game.NetManager.EnqueueInput(new CutOrderInput(Me(), edges));
+        };
+        // cut_shape l|loop: the L line or the loop line of "me" becomes an order through the MP input.
+        Autotest.Commands["cut_shape"] = arg =>
+        {
+            var line = Shape(arg.Trim());
+            Log.Info($"AUTOTEST cut: {arg.Trim()} line through corners {string.Join(" ", line.Select(c => $"{c.X},{c.Y}"))}");
+            Autotest.RequireRun().Game.NetManager.EnqueueInput(new CutOrderInput(Me(), CutModel.Edges(line)));
+        };
+        // cut_fly <dx> <dy> <degrees>: test only, single player. "me" flies to its position plus the offset and turns to the angle
+        // (a move order), so a test sees how a cut-out piece rides along.
+        Autotest.Commands["cut_fly"] = arg =>
+        {
+            if (Autotest.RequireRun().IsMultiplayer) throw new InvalidOperationException("cut_fly is single player only");
+            var n = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(t => float.Parse(t, CultureInfo.InvariantCulture)).ToArray();
+            if (n.Length != 3) throw new InvalidOperationException("cut_fly needs: dx dy degrees");
+            var ship = Me();
+            ship.Commands.EnqueueCommand(new Cosmoteer.Ships.Commands.MoveCommand(ship, ship.Commands.AllocGlobalCommandID(), ship.DetWorldCenter + new Vector2(n[0], n[1]),
+                Direction.FromDegrees(n[2]), Cosmoteer.Ships.Commands.CollisionAvoidanceFlags.None, isTentative: false), append: false, confirmed: true);
         };
         // cut_line <x1> <y1> <x2> <y2>: the straight line between two corners of "me" becomes an order through the MP input.
         Autotest.Commands["cut_line"] = arg =>
@@ -187,7 +261,8 @@ static class CutAutotest
                 "clean" => (CleanLine(grid), (Edge?)null),
                 "blocked" => BlockedLine(grid),
                 "half" => (HalfLine(grid), null),
-                var k => throw new InvalidOperationException($"unknown line '{k}' (clean, blocked or half)"),
+                "l" or "loop" or "bigloop" => (Shape(arg.Trim()), null),
+                var k => throw new InvalidOperationException($"unknown line '{k}' (clean, blocked, half, l or loop)"),
             };
             CutToolState.RequireCurrent().ShowLine(line, blocked);
         };
@@ -205,6 +280,12 @@ static class CutAutotest
         // Own ships among "me" and the newest cut-off piece: a human player's ship that is not a derelict (spec 2465).
         Autotest.Fields["cut_own_pieces"] = () => new[] { (ObjectID?)Me().UniqueID, CutArea.LastPiece }
             .Count(id => id is { } i && Sim().Ships[i] is { } s && s.IsHumanPlayerShip && !s.IsJunk);
+        // Distance between the centers of "me" and the newest cut-off piece, and their speed relative to each other (spec 2465).
+        Autotest.Fields["cut_piece_dist"] = () => Piece() is { } p ? p.DetWorldCenter.DistanceTo(Me().DetWorldCenter) : -1;
+        Autotest.Fields["cut_piece_relspeed"] = () => Piece() is { } p ? (p.Physics.Body.LinearVelocity - Me().Physics.Body.LinearVelocity).Length() : -1;
+        // cut_note_dist: notes cut_piece_dist; cut_piece_drift is how far it moved since (a trapped piece stays put, spec 2465).
+        Autotest.Commands["cut_note_dist"] = _ => _notedDist = Autotest.Fields["cut_piece_dist"]();
+        Autotest.Fields["cut_piece_drift"] = () => Math.Abs(Autotest.Fields["cut_piece_dist"]() - _notedDist);
         // Crew of the newest cut-off piece.
         Autotest.Fields["cut_piece_crew"] = () => CutArea.LastPiece is { } pid && Sim().Ships[pid] is { } p ? p.Crew.Assigned.Count : 0;
         // cut_set <field> <value>: sets one Cut tunable for this run (a slower cut for the video).
