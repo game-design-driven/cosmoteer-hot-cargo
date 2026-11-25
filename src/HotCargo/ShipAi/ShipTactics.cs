@@ -51,6 +51,10 @@ internal sealed class ShipTactics
     [Serialize(Optional = true)] public Vector2? Anchor;
     /// <summary>The last command that the tactics gave. Only this command is ever removed by the tactics.</summary>
     [Serialize(Optional = true)] public CommandID? Issued;
+    /// <summary>Spec 1088: the design hash of the build that started this ship ("Fewer than N ships of design X").</summary>
+    [Serialize(Optional = true)] public int? BuiltFrom;
+    /// <summary>Spec 1088: the ship that this ship's last build started. Build ship waits while its construction is not done.</summary>
+    [Serialize(Optional = true)] public ObjectID? Building;
 
     /// <summary>Spec 418: the term memory of the last decision, in term order (ShipAiModel.TermMemory as two lists).</summary>
     [Serialize(Optional = true)] public List<bool> MemoryOn = [];
@@ -72,7 +76,7 @@ internal sealed class ShipTactics
     /// <summary>Weapons that may not fire now (HoldFire, PointDefenseOnly). Derived from Matched and the part groups; null = build again.</summary>
     internal HashSet<Weapon>? Held;
 
-    public bool IsEmpty => Text.Length == 0 && !Auto && CargoText.Length == 0 && !Recall;
+    public bool IsEmpty => Text.Length == 0 && !Auto && CargoText.Length == 0 && !Recall && BuiltFrom is null && Building is null;
 
     Autonomy.CargoSettings? _cargo;
     public Autonomy.CargoSettings Cargo => _cargo ??= Autonomy.Cargo.Decode(CargoText);
@@ -107,6 +111,9 @@ internal sealed class ShipTactics
         iHash.AddHash(TradeRow);
         for (int i = 0; i < MemoryOn.Count; i++) iHash.AddHash(MemoryOn[i] ? 1 : 0);
         iHash.AddHash((int)(NextTick.Seconds * 10));
+        iHash.AddHash(BuiltFrom ?? 0);
+        if (Building is { } building) building.GetIntegrityHash(iHash);
+        else iHash.AddHash(0);
     }
 
     static readonly ConditionalWeakTable<Ship, ShipTactics> Store = new();

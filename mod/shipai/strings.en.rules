@@ -115,6 +115,9 @@ HotCargoShipAi
 	Cond_WreckWithin = "Wreck within"
 	Cond_FleetBeyond = "My crewed ship is further than"
 	Cond_FleetHealthAbove = "Every other ship's hull above"
+	Cond_CanAffordDesign = "I can afford a new ship of"
+	Cond_CanAffordRefit = "I can afford a refit to"
+	Cond_FewerOfDesign = "Ships of a design, fewer than"
 	Cond_AllyWithin = "An ally within"
 	Cond_AllyInLineOfFire = "An ally is in my line of fire"
 
@@ -154,6 +157,8 @@ HotCargoShipAi
 	Act_Sell = "Trade: sell cargo"
 	Act_Buy = "Trade: buy cargo"
 	Act_Unload = "Trade: unload into my crewed ship"
+	Act_BuildShip = "Build: a new ship of"
+	Act_RefitShip = "Build: refit me to"
 
 	// Parameters
 	PercentFmt = "{0}%"
@@ -180,4 +185,7 @@ HotCargoShipAi
 	Station_Nearest = "nearest"
 	Station_BestPrice = "best sell price"
 	Station_Cheapest = "cheapest to buy"
+	DesignFmt = "{0}: {1}"
+	DesignEmptyFmt = "{0}: (empty)"
+	DesignCountFmt = "{1} of {0}"
 }

@@ -32,6 +32,35 @@ mp auto_loot gold 1 24 120
 waitfor auto_money_gain > 0 400
 on 1 waitfor auto_money_gain > 0 30
 
+step autonomy.build
+# Spec 1084 to 1089: the host picks a saved design (a file only the host has); the design data travels in the AI settings, and the build
+# starts and finishes the same on both machines. The state hash compares them.
+mp auto_build Drone 0,-2000 yarden_zamir.computer@0,0
+auto_ship Drone
+waitfor auto_ship_live == 1 60
+tactics_ship Drone
+savedesign CoopDrone
+mp auto_build Builder player yarden_zamir.computer@2,0 yarden_zamir.targeted_reactor@2,1 cosmoteer.storage_2x2@0,0 yarden_zamir.funnel@0,2 cosmoteer.thruster_small@0,4 cosmoteer.thruster_small@3,3 cosmoteer.thruster_small@0,-2,2 cosmoteer.thruster_small@3,-2,2 cosmoteer.thruster_small@-2,0,1 cosmoteer.thruster_small@-2,2,1 cosmoteer.thruster_small@4,0,3 cosmoteer.thruster_small@4,1,3
+auto_ship Builder
+waitfor auto_ship_live == 1 60
+on 1 auto_ship Builder
+on 1 waitfor auto_ship_live == 1 60
+tactics_ship Builder
+tactics_editor open
+tactics_editor design 1 CoopDrone
+wait 1
+tactics_editor close
+tactics HC1:CanAffordDesign=1&FewerOfDesign=1x1>BuildShip=1;Always>ReturnToFleet
+tacticsauto on
+# What the design costs lies next to the builder (loose resources near it count for construction).
+mp auto_loot steel 20 4 60
+mp auto_loot coil 40 4 60
+mp auto_loot processor 1 4 60
+waitfor auto_built == 1 300
+on 1 waitfor auto_built == 1 60
+waitfor auto_built_done == 1 400
+on 1 waitfor auto_built_done == 1 60
+
 step scavenge.collect
 # Spec 1338: an NPC scavenger waits out the cooldown, salvages a wreck, fetches loose steel and sells at the station. The ages are run
 # state and the module runs on both machines; the state hash compares them, so a divergence fails the step.

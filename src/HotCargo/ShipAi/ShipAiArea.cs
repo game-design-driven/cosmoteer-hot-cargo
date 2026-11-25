@@ -222,7 +222,7 @@ public static class ShipAiArea
 
     static ShipTactics Tactics() => ShipTactics.Of(TestShip()) ?? throw new InvalidOperationException("the test ship has no tactics");
 
-    static string DesignPath(string name)
+    internal static string DesignPath(string name)
     {
         if (name.Length == 0 || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) throw new ArgumentException($"bad design name '{name}'");
         string dir = Path.Combine(Mod.ModRoot, "testships");

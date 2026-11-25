@@ -63,7 +63,8 @@ internal static class ShipAiController
     {
         var rows = ShipAiModel.Decode(text);
         if (Run.Current is { } run && ShipAiModel.StageError(rows, run.T.Heat.Stages.Length) is { } error) throw new FormatException(error);
-        Autonomy.Cargo.Decode(cargo);
+        var settings = Autonomy.Cargo.Decode(cargo);
+        if (ShipAiModel.DesignError(rows, slot => settings.Design(slot) is not null) is { } designError) throw new FormatException(designError);
         var t = ShipTactics.For(ship);
         Release(ship, t);
         t.SetRows(text);
@@ -115,7 +116,7 @@ internal static class ShipAiController
         int moveParam = !t.Recall && d.MoveRow >= 0 ? rows[d.MoveRow].ActParam : 0;
         var attack = Move(ship, t, tun, view, move, moveParam, target, guarded, fresh: before != move || facing != facingBefore);
         if (attack is not null && facing is { } side) Face(attack, side);
-        if (d.TradeRow >= 0) Trade(run, ship, t, view, rows[d.TradeRow].Act);
+        if (d.TradeRow >= 0) Trade(run, ship, t, view, rows[d.TradeRow]);
         int mask = 0;
         for (int i = 0; i < d.Matched.Length; i++) if (d.Matched[i]) mask |= 1 << i;
         Weapons(ship, t, tun, rows, t.Matched, mask, target, view.Caller);
@@ -322,9 +323,9 @@ internal static class ShipAiController
     }
 
     /// <summary>Spec 1073, 1074, 1067: the trade row runs at once each AI tick.</summary>
-    static void Trade(Run run, Ship ship, ShipTactics t, View view, Act act)
+    static void Trade(Run run, Ship ship, ShipTactics t, View view, TacticRow row)
     {
-        switch (act)
+        switch (row.Act)
         {
             case Act.Sell:
                 Autonomy.AutonomyWorld.Sell(ship, view.InRange ?? throw new InvalidOperationException("Sell ran out of range"), view.Cargo);
@@ -332,11 +333,19 @@ internal static class ShipAiController
             case Act.Buy:
                 Autonomy.AutonomyWorld.Buy(ship, view.InRange ?? throw new InvalidOperationException("Buy ran out of range"), view.Cargo, run.T.Autonomy.BuyReserve);
                 break;
+            case Act.BuildShip:
+                var design = view.Cargo.Design(row.ActParam) ?? throw new InvalidOperationException("BuildShip ran with an empty slot");
+                var spot = Autonomy.Build.Spot(ship, Autonomy.Build.InfoOf(design), run.T.Autonomy.BuildGap) ?? throw new InvalidOperationException("BuildShip ran without a spot");
+                t.Building = Autonomy.Build.Start(ship, design, spot).UniqueID;
+                break;
+            case Act.RefitShip:
+                Autonomy.Build.Refit(ship, view.Cargo.Design(row.ActParam) ?? throw new InvalidOperationException("RefitShip ran with an empty slot"));
+                break;
             case Act.Unload:
                 Autonomy.AutonomyWorld.Unload(ship, view.CrewedInRange ?? throw new InvalidOperationException("Unload ran without a crewed ship"));
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(act), act, "not a trade action");
+                throw new ArgumentOutOfRangeException(nameof(row), row.Act, "not a trade action");
         }
     }
 
@@ -821,8 +830,25 @@ internal static class ShipAiController
                 NearestFleet: _uses.Contains(Cond.FleetBeyond) && NearestCrewed is { } home ? Distance(home) : float.PositiveInfinity,
                 NearestAlly: NearestAlly is { } ally ? Distance(ally) : float.PositiveInfinity,
                 AllyInLineOfFire: _uses.Contains(Cond.AllyInLineOfFire) && AllyInLine(),
-                OthersHealth: _uses.Contains(Cond.FleetHealthAbove) && Allies.Count > 0 ? Allies.Min(HullHealth) : null);
+                OthersHealth: _uses.Contains(Cond.FleetHealthAbove) && Allies.Count > 0 ? Allies.Min(HullHealth) : null,
+                Affordable: _uses.Contains(Cond.CanAffordDesign) ? PerSlot(info => HotCargo.Autonomy.Build.Affords(_self, info.Cost), false) : null,
+                AffordableRefit: _uses.Contains(Cond.CanAffordRefit)
+                    ? PerSlot(info => HotCargo.Autonomy.Build.Affords(_self, HotCargo.Autonomy.Build.RefitCost(_self, info)), false) : null,
+                DesignShips: _uses.Contains(Cond.FewerOfDesign) ? PerSlot(info => HotCargo.Autonomy.Build.Built(_self, info), 0) : null);
         }
+
+        /// <summary>Spec 1086: one fact per design slot; an empty slot gets the empty value.</summary>
+        T[] PerSlot<T>(Func<HotCargo.Autonomy.Build.Info, T> fact, T empty) =>
+            Cargo.Designs.Select(d => d is null ? empty : fact(HotCargo.Autonomy.Build.InfoOf(d))).ToArray();
+
+        /// <summary>Spec 1087, 1090: the slot's design fits this ship's rules and the run builds with crew.</summary>
+        HotCargo.Autonomy.Build.Info? Buildable(int slot) =>
+            Cargo.Design(slot) is { } d && HotCargo.Autonomy.Build.InfoOf(d) is var info && info.Rules == _self.Rules.ID && HotCargo.Autonomy.Build.CrewMode(_self) ? info : null;
+
+        bool CanBuild(int slot) =>
+            Buildable(slot) is { } info && !HotCargo.Autonomy.Build.Busy(_self, _tactics) && HotCargo.Autonomy.Build.Spot(_self, info, Autonomy.BuildGap) is not null;
+
+        bool CanRefit(int slot) => Buildable(slot) is { } info && _self.IsConstructionLegal && !HotCargo.Autonomy.Build.BlueprintIs(_self, info);
 
         // ---- Autonomous ship facts (spec 1066). Each one is read once per tick, when a row needs it.
 
@@ -922,6 +948,8 @@ internal static class ShipAiController
                 Act.Sell => InRange is not null && HotCargo.Autonomy.AutonomyWorld.HasCargoToSell(_self, Cargo),
                 Act.Buy => InRange is not null && Cargo.Buy.Length > 0 && CargoRoom,
                 Act.Unload => CrewedInRange is not null && HotCargo.Autonomy.AutonomyWorld.CargoFill(_self) is > 0f,
+                Act.BuildShip => CanBuild(row.ActParam),
+                Act.RefitShip => CanRefit(row.ActParam),
                 _ => throw new ArgumentOutOfRangeException(nameof(row), row.Act, "not a trade action"),
             },
             _ => true,

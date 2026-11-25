@@ -14,6 +14,8 @@ public enum Cond
     CargoAbove, CargoToSell, LootWithin, StationInRange, AsteroidWithin, WreckWithin, FleetBeyond,
     // Loot runner (spec 1083)
     FleetHealthAbove,
+    // Build ships (spec 1086)
+    CanAffordDesign, CanAffordRefit, FewerOfDesign,
     // Formations (spec 423, 424)
     AllyWithin, AllyInLineOfFire,
 }
@@ -32,14 +34,14 @@ public enum Act
     FireAtWill, FocusTarget, TargetWeapons, TargetEngines, PointDefenseOnly, HoldFire, FireDisruptors,
     // Facing (the parameter is the side that faces the target)
     Face,
-    // Trade (spec 1067, 1073, 1074)
-    Sell, Buy, Unload,
+    // Trade (spec 1067, 1073, 1074). Build ship and refit (spec 1087, 1090) are of the trade kind too.
+    Sell, Buy, Unload, BuildShip, RefitShip,
 }
 
 public enum ActKind { Target, Move, Weapons, Facing, Trade }
 
 /// <summary>What the parameter of a condition or an action means.</summary>
-public enum ParamKind { None, Percent, Distance, Count, PartKind, ShipClass, Group, GuardWho, Stage, Seconds, Side, Station }
+public enum ParamKind { None, Percent, Distance, Count, PartKind, ShipClass, Group, GuardWho, Stage, Seconds, Side, Station, Design, DesignCount }
 
 public enum PartKind { Weapon, Thruster, Shield, Vault }
 
@@ -83,7 +85,8 @@ public sealed record TacticRow(Term[] Terms, Act Act, int ActParam)
 /// NearestEnemy and NearestCrate are edge distances, or +infinity with none. StrikeIn is the game seconds to the next Strike wave,
 /// or null outside the Strike stage. Spec 1066: Cargo is null without storage bays; NearestLoot, NearestAsteroid, NearestWreck and
 /// NearestFleet are edge distances, or +infinity with none. Spec 1083: OthersHealth is the lowest hull share (ShipAiController.HullHealth)
-/// of the other human player ships in the system, or null with none.
+/// of the other human player ships in the system, or null with none. Spec 1086: Affordable, AffordableRefit and DesignShips hold one
+/// value per design slot (index = slot - 1); null when no row reads them.
 /// </summary>
 public sealed record ShipFacts(
     float Health,
@@ -114,7 +117,10 @@ public sealed record ShipFacts(
     float NearestFleet = float.PositiveInfinity,
     float NearestAlly = float.PositiveInfinity,
     bool AllyInLineOfFire = false,
-    float? OthersHealth = null);
+    float? OthersHealth = null,
+    IReadOnlyList<bool>? Affordable = null,
+    IReadOnlyList<bool>? AffordableRefit = null,
+    IReadOnlyList<int>? DesignShips = null);
 
 /// <summary>The last value of one term and the game second it took that value (spec 418). Rows keep one per term, in term order.</summary>
 public readonly record struct TermMemory(bool On, double Since);
@@ -173,6 +179,8 @@ public static class ShipAiModel
         Cond.EnemyClassNear => ParamKind.ShipClass,
         Cond.HeatStageAtLeast => ParamKind.Stage,
         Cond.StrikeWithin => ParamKind.Seconds,
+        Cond.CanAffordDesign or Cond.CanAffordRefit => ParamKind.Design,
+        Cond.FewerOfDesign => ParamKind.DesignCount,
         _ => ParamKind.None,
     };
 
@@ -182,6 +190,7 @@ public static class ShipAiModel
         Act.Face => ParamKind.Side,
         Act.GoToStation => ParamKind.Station,
         Act.HoldFormation or Act.KeepSpacing => ParamKind.Distance,
+        Act.BuildShip or Act.RefitShip => ParamKind.Design,
         _ when KindOf(act) == ActKind.Weapons => ParamKind.Group,
         _ => ParamKind.None,
     };
@@ -204,6 +213,8 @@ public static class ShipAiModel
         ParamKind.Seconds => (0, 3600),
         ParamKind.Side => (0, Enum.GetValues<Side>().Length - 1),
         ParamKind.Station => (0, Enum.GetValues<StationPick>().Length - 1),
+        ParamKind.Design => (1, Autonomy.BuildModel.MaxDesigns),
+        ParamKind.DesignCount => (Autonomy.BuildModel.Pack(1, 1), Autonomy.BuildModel.Pack(Autonomy.BuildModel.MaxDesigns, Autonomy.BuildModel.MaxCount)),
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
     };
 
@@ -218,6 +229,8 @@ public static class ShipAiModel
         ParamKind.Count => [1, 2, 3, 4, 5, 6, 8],
         ParamKind.Stage => Enumerable.Range(1, Math.Clamp(stages, 1, MaxStage)).ToArray(),
         ParamKind.Seconds => [10, 20, 30, 60, 90, 120],
+        ParamKind.DesignCount => Enumerable.Range(1, Autonomy.BuildModel.MaxDesigns)
+            .SelectMany(slot => new[] { 1, 2, 3, 4, 5, 8 }.Select(n => Autonomy.BuildModel.Pack(slot, n))).ToArray(),
         _ => Enumerable.Range(RangeOf(kind).Min, RangeOf(kind).Max - RangeOf(kind).Min + 1).ToArray(),
     };
 
@@ -239,6 +252,8 @@ public static class ShipAiModel
         ParamKind.Count => 2,
         ParamKind.Stage => 1,
         ParamKind.Seconds => 30,
+        ParamKind.Design => 1,
+        ParamKind.DesignCount => Autonomy.BuildModel.Pack(1, 1),
         _ => 0,
     };
 
@@ -296,10 +311,35 @@ public static class ShipAiModel
             Cond.FleetBeyond => f.NearestFleet > p * (1f - m),
             // Spec 1083: every other ship is above the threshold. With no other ship, no repair needs the loot.
             Cond.FleetHealthAbove => f.OthersHealth is not { } v || v * 100f > p - m * 100f,
+            Cond.CanAffordDesign => Slot(f.Affordable, term.Param),
+            Cond.CanAffordRefit => Slot(f.AffordableRefit, term.Param),
+            Cond.FewerOfDesign => Slot(f.DesignShips, Autonomy.BuildModel.Unpack(term.Param).Slot) < Autonomy.BuildModel.Unpack(term.Param).Count,
             Cond.AllyWithin => f.NearestAlly <= p * (1f + m),
             Cond.AllyInLineOfFire => f.AllyInLineOfFire,
             _ => throw new ArgumentOutOfRangeException(nameof(term), term.Cond, null),
         };
+    }
+
+    /// <summary>The fact of one design slot. A row names only filled slots (DesignError), so a missing fact is a bug.</summary>
+    static T Slot<T>(IReadOnlyList<T>? values, int slot) =>
+        values is { } v && slot >= 1 && slot <= v.Count ? v[slot - 1] : throw new InvalidOperationException($"design slot {slot} has no fact");
+
+    /// <summary>The design slots that a row names, in its terms and its action.</summary>
+    public static IEnumerable<int> DesignSlots(TacticRow row) =>
+        row.Terms.Select(t => ParamOf(t.Cond) switch
+        {
+            ParamKind.Design => t.Param,
+            ParamKind.DesignCount => Autonomy.BuildModel.Unpack(t.Param).Slot,
+            _ => 0,
+        }).Append(ParamOf(row.Act) == ParamKind.Design ? row.ActParam : 0).Where(slot => slot > 0);
+
+    /// <summary>Spec 2322: an error for a row that names an empty design slot, or null when every named slot holds a design.</summary>
+    public static string? DesignError(IEnumerable<TacticRow> rows, Func<int, bool> filled)
+    {
+        foreach (var row in rows)
+            foreach (int slot in DesignSlots(row))
+                if (!filled(slot)) return $"design slot {slot} is empty: pick a design for it first";
+        return null;
     }
 
     /// <summary>
@@ -448,14 +488,18 @@ public static class ShipAiModel
                 sb.Append('(', t.Open);
                 if (t.Not) sb.Append('!');
                 sb.Append(t.Cond);
-                if (ParamOf(t.Cond) != ParamKind.None) sb.Append('=').Append(t.Param.ToString(CultureInfo.InvariantCulture));
+                if (ParamOf(t.Cond) != ParamKind.None) sb.Append('=').Append(ParamText(ParamOf(t.Cond), t.Param));
                 sb.Append(')', t.Close);
             }
             sb.Append('>').Append(r.Act);
-            if (ParamOf(r.Act) != ParamKind.None) sb.Append('=').Append(r.ActParam.ToString(CultureInfo.InvariantCulture));
+            if (ParamOf(r.Act) != ParamKind.None) sb.Append('=').Append(ParamText(ParamOf(r.Act), r.ActParam));
         }
         return sb.ToString();
     }
+
+    /// <summary>Spec 2322: a slot-and-count parameter reads "&lt;slot&gt;x&lt;N&gt;"; every other parameter is a plain number.</summary>
+    static string ParamText(ParamKind kind, int value) =>
+        kind == ParamKind.DesignCount ? Autonomy.BuildModel.CountText(value) : value.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>Parses Encode text. Throws FormatException on any unknown name, missing or out-of-range parameter, unbalanced brackets or too many rows.</summary>
     public static List<TacticRow> Decode(string text)
@@ -512,6 +556,7 @@ public static class ShipAiModel
             if (eq >= 0) throw new FormatException($"{name} takes no parameter");
             return (value, 0);
         }
+        if (eq >= 0 && kind == ParamKind.DesignCount) return (value, Autonomy.BuildModel.ParseCount(side[(eq + 1)..]));
         if (eq < 0 || !int.TryParse(side[(eq + 1)..], NumberStyles.Integer, CultureInfo.InvariantCulture, out int param))
             throw new FormatException($"{name} needs a number parameter");
         var (min, max) = RangeOf(kind);
