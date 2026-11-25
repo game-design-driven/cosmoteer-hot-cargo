@@ -4,6 +4,10 @@ newgame run
 wait 8
 ev_set Enabled false
 godmode on
+# A quiet world: no scavengers or Wayfarers arrive. A scavenger near the station is an enemy of the ship, which then flees from it
+# instead of docking (#336: Marigold kept the ship away for about 80 s).
+scav_set Enabled false
+fr_set PayForwardChance 0
 tacticlog on
 aiset FallBackEnabled false
 aiset RegroupOnVanilla false
@@ -15,9 +19,20 @@ aiset FleeChance 1
 # This test is about the station path: the risk stance (spec 1527) would decide the flee instead of FleeChance.
 dip_set RiskEnabled false
 # No other fight: a random pirate near the player (from the sim random stream, which #277 moved) kept the ship fleeing.
+# The player ship 2200 from every station: the ship flees from any enemy within FleeDistance (1500) before it docks, and the start
+# station is next to the player ship (#336: the ship stood 300 from the player at the station and fled again). Closer than the stasis
+# range, so the station stays live and can trade.
+openspace 2200
 fr_kill_enemies
-aispawn monolith 1
+# A fixed hull: the random pick depends on the sim random stream, which differs on the PC (#336: a Spotter instead of the sim's Iota).
+aispawn monolith 1 1 hull=Iota
+# Enemies of the ship that are already in the system leave: the spawn starts a war with the faction, and scavengers come for damaged
+# ships. The ship flees from any enemy within FleeDistance before it docks (#336: a scavenger, and on the PC four patrols).
+aialone
 wait 3
+# Already clear of the player ship (FleeDistance 1500), so the ship looks for a station when it starts to flee. With 2 crew it flies
+# slowly, and on the PC its flight away from the player took longer than the 60 s below (#336).
+aiaway 2200
 aistrip new resources
 aistrip new crew 2
 aidamage new 0.2
