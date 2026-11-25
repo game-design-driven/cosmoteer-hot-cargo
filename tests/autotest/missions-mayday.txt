@@ -10,10 +10,11 @@ hc_mayday_roll 1
 expect hc_mayday_due == 1
 pause off
 waitfor hc_mayday_active == 1 70
-expect hc_mayday_due == 0
-# Spec 2431, 2433: the fight in sight, the red ring on the victim, and the attackers on the victim.
-expect hc_mayday_attackers >= 2
+# Spec 2433: the red ring on the victim from the start, before the next sim tick (#336).
 expect hc_mayday_ring == 1
+expect hc_mayday_due == 0
+# Spec 2431: the fight in sight, and the attackers on the victim.
+expect hc_mayday_attackers >= 2
 expect hc_mayday_hull > 0
 expect hc_mayday_victim_dist >= 1500
 waitfor hc_mayday_on_victim >= 1 30
