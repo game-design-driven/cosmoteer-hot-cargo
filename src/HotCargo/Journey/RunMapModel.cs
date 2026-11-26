@@ -18,10 +18,10 @@ public enum LinkKind { Side, Forward, OldLane }
 public static class RunMapModel
 {
     /// <summary>Map distance from one band to the next. Vanilla links are 5 to 10 long (base_galaxy.rules), so fuel costs stay vanilla.</summary>
-    public const float BandLength = 8f;
+    public const float BandLength = 9f;
 
     /// <summary>Vertical gap between systems of one band.</summary>
-    public const float RowGap = 7f;
+    public const float RowGap = 6f;
 
     /// <summary>A system sits at most this share of a band before or after its band center. Under 0.5, so bands never overlap.</summary>
     public const float BandJitter = 0.3f;
@@ -81,7 +81,7 @@ public static class RunMapModel
             {
                 bool end = band == 0 || band == last;
                 float x = (band + (end ? 0f : (next() * 2f - 1f) * BandJitter)) * BandLength;
-                float row = i - (width - 1) / 2f + (end ? 0f : (next() - 0.5f) * 0.6f);
+                float row = i - (width - 1) / 2f + (end ? 0f : (next() - 0.5f) * 0.3f);
                 ids[i] = nodes.Count;
                 nodes.Add(new MapPoint(band, x, row * RowGap));
             }
