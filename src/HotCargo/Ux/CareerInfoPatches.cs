@@ -81,7 +81,8 @@ static class CareerInfoPatches
                     bool runMap = Journey.RunMap.IsRunMap(mode);
                     int sector = runMap ? Journey.RunMap.Band(node) + 1 : s.SectorIndex + 1;
                     int last = Journey.RunMap.Steps(run);
-                    sb.Append('\n').Append(runMap ? node == Journey.RunMap.BuyerNode(run) : sector == last
+                    bool buyerHere = runMap ? node == Journey.RunMap.BuyerNode(run) : sector == last;
+                    sb.Append('\n').Append(buyerHere
                         ? $"<good>{UxKit.Text("MapBuyerHere")}</good>"
                         : UxKit.Format("MapSectorFmt", sector, last));
                 }

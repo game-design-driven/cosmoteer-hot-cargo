@@ -82,6 +82,16 @@ public static class RunMap
 
     internal static float Position(MapNode node) => RunMapModel.Position(node.Location.X);
 
+    /// <summary>The last band and the Buyer's system of a map. The map never changes after the galaxy is made, so it is read once.</summary>
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<MapRoot, Tuple<int, MapNode>> Ends = new();
+
+    static Tuple<int, MapNode> EndsOf(MapRoot map) => Ends.GetValue(map, m =>
+    {
+        int last = m.Nodes.Max(Band);
+        return Tuple.Create(last, m.Nodes.Single(n => Band(n) == last));
+    });
+
+    /// <summary>The highest band of the map. While the galaxy is made (RunMapTiersSpawner), it reads the nodes without the cache.</summary>
     internal static int LastBand(MapRoot map) => map.Nodes.Max(Band);
 
     /// <summary>True when the career uses the Hot Cargo run map size.</summary>
@@ -89,10 +99,10 @@ public static class RunMap
 
     /// <summary>Spec 2554: the Buyer's system, the one system of the last band. Null on another map size.</summary>
     internal static MapNode? BuyerNode(Run run) =>
-        IsRunMap(run.Mode) ? run.Game.Map.Nodes.Single(n => Band(n) == LastBand(run.Game.Map)) : null;
+        IsRunMap(run.Mode) ? EndsOf(run.Game.Map).Item2 : null;
 
     /// <summary>Spec 2555: the steps of the run: the map's bands on the run map, else Journey.RunSectorCount.</summary>
-    public static int Steps(Run run) => IsRunMap(run.Mode) ? LastBand(run.Game.Map) + 1 : run.T.Journey.RunSectorCount;
+    public static int Steps(Run run) => IsRunMap(run.Mode) ? EndsOf(run.Game.Map).Item1 + 1 : run.T.Journey.RunSectorCount;
 
     /// <summary>
     /// Spec 2555: the step of the run (1 = the start, Steps = the Buyer): on the run map, 1 + the furthest band that the players
