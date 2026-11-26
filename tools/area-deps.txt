@@ -36,7 +36,6 @@ Core Journey
 Core Missions
 Core RunModes
 Core Scaling
-Core ShipAi
 Core Tactics
 Cut Ux
 Debris Ai

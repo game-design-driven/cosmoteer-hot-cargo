@@ -13,9 +13,9 @@ namespace HotCargo.Core;
 /// of player inputs (SPManager.Update, BaseMPManager.AdvanceNetworkTime). All other code is frame code: UI, draw, widget callbacks, Run.Hooks.Frame.
 /// At the end of each phase this takes a fingerprint of sim state. At the start of the next phase the fingerprint must be the same.
 /// A difference means that frame code changed the sim, which desyncs co-op. It reads only.
-/// Limit: the fingerprint holds the sim random stream, the run state hash and the player states. A change of other state (a ship,
-/// a run state field outside CareerPatches.AddRunHash) passes. Revisit with the ships hash (sim.Ships.GetIntegrityHash) in the
-/// fingerprint if a desync from frame code gets through; first check that vanilla frame code does not break it.
+/// Limit: the fingerprint holds the sim random stream, the player states and, in autotests, the whole run state (RunHash). A change
+/// of other state (a ship) passes. Revisit with the ships hash (sim.Ships.GetIntegrityHash) in the fingerprint if a desync from
+/// frame code gets through; first check that vanilla frame code does not break it.
 /// </summary>
 public static class SimPhase
 {
@@ -126,7 +126,7 @@ public static class SimPhase
     {
         var game = run.Game;
         var sim = game.Sim;
-        return new(run, sim, Hash(sim.Rand.GetIntegrityHash), Hash(h => CareerPatches.AddRunHash(run, h)), Hash(h =>
+        return new(run, sim, Hash(sim.Rand.GetIntegrityHash), StateHash(run), Hash(h =>
         {
             // The same player states as GameRoot.GetIntegrityHash (0.30.5a).
             foreach (var (index, state) in game._playerStates)
@@ -137,6 +137,17 @@ public static class SimPhase
             }
         }));
     }
+
+    /// <summary>
+    /// The run state hash covers every saved member (RunHash) and costs 9 to 30 µs, several times in each frame. So only autotests
+    /// take it: they are where a broken rule fails a build. In play the fingerprint holds the random stream and the player states,
+    /// and the game's own integrity hash (with the run state in it) finds a co-op difference at the next input tick.
+    /// A test that profiles the mod ("selfprof on") measures the cost of play, so it runs without it too.
+    /// </summary>
+    static int StateHash(Run run) => Dev.Autotest.IsActive && !AsInPlay ? RunHash.Of(run.State) : 0;
+
+    /// <summary>Test only: set by the profiler ("selfprof on"), so the fingerprint is the one of play.</summary>
+    internal static bool AsInPlay;
 
     static int Hash(Action<IntegrityHash> add)
     {
