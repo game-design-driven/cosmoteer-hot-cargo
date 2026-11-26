@@ -212,6 +212,7 @@ internal static class PersonalityAutotest
             var personality = T().Personalities.FirstOrDefault(p => p.Name == name) ?? throw new InvalidOperationException($"no personality '{name}'");
             var trait = Enum.Parse<Trait>(parts[^2], ignoreCase: true);
             personality.Weights.Set(trait, float.Parse(parts[^1], CultureInfo.InvariantCulture));
+            PersonalityStrategy.ForgetTraits(Sim());
             Log.Info($"AUTOTEST {name}.{trait} = {personality.Weights.Get(trait)}");
         };
         // aijitter <value>: sets the jitter of every personality for this run. 0 makes ships of one personality alike. Test only.
@@ -219,6 +220,7 @@ internal static class PersonalityAutotest
         {
             float jitter = float.Parse(arg, CultureInfo.InvariantCulture);
             foreach (var p in T().Personalities) p.Jitter = jitter;
+            PersonalityStrategy.ForgetTraits(Sim());
         };
         // aiheavy: destroys every thruster part of each hostile AI ship, so each is heavy (agility 0). Test only.
         Autotest.Commands["aiheavy"] = _ =>

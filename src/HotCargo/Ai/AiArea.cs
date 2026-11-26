@@ -48,7 +48,11 @@ public static class AiArea
         Autotest.Fields["ai_fleeing"] = () => Sim().Ships.Count(s => s.AI?.GetStrategyModule<FleeStrategy>() is { Fleeing: true });
 
         // aiset <TacticsTunables field> <value>: sets one tactics tunable for this run. Test only.
-        Autotest.Commands["aiset"] = arg => Autotest.SetField(Autotest.RequireRun().T.Tactics, arg);
+        Autotest.Commands["aiset"] = arg =>
+        {
+            Autotest.SetField(Autotest.RequireRun().T.Tactics, arg);
+            PersonalityStrategy.ForgetTraits(Sim());
+        };
         // stageset <stage> <StageResponse field> <value>: sets one field of a hunter stage response for this run. Test only.
         Autotest.Commands["stageset"] = arg =>
         {

@@ -118,8 +118,10 @@ public static class RunModesArea
             var (ships, tier) = ExpectedStage(run, arg);
             var sim = run.Game.Sim;
             var career = (CareerSimModeManager)sim.Mode;
+            // Hunters spawn 2,000 to 3,000 from a player ship, so some can be in stasis: count those too, check the tier of the live ones.
+            int count = SimQueries.TaggedShips(sim, HunterSpawner.HunterTag).Count;
             var tiers = HunterSpawner.Hunters(sim).Select(h => career.GetShipTier(h) ?? -1).ToList();
-            Autotest.Check(tiers.Count == ships, $"stage {arg}: {ships} hunters (actual {tiers.Count})");
+            Autotest.Check(count == ships, $"stage {arg}: {ships} hunters (actual {count})");
             Autotest.Check(tiers.All(t => t <= tier && t >= Math.Max(1, tier - 2)), $"stage {arg}: hunter tiers near {tier} (actual [{string.Join(", ", tiers)}])");
         };
         Autotest.Commands["rm_log"] = arg =>
@@ -184,7 +186,7 @@ public static class RunModesArea
     {
         var r = run.T.Hunters.Stages.Single(s => s.Name == stage);
         var rows = RowsNow(run);
-        float progress = WaveModel.Progress(run.State.SectorIndex, run.T.Journey.RunSectorCount);
+        float progress = run.Progress;
         float shipFactor = rows.Aggregate(1f, (f, row) => f * row.HunterShips);
         int ships = Math.Max(1, (int)MathF.Round(WaveModel.ShipCount(r.ShipCount, r.EarlyScale, progress) * shipFactor, MidpointRounding.AwayFromZero));
         int tier = Hunters.HunterSpawner.BaseTier(run) + WaveModel.TierOffset(r.TierOffset, r.EarlyTierReduction, progress) + rows.Sum(row => row.HunterTiers);
@@ -223,7 +225,7 @@ public static class RunModesArea
         {
             var (ships, tier) = ExpectedStage(run, s.Name);
             var r = s;
-            float progress = WaveModel.Progress(run.State.SectorIndex, run.T.Journey.RunSectorCount);
+            float progress = run.Progress;
             int actualShips = run.Pressure().Ships(WaveModel.ShipCount(r.ShipCount, r.EarlyScale, progress));
             int actualTier = Hunters.HunterSpawner.BaseTier(run) + WaveModel.TierOffset(r.TierOffset, r.EarlyTierReduction, progress) + Difficulty.ExtraHunterTiers(run);
             Autotest.Check(actualShips == ships && actualTier == tier, $"{label}: {s.Name} {ships} ships of tier {tier} (actual {actualShips} of tier {actualTier})");
@@ -287,19 +289,16 @@ public static class RunModesArea
         Log.Info($"AUTOTEST RUNMODES fees: {offers} paid offers, stored {before}, re-rolled {after}, ratio {_feeRatio:0.###}");
     }
 
-    /// <summary>rm_route jumps along the main route, or to the lowest tier neighbor (side systems), for tests of hunter tiers.</summary>
+    /// <summary>rm_route jumps to the highest tier neighbor, or to the lowest tier neighbor, for tests of hunter tiers.</summary>
     static void RegisterRoute()
     {
-        // rm_route [low]: jumps to the unvisited neighbor with the highest low tier (the main route), or the lowest with "low". No fuel.
+        // rm_route [low]: jumps to the unvisited neighbor with the highest low tier, or the lowest with "low". No fuel.
         Autotest.Commands["rm_route"] = arg =>
         {
             var run = R();
             int Tier(Cosmoteer.GalaxyMap.MapNode n) => run.Mode.GetMapNodeData(n).TierRange?.Min ?? 0;
             var options = run.Game.CurrentMapNode.Connections.Where(n => !run.State.VisitedNodes.Contains(n.UniqueID)).OrderBy(n => n.UniqueID).ToList();
-            // Faction home systems (low tier above what HotCargoTierCap may change) are not on the route.
-            int maxTier = GameApp.Rules.CareerMode.MapSizes[Journey.JourneyArea.RunMapSizeIndex()].MapGenerator.Spawners
-                .OfType<Journey.TierCapSpawner>().Single().MaxChangeableLowTier;
-            var next = (arg == "low" ? options.OrderBy(Tier) : options.Where(n => Tier(n) <= maxTier).OrderByDescending(Tier)).FirstOrDefault()
+            var next = (arg == "low" ? options.OrderBy(Tier) : options.OrderByDescending(Tier)).FirstOrDefault()
                 ?? throw new InvalidOperationException("no unvisited neighbor system");
             Autotest.JumpWhenAllowed(run, next, "rm_route");
         };

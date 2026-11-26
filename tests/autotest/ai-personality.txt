@@ -6,7 +6,10 @@ godmode on
 tacticlog on
 # Hostile ships of three groups. Faction ships make the players wanted by their faction, so its police join too.
 aispawn monolith 3
-aispawn fringe 5
+aispawn fringe 4
+# One fixed hull that can bait: agile, with a guarded side (spec 1032). The random hulls change with frame timing, and the agile ones
+# among them (Haywire, Pogoo) have no guarded side, so the bait check failed in about half the PC runs (#371).
+aispawn fringe 1 1 hull=Bottomfeeder
 aispawn pirates 3
 wait 3
 aiprofiles spawn
