@@ -8,8 +8,8 @@ wait 8
 ev_set Enabled false
 godmode on
 mech_generate miningescort
-# Spec 1860: the start system has two ship graveyards with the field tag; the offer skips them.
-expect mech_mine_skipped_pois >= 2
+# Spec 1860: ship graveyards carry the field tag too; the offer skips each of them, and only them.
+expect mech_mine_skip_gap == 0
 mech_accept miningescort
 expect mech_active_miningescort == 1
 mech_mine_goto

@@ -198,6 +198,17 @@ public static class MechanicsArea
         };
         // mech_mine_skipped_pois: POIs with the field tag that the last Mining Escort offer skipped for their type (graveyards, spec 1860).
         Autotest.Fields["mech_mine_skipped_pois"] = () => MiningEscortObjective.LastSkippedPois;
+        // mech_mine_skip_gap: ship graveyards (POIs with the field tag of type poi_graveyard) in this system minus the POIs that the last
+        // offer skipped. Expect 0: the offer skips every graveyard and nothing else, in any test world.
+        Autotest.Fields["mech_mine_skip_gap"] = () =>
+        {
+            var sim = RequireSim();
+            var tag = new ID<SimObjectSpawner>("asteroid_field_poi");
+            int graveyards = MissionArea.ExistingSpawnTags(sim).TryGetValue(tag, out var pois)
+                ? pois.Count(p => p.UniqueID is { } id && sim.Doodads[id]?.Rules.ID.ToString() == "cosmoteer.poi_graveyard")
+                : 0;
+            return graveyards - MiningEscortObjective.LastSkippedPois;
+        };
         // mech_mine_away <distance>: the miner and the players this far from the field center. mech_mine_rock_in_field: 1 when the miner's
         // next rock is inside its field and out of the heat (spec 1862), 0 when it picks another rock, -1 when it has none.
         Autotest.Commands["mech_mine_away"] = arg =>
