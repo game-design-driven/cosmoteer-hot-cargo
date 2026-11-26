@@ -42,8 +42,8 @@ static class WeldTool
         _button = btn;
     });
 
-    /// <summary>Picks the Weld tool, like a click on its button (screenshots).</summary>
-    internal static void Select() => (_button ?? throw new InvalidOperationException("the build window has no Weld button")).IsSelected = true;
+    /// <summary>Picks or drops the Weld tool, like a click on its button (tests, screenshots).</summary>
+    internal static void Select(bool on) => (_button ?? throw new InvalidOperationException("the build window has no Weld button")).IsSelected = on;
 
     internal static void Register() => Run.Hooks.Frame += run => Ux.UxKit.Guard("weld button", () =>
     {
@@ -229,12 +229,20 @@ internal sealed class WeldToolState : BaseBuildState
             DrawPicked(ship, target);
             return;
         }
-        var targets = WeldShip.Targets(run, ship, Game.LocalPlayerIndex); // determinism: UI only, the local player's own tool
         var hovered = Hovered(run, ship);
         // A piece in a weld order shows the order (WeldDraw), not a target frame.
         bool InOrder(Ship t) => run.State.Weld.Orders.Any(o => o.Target == t.UniqueID);
-        foreach (var t in targets)
-            if (t != hovered?.Ship && !InOrder(t)) DrawFrame(t, fill: false);
+        int targets = 0;
+        foreach (var t in Sim.Ships)
+        {
+            var kind = WeldShip.TargetVerdict(run, ship, t, Game.LocalPlayerIndex); // determinism: UI only, the local player's own tool
+            if (kind == WeldTargetVerdict.Ok) targets++;
+            if (t == hovered?.Ship || InOrder(t)) continue;
+            // Own pieces and wrecks out of range get a faint red box, so the player sees them and flies closer. Other objects that are
+            // no target (enemy ships, asteroids) name their reason only under the cursor: a box on each would clutter the view.
+            if (kind == WeldTargetVerdict.Ok) DrawFrame(t, fill: false);
+            else if (kind == WeldTargetVerdict.TooFar) DrawFrame(t, fill: false, WidgetRules.Instance.BadTextColor * 0.8f);
+        }
         string hint = run.State.Weld.Orders.Any(o => o.Ship == ship.UniqueID) ? "\n" + Strings.GetText("HotCargoWeld/HintCancel") : "";
         if (hovered is var (h, verdict))
         {
@@ -244,7 +252,7 @@ internal sealed class WeldToolState : BaseBuildState
             Hint(Strings.GetText(key) + hint);
             return;
         }
-        Hint(Strings.GetText(targets.Count == 0 ? "HotCargoWeld/NoTarget" : "HotCargoWeld/HintPick") + hint);
+        Hint(Strings.GetText(targets == 0 ? "HotCargoWeld/NoTarget" : "HotCargoWeld/HintPick") + hint);
     }
 
     /// <summary>Text under the cursor, or under the point that stands in for it (screenshots), as DrawTextUnderCursor places it.</summary>

@@ -199,11 +199,21 @@ static class WeldAutotest
         Autotest.Fields["weld_jobs"] = () => Order()?.Joints.Count(e => e.Job?.Ship is not null) ?? 0;
         // Screenshots, UI only. weld_tool: selects "me", opens build mode and picks the Weld tool. weld_show auto|covered: the ghost at the
         // nearest valid place, or on the ship's first tile (red). weld_set <field> <value>: one Weld tunable for this run.
-        Autotest.Commands["weld_tool"] = _ =>
+        // weld_tool off: another tool, as a click on the Weld button again. weld_tool close: the build window closes.
+        Autotest.Commands["weld_tool"] = arg =>
         {
-            Sim().PlayerInput.SelectSingleShip(Me());
-            Autotest.RequireRun().Game.Gui.ShipGui.BuildButton.IsSelected = true;
-            WeldTool.Select();
+            var build = Autotest.RequireRun().Game.Gui.ShipGui.BuildButton;
+            switch (arg.Trim())
+            {
+                case "":
+                    Sim().PlayerInput.SelectSingleShip(Me());
+                    build.IsSelected = true;
+                    WeldTool.Select(true);
+                    break;
+                case "off": WeldTool.Select(false); break;
+                case "close": build.IsSelected = false; break;
+                default: throw new InvalidOperationException($"weld_tool needs nothing, off or close, not '{arg.Trim()}'");
+            }
         };
         Autotest.Commands["weld_show"] = arg =>
         {
