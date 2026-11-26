@@ -1,0 +1,26 @@
+# Spec 1666, 12: tech that stays in a system when the players leave it is lost. The loss timer then runs: ships that wait in
+# another system hold no tech, so they do not pause it. Before the fix, the waiting carrier kept its tech and the timer paused.
+newgame
+wait 8
+ev_set Enabled false
+tech_set LossGraceSeconds 600
+pause off
+jw_twin save
+jw_twin spawn
+wait 2
+expect tech > 0
+# Only the twin without tech jumps; the carrier stays with all the tech.
+jw_jump_split
+waitfor sector == 2 30
+wait 2
+expect ux_ships_here == 1
+expect tech == 0
+waitfor losstimer == 1 10
+# Back to the carrier: its tech stayed behind and is gone.
+jump back
+waitfor ux_ships_here == 2 60
+wait 2
+expect tech == 0
+expect losstimer == 1
+expect lost == 0
+quit
