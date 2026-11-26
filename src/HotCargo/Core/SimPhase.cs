@@ -10,7 +10,7 @@ namespace HotCargo.Core;
 /// <summary>
 /// Spec 1009: the sim changes only inside a sim phase. A sim phase is a part of the frame that every co-op machine runs at the same
 /// point: the sim tick (SimRoot.FixedUpdate), the input tick (SimRoot.OnInputTick, GameModeManager.OnInputTick) and the execution
-/// of player inputs (NetManager.AdvanceNetworkTime). All other code is frame code: UI, draw, widget callbacks, Run.Hooks.Frame.
+/// of player inputs (SPManager.Update, BaseMPManager.AdvanceNetworkTime). All other code is frame code: UI, draw, widget callbacks, Run.Hooks.Frame.
 /// At the end of each phase this takes a fingerprint of sim state. At the start of the next phase the fingerprint must be the same.
 /// A difference means that frame code changed the sim, which desyncs co-op. It reads only.
 /// Limit: the fingerprint holds the sim random stream, the run state hash and the player states, plus the ships with
@@ -37,8 +37,8 @@ public static class SimPhase
     static int _depth;
     static string _lastPhase = "game start";
 
-    /// <summary>The game's main thread runs every phase. A game that loads builds its state on a worker thread, outside the check.</summary>
-    static int _thread;
+    /// <summary>The main thread runs every phase. A game that loads builds its state on a worker thread, outside the check.</summary>
+    static bool OnMain => Halfling.App.Director.MainThread == Thread.CurrentThread;
 
     /// <summary>Ends the phase that <see cref="Open"/> started.</summary>
     public readonly struct Scope : IDisposable
@@ -56,16 +56,27 @@ public static class SimPhase
         return default;
     }
 
+    /// <summary>
+    /// The game that ran a vanilla phase last. A game that starts (a new game, a load, a co-op launch or resync) is built on a worker
+    /// thread while Run.Current already names it and the main thread still draws frames: no fingerprint before its first phase.
+    /// </summary>
+    static GameRoot? _live;
+
     static bool On(out Run run)
     {
         run = Run.Current!;
-        return run is not null && run.T.Invariants.Enabled && run.T.Invariants.SimPhase && run.Game.Sim is not null;
+        return run is not null && run.Game == _live && run.T.Invariants.Enabled && run.T.Invariants.SimPhase && run.Game.Sim is not null;
+    }
+
+    static void EnterVanilla(string what, GameRoot? game)
+    {
+        if (game is not null && OnMain) _live = game;
+        Enter(what);
     }
 
     static void Enter(string what)
     {
-        if (_thread == 0) _thread = Environment.CurrentManagedThreadId;
-        if (Environment.CurrentManagedThreadId != _thread) return;
+        if (!OnMain) return;
         if (_depth++ > 0) return;
         Check($"between '{_lastPhase}' and '{what}'");
         _lastPhase = what;
@@ -73,7 +84,7 @@ public static class SimPhase
 
     static void Exit()
     {
-        if (Environment.CurrentManagedThreadId != _thread) return;
+        if (!OnMain) return;
         if (_depth == 0) throw new InvalidOperationException("SimPhase.Exit without Enter");
         if (--_depth > 0) return;
         _closed = On(out var run) ? Take(run) : null;
@@ -85,7 +96,7 @@ public static class SimPhase
     /// </summary>
     internal static void Checkpoint(string where)
     {
-        if (_depth > 0 || Environment.CurrentManagedThreadId != _thread) return;
+        if (_depth > 0 || !OnMain) return;
         Check($"in '{where}'");
     }
 
@@ -132,34 +143,39 @@ public static class SimPhase
     [HarmonyPatch(typeof(SimRoot), "FixedUpdate")]
     static class Tick
     {
-        static void Prefix() => Enter("sim tick");
+        static void Prefix(SimRoot __instance) => EnterVanilla("sim tick", __instance.Game);
         static void Finalizer() => Exit();
     }
 
     [HarmonyPatch(typeof(SimRoot), nameof(SimRoot.OnInputTick))]
     static class SimInputTick
     {
-        static void Prefix() => Enter("input tick");
+        static void Prefix(SimRoot __instance) => EnterVanilla("input tick", __instance.Game);
         static void Finalizer() => Exit();
     }
 
     [HarmonyPatch(typeof(GameModeManager), nameof(GameModeManager.OnInputTick))]
     static class ModeInputTick
     {
-        static void Prefix() => Enter("input tick");
+        static void Prefix(GameModeManager __instance) => EnterVanilla("input tick", __instance.Game);
         static void Finalizer() => Exit();
     }
 
-    /// <summary>Player inputs execute here: single player (SPManager, RecordableSPManager) and co-op (BaseMPManager).</summary>
+    /// <summary>
+    /// Player inputs execute here (0.30.5a): in single player in the Update of SPManager and RecordableSPManager, in co-op in
+    /// BaseMPManager.AdvanceNetworkTime.
+    /// </summary>
     [HarmonyPatch]
     static class Inputs
     {
         static IEnumerable<System.Reflection.MethodBase> TargetMethods() =>
-            new[] { typeof(SPManager), typeof(RecordableSPManager), typeof(BaseMPManager) }
-                .Select(t => AccessTools.DeclaredMethod(t, nameof(NetManager.AdvanceNetworkTime))
-                    ?? throw new MissingMethodException(t.Name, nameof(NetManager.AdvanceNetworkTime)));
+            new (Type Type, string Name)[]
+            {
+                (typeof(SPManager), nameof(NetManager.Update)), (typeof(RecordableSPManager), nameof(NetManager.Update)),
+                (typeof(BaseMPManager), nameof(NetManager.AdvanceNetworkTime)),
+            }.Select(m => AccessTools.DeclaredMethod(m.Type, m.Name) ?? throw new MissingMethodException(m.Type.Name, m.Name));
 
-        static void Prefix() => Enter("player inputs");
+        static void Prefix(NetManager __instance) => EnterVanilla("player inputs", __instance.Game);
         static void Finalizer() => Exit();
     }
 }
