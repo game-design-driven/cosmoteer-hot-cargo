@@ -13,14 +13,15 @@ pause off
 wait 3
 hc_escort_ready
 hc_escort_advance 0.1
-hc_escort_watcher 1000
+hc_track hc_escort_ship
+hc_watcher 1000
 pause off
 # The AI picks targets every 0.25 to 0.75 s.
 wait 3
 hc_escort_diag watcher
-expect hc_escort_turned == 0
+expect hc_track_turned == 0
 hc_mark
 waitfor hc_escort_progress > 200 20
-expect hc_escort_turned == 0
+expect hc_track_turned == 0
 hc_escort_diag after
 quit

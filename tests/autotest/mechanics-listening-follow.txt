@@ -1,0 +1,21 @@
+# Listening Post scout (spec 140): it follows the nearest player ship, also with an enemy on its radar. With the vanilla Normal AI it
+# turned its hull to the enemy (forced rotation, as the escort freighter in #372) and crawled.
+# missions: random
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+mech_generate listening nonebula
+mech_accept listening
+mech_hold_goto
+pause off
+wait 4
+hc_track hc_lp_scout
+hc_track_leave 1500
+hc_watcher 1000
+pause off
+hc_track_mark
+wait 13
+expect hc_track_closed > 250
+expect hc_track_turned == 0
+quit

@@ -1,0 +1,14 @@
+# Mayday victim (spec 2431): it runs to the players with its attackers on its radar. With the vanilla Normal AI it turned its hull to
+# an attacker (forced rotation, as the escort freighter in #372) and crawled.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+hc_mayday_start
+pause off
+hc_track hc_mayday_victim
+hc_track_mark
+wait 13
+expect hc_track_closed > 250
+expect hc_track_turned == 0
+quit
