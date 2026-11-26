@@ -131,11 +131,15 @@ public static class SimPhase
     }
 
     /// <summary>
-    /// The run state hash covers every saved member (RunHash) and costs about 9 µs, several times in each frame. So only autotests
+    /// The run state hash covers every saved member (RunHash) and costs 9 to 30 µs, several times in each frame. So only autotests
     /// take it: they are where a broken rule fails a build. In play the fingerprint holds the random stream and the player states,
     /// and the game's own integrity hash (with the run state in it) finds a co-op difference at the next input tick.
+    /// A test that profiles the mod ("selfprof on") measures the cost of play, so it runs without it too.
     /// </summary>
-    static int StateHash(Run run) => Dev.Autotest.IsActive ? RunHash.Of(run.State) : 0;
+    static int StateHash(Run run) => Dev.Autotest.IsActive && !AsInPlay ? RunHash.Of(run.State) : 0;
+
+    /// <summary>Test only: set by the profiler ("selfprof on"), so the fingerprint is the one of play.</summary>
+    internal static bool AsInPlay;
 
     static int Hash(Action<IntegrityHash> add)
     {
