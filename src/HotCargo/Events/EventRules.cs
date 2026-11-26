@@ -323,6 +323,8 @@ public sealed class EventRules
     /// name, and its texts fill {mem_ship} and {mem_system}.
     /// </summary>
     [Serialize(Optional = true)] public MemoryKind Recalls;
+    /// <summary>Spec 2504: a callback's own chance (above 0, at most 1) at each new sector, once the pick chose it. Only on callbacks.</summary>
+    [Serialize(Optional = true)] public float CallbackChance;
     [Serialize(Optional = true)] public float Weight = 10f;
     [Serialize(Optional = true)] public float WeightPerHeat;
     [Serialize(Optional = true)] public float WeightPerTech;
@@ -427,6 +429,8 @@ public static class EventLibrary
         if (e.Trigger == EventTrigger.Hail && e.HailLine.Length == 0) throw new InvalidDataException($"{at}: a Hail event needs a HailLine");
         if (e.Carrier.Length > 0) Spawn(e.Carrier);
         if ((e.Trigger == EventTrigger.Callback) != (e.Recalls != MemoryKind.None)) throw new InvalidDataException($"{at}: Trigger = Callback and Recalls go together");
+        if (e.Recalls != MemoryKind.None ? e.CallbackChance is not (> 0f and <= 1f) : e.CallbackChance != 0f)
+            throw new InvalidDataException($"{at}: a callback needs a CallbackChance above 0 and at most 1, and other events none");
         if (e.Recalls != MemoryKind.None && e.Carrier.Length == 0) throw new InvalidDataException($"{at}: a callback needs a Carrier, the ship that comes back");
         if (e.Recalls == MemoryKind.None && UsesMemoryTokens(e)) throw new InvalidDataException($"{at}: {{mem_ship}} and {{mem_system}} need Recalls");
         if (e.Choices.Length is < 1 or > MaxChoices) throw new InvalidDataException($"{at} needs 1 to {MaxChoices} choices");

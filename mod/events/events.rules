@@ -1603,6 +1603,7 @@ Events
 	{
 		ID = cb_spared
 		Trigger = Callback
+		CallbackChance = 0.4
 		Recalls = Spared
 		Carrier = Returning
 		Title = "An Old Debt"
@@ -1632,6 +1633,7 @@ Events
 	{
 		ID = cb_pirate_debt
 		Trigger = Callback
+		CallbackChance = 0.4
 		Recalls = SparedPirate
 		Carrier = Returning
 		Title = "Pirate's Honor"
@@ -1653,6 +1655,7 @@ Events
 	{
 		ID = cb_pirate_grudge
 		Trigger = Callback
+		CallbackChance = 0.25
 		Recalls = SparedPirate
 		Carrier = Returning
 		Title = "Unfinished Business"
@@ -1675,6 +1678,7 @@ Events
 	{
 		ID = cb_route_sold
 		Trigger = Callback
+		CallbackChance = 0.2
 		Recalls = PaidOff
 		Carrier = Returning
 		Title = "Sold Out"
@@ -1701,6 +1705,7 @@ Events
 	{
 		ID = cb_bluff_grudge
 		Trigger = Callback
+		CallbackChance = 0.15
 		Recalls = Bluffed
 		Carrier = Returning
 		Title = "That Wasn't All"
@@ -1724,6 +1729,7 @@ Events
 	{
 		ID = cb_rescued
 		Trigger = Callback
+		CallbackChance = 0.5
 		Recalls = Rescued
 		Carrier = Trader
 		Title = "Thank-You Run"
