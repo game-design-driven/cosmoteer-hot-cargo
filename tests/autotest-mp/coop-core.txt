@@ -218,7 +218,9 @@ pause off
 # wait (game seconds) counts the flight from the advance. "wait 1" lets the advance run first, so the diag shows the state after it.
 wait 1
 hc_escort_diag advance
-waitfor hc_escort_progress > 150 15
+# 30 s, not 15: one second after the advance the freighter flew at 2 to 43 units per second in 7 runs on 2026-11-26 (it speeds up
+# from a stop, and an enemy in range slows it). The slow runs needed up to 20 s for 150 units. A crawl (#308) took 60 s and more.
+waitfor hc_escort_progress > 150 30
 waitfor hc_escort_raiders >= 2 60
 on 1 waitfor hc_escort_raiders >= 2 60
 # Spec 1881, 1882: both players leave the freighter. It holds alone, and its raid spawns at the same tick and place on both machines.
