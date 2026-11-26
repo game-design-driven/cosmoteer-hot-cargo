@@ -68,26 +68,28 @@ internal static class WeldShip
         return placed.Info.Rect.Size == new IntVector2(w, h);
     }
 
-    /// <summary>The ship's parts and the target's parts at a place, in one grid of the ship. Target parts come after the ship's.</summary>
-    internal sealed record Layout(CutGrid Both, HashSet<Cell> ShipTiles, List<Cell> TargetTiles, int ShipParts, bool KeepsShape);
+    /// <summary>
+    /// The ship's parts and the target's parts at a place, in one grid of the ship (physical tiles). Target parts come after the ship's.
+    /// <see cref="ShipCover"/> and <see cref="TargetCover"/>: the whole part rects (<c>PartRectType.Normal</c>), which the design keeps
+    /// one part per tile (CommonBasePartsManager.AddPart).
+    /// </summary>
+    internal sealed record Layout(CutGrid Both, HashSet<Cell> ShipCover, List<Cell> TargetCover, List<Cell> TargetTiles, int ShipParts, bool KeepsShape);
 
     internal static Layout Place(Ship ship, Ship target, Placement p)
     {
         var parts = new List<(PartRules Rules, int Rot, bool Flip)>();
         var cells = new Dictionary<Cell, int>();
-        var shipTiles = new HashSet<Cell>();
+        var shipCover = new HashSet<Cell>();
         foreach (var part in ship.Parts.OrderBy(q => q.Location.Y).ThenBy(q => q.Location.X))
         {
-            foreach (IntVector2 c in part.PhysicalRect)
-            {
-                cells[new Cell(c.X, c.Y)] = parts.Count;
-                shipTiles.Add(new Cell(c.X, c.Y));
-            }
+            foreach (IntVector2 c in part.PhysicalRect) cells[new Cell(c.X, c.Y)] = parts.Count;
+            foreach (IntVector2 c in part.Rect) shipCover.Add(new Cell(c.X, c.Y));
             parts.Add((part.Rules, part.Rotation, part.FlipX));
         }
         int shipParts = parts.Count;
         foreach (var part in ship.BlueprintParts)
-            foreach (IntVector2 c in part.PhysicalRect) shipTiles.Add(new Cell(c.X, c.Y));
+            foreach (IntVector2 c in part.Rect) shipCover.Add(new Cell(c.X, c.Y));
+        var targetCover = new List<Cell>();
         var targetTiles = new List<Cell>();
         var placed = PlaceParts(ship, target, p);
         foreach (var (_, info) in placed)
@@ -97,6 +99,7 @@ internal static class WeldShip
                 cells[new Cell(c.X, c.Y)] = parts.Count;
                 targetTiles.Add(new Cell(c.X, c.Y));
             }
+            foreach (IntVector2 c in info.Rect) targetCover.Add(new Cell(c.X, c.Y));
             parts.Add((info.Rules, info.Rotation, info.FlipX));
         }
         var grid = new CutGrid(cells, e =>
@@ -104,7 +107,7 @@ internal static class WeldShip
             var (a, b) = (parts[cells[e.A]], parts[cells[e.B]]);
             return CutShip.InContact(a.Rules, a.Rot, a.Flip, b.Rules, b.Rot, b.Flip, e);
         });
-        return new(grid, shipTiles, targetTiles, shipParts, placed.All(x => KeepsShape(x, p)));
+        return new(grid, shipCover, targetCover, targetTiles, shipParts, placed.All(x => KeepsShape(x, p)));
     }
 
     /// <summary>Spec 2483: the check of a place.</summary>
@@ -112,7 +115,7 @@ internal static class WeldShip
     {
         var layout = Place(ship, target, p);
         if (!layout.KeepsShape) return new(WeldVerdict.CannotTurn, []);
-        return WeldModel.Check(layout.ShipTiles, layout.TargetTiles, layout.Both, i => i >= layout.ShipParts);
+        return WeldModel.Check(layout.ShipCover, layout.TargetCover, layout.TargetTiles, layout.Both, i => i >= layout.ShipParts);
     }
 
     /// <summary>Spec 2485: the world pose of the target at its place.</summary>

@@ -1,0 +1,24 @@
+# Weld (spec 2483): a cut-off piece of the starter ship (thrusters, a laser, crew quarters) is welded back at a half turn. A thruster's
+# part rect is larger than its physical tile, and the design keeps one part per tile of the rect: a place where such a rect covers a
+# ship tile is not valid. Without that rule, the merge failed in the game's door search ("Internal Error") or with two design parts
+# on one tile.
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+pause off
+wait 3
+cut_mark
+cut_clean
+waitfor cut_splits == 1 240
+weld_mark cut
+weld_target piece
+weld_note
+wait 1
+weld_auto 2
+waitfor weld_orders == 1 10
+waitfor weld_merges == 1 240
+expect weld_parts_kept == 1
+quit
