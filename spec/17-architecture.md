@@ -44,3 +44,4 @@ Rules:
 - The model files (`*Model.cs`, for example `HeatModel`) have no game types, so that they are testable on the Mac without the game.
 - Patches stay thin. They call into the mod classes.
 - One tunables record type. The overlay and the code read the same values.
+- A vanilla crash that a Hot Cargo feature can reach gets a guard in `Core/VanillaGuards.cs`: a Harmony patch with a narrow target that skips the call that crashes, a comment that names the vanilla method and the cause, a game test, and a report through `Errors` when it triggers. The report is an ERROR line, so a test whose code reaches the guard fails: the cause is still a bug. Guards: the grid search start (`AStarGridPathfinder.FindAllNodeDistancePairs`: a start outside the grid crashed the game, for example a crew job with a search origin far from the walkable tiles; test `core-vanilla-guards`).
