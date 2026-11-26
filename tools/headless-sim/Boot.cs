@@ -44,6 +44,7 @@ static class Boot
     /// </summary>
     public static void FixedStepClock()
     {
+        if (Environment.GetEnvironmentVariable("SIM_JITTER") is { Length: > 0 } seed) s_jitter = new Random(int.Parse(seed));
         Harmony.Patch(AccessTools.Method(typeof(Halfling.Timing.RealTimeClock), nameof(Halfling.Timing.RealTimeClock.AdvanceRealTime)),
             prefix: new HarmonyMethod(typeof(Boot), nameof(AdvanceFixed)));
         Harmony.Patch(AccessTools.Method(typeof(Cosmoteer.Game.GameRoot), nameof(Cosmoteer.Game.GameRoot.JumpToNode)),
@@ -74,10 +75,26 @@ static class Boot
         return s_jumps.Count > 0;
     }
 
+    /// <summary>
+    /// SIM_JITTER=&lt;seed&gt;: the frame length varies like on a real machine, from a seeded stream, so a run with the same seed
+    /// repeats. With the fixed frame, a sim tick (30 per second) runs every second frame, so a script line always lands at the same
+    /// place between two ticks, and a test can lean on that without anyone seeing it. The Windows game draws several hundred frames
+    /// per second: many script lines run between two ticks, and a slow frame runs several ticks at once (issue 336: five tests
+    /// passed here and failed there). Null: the fixed frame.
+    /// </summary>
+    static Random? s_jitter;
+
+    /// <summary>Nine of ten frames are short (1/600 to 1/120 s, no tick in most of them). One of ten is slow (1/60 to 1/15 s, up to two ticks).</summary>
+    static double FrameLength(Random? jitter)
+    {
+        if (jitter is null) return FrameSeconds;
+        return jitter.Next(10) == 0 ? 1.0 / 60 + jitter.NextDouble() * (1.0 / 15 - 1.0 / 60) : 1.0 / 600 + jitter.NextDouble() * (1.0 / 120 - 1.0 / 600);
+    }
+
     static bool AdvanceFixed(Halfling.Timing.RealTimeClock __instance)
     {
         if (JumpRunning()) Thread.Sleep(TimeSpan.FromSeconds(FrameSeconds));
-        __instance.Advance(new Halfling.Timing.Time(FrameSeconds));
+        __instance.Advance(new Halfling.Timing.Time(FrameLength(s_jitter)));
         return false;
     }
 
