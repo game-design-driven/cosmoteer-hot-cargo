@@ -12,6 +12,7 @@ public static class DebugKeys
     internal static void Handle(Run run)
     {
         if (run.IsMultiplayer || !run.T.Debug.DebugKeys) return;
+        using var phase = SimPhase.Open("debug keys");
         var kb = App.Keyboard;
         if (kb.HotkeyPressed(ViKey.F9)) run.AddHeat(10f, run.Game.Sim, ignoreBlock: true);
         if (kb.HotkeyPressed(ViKey.Shift, ViKey.F9)) run.AddHeat(-10f, run.Game.Sim);

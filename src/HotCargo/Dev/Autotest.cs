@@ -162,7 +162,14 @@ public static class Autotest
         _script = new(Parse(lines, firstLine: 0).Select(c => c with { Line = 0 }).Concat(script));
     }
 
+    /// <summary>Test commands may change the sim from a frame: the script is its own sim phase (spec 1009).</summary>
     static void OnFrame(object? sender, EventArgs e)
+    {
+        using var phase = SimPhase.Open("autotest");
+        RunFrame();
+    }
+
+    static void RunFrame()
     {
         if (_script is null) return;
         ApplyDefaultSpeed();

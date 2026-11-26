@@ -683,6 +683,9 @@ ClaimJumpers
 	// The field POI sits at the field center. The vanilla asteroid_field tag belongs to a None spawner, which leaves no object,
 	// so only the POI is found by a spawn after system generation (mech_generate).
 	RootLocationTag = asteroid_field_poi
+	// Issue #364: vanilla ship graveyards carry asteroid_field_poi too, and they reach past the relays. The field farthest from every
+	// relay is inside the relay ring. Limit: a graveyard inside the ring can still win; revisit if the barge shows up on wrecks.
+	RootLocationFarthestFromTag = ftl_gate
 
 	SubSpawners
 	[

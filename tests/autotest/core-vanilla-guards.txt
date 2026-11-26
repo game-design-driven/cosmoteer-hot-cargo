@@ -1,0 +1,9 @@
+# Spec 17, Rules: guards against vanilla crashes. A crew search from a tile outside the ship's path grid crashed the game
+# (AStarGridPathfinder, IndexOutOfRangeException). The guard skips it: the search finds no crew and the game runs on.
+newgame run
+wait 3
+vg_search_outside
+expect vanilla_guard_hits == 1
+wait 2
+expect active == 1
+quit
