@@ -24,8 +24,8 @@ namespace HotCargo.Missions;
 
 /// <summary>
 /// Rules type "HotCargoEscort" (spec requirement 36): completes when the escorted AI ship arrives at the destination (spec 1877, ShipDelivery).
-/// While the mission is active, the escort is live and a player ship is near (spec 1881, <see cref="EscortGuard"/>), the objective points
-/// the escort AI at the destination. Alone, the escort holds where it is, draws raiders, and in stasis it is lost (spec 1882, 1883).
+/// While the mission is active, the escort is live and a player ship is near (spec 1881, <see cref="EscortGuard"/>), the objective gives
+/// the escort a move order to the destination. Its AI has no strategy modules (mod/missions/ai_freighter.rules), so no enemy turns it (#372). Alone, the escort holds where it is, draws raiders, and in stasis it is lost (spec 1882, 1883).
 /// Put it in an AnyOrder next to a ProtectShips on the same ship: ProtectShips fails the mission if the escort dies.
 /// At creation it moves the destination POI to MissionTunables.EscortRouteShare of the gate ring. When the escort covers
 /// EscortAmbushAt of the route, it spawns the raiders from missions/convoy_ambush.rules ahead of the escort.
@@ -269,7 +269,7 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
         // Spec 1881: alone, the escort holds where it was when the last player ship left.
         bool guarded = EscortGuard.Tick(sim, Escort, Guard, Tier, RaiderTag, OnDisplayLinesChanged, () => OnEscortKilled(null, EventArgs.Empty));
         if (Completion != CompletionState.InProgress) return;
-        if (Escort.TargetShip?.AI is { } ai) SteerTo(ai, guarded ? Via ?? Destination : Guard.HoldAt ?? at, 0f);
+        if (Escort.TargetShip is { } ship) MoveOrder.To(ship, guarded ? Via ?? Destination : Guard.HoldAt ?? at, 0f);
         float left = at.DistanceTo(Destination);
         if (!AmbushSprung && Escort.TargetShip is not null
             && MissionModel.RouteProgress(Start.DistanceTo(Destination), left) >= MissionArea.TunablesFor(sim.RequireGame()).EscortAmbushAt)
@@ -302,19 +302,7 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
         Log.Info($"convoy ambush sprung at {root}");
     }
 
-    /// <summary>
-    /// Moves the AI origin to a point, unless it is already within <paramref name="slack"/> of it. The freighter AI
-    /// (mod/missions/ai_freighter.rules) flies to the origin and has no aggro module, so no enemy turns it from its course (#372).
-    /// </summary>
-    static void SteerTo(ShipAI ai, Vector2 to, float slack)
-    {
-        if (ai.Parameters?.PatrolOrigin is { } origin && origin.DistanceTo(to) <= slack && (slack > 0f || origin == to)) return;
-        AIParameters p = ai.Parameters?.Clone() ?? new AIParameters();
-        p.PatrolOrigin = to;
-        ai.Parameters = p;
-    }
-
-    /// <summary>A moving player ship changes the meeting spot a little each tick. The AI origin follows only past this distance.</summary>
+    /// <summary>A moving player ship changes the meeting spot a little each tick. The move order follows only past this distance.</summary>
     const float MeetSlack = 150f;
 
     /// <summary>Spec 1851 to 1853, sim tick: the live escort flies to the meeting spot and hails (<see cref="EscortMeeting.Step"/>).</summary>
@@ -322,7 +310,7 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
     {
         if (Escort.TargetShip is not { } ship) return;
         var spot = EscortMeeting.Step(sim, ship, Start, ref HailIn, ref Hailed, out bool firstHail);
-        if (spot is { } to && ship.AI is { } ai) SteerTo(ai, to, MeetSlack);
+        if (spot is { } to) MoveOrder.To(ship, to, MeetSlack);
         if (firstHail) OnDisplayLinesChanged();
     }
 

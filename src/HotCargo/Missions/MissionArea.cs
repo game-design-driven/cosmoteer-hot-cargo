@@ -179,7 +179,7 @@ public static class MissionArea
         Autotest.Fields["hc_escort_cover"] = () => EscortCover().Heat;
         Autotest.Commands["hc_cover_give"] = _ => EscortCover().GiveReward(RequireRun().Game);
         Autotest.Fields["hc_money_gain"] = () => RequireRun().Game.LocalPlayerState.Money - _markedMoney;
-        Autotest.Fields["hc_escort_steering"] = () => RequireEscort() is var o && o.Escort.TargetShip?.AI?.Parameters?.PatrolOrigin is { } p && p == o.Destination ? 1 : 0;
+        Autotest.Fields["hc_escort_steering"] = () => RequireEscort() is var o && o.Escort.TargetShip?.Commands.CurConfirmedCommand is MoveCommand { Location: { } at } && at == o.Destination ? 1 : 0;
         Autotest.Fields["hc_escort_dist"] = () => EscortDistance();
         Autotest.Fields["hc_escort_progress"] = () => _markedEscortDist - EscortDistance();
         // Spec 36: route length, and its share of the nearest gate's distance from the center.
