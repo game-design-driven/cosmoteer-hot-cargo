@@ -25,7 +25,8 @@ public static class FactionsArea
             FactionsModel.TimeHeatFactor(ZoneOf(run, run.Game.CurrentMapNode), run.T.Factions.AllyHeatFactor, run.T.Factions.ShelterHeatFactor,
                 run.T.Factions.WatchHeatFactor);
         Run.Hooks.NotorietyFactor = run => FactionsModel.NotorietyFactor(ZoneOf(run, run.Game.CurrentMapNode), run.T.Factions.AllyNotorietyFactor);
-        Run.Hooks.JumpHeatKept = run => HeatKept(run, Jumps.PendingKind(run));
+        // Spec 2559: a jump to a closed system of the run map cuts no heat.
+        Run.Hooks.JumpHeatKept = run => Lockdown.ArrivalClosed(run) ? 1f : HeatKept(run, Jumps.PendingKind(run));
         Run.Hooks.SystemEntered += OnSystemEntered;
         Run.Hooks.StageStarted += OnStageStarted;
         AllyPeace.Register();

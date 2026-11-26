@@ -30,4 +30,17 @@ public sealed class JourneyTunables
     /// made once per run); in co-op the galaxy uses the default.
     /// </summary>
     [Serialize(Optional = true)] public int FinalSectorTier = 12;
+    /// <summary>Spec 2557: the corporate lockdown line on the run map. Off: no system closes.</summary>
+    [Serialize(Optional = true)] public bool LineEnabled = true;
+    /// <summary>Spec 2561: game seconds before a choice closes (at the current heat rate) when the first warning comes.</summary>
+    [Serialize(Optional = true)] public float LineFirstWarningSeconds = 300f;
+    /// <summary>
+    /// Spec 2561: game seconds before a choice closes when the last warning comes. A heat jump over the closing heat gives this warning
+    /// then, and the choice closes this many seconds later.
+    /// </summary>
+    [Serialize(Optional = true)] public float LineLastWarningSeconds = 60f;
+    /// <summary>Spec 2560: the heat stage response (Hunters.Stages) that waits in a closed system when the players jump there.</summary>
+    [Serialize(Optional = true)] public string ClosedWaveStage = "Hunt";
+    /// <summary>Spec 2560: game seconds after the arrival in a closed system before its hunters attack.</summary>
+    [Serialize(Optional = true)] public float ClosedWaveDelaySeconds = 6f;
 }

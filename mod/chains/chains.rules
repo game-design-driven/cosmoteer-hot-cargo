@@ -64,9 +64,10 @@ Chains
 			{
 				ID = collectors
 				Title = "Debt Collectors"
-				Text = "Destroy the debt collectors at Mara's station.\nThey know what you carry."
+				Text = "Destroy the debt collectors.\nMara sold your debt, and they followed you here."
 				Mission = ChainStationRaid
-				Where = Return
+				Where = Arrival
+				AfterSectors = 1
 				Results
 				[
 					{ On = success; Story = "You scrapped Mara's collectors. Nobody else will buy that debt."; Effects { Text = "The last collector breaks apart. The station's traffic control goes very quiet."; Fame = 0.3 } }
@@ -250,13 +251,14 @@ Chains
 			{
 				ID = inspection
 				Title = "Corporate Inspection"
-				Text = "Drive the corporate inspectors off Brandt's station.\nThey brought guns."
+				Text = "Destroy the corporate inspectors.\nThey left Brandt's station to hunt you, and they brought guns."
 				Mission = ChainStationRaid
-				Where = Return
+				Where = Arrival
+				AfterSectors = 1
 				Results
 				[
-					{ On = success; Reputation = 2; Story = "You drove the inspectors off Brandt's station."; Effects { Text = "Brandt's voice comes over an open channel: \"Free drinks for that crew. Forever.\"" } }
-					{ On = fail; Reputation = -1; Story = "The inspectors took Brandt's station apart looking for you."; Effects { Text = "The inspectors log your hull number before they leave."; Heat = 10 } }
+					{ On = success; Reputation = 2; Story = "You scrapped the inspectors that hunted you from Brandt's station."; Effects { Text = "Brandt's voice comes over an open channel: \"Free drinks for that crew. Forever.\"" } }
+					{ On = fail; Reputation = -1; Story = "The inspectors from Brandt's station chased you off."; Effects { Text = "The inspectors log your hull number before they leave."; Heat = 10 } }
 				]
 			}
 		]
@@ -307,9 +309,10 @@ Chains
 			{
 				ID = reported
 				Title = "Hale's Report"
-				Text = "Destroy the hunter team at Hale's station.\nShe sold your hull number."
+				Text = "Destroy the hunter team.\nHale sold your hull number, and they found you."
 				Mission = ChainStationRaid
-				Where = Return
+				Where = Arrival
+				AfterSectors = 1
 				Results
 				[
 					{ On = success; Story = "Hale's hunters are scrap."; Effects { Text = "Hale does not hail you this time."; Fame = 0.3 } }

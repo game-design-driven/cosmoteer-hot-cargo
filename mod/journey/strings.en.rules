@@ -6,4 +6,17 @@ HotCargoJourney
 	BuyerHere = "The Buyer is in this system"
 	WinReason = "The Buyer has the tech. The corporation lost."
 	BuyerMissionDesc = "Sell the Buyer at least 1 tech to win the run."
+
+	// Lockdown line (spec 2557 to 2563)
+	TagClosed = "CLOSED"
+	TipClosedFmt = "<bad>Closed by the corporate lockdown.</bad> You can still jump here, but the jump cuts no heat and hunters wait. Arrival heat {0:0}."
+	TipClosesAtFmt = "Lockdown: closes at heat <bad>{0:0}</bad>"
+	TipClosesInFmt = " (in about {0})"
+	WarnFmt = "<bad>Lockdown:</bad> the relay to {0} closes in {1} (at heat {2:0}). It blinks red."
+	ClosedFmt = "<bad>Lockdown:</bad> the relay to {0} is closed (red). A jump there cuts no heat, and hunters wait."
+	ClosedCenterFmt = "<bad>{0} CLOSED</bad>"
+	ReopenedFmt = "Lockdown: the relay to {0} is open again."
+	ArrivalClosedFmt = "<bad>{0} is closed.</bad> The jump cut no heat, and corporate hunters wait here."
+	ConfirmClosedFmt = "<bad>{0} is closed by the corporate lockdown.</bad> The jump cuts no heat (you arrive at heat {1:0}), and corporate hunters wait there."
+	ArrivalClosedCenter = "<bad>CLOSED SYSTEM: HUNTERS WAIT HERE</bad>"
 }

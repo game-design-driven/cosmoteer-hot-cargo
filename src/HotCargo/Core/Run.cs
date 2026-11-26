@@ -46,6 +46,9 @@ public sealed class Run
         public static Func<Run, int> Step = run => run.State.SectorIndex;
         /// <summary>Spec 2555: the sectors of the run, the start and the Buyer counted. The Journey area sets it from the run map.</summary>
         public static Func<Run, int> Steps = run => run.T.Journey.RunSectorCount;
+        /// <summary>Starts the hunter response of a heat stage by name, without the stage itself (spec 2560). Set by the Hunters area.</summary>
+        public static Action<Run, SimRoot, string> StartHunterResponse = (_, _, name) =>
+            throw new InvalidOperationException($"no hunter area to start the response '{name}'");
         /// <summary>Factor on notoriety gains in the current system (spec 19). Set by the Factions area: corporate ally space.</summary>
         public static Func<Run, float> NotorietyFactor = _ => 1f;
         /// <summary>Share of the heat that stays after the system switch that runs now (spec 28). The Factions area sets it per jump kind (spec 650).</summary>

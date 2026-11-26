@@ -20,6 +20,7 @@ public static class HunterArea
     {
         Run.Hooks.StageStarted += HunterSpawner.OnStageStarted;
         Run.Hooks.StrikeWave += HunterSpawner.OnStrikeWave;
+        Run.Hooks.StartHunterResponse = (run, sim, name) => Errors.Guard("hunter spawn", () => HunterSpawner.StartStage(run, sim, name));
         Run.Hooks.Tick += HunterSpawner.OnTick;
         Run.Hooks.SystemEntered += HunterSpawner.OnSystemEntered;
         Run.Hooks.TunablesApplied += HunterSpawner.OnTunablesApplied;

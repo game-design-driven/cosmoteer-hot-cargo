@@ -26,6 +26,8 @@ public static class JourneyArea
         Run.Hooks.SystemEntered += Buyer.OnSystemEntered;
         Run.Hooks.NewRunStarted += Buyer.OnNewRun;
         RunMap.Register();
+        Lockdown.Register();
+        LeftPayments.Register();
         AddAutotest();
     }
 

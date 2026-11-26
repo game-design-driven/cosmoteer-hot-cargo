@@ -1,0 +1,42 @@
+# Journey: the lockdown line (spec 2557 to 2561). Choices close as heat rises, a heat jump gives a grace, falling heat reopens them,
+# and a jump into a closed system cuts no heat and brings hunters.
+# Headless slots draw no frames, so the sim stays paused after a jump (see journey-jump.txt): the jump comes last.
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+expect line_choices >= 2
+expect line_closed == 0
+# A jump to heat 100 passes every closing heat: the last warning comes, and the choices close after the grace (60 s).
+heat 100
+wait 3
+expect line_closed == 0
+wait 62
+expect line_closed_gap == 0
+# Spec 2566: the ENGAGE dialog of a jump to a closed choice names what closed costs, and asks.
+line_confirm
+waitfor line_confirm_lines == 1 10
+# Heat 0 opens every choice again.
+heat -100
+wait 3
+expect line_closed == 0
+# Spec 2567: a finished siege whose pay waits at the station: the jump dialog names it, and the jump drops it.
+mech_generate siege
+mech_accept siege
+mech_hold_goto
+wait 3
+mech_hold_skip 400
+wait 2
+expect mech_goal_siege == 1
+expect line_payments == 1
+# Spec 2559, 2560: a relay jump into a closed system keeps all heat, and hunters wait there.
+heat 60
+wait 2
+fa_nextjump RelayClear
+line_jump closed
+waitfor sector == 2 20
+wait 2
+expect heat >= 59.5
+expect line_wave_due == 1
+expect mech_active_siege == 0
+quit

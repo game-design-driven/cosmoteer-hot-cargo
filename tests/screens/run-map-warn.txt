@@ -1,0 +1,35 @@
+# Lockdown warnings (spec 2561, 2565) and the jump dialog with pay left behind (spec 2566, 2567). Windowed test slot or RUNNER=mac.
+# The start of seed 12345 has 4 choices: 2 close, at heat 50 and 100. Heat rises about 1.4 a minute.
+render on
+newgame run
+wait 10
+pause off
+closepanel
+wait 1
+ev_set Enabled false
+godmode on
+reveal on
+heat 44
+wait 3
+screenshot runmap-warn-5min
+heat 5.2
+wait 3
+line_relaycam 2500
+wait 4
+line_relaycam 2500
+wait 2
+screenshot runmap-warn-1min
+mech_generate siege
+mech_accept siege
+mech_hold_goto
+wait 3
+mech_hold_skip 400
+wait 2
+heat 100
+wait 65
+line_confirm
+wait 2
+jw_engage
+wait 2
+screenshot runmap-confirm-pay
+quit

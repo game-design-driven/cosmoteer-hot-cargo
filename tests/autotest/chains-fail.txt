@@ -1,5 +1,5 @@
-# Chains (CHAINS.md): a real abandon takes the failure branch, a refusal costs reputation and schedules a Return stage,
-# the chain survives save and load mid-chain, and the Return mission completes through its real objective.
+# Chains (CHAINS.md): a real abandon takes the failure branch, a refusal costs reputation and schedules a later (Arrival) stage,
+# the chain survives save and load mid-chain, and the later mission completes through its real objective.
 newgame
 wait 8
 ev_set Enabled false
@@ -22,7 +22,7 @@ load chains_mid
 ev_set Enabled false
 expectstage collectors
 expect chain_story == 2
-# The players come back: the collectors spawn straight into the log.
+# The stage is due (chain_due stands in for the next new system): the collectors spawn straight into the log.
 chain_due
 wait 3
 expect chain_accepted == 1
