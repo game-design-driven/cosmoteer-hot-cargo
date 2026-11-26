@@ -13,7 +13,7 @@ dip_set HunterLeaveSeconds 3
 dip_set ExtraLootChance 1
 # Open space, far from stations and other ships: since spec 663 a station of the system's controller is near the start,
 # and its faction's ships attack the hunters there (vanilla, outside ally space) and wreck the first one before the demands.
-openspace 6000 3000
+openspace 4000 3000
 # Refused demand: no surrender, and the same ship takes no second demand even at chance 1.
 dip_set SurrenderChanceBase -5
 spawnstage Warning
