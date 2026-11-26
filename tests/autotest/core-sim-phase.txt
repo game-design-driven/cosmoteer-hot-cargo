@@ -1,0 +1,15 @@
+# Spec 1009: a change of the sim from frame code breaks the rule sim_outside_phase. The test makes two such changes on purpose.
+newgame run
+wait 3
+invariants_expect sim_outside_phase
+simphase_leak state
+waitfor invariants_expected >= 1 10
+simphase_leak rand
+waitfor invariants_expected >= 2 10
+# Test commands, sim ticks and player inputs change the sim inside a phase: no other break.
+heat 5
+fame 10
+wait 3
+expect invariants_expected == 2
+expect invariants_broken == 0
+quit
