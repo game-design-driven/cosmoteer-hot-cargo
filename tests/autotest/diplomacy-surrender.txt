@@ -1,6 +1,6 @@
 # Surrender (spec 567 to 573): demand that a hunter surrenders (payout, fuel, fuel overflow into space), the once-per-ship rule,
 # a hunter's own surrender offer, and the players' surrender to a normal enemy.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

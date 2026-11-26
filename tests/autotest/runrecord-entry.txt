@@ -1,7 +1,7 @@
 # Run record (spec 1220 to 1226): a won run writes one entry with its numbers, a later delivery updates it, a load adds no
 # second entry, a loss writes its entry, and the career log tab shows the past runs.
 # tier: smoke
-newgame run
+newgame
 wait 8
 closepanel
 ev_set Enabled false
@@ -38,7 +38,7 @@ wait 3
 expect rr_entries == 1
 # A new career with the same test seed has the same run ID, so its loss replaces the entry.
 # Limit (spec 1221): two careers with the same galaxy seed share one entry.
-newgame run
+newgame
 wait 8
 closepanel
 ev_set Enabled false

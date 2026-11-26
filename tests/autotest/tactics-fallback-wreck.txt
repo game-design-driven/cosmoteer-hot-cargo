@@ -1,6 +1,6 @@
 # Fall back to a wreck (spec 1305, 1321): a damaged pirate cargo ship without resources, with no faction mate and no friendly
 # station, salvages a ripe wreck with the scavenge functions, then repairs.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 # The test ship fights the player ship; one-hit part losses made it derelict and ended the fight early (#184).

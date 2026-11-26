@@ -1,6 +1,6 @@
 # Cut ships apart (spec 2461, 2462): a line that cuts off no part is refused at the release, and nothing reaches the sim. A loose
 # end does not spoil a cut: it gets no work.
-newgame run
+newgame
 wait 8
 godmode on
 pause off

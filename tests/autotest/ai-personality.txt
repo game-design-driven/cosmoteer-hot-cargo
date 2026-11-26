@@ -1,5 +1,5 @@
 # Personalities (spec 360-363): factions roll different personalities, builds gate the traits, heavy ships never kite or bait.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

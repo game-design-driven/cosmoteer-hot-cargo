@@ -1,7 +1,7 @@
 # Spec 1833: a playtest host crashed in the vanilla collect tool: a loose battery (no stack size) next to another crate divides by 0.
 # For every resource that can lie loose (each mod item, each resource that can drop), one crate next to a steel crate, and the
 # collect tool's plan over both: no exception. A resource without a stack size never drops. An old loose battery is removed.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 debris_collect_check

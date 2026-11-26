@@ -1,7 +1,7 @@
 # Crew breach (spec 1610 to 1617): a claimed hulk with no airlock. The crew wait outside, one of them cuts a breach, and then all of
 # them get in. The breach stays across a save and load.
 # tier: smoke
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

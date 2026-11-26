@@ -1,6 +1,6 @@
 # Chains (CHAINS.md): a real abandon takes the failure branch, a refusal costs reputation and schedules a Return stage,
 # the chain survives save and load mid-chain, and the Return mission completes through its real objective.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 chain_force fence_ledger

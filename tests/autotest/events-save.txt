@@ -1,5 +1,5 @@
 # Save and load with a pending event: the page, its serial and the flags come back.
-newgame run
+newgame
 wait 8
 # The Fence's Ledger page gives the forged codes (fake_codes).
 event fence_offer

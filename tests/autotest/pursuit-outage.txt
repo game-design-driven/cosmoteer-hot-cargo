@@ -1,6 +1,6 @@
 # Network outage (spec 920 to 925): gains are blocked, losses apply, event results say +0, it ends on time; a natural outage goes
 # through the pacer.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 # Autotests start with the Pursuit off (spec 943).

@@ -1,5 +1,5 @@
 # Events (EVENTS.md): forced events, choices and their effects on money, heat, tech, flags and spawns.
-newgame run
+newgame
 wait 8
 # No page opens at the start of a run.
 expect ev_pending == 0

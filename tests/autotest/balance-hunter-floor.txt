@@ -1,5 +1,5 @@
 # Balance (spec 305, BALANCE.md): hunters are never below the main route tier of the sector index, also in a low side system.
-newgame run
+newgame
 wait 8
 godmode on
 ev_set Enabled false

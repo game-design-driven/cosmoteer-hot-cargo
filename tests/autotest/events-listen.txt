@@ -1,6 +1,6 @@
 # Patrol listen (spec 1122, 1123): a sensor array listens to a faction ship. Range breaks it, a finished listen changes heat,
 # and each faction ship is heard once. Combat breaks are not covered here.
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

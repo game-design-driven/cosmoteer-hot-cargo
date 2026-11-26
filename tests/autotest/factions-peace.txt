@@ -1,6 +1,6 @@
 # Factions (spec 1150): in corporate ally space the ally faction's ships and the hunters do not target each other, also while
 # the players fight the hunter. Control: in a system that is not ally space, a ship of the ally faction attacks the hunter (vanilla).
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

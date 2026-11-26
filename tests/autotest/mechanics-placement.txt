@@ -2,7 +2,7 @@
 # With every spawn chance at 1, real system generation places each mission that has no nebula requirement, and no mission object
 # lies outside the gate ring. Storm survey and listening post need nebulas (ion storm, gas cloud), so the census only logs them.
 # missions: random
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

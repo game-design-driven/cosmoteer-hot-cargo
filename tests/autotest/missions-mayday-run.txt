@@ -1,7 +1,7 @@
 # Mayday victim (spec 2431): it runs to the players with its attackers on its radar. With the vanilla Normal AI it started fast, then
 # turned its hull to an attacker (forced rotation, as the escort freighter in #372) and crawled at 5 to 7 units per second once the
 # attackers reached it. Its own move order keeps it at cruise speed (about 30 for a Gannet).
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

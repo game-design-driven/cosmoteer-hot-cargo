@@ -1,6 +1,6 @@
 # Apprentice (spec 1362, 1363): it follows and fights like a hired ship, counts the enemy ships that die near it, then joins the
 # fleet (enough fights) or thanks the players and leaves.
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

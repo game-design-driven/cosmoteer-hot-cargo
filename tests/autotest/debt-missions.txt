@@ -1,5 +1,5 @@
 # Debt missions (spec 1420 to 1422): the Collect a Debt job at the lender's station pays the debt; another faction buys the debt.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 debt_set LoanStationChance 1

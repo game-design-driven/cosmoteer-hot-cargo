@@ -1,5 +1,5 @@
 # Tech: the loss timer (spec 443) and the tech markers (spec 444).
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 expect losstimer == 0

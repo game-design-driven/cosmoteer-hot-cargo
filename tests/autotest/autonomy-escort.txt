@@ -1,6 +1,6 @@
 # Escort drone scenario (spec 1080, 1081): the Computer mans a laser; the drone guards the crewed ship, targets enemies near it,
 # and returns to the crewed ship when damaged.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

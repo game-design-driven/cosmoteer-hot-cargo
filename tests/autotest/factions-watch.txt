@@ -1,6 +1,6 @@
 # Corporate watch (spec 664): the Strike stage marks the neighbor systems, the galaxy map shows CORPORATE WATCH on them,
 # the marks save with the run, and heat rises x WatchHeatFactor (1.1) in a watched system.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

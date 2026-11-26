@@ -3,7 +3,7 @@
 # the Strike stage with repeat waves, personalities, teams and cover among rocks, 60 wrecks, events and diplomacy on.
 # selfprof times every Hot Cargo entry point; the SELFPROF lines compare our time with the sim tick time.
 # frameprof times the frame code that only a drawing game runs (FRAMEPROF lines).
-newgame run
+newgame
 wait 8
 godmode on
 enemyplayers 3

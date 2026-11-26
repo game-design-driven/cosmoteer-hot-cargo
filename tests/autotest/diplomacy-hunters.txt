@@ -1,6 +1,6 @@
 # Hunter demands (spec 561 to 566, 593 to 597): the page with pay off, bluff and fight; pay-off combos, success and failure;
 # bluff success and failure; more hunters make a pay-off harder; the demand hail.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on
