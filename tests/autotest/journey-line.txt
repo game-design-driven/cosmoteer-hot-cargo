@@ -32,6 +32,7 @@ expect line_payments == 1
 # Spec 2559, 2560: a relay jump into a closed system keeps all heat, and hunters wait there.
 heat 60
 wait 2
+fa_nextjump RelayClear
 line_jump closed
 waitfor sector == 2 20
 wait 2

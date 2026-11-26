@@ -113,6 +113,8 @@ static class FactionsAutotest
         };
         // fa_set <FactionsTunables field> <value>: changes a live tunable for this run.
         Autotest.Commands["fa_set"] = arg => Autotest.SetField(R().T.Factions, arg);
+        // fa_nextjump <JumpKind>: the next test jump without the animation (jump, line_jump, ...) counts as this kind (spec 650).
+        Autotest.Commands["fa_nextjump"] = arg => Jumps.TestOverride = Enum.Parse<JumpKind>(arg.Trim(), ignoreCase: true);
         // fa_jump relay|view: single player. Jumps to the first unvisited neighbor like the "jump" command, without the animation.
         // relay picks watched or clear from the hunters near that relay now (spec 650), like a real jump start.
         Autotest.Commands["fa_jump"] = arg =>

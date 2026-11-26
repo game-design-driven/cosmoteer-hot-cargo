@@ -14,7 +14,7 @@ namespace HotCargo.Journey;
 /// </summary>
 public static class Lockdown
 {
-    /// <summary>Set when a switch to a closed system starts (Factions.Jumps), read at the arrival. Not saved: a save never holds a jump.</summary>
+    /// <summary>Set when a switch to a closed system starts (the jump switch of the Factions area), read at the arrival. Not saved: a save never holds a jump.</summary>
     static Run? _closedArrival;
 
     /// <summary>Tests: a system that counts as closed, for a jump test when the random map gave the start no closable choice.</summary>
@@ -83,8 +83,8 @@ public static class Lockdown
         };
         Dev.Autotest.Fields["line_confirm_lines"] = () =>
             Ux.JumpWarnings.JumpLines(R().Game).Count(l => l == ConfirmLine(R(), R().Game.DestinationMapNode.Confirmed));
-        // line_jump closed|open: single player. A relay jump (spec 650) to a closed or an open choice, without the animation. "closed"
-        // takes a closed choice, or else marks the first choice closed for the test.
+        // line_jump closed|open: single player. A jump to a closed or an open choice, without the animation ("fa_nextjump RelayClear"
+        // first makes it a relay jump, spec 650). "closed" takes a closed choice, or else marks the first choice closed for the test.
         Dev.Autotest.Commands["line_jump"] = arg =>
         {
             var run = R();
@@ -93,7 +93,6 @@ public static class Lockdown
             var next = choices.FirstOrDefault(n => Closed(run, n) == closed && n != RunMap.BuyerNode(run));
             if (next is null && closed) next = TestClosed = choices.FirstOrDefault() ?? throw new InvalidOperationException("no choice");
             if (next is null) throw new InvalidOperationException($"no {arg} choice");
-            Factions.Jumps.TestOverride = Factions.JumpKind.RelayClear;
             Dev.Autotest.JumpWhenAllowed(run, next, "line_jump");
         };
     }
@@ -199,7 +198,7 @@ public static class Lockdown
         if (s.ClosedWaveAt >= 0 && run.State.GameSeconds >= s.ClosedWaveAt)
         {
             s.ClosedWaveAt = -1;
-            Hunters.HunterSpawner.StartStage(run, sim, t.ClosedWaveStage);
+            Run.Hooks.StartHunterResponse(run, sim, t.ClosedWaveStage);
         }
         var choices = Choices(run, run.Game.CurrentMapNode);
         float rate = HeatPerSecond(run);

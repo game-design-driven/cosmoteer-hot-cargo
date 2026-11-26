@@ -23,9 +23,11 @@ screenshot runmap-02-heat100
 map off
 heat -100
 wait 2
+fa_nextjump RelayClear
 line_jump open
 waitfor sector == 2 30
 wait 5
+fa_nextjump RelayClear
 line_jump open
 waitfor sector == 3 30
 wait 5
