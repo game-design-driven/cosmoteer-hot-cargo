@@ -11,6 +11,9 @@ public readonly record struct Placement(int Turns, int X, int Y)
     public Placement Turned() => this with { Turns = (Turns + 1) & 3 };
 }
 
+/// <summary>Spec 2481, 2482: whether an object is a weld target, or why not.</summary>
+public enum WeldTargetVerdict { Ok, TooFar, NotYours, OtherParts, Mission }
+
 /// <summary>Spec 2483: why a place is not valid.</summary>
 public enum WeldVerdict { Ok, Covered, NoContact, CannotTurn }
 

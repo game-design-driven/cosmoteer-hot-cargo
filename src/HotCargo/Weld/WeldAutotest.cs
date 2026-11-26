@@ -74,12 +74,13 @@ static class WeldAutotest
     }
 
     /// <summary>A test ship of vanilla parts in the sim, at a clear spot <paramref name="distance"/> to the right of <paramref name="near"/>.</summary>
-    static Ship Spawn(IReadOnlyList<ShipBuilder.PartAt> layout, string name, int playerIndex, Ship near, float distance)
+    /// <summary>With <paramref name="at"/>, the ship goes exactly there (screenshots; the caller keeps the spot clear).</summary>
+    static Ship Spawn(IReadOnlyList<ShipBuilder.PartAt> layout, string name, int playerIndex, Ship near, float distance, Vector2? at = null)
     {
         var sim = Sim();
         var ship = ShipBuilder.Build(near.Rules, layout, name, "weld test");
         ship.Metadata.PlayerIndex = playerIndex;
-        ship.WorldCenter = Autotest.ClearSpotNear(sim, near.DetWorldCenter, distance, ship.WorldBoundingRadius);
+        ship.WorldCenter = at ?? Autotest.ClearSpotNear(sim, near.DetWorldCenter, distance, ship.WorldBoundingRadius);
         sim.Ships.Add(ship);
         ship.InitializeToMax();
         return ship;
@@ -102,10 +103,22 @@ static class WeldAutotest
             "acting" => (Autotest.ActingShip(Sim()) ?? throw new InvalidOperationException("the acting player has no ship")).UniqueID,
             var k => throw new InvalidOperationException($"weld_mark needs cut or acting, not '{k}'"),
         };
-        // weld_target piece: the target is the newest piece that a cut split off.
-        Autotest.Commands["weld_target"] = arg => _target = arg.Trim() == "piece"
-            ? CutArea.LastPiece ?? throw new InvalidOperationException("no cut piece yet")
-            : throw new InvalidOperationException("weld_target needs: piece");
+        // weld_target piece|nearest: the target is the newest piece that a cut split off, or the nearest target of "me".
+        Autotest.Commands["weld_target"] = arg => _target = arg.Trim() switch
+        {
+            "piece" => CutArea.LastPiece ?? throw new InvalidOperationException("no cut piece yet"),
+            "nearest" => WeldShip.Targets(Autotest.RequireRun(), Me(), Me().Metadata.PlayerIndex).FirstOrDefault()?.UniqueID
+                ?? throw new InvalidOperationException("no weld target near the ship"),
+            var k => throw new InvalidOperationException($"weld_target needs piece or nearest, not '{k}'"),
+        };
+        // weld_frame <size>: the camera on "me", this many world units across (screenshots).
+        Autotest.Commands["weld_frame"] = arg =>
+        {
+            var view = Sim().Camera.ViewController;
+            view.ClearFocus(clearFramesOfReferenceAndRotation: true);
+            view.FRLocation = Me().WorldCenter;
+            Autotest.FitCamera(Sim(), float.Parse(arg, CultureInfo.InvariantCulture));
+        };
         // weld_fill <n>: test only, single player. Stores n steel in the target.
         // weld_build arm|piece: test only, single player.
         // arm: an own ship with a crewed core (control room, reactor, quarters, corridors, an airlock) and an arm of 12 armor tiles,
@@ -114,7 +127,8 @@ static class WeldAutotest
         Autotest.Commands["weld_build"] = arg =>
         {
             if (Autotest.RequireRun().IsMultiplayer) throw new InvalidOperationException("weld_build is single player only");
-            switch (arg.Trim())
+            var words = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            switch (words.FirstOrDefault())
             {
                 case "arm":
                     var home = Autotest.ActingShip(Sim()) ?? throw new InvalidOperationException("the acting player has no ship");
@@ -141,11 +155,15 @@ static class WeldAutotest
                         new("cosmoteer.structure", 0, 1, 0), new("cosmoteer.structure", 1, 1, 0), new("cosmoteer.armor_wedge", 2, 1, 1),
                         new("cosmoteer.armor_2x1", 0, 2, 0),
                     ];
-                    var target = Spawn(piece, "Piece", Cosmoteer.PlayerIndexes.Junk, Me(), 25f);
+                    // weld_build piece <dx> <dy>: the piece at this offset from "me" in world units (screenshots with several pieces).
+                    Vector2? at = words.Length == 3
+                        ? Me().DetWorldCenter + new Vector2(float.Parse(words[1], CultureInfo.InvariantCulture), float.Parse(words[2], CultureInfo.InvariantCulture))
+                        : null;
+                    var target = Spawn(piece, "Piece", Cosmoteer.PlayerIndexes.Junk, Me(), 25f, at);
                     _target = target.UniqueID;
                     Log.Info($"AUTOTEST weld: derelict piece {target.UniqueID} with {target.Parts.Count} parts");
                     break;
-                default: throw new InvalidOperationException($"weld_build needs arm or piece, not '{arg.Trim()}'");
+                default: throw new InvalidOperationException($"weld_build needs arm or piece [dx dy], not '{arg.Trim()}'");
             }
         };
         Autotest.Commands["weld_fill"] = arg =>
@@ -181,11 +199,21 @@ static class WeldAutotest
         Autotest.Fields["weld_jobs"] = () => Order()?.Joints.Count(e => e.Job?.Ship is not null) ?? 0;
         // Screenshots, UI only. weld_tool: selects "me", opens build mode and picks the Weld tool. weld_show auto|covered: the ghost at the
         // nearest valid place, or on the ship's first tile (red). weld_set <field> <value>: one Weld tunable for this run.
-        Autotest.Commands["weld_tool"] = _ =>
+        // weld_tool off: another tool, as a click on the Weld button again. weld_tool close: the build window closes.
+        Autotest.Commands["weld_tool"] = arg =>
         {
-            Sim().PlayerInput.SelectSingleShip(Me());
-            Autotest.RequireRun().Game.Gui.ShipGui.BuildButton.IsSelected = true;
-            WeldTool.Select();
+            var build = Autotest.RequireRun().Game.Gui.ShipGui.BuildButton;
+            switch (arg.Trim())
+            {
+                case "":
+                    Sim().PlayerInput.SelectSingleShip(Me());
+                    build.IsSelected = true;
+                    WeldTool.Select(true);
+                    break;
+                case "off": WeldTool.Select(false); break;
+                case "close": build.IsSelected = false; break;
+                default: throw new InvalidOperationException($"weld_tool needs nothing, off or close, not '{arg.Trim()}'");
+            }
         };
         Autotest.Commands["weld_show"] = arg =>
         {
@@ -196,6 +224,33 @@ static class WeldAutotest
                 var k => throw new InvalidOperationException($"weld_show needs auto or covered, not '{k}'"),
             };
             WeldToolState.RequireCurrent().Show(Me(), Target(), p);
+        };
+        // weld_cancel: the ship's order is canceled through the MP input, as a right click of the Weld tool does.
+        Autotest.Commands["weld_cancel"] = _ => Autotest.RequireRun().Game.NetManager.EnqueueInput(new WeldCancelInput(Me()));
+        // weld_button apply|discard|cancelall: the vanilla buttons "Make it so", "Discard changes" and "Cancel all" of "me" (spec 2475).
+        Autotest.Commands["weld_button"] = arg => CutAutotest.Buttons(Me(), arg.Trim() switch
+        {
+            "apply" => "_constructBtn",
+            "discard" => "_discardBtn",
+            "cancelall" => "_cancelAllBtn",
+            var k => throw new InvalidOperationException($"weld_button needs apply, discard or cancelall, not '{k}'"),
+        });
+        // weld_pick: the Weld tool picks the target, as a click on it does. weld_esc: Esc in the Weld tool (back to picking).
+        // weld_hover target|none: the cursor stands on the target's middle, or off every ship (screenshots).
+        Autotest.Commands["weld_pick"] = _ => WeldToolState.RequireCurrent().PickByCommand(Me(), Target());
+        Autotest.Commands["weld_esc"] = _ => Log.Info($"AUTOTEST weld: Esc reset the tool: {WeldToolState.RequireCurrent().TryReset()}");
+        Autotest.Commands["weld_hover"] = arg => WeldToolState.RequireCurrent().HoverAt = arg.Trim() switch
+        {
+            "target" => Target().DetWorldCenter,
+            "none" => null,
+            var k => throw new InvalidOperationException($"weld_hover needs target or none, not '{k}'"),
+        };
+        Autotest.Fields["weld_tool_picked"] = () => WeldToolState.RequireCurrent().IsPicking ? 0 : 1;
+        // Spec 2484: the target's speed relative to the ship at its point (a canceled pull leaves it floating).
+        Autotest.Fields["weld_target_relspeed"] = () =>
+        {
+            var body = Target().Physics.Body;
+            return (body.LinearVelocity - Me().Physics.Body.GetLinearVelocityFromWorldPoint(body.WorldCenter)).Length();
         };
         Autotest.Commands["weld_set"] = arg => Autotest.SetField(Autotest.RequireRun().T.Weld, arg);
         // Verdicts: 0 Ok, 1 Covered, 2 NoContact (WeldVerdict).
