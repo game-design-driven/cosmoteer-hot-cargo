@@ -7,6 +7,7 @@ description: Build Hot Cargo, run unit tests, game tests and co-op tests (in the
 
 ## Build and unit tests
 - Co-op determinism lint: `python3 tools/determinism-lint.py` (seconds; CI runs it in `build`).
+- Area dependency ratchet: `python3 tools/area-deps.py` (seconds; CI runs it in `build`). It fails on a new use of one area by another (spec 17, Rules).
 1. Build: `dotnet build src/HotCargo/HotCargo.csproj -c Release -nologo -v quiet`.
 2. Unit tests (pure math only, no game types): `cd tests/HotCargo.Tests && dotnet run`. Pure math goes in a file named `*Model.cs` with no game types; the test project picks up every such file.
 

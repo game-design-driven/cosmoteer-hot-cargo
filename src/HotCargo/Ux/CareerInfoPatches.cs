@@ -80,7 +80,7 @@ static class CareerInfoPatches
                     // Spec 2555: on the run map the sector of a system is its band + 1; elsewhere a first visit raises the sector index by one.
                     bool runMap = Journey.RunMap.IsRunMap(mode);
                     int sector = runMap ? Journey.RunMap.Band(node) + 1 : s.SectorIndex + 1;
-                    int last = Journey.RunMap.Steps(run);
+                    int last = run.Steps;
                     bool buyerHere = runMap ? node == Journey.RunMap.BuyerNode(run) : sector == last;
                     sb.Append('\n').Append(buyerHere
                         ? $"<good>{UxKit.Text("MapBuyerHere")}</good>"
