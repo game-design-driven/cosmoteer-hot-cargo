@@ -912,7 +912,7 @@ ListeningPost
 						ChanceToConsiderSurrenderingToPlayer = 0
 					}
 				}
-				// The scout follows the players while they look for a scan spot. A small unacquire range keeps it near its AI origin.
+				// The scout follows the players while they look for a scan spot, on move orders from its objective (HotCargoHoldOut).
 				{
 					Type = Ships
 					Tags = [hc_lp_scout]
@@ -928,11 +928,8 @@ ListeningPost
 					}
 					AI
 					{
-						Type = Normal
+						Type = HotCargoMissionShip
 						ChanceToConsiderSurrenderingToPlayer = 0
-						PatrolRadius = 100
-						TargetAcquireRangeFromOrigin = 300
-						TargetUnacquireRangeFromOrigin = 300
 					}
 				}
 				{

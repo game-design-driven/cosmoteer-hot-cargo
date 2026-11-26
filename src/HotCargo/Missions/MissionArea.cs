@@ -41,6 +41,7 @@ public static class MissionArea
     {
         MissionMarkers.Register();
         Mayday.Register();
+        AggroAutotest.Register();
         MissionPayCheck.Register();
         Ui.CommsHail.Providers.Add(EscortHail.Instance);
         SharedChoice.SharedChoices.Register(EscortHail.Instance);
@@ -174,7 +175,7 @@ public static class MissionArea
         Autotest.Fields["hc_escort_cover"] = () => EscortCover().Heat;
         Autotest.Commands["hc_cover_give"] = _ => EscortCover().GiveReward(RequireRun().Game);
         Autotest.Fields["hc_money_gain"] = () => RequireRun().Game.LocalPlayerState.Money - _markedMoney;
-        Autotest.Fields["hc_escort_steering"] = () => RequireEscort() is var o && o.Escort.TargetShip?.AI?.Parameters?.PatrolOrigin is { } p && p == o.Destination ? 1 : 0;
+        Autotest.Fields["hc_escort_steering"] = () => RequireEscort() is var o && o.Escort.TargetShip?.Commands.CurConfirmedCommand is MoveCommand { Location: { } at } && at == o.Destination ? 1 : 0;
         Autotest.Fields["hc_escort_dist"] = () => EscortDistance();
         Autotest.Fields["hc_escort_progress"] = () => _markedEscortDist - EscortDistance();
         // Spec 36: route length, and its share of the nearest gate's distance from the center.
@@ -763,19 +764,6 @@ public static class MissionArea
         Autotest.Wait(3);
     }
 
-    /// <summary>
-    /// The enemies of <paramref name="side"/> within <paramref name="range"/> of a point: live ships whose hull reaches into the circle, and
-    /// ships in stasis whose center is in it (they keep no size).
-    /// </summary>
-    static List<string> EnemiesNear(SimRoot sim, int side, Vector2 at, float range)
-    {
-        var circle = new Circle(at, range);
-        return [.. sim.Ships.Where(s => !s.IsJunk && sim.Mode.AreEnemies(side, s.Metadata.PlayerIndex) && s.DetWorldBoundingCircle.IntersectsWith(circle))
-                .Select(s => s.Metadata.PlainShipName),
-            .. sim.Stasis.Where(s => sim.Mode.AreEnemies(side, s.ObjectAllegiance) && s.Location.DistanceTo(at) <= range)
-                .Select(s => $"in stasis {s.ReservedObjectID}")];
-    }
-
     /// <summary>Moves the live escort and the players to the destination. Run hc_escort_goto first, so the escort is out of stasis.</summary>
     static void TestEscortArrive()
     {
@@ -791,20 +779,8 @@ public static class MissionArea
         var o = RequireEscort();
         Ship escort = o.Escort.TargetShip ?? throw new InvalidOperationException("escort is not live; run hc_escort_goto and wait first");
         var sim = RequireSim();
-        // No enemy in sight of the spot (#331): the aggro module takes a target in the freighter's sight circle, and then the freighter flies
-        // with its hull turned to it, at half speed or less (a hunter and a point defense platform did that in PC runs). Such a spot tests a
-        // fight, not the flight. So the spot goes back along the route to the first point with no enemy in sight, live or in stasis.
-        // Limit: an enemy that comes into sight later still slows the freighter. Revisit if the check fails with an aggro target in the diag.
-        float sight = escort.Sensors.DetWorldSightCircle.Radius, to = share;
-        List<string> EnemiesAt(float t) => EnemiesNear(sim, escort.Metadata.PlayerIndex, o.Start + (o.Destination - o.Start) * t, sight);
-        while (EnemiesAt(to) is { Count: > 0 } enemies)
-        {
-            to -= 0.01f;
-            if (to < 0f) throw new InvalidOperationException($"every point of the route before share {share} has an enemy in sight ({sight:0}); at the last point: {string.Join(", ", enemies)}");
-        }
-        if (to != share) Log.Info($"AUTOTEST escort advance: enemies in sight ({sight:0}) at share {share}; the freighter goes to share {to:0.00}");
         // A clear spot (#308): the route point can lie on a rock or ship that loads out of stasis around the freighter and holds it there.
-        Vector2 at = Autotest.ClearSpotNear(sim, o.Start + (o.Destination - o.Start) * to, 0f, escort.WorldBoundingRadius);
+        Vector2 at = Autotest.ClearSpotNear(sim, o.Start + (o.Destination - o.Start) * share, 0f, escort.WorldBoundingRadius);
         Autotest.Teleport(escort, at);
         // The move order was made at the old place, with a path from there. A fresh one from the AI starts here (#308: freighters crawled
         // after this teleport, and one never moved on).

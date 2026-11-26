@@ -61,10 +61,18 @@ public static class SimPhase
     /// </summary>
     static GameRoot? _live;
 
+    /// <summary>
+    /// Issue 386: no check during a node jump (GameRoot.IsDoingNodeJump). Vanilla builds the next system on a worker thread
+    /// (GameRoot.JumpToNode, Task.Run) and that build adds player states to the game. The same build runs on every co-op machine at the
+    /// jump signals, so it is no desync; and a fingerprint read of the player states while that thread adds one throws ("Collection was
+    /// modified") and crashes the game. The jump ends with another sim, so a new fingerprint starts after it.
+    /// Limit: frame code that changes the sim during a jump passes. Revisit if a desync shows right after a jump.
+    /// </summary>
     static bool On(out Run run)
     {
         run = Run.Current!;
-        return run is not null && run.Game == _live && run.T.Invariants.Enabled && run.T.Invariants.SimPhase && run.Game.Sim is not null;
+        return run is not null && run.Game == _live && run.T.Invariants.Enabled && run.T.Invariants.SimPhase && run.Game.Sim is not null
+            && !run.Game.IsDoingNodeJump;
     }
 
     static void EnterVanilla(string what, GameRoot? game)
