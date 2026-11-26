@@ -47,7 +47,7 @@ public sealed class Hacker : IHailProvider, ISharedChoiceDomain
         var t = run.T.Pursuit;
         s.HackerDueAt = -1;
         s.Hacker = null;
-        if (!firstVisit || !t.Enabled || run.State.SectorIndex < t.HackerMinSector || run.State.SectorIndex >= run.T.Journey.RunSectorCount) return;
+        if (!firstVisit || !t.Enabled || Journey.RunMap.Step(run) < t.HackerMinSector || Journey.RunMap.Step(run) >= Journey.RunMap.Steps(run)) return;
         if (!Pacer.MayStart(run, PacedKinds.Hacker)) return;
         var rand = run.SectorRand(0x4841_434B_4552UL);
         if (rand.Single() >= t.HackerChance) return;

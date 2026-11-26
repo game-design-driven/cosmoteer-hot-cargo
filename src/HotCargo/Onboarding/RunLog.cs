@@ -66,10 +66,10 @@ public static class RunLog
         {
             if (!firstVisit) return;
             var sector = run.Mode.GetMapNodeData(run.Game.CurrentMapNode).SectorType;
-            Add(run, RunLogKind.Sector, Format("SectorFmt", run.State.SectorIndex, run.T.Journey.RunSectorCount,
+            Add(run, RunLogKind.Sector, Format("SectorFmt", Journey.RunMap.Step(run), Journey.RunMap.Steps(run),
                 Escape(run.Game.CurrentMapNode.Name), sector.NameKey.Text));
         };
-        Run.Hooks.NewRunStarted += run => Add(run, RunLogKind.Sector, Format("StartFmt", run.T.Tech.StartingTechUnits, run.T.Journey.RunSectorCount));
+        Run.Hooks.NewRunStarted += run => Add(run, RunLogKind.Sector, Format("StartFmt", run.T.Tech.StartingTechUnits, Journey.RunMap.Steps(run)));
         Run.Hooks.RunEnded += run =>
         {
             if (run.State.Result == RunResult.Won) Add(run, RunLogKind.Won, Format("WonFmt", run.State.Score.ToString("N0")));

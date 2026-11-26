@@ -30,7 +30,7 @@ HotCargoUx
 	// Run intro
 	IntroTitle = "HOT CARGO"
 	IntroBodyFmt = "You stole corporate tech. The corporation wants it back.\n\n"\
-	               "<fame_color>Goal</fame_color>   Sell the tech to the <good>Buyer</good> in sector {0}. Each new system is one sector.\n"\
+	               "<fame_color>Goal</fame_color>   Sell the tech to the <good>Buyer</good> at the far end of the map, in sector {0}.\n"\
 	               "<fame_color>Heat</fame_color>   Rises over time and with each mission. Each of its {1} stages sends hunters.\n"\
 	               "<fame_color>Cool</fame_color>   Each jump cuts heat: {2:0%} via a watched relay, {3:0%} via a clear relay.\n"\
 	               "<fame_color>Cargo</fame_color>  A destroyed Tech Vault drops its tech as crates. Lose it all and get none back in time, and the run ends.\n"\

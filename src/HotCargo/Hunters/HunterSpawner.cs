@@ -103,20 +103,16 @@ public static class HunterSpawner
         ?? throw new InvalidOperationException($"Hunters.Stages has no response for heat stage '{stageName}'");
 
     /// <summary>
-    /// Spec 305: the tier that a stage response starts from: the system tier, but never below the main route tier of the sector index
-    /// (`HotCargoTierCap`, capped at its MaxChangeableLowTier) while `RouteTierFloor` is on. So a low side system late in the run
-    /// does not make the hunters weak. A faction home system keeps its higher tier.
+    /// Spec 305: the tier that a stage response starts from: the system tier, but never below the peak tier of the run (requirement 19)
+    /// while `RouteTierFloor` is on. So a jump back to a low system late in the run does not make the hunters weak.
     /// </summary>
-    public static int BaseTier(Run run) =>
-        run.T.Hunters.RouteTierFloor && Journey.TierCapSpawner.RouteTier(run.Mode, run.State.SectorIndex) is { } route
-            ? Math.Max(run.CurrentTier, route)
-            : run.CurrentTier;
+    public static int BaseTier(Run run) => run.T.Hunters.RouteTierFloor ? Math.Max(run.CurrentTier, run.State.PeakTier) : run.CurrentTier;
 
     /// <summary>Ships and tier of a stage response at the current run progress. ScaleShips (the Pursuit factors) first, then
     /// the difficulty factors (spec 682). Spec 305: the route tier floor.</summary>
     static (int Ships, int Tier) Plan(Run run, SimRoot sim, StageResponse r)
     {
-        float progress = WaveModel.Progress(run.State.SectorIndex, run.T.Journey.RunSectorCount);
+        float progress = Journey.RunMap.Progress(run);
         int ships = run.Pressure().Ships(ScaleShips(run, sim, WaveModel.ShipCount(r.ShipCount, r.EarlyScale, progress)));
         int tier = BaseTier(run) + WaveModel.TierOffset(r.TierOffset, r.EarlyTierReduction, progress) + RunModes.Difficulty.ExtraHunterTiers(run);
         return (ships, tier);
