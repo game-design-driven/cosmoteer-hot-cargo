@@ -238,13 +238,13 @@ internal sealed class LeadObjective : Objective, IMissionMarkers, IMeetingEscort
         var t = MissionArea.TunablesFor(sim.RequireGame());
         if (!Ready)
         {
-            if (EscortMeeting.Step(sim, ship, Start, ref HailIn, ref Hailed, out bool firstHail) is { } spot) MoveTo(ship, spot, MeetSlack);
+            if (EscortMeeting.Step(sim, ship, Start, ref HailIn, ref Hailed, out bool firstHail) is { } spot) MoveOrder.To(ship, spot, MeetSlack);
             if (firstHail) OnDisplayLinesChanged();
             return;
         }
         if (!guarded)
         {
-            if (Guard.HoldAt is { } hold) MoveTo(ship, hold, t.LeadFollowSlack);
+            if (Guard.HoldAt is { } hold) MoveOrder.To(ship, hold, t.LeadFollowSlack);
             return;
         }
         // Spec 1877: the shared arrival rule. The jump point is a point, so it has no hull. Arrival comes first: no ambush on the last tick.
@@ -265,7 +265,7 @@ internal sealed class LeadObjective : Objective, IMissionMarkers, IMeetingEscort
         var lead = sim.Ships.HumanPlayerSignificantShips.OrderBy(h => h.DetWorldCenter.DistanceSquaredTo(at)).ThenBy(h => h.UniqueID).FirstOrDefault();
         if (lead is null) return;
         var spot = MissionModel.FollowSpot(N(lead.DetWorldCenter), lead.DetWorldBoundingCircle.Radius, N(at), ship.DetWorldBoundingCircle.Radius, t.LeadFollowGap);
-        MoveTo(ship, new Vector2(spot.X, spot.Y), t.LeadFollowSlack);
+        MoveOrder.To(ship, new Vector2(spot.X, spot.Y), t.LeadFollowSlack);
     }
 
     /// <summary>Spec 1893: one raid ahead of the courier, toward the jump point, when its route progress reaches LeadAmbushAt.</summary>
@@ -282,14 +282,6 @@ internal sealed class LeadObjective : Objective, IMissionMarkers, IMeetingEscort
             Log.Info($"blind courier ambush: {count} ships at progress {progress:0.00}");
             Ux.UxKit.ChatLine(sim.RequireGame(), Strings.FormatText("HotCargoObjectives/LeadAmbushFmt", ship.Metadata.XmlShipName));
         });
-    }
-
-    /// <summary>A move order to the point, unless the current order already goes within slack of it.</summary>
-    static void MoveTo(Ship ship, Vector2 to, float slack)
-    {
-        if (ship.Commands.CurConfirmedCommand is MoveCommand { Location: { } at } && at.DistanceTo(to) <= slack) return;
-        ship.Commands.EnqueueCommand(new MoveCommand(ship, ship.Commands.AllocGlobalCommandID(), to, null, CollisionAvoidanceFlags.All, isTentative: false),
-            append: false, confirmed: true);
     }
 
     static System.Numerics.Vector2 N(Vector2 v) => new(v.X, v.Y);

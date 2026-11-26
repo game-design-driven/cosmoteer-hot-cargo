@@ -53,6 +53,8 @@ static class SelfProfile
     static void Install()
     {
         if (_harmony is not null) return;
+        // The profile measures the cost of play: the sim phase check runs as in play from here on.
+        SimPhase.AsInPlay = true;
         _mainThread = Environment.CurrentManagedThreadId;
         _harmony = new Harmony(Mod.HarmonyId + ".selfprof");
         var targets = Targets();

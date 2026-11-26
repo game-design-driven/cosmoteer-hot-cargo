@@ -1,0 +1,13 @@
+// The AI of mission ships that their objective flies with move orders (#372): the escort freighter (spec 36), the Mayday victim
+// (spec 2431), the Listening Post scout (spec 140) and the Dead in Space carrier (spec 767). No strategy modules. With the vanilla
+// Normal AI, its AggroEnemies module took targets on radar: away from the AI origin the ship flew with its hull turned to the target
+// (AIAggroEnemiesModule.TacticalRetreat) and crawled, near the origin it flew at the target. Turrets aim on their own, like the Easy AI
+// with no targeting list. The dialogue module answers comms.
+UpdateInterval = 1
+
+StrategyModules []
+TacticsModules []
+TargetingModules []
+CommsModules = &<./Data/ai/ai_common.rules>/CommsModulesDefault
+// An escort in stasis does not move (spec 1851).
+StasisModules []

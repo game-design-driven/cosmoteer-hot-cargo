@@ -33,7 +33,8 @@ hc_escort_wreck
 waitfor scav_wreck_seen == 1 20
 scav_age 120
 wait 3
-expect hc_escort_scav_step == 0
+# -1: the freighter AI has no scavenge module (mod/missions/ai_mission_ship.rules).
+expect hc_escort_scav_step <= 0
 # "Not yet" only closes the window. "Ready" is the shared choice that starts the route.
 hc_escort_call
 comms_click Not yet
@@ -49,7 +50,7 @@ hc_escort_diag before_flight
 # The freighter type is random, and a slow one can take a while to turn and speed up. Wait for progress instead of a fixed time.
 waitfor hc_escort_progress > 50 45
 hc_escort_diag after_flight
-expect hc_escort_scav_step == 0
+expect hc_escort_scav_step <= 0
 expect hc_escort_done == 0
 hc_escort_arrive
 wait 3

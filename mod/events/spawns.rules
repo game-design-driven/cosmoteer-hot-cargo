@@ -709,7 +709,7 @@ Relic
 }
 
 // The freighter that carries Dead in Space (spec 767): it hails the players and its comms show the page.
-// It needs an AI to answer comms; the AI stays at its spot (tiny ranges), and a tow moves its spot along (HotCargoTow).
+// It needs an AI to answer comms. Its AI has no strategy modules, so it stays where it is, also near enemies (#372 class).
 // Tagged hc_ev_towed too, so the tow choice (TowMission) tows this same ship.
 BrokenFreighter
 {
@@ -730,11 +730,8 @@ BrokenFreighter
 			}
 			AI
 			{
-				Type = Normal
+				Type = HotCargoMissionShip
 				ChanceToConsiderSurrenderingToPlayer = 0
-				PatrolRadius = 50
-				TargetAcquireRangeFromOrigin = 100
-				TargetUnacquireRangeFromOrigin = 100
 			}
 		}
 	]
