@@ -3,7 +3,7 @@
 # So this test checks only what the switch itself does. journey-run.txt checks trading with the Buyer.
 # A run map of 2 steps: the start and the Buyer's system.
 tunablesfile Journey { RunSectorCount = 2 }
-newgame
+newgame run
 wait 8
 expect nodes == 2
 expect buyers == 0
