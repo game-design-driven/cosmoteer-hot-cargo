@@ -135,15 +135,29 @@ static class JumpWarnings
     /// <summary>Spec 1602: " (carries 3 tech)" after a ship that stays with tech, else empty.</summary>
     static string Carries(Ship ship) => Tech.Vaults.ShipTech(ship) is var tech and > 0 ? " " + UxKit.Format("JumpCarriesFmt", tech) : "";
 
-    /// <summary>Spec 1602: every human ship that holds tech stays behind on this jump.</summary>
-    internal static bool AllTechStays(GameRoot game) =>
-        JumpWarningsModel.AllTechStays(game.Sim.Ships.HumanPlayerSignificantShips.Select(s => (s.Ftl.IsReadyToJump, Tech.Vaults.ShipTech(s))));
+    /// <summary>Spec 2522: the ships that come along on ENGAGE, like GameRoot.DoHumanPlayersFtlJump: significant human ships that are ready.</summary>
+    static bool JumpsOnEngage(Ship ship) => ship.IsSignificant && ship.IsHumanPlayerShip && ship.Ftl.IsReadyToJump;
 
-    internal static string DialogText(GameRoot game) =>
-        (AllTechStays(game) ? $"<bad>{UxKit.Text("JumpAllTechStays")}</bad>\n" : "") +
-        UxKit.Text("JumpDialogHead") + "\n" +
-        string.Join("\n", Staying(game).Select(x => UxKit.Format("JumpDialogLineFmt", x.Ship.Metadata.XmlShipName, Short(x.Reason)) + Carries(x.Ship))) +
-        "\n\n" + UxKit.Text("JumpDialogAsk");
+    /// <summary>Spec 2522: the red line about the tech that a move leaves behind, or null when none stays.</summary>
+    internal static string? TechLeftLine(Run run, Func<Ship, bool> jumps)
+    {
+        var (stays, goes) = Tech.LeftBehind.Split(run, run.Game.Sim, jumps);
+        return JumpWarningsModel.LeftKind(stays, goes) switch
+        {
+            TechLeft.None => null,
+            TechLeft.All => UxKit.Format("TechLeftAllFmt", stays),
+            _ => UxKit.Format("TechLeftFmt", stays),
+        };
+    }
+
+    /// <summary>Spec 1565, 2522: the tech line, the local ships that stay with their reasons, and the question.</summary>
+    internal static string DialogText(GameRoot game, string? techLeft)
+    {
+        var staying = Staying(game);
+        string ships = staying.Count == 0 ? "" : UxKit.Text("JumpDialogHead") + "\n" +
+            string.Join("\n", staying.Select(x => UxKit.Format("JumpDialogLineFmt", x.Ship.Metadata.XmlShipName, Short(x.Reason)) + Carries(x.Ship))) + "\n";
+        return (techLeft is null ? "" : techLeft + "\n") + ships + "\n" + UxKit.Text("JumpDialogAsk");
+    }
 
     /// <summary>
     /// Spec 1565: the vanilla ENGAGE handler with the list in its dialog. The rest is the vanilla flow: no dialog when every local ship
@@ -169,13 +183,12 @@ static class JumpWarnings
         {
             var game = gui.Game;
             bool ready = gui.AreAllShipsReadyToJump(onlyWithCommands: false);
-            // Spec 2126: tech that stays in this system also asks first.
-            string? techStays = Run.Current is { } run && run.Game == game ? TechWatch.JumpLine(run) : null;
-            if (!ready || techStays is not null)
+            // Spec 2522: tech that stays in this system is lost, so it also asks first.
+            string? techLeft = Run.Current is { } run && run.Game == game ? TechLeftLine(run, JumpsOnEngage) : null;
+            if (!ready || techLeft is not null)
             {
                 DialogsShown++;
-                string text = ready ? techStays + "\n\n" + UxKit.Text("JumpDialogAsk") : (techStays is null ? "" : techStays + "\n") + DialogText(game);
-                if (await TwoButtonDialog.Show(text) == TwoButtonDialog.DialogResponse.Option2) return;
+                if (await TwoButtonDialog.Show(DialogText(game, techLeft)) == TwoButtonDialog.DialogResponse.Option2) return;
             }
             game.NetManager.EnqueueInput(new MPReadyFtlJumpInput());
         }
@@ -249,6 +262,8 @@ static class JumpWarnings
     {
         if (!On || run.State.Result != RunResult.Running || Stranded(run) is not { } s) return null;
         string line = $"<bad>{StrandedText(s.Node, s.Ships)}</bad>";
+        // Spec 2522: the recall leaves the tech of this system behind (derelicts, crates).
+        if (Tech.LeftBehind.OnSwitch(run, run.Game.Sim) is > 0 and var here) line += "\n" + UxKit.Format("StrandedTechFmt", here);
         if (RecallLeft(run) is { } left)
             line += "\n" + UxKit.Format("RecallInFmt", Halfling.StringTools.EscapeForXml(s.Node.Name), Math.Max(0, (int)Math.Ceiling(left)));
         return line;
@@ -307,6 +322,49 @@ static class JumpWarnings
         game.NetManager.EnqueueInput(new Cosmoteer.Game.Multiplayer.MPJumpToNodeInput(node));
     }
 
+    internal static int SwitchDialogsShown;
+
+    /// <summary>
+    /// Spec 2522: a switch without a jump (the map click, the recall button) asks first when tech stays in this system, because it is lost.
+    /// Without such tech it goes at once, like vanilla.
+    /// </summary>
+    static async void ConfirmSwitch(GameRoot game, MapNode node, string why)
+    {
+        // async void: an exception here would end the game, so it reports instead.
+        try
+        {
+            if (Run.Current is { } run && run.Game == game && TechLeftLine(run, _ => false) is { } techLeft)
+            {
+                SwitchDialogsShown++;
+                string ask = UxKit.Format("SwitchAskFmt", Halfling.StringTools.EscapeForXml(node.Name));
+                if (await TwoButtonDialog.Show(techLeft + "\n\n" + ask) == TwoButtonDialog.DialogResponse.Option2) return;
+            }
+            Recall(game, node, why);
+        }
+        catch (Exception ex) { Core.Errors.Report("ux switch dialog", ex.Message, ex); }
+    }
+
+    internal static void ConfirmSwitchForTest(GameRoot game, MapNode node) => ConfirmSwitch(game, node, "test");
+
+    /// <summary>
+    /// Spec 2522: the vanilla map click on a system with own ships (CareerGameModeManager.InputMap) goes through ConfirmSwitch.
+    /// The condition is the vanilla one; any other click goes to vanilla.
+    /// </summary>
+    [HarmonyPatch(typeof(Cosmoteer.Modes.Career.CareerGameModeManager), nameof(Cosmoteer.Modes.Career.CareerGameModeManager.InputMap))]
+    static class MapSwitchPatch
+    {
+        static bool Prefix(Cosmoteer.Modes.Career.CareerGameModeManager __instance)
+        {
+            var game = __instance.Game;
+            if (!On || game.Gui.Reacted || game.Gui.GetSelectionState() != null || game.IsDoingNodeJump || Cosmoteer.GameApp.IsDemo
+                || !Cosmoteer.Input.Inputs.General.UIClick.WasPressed) return true;
+            var node = __instance.Map.Nodes.GetNodeUnderCursor();
+            if (node is null || node == game.CurrentMapNode || __instance.GetMapNodeData(node).NumFriendlyShips <= 0) return true;
+            ConfirmSwitch(game, node, "map");
+            return false;
+        }
+    }
+
     static (GameGui Gui, Halfling.Gui.Button Button)? _button;
     static MapNode? _buttonNode;
 
@@ -316,7 +374,7 @@ static class JumpWarnings
         if (_button is not { } b || b.Gui != game.Gui)
         {
             var button = new Halfling.Gui.Button { AnchorRect = Halfling.Gui.AnchorPresets.TopCenter, X = -130f, Y = 300f, Width = 260f, Height = 44f };
-            button.Clicked += (_, _) => { if (_buttonNode is { } n) Recall(game, n, "button"); };
+            button.Clicked += (_, _) => { if (_buttonNode is { } n) ConfirmSwitch(game, n, "button"); };
             game.Gui.RootWidget.AddChild(button);
             _button = b = (game.Gui, button);
         }

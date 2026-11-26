@@ -428,6 +428,23 @@ static class UxAutotest
             foreach (var ship in run.Game.Sim.Ships.HumanPlayerShips.ToList())
                 foreach (var part in ship.Parts.ToList()) part.Health = 0;
         };
+        // Spec 2522: the tech that ENGAGE would leave behind now, the map switch dialogs, and jw_switch back: the recall button path
+        // (map click or button) to the system the ships came from, through the confirmation.
+        Autotest.Fields["ux_jump_techleft"] = () =>
+        {
+            var run = Autotest.RequireRun();
+            return Tech.LeftBehind.Split(run, run.Game.Sim, s => s.IsSignificant && s.IsHumanPlayerShip && s.Ftl.IsReadyToJump).Stays;
+        };
+        Autotest.Fields["ux_switch_techleft"] = () => Tech.LeftBehind.OnSwitch(Autotest.RequireRun(), Autotest.RequireRun().Game.Sim);
+        Autotest.Fields["ux_switch_dialogs"] = () => JumpWarnings.SwitchDialogsShown;
+        Autotest.Commands["jw_switch"] = arg =>
+        {
+            if (arg != "back") throw new InvalidOperationException("jw_switch needs: back");
+            var run = Autotest.RequireRun();
+            var back = run.Game.CurrentMapNode.Connections.FirstOrDefault(n => run.Mode.GetMapNodeData(n).NumFriendlyShips > 0)
+                ?? throw new InvalidOperationException("no neighbor system with own ships");
+            JumpWarnings.ConfirmSwitchForTest(run.Game, back);
+        };
         Autotest.Fields["ux_stranded"] = () => JumpWarnings.Stranded(Autotest.RequireRun()) is null ? 0 : 1;
         Autotest.Fields["ux_recalls"] = () => JumpWarnings.RecallsSent;
         Autotest.Fields["ux_ships_here"] = () => Autotest.RequireRun().Game.Sim.Ships.HumanPlayerSignificantShips.Count();

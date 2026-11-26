@@ -24,6 +24,7 @@ static class TechAutotest
         Autotest.Commands["tostation"] = _ => ToStation();
         // tech_set Field value: changes a Tech tunable of the run. In co-op run it through "mp".
         Autotest.Commands["tech_set"] = arg => Autotest.SetField(Active().T.Tech, arg);
+        Autotest.Fields["techleftlost"] = () => LeftBehind.Lost;
         Autotest.Fields["losstimer"] = () => LossTimer.IsRunning(Active()) ? 1 : 0;
         Autotest.Fields["losstimerleft"] = () => LossTimer.SecondsLeft(Active()) ?? -1;
         // Spec 444: tech crate indicators in the scene, and the TECH count on the player ship's blip.

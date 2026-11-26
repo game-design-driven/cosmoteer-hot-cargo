@@ -68,30 +68,25 @@ internal static class TechWatch
         foreach (var g in TechWatchModel.Groups(crates, ux.TechWatchCrateGroupRadius))
             lines.Add(new(WatchKind.Crates, g.Units, UxKit.Format("WatchCratesFmt", g.Units), new(here, null, null, new Vector2(g.X, g.Y))));
 
+        // Spec 2520: a system switch loses the tech of the old system, so every holder and every waiting ship is in this system.
         foreach (var h in run.State.Tech.HunterHeld.Where(h => h.Units > 0))
-            lines.Add(Held(game, WatchKind.Hunter, "WatchHunterFmt", h.Units, h.ShipName, h.Ship, h.Node, h.Location));
+            lines.Add(Held(sim, WatchKind.Hunter, "WatchHunterFmt", h.Units, h.ShipName, h.Ship, h.Location));
         foreach (var h in run.State.Diplomacy.Held.Where(h => h.Units > 0))
-            lines.Add(Held(game, WatchKind.Friend, "WatchFriendFmt", h.Units, h.ShipName, h.Ship, h.Node, h.Location));
+            lines.Add(Held(sim, WatchKind.Friend, "WatchFriendFmt", h.Units, h.ShipName, h.Ship, h.Location));
         foreach (var w in run.State.Tech.Waiting.Where(w => w.Units > 0))
         {
-            var ship = w.Node == here ? sim.Ships[w.Ship] : null;
-            lines.Add(new(WatchKind.Waiting, w.Units, UxKit.Format("WatchWaitingFmt", w.Units, EscapeForXml(w.ShipName)) + Elsewhere(game, w.Node),
-                new(w.Node, ship, null, ship?.DetWorldCenter)));
+            var ship = sim.Ships[w.Ship];
+            lines.Add(new(WatchKind.Waiting, w.Units, UxKit.Format("WatchWaitingFmt", w.Units, EscapeForXml(w.ShipName)), new(here, ship, null, ship?.DetWorldCenter)));
         }
         return lines.OrderBy(l => l.Kind).ThenByDescending(l => l.Units).ToList();
     }
 
-    /// <summary>Spec 2121: a ship that holds the players' tech, here or in another system (then the click opens the map on it).</summary>
-    static WatchLine Held(GameRoot game, WatchKind kind, string key, int units, string name, ObjectID shipId, ObjectID node, Vector2 lastSeen)
+    /// <summary>Spec 2121: a ship that holds the players' tech. A holder in stasis or gone shows its last place.</summary>
+    static WatchLine Held(SimRoot sim, WatchKind kind, string key, int units, string name, ObjectID shipId, Vector2 lastSeen)
     {
-        bool here = node == game.Sim.NodeId();
-        var ship = here ? game.Sim.Ships[shipId] : null;
-        return new(kind, units, UxKit.Format(key, units, EscapeForXml(name)) + Elsewhere(game, node),
-            new(node, ship, null, here ? ship?.DetWorldCenter ?? lastSeen : null));
+        var ship = sim.Ships[shipId];
+        return new(kind, units, UxKit.Format(key, units, EscapeForXml(name)), new(sim.NodeId(), ship, null, ship?.DetWorldCenter ?? lastSeen));
     }
-
-    static string Elsewhere(GameRoot game, ObjectID node) =>
-        node == game.Sim.NodeId() ? "" : " " + UxKit.Format("WatchInSystemFmt", EscapeForXml(game.Map.Nodes[node]?.Name ?? "?"));
 
     /// <summary>Spec 2124: tech of the ship that its design has no vault room for, while the design removes a built vault.</summary>
     static int DesignShort(Ship ship, int tech)
@@ -100,14 +95,6 @@ internal static class TechWatch
         if (built.Count == 0) return 0;
         int blueprints = ship.BlueprintParts.Count(p => p.Rules.ID == Vaults.VaultId);
         return TechWatchModel.DesignShort(tech, built.Count, blueprints, built[0].MaxResources);
-    }
-
-    /// <summary>Spec 2126: tech that stays in this system on a jump: crates and derelicts. Hunters and friendly holders keep theirs.</summary>
-    internal static string? JumpLine(Run run)
-    {
-        if (!On) return null;
-        var stays = Lines(run).Where(l => l.Kind is WatchKind.Crates or WatchKind.Derelict).ToList();
-        return stays.Count == 0 ? null : UxKit.Format("WatchJumpFmt", stays.Sum(l => l.Units));
     }
 
     /// <summary>
@@ -127,7 +114,6 @@ internal static class TechWatch
         Dev.Autotest.Fields["watch_lines"] = () => Lines(R()).Count;
         Dev.Autotest.Fields["watch_alarms"] = () => Alarms;
         Dev.Autotest.Fields["watch_design_alarms"] = () => DesignAlarms;
-        Dev.Autotest.Fields["watch_jumpline"] = () => JumpLine(R()) is null ? 0 : 1;
         Dev.Autotest.Commands["watch_click"] = arg =>
         {
             var kind = Enum.Parse<WatchKind>(arg.Trim(), ignoreCase: true);
