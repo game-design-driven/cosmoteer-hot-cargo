@@ -16,6 +16,6 @@ StrategyModules
 ]
 TacticsModules []
 TargetingModules []
-CommsModules = &<ai/ai_common.rules>/CommsModulesDefault
+CommsModules = &<./Data/ai/ai_common.rules>/CommsModulesDefault
 // An escort in stasis does not move (spec 1851).
 StasisModules []
