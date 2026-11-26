@@ -54,6 +54,7 @@ public static class Mod
             Storyteller.StorytellerArea.Register();
             Telemetry.TelemetryArea.Register();
             Dev.Invariants.Register();
+            Core.VanillaGuards.Register();
             Dev.Playthrough.Register();
             // Last: its run log hooks run after the hooks of the other areas.
             RunRecord.RunRecordArea.Register();

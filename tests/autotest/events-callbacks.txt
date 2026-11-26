@@ -6,7 +6,8 @@ ev_set ArrivalEventChance 0
 ev_set StationEventChance 0
 ev_set CourierChance 0
 ev_set CooldownSeconds 0
-ev_set CallbackChance 1
+ev_callback_chance all 1
+ev_set MaxEventsPerSystem 99
 godmode on
 aiset FleeEnabled false
 openspace 6000 3000
@@ -33,7 +34,8 @@ ev_set ArrivalEventChance 0
 ev_set StationEventChance 0
 ev_set CourierChance 0
 ev_set CooldownSeconds 0
-ev_set CallbackChance 1
+ev_callback_chance all 1
+ev_set MaxEventsPerSystem 99
 # The next sector: the pirate's ship hails with its callback page, under its old name.
 jump
 waitfor sector == 2 25
@@ -43,30 +45,39 @@ expect ev_recall_named == 1
 expect ev_carrier == 1
 choose last
 expect ev_pending == 0
+# User rule 2026-11-26: each callback kind comes back once per run. Pirate's Honor and Unfinished Business share one kind.
+ev_remember SparedPirate
+expecteligible cb_pirate_debt 0
+expecteligible cb_pirate_grudge 0
 # The pacer holds the next callback for its gap (Pursuit.Events, kind Callback).
 ev_remember Spared
 ev_arrive
 wait 8
 expect ev_recall_kind == 0
 expect ev_pending == 0
-# A faction ship that was spared offers to join: the page opens on the memory, and the memory is used up.
-event cb_spared
-expect ev_recall_kind == 1
-expect ev_recall_named == 1
-choose 1
-expect ev_pending == 0
-expecteligible cb_spared 0
-# The other callbacks open on their memories, under the memory's name.
+# User rule 2026-11-26: up to 4 callbacks per run, each of another kind. Without the gaps, three more kinds come back, and a fifth
+# callback does not open.
+pu_pace Callback 4 0
+pu_set MinEventGapSeconds 0
+ev_arrive
+waitfor ev_recall_kind == 1 20
+choose last
 ev_remember PaidOff
-event cb_route_sold
-expect ev_recall_named == 1
+ev_arrive
+waitfor ev_recall_kind == 3 20
 choose last
 ev_remember Bluffed
-event cb_bluff_grudge
-expect ev_recall_named == 1
-choose 1
+ev_arrive
+waitfor ev_recall_kind == 4 20
+choose last
 ev_remember Rescued
+ev_arrive
+wait 8
+expect ev_pending == 0
+expecteligible cb_rescued 1
+# Every callback page opens on its memory under the memory's name (a direct open skips the trigger limits).
 event cb_rescued
+expect ev_recall_kind == 5
 expect ev_recall_named == 1
 choose 1
 expect ev_pending == 0
