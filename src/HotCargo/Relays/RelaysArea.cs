@@ -122,21 +122,17 @@ public static class RelaysArea
 
     /// <summary>
     /// Spec 951, 952: each unvisited neighbour rolls once per run, in ID order, while no mark waits and the pacer allows it.
-    /// The Buyer's sector never gets a lockdown. On the run map only systems ahead roll (spec 2551). The roll is seeded by the galaxy
-    /// seed and the node.
+    /// The Buyer's sector never gets a lockdown. The roll is seeded by the galaxy seed and the node.
     /// </summary>
     static void Roll(Run run, MapNode node)
     {
         var s = run.State.Relays;
         var t = run.T.Relays;
-        int step = run.Step;
-        if (s.MarkedNode is not null || step + 1 >= run.Steps) return;
-        bool runMap = Journey.RunMap.IsRunMap(run.Mode);
+        if (s.MarkedNode is not null || run.State.SectorIndex + 1 >= run.T.Journey.RunSectorCount) return;
         foreach (var next in node.Connections.OrderBy(c => c.UniqueID))
         {
-            if (runMap && Journey.RunMap.Band(next) <= Journey.RunMap.Band(node)) continue;
             if (run.State.VisitedNodes.Contains(next.UniqueID) || !s.Rolled.Add(next.UniqueID)) continue;
-            if (step < t.MinSector || !Pursuit.Pacer.MayStart(run, Pursuit.PacedKinds.RelayLockdown)) return;
+            if (run.State.SectorIndex < t.MinSector || !Pursuit.Pacer.MayStart(run, Pursuit.PacedKinds.RelayLockdown)) return;
             var rand = new FastRand((ulong)run.Mode.Init.RandSeed ^ 0x5245_4C41_5953UL, (ulong)next.UniqueID.GetHashCode());
             if (rand.Single() >= t.ChancePerSystem) continue;
             var kind = RelaysModel.PickKind(rand.Single(), t.ClosedWeight, t.FeeWeight, t.PiratesWeight, next.ControllingFaction is not null);

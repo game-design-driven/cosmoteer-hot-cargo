@@ -77,9 +77,9 @@ public class AiModelTests
     [Fact]
     public void Strike_scales_with_the_run_and_splits_into_waves()
     {
-        Assert.Equal(0f, HotCargo.Core.RunModel.Progress(1, 8));
-        Assert.Equal(1f, HotCargo.Core.RunModel.Progress(8, 8));
-        Assert.Equal(1f, HotCargo.Core.RunModel.Progress(1, 1));
+        Assert.Equal(0f, WaveModel.Progress(1, 8));
+        Assert.Equal(1f, WaveModel.Progress(8, 8));
+        Assert.Equal(1f, WaveModel.Progress(1, 1));
         Assert.Equal(2, WaveModel.ShipCount(3, 0.67f, 0f));
         Assert.Equal(3, WaveModel.ShipCount(3, 0.67f, 1f));
         Assert.Equal(1, WaveModel.ShipCount(1, 0.1f, 0f));

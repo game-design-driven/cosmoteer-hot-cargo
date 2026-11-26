@@ -59,18 +59,6 @@ public static class MechanicsArea
             Autotest.Fields[$"mech_goal_{kind.Name}"] = () => (int)Goal(Accepted(kind)).Completion;
         }
         Autotest.Commands["mech_generate"] = TestGenerate;
-        // mech_clear_field_pirates: test only. Removes the vanilla asteroid field pirates (tag asteroid_pirate), live or in stasis, so a
-        // test world always has a field for the Mining Escort (spec 1860). Run it inside the sim in co-op ("mp").
-        Autotest.Commands["mech_clear_field_pirates"] = _ =>
-        {
-            var sim = RequireRun().Game.Sim;
-            var tag = new Cosmoteer.Data.ID<SimObjectSpawner>("asteroid_pirate");
-            var live = sim.Ships.Where(s => s.HasTag(tag)).ToList();
-            foreach (var s in live) sim.Ships.Remove(s, dispose: true, handleLostShip: false);
-            var stasis = sim.Stasis.OfType<Cosmoteer.Simulation.Stasis.StasisShipSpawner>().Where(s => s.Tags?.Contains(tag) == true).ToList();
-            foreach (var s in stasis) sim.Stasis.RemoveStasisSpawner(s);
-            Log.Info($"AUTOTEST mech_clear_field_pirates: removed {live.Count} live and {stasis.Count} in stasis");
-        };
         // mech_set <MechanicsTunables field> <value>: changes a live tunable for this run (spawn chances apply from the next system). Test only.
         Autotest.Commands["mech_set"] = arg => Autotest.SetField(RequireRun().T.Mechanics, arg);
         // mech_hold_set <Siege|Guard|Scan> <HoldOutTunables field> <value>: changes a hold-out profile tunable for this run. Test only.
@@ -198,17 +186,6 @@ public static class MechanicsArea
         };
         // mech_mine_skipped_pois: POIs with the field tag that the last Mining Escort offer skipped for their type (graveyards, spec 1860).
         Autotest.Fields["mech_mine_skipped_pois"] = () => MiningEscortObjective.LastSkippedPois;
-        // mech_mine_skip_gap: ship graveyards (POIs with the field tag of type poi_graveyard) in this system minus the POIs that the last
-        // offer skipped. Expect 0: the offer skips every graveyard and nothing else, in any test world.
-        Autotest.Fields["mech_mine_skip_gap"] = () =>
-        {
-            var sim = RequireSim();
-            var tag = new ID<SimObjectSpawner>("asteroid_field_poi");
-            int graveyards = MissionArea.ExistingSpawnTags(sim).TryGetValue(tag, out var pois)
-                ? pois.Count(p => p.UniqueID is { } id && sim.Doodads[id]?.Rules.ID.ToString() == "cosmoteer.poi_graveyard")
-                : 0;
-            return graveyards - MiningEscortObjective.LastSkippedPois;
-        };
         // mech_mine_away <distance>: the miner and the players this far from the field center. mech_mine_rock_in_field: 1 when the miner's
         // next rock is inside its field and out of the heat (spec 1862), 0 when it picks another rock, -1 when it has none.
         Autotest.Commands["mech_mine_away"] = arg =>

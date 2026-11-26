@@ -25,7 +25,6 @@ public static class JourneyArea
     {
         Run.Hooks.SystemEntered += Buyer.OnSystemEntered;
         Run.Hooks.NewRunStarted += Buyer.OnNewRun;
-        RunMap.Register();
         AddAutotest();
     }
 
@@ -34,6 +33,20 @@ public static class JourneyArea
     {
         int i = Array.FindIndex(GameApp.Rules.CareerMode.MapSizes, m => m.NameKey.Key == RunMapNameKey);
         return i >= 0 ? i : throw new InvalidOperationException($"map size {RunMapNameKey} not found; is the Hot Cargo rules mod on?");
+    }
+
+    /// <summary>Galaxy nodes by jump distance from the starting system, for map checks.</summary>
+    static List<List<MapNode>> NodesByJumps(Run run)
+    {
+        var start = run.Game.Map.Nodes.Single(n => run.Mode.GetMapNodeData(n).IsInitNode);
+        var seen = new HashSet<MapNode> { start };
+        var rings = new List<List<MapNode>> { new() { start } };
+        while (true)
+        {
+            var next = rings[^1].SelectMany(n => n.Connections).Where(seen.Add).ToList();
+            if (next.Count == 0) return rings;
+            rings.Add(next);
+        }
     }
 
     static int LowTier(Run run, MapNode n) =>
@@ -53,6 +66,10 @@ public static class JourneyArea
                 // Calls the win path that the trade delivery patch calls. The real sale needs crew to walk to the station.
                 case ["deliver", var units]:
                     Buyer.OnDelivered(run, int.Parse(units, CultureInfo.InvariantCulture));
+                    break;
+                // Test-only: changes the live tunable, so that a short jump test reaches the Buyer sector.
+                case ["sectors", var count]:
+                    run.T.Journey.RunSectorCount = int.Parse(count, CultureInfo.InvariantCulture);
                     break;
                 // Test-only: puts the acting player's first ship next to the Buyer. Run it twice: the first call loads the Buyer
                 // out of stasis, the second puts the ship within trade distance.
@@ -92,7 +109,7 @@ public static class JourneyArea
                     break;
                 }
                 default:
-                    throw new InvalidOperationException("buyer needs: spawn | deliver <units> | goto | sell <units>");
+                    throw new InvalidOperationException("buyer needs: spawn | deliver <units> | sectors <count> | goto | sell <units>");
             }
         };
         // Single player only: jumps the human ships to an unvisited neighbor system, without the FTL animation or fuel.
@@ -108,11 +125,11 @@ public static class JourneyArea
         Autotest.Commands["maptiers"] = _ =>
         {
             var run = Autotest.RequireRun();
-            foreach (var band in run.Game.Map.Nodes.GroupBy(RunMap.Band).OrderBy(g => g.Key))
+            var rings = NodesByJumps(run);
+            for (int jumps = 0; jumps < rings.Count; jumps++)
             {
-                var tiers = band.Select(n => LowTier(run, n)).Order().ToList();
-                Log.Info($"AUTOTEST MAP band={band.Key} nodes={tiers.Count} lowTiers=[{string.Join(",", tiers)}] " +
-                         $"links=[{string.Join(" ", band.Select(n => string.Join(",", n.Connections.Select(RunMap.Band))))}]");
+                var tiers = rings[jumps].Select(n => LowTier(run, n)).Order().ToList();
+                Log.Info($"AUTOTEST MAP jumps={jumps} sector={jumps + 1} nodes={tiers.Count} lowTiers=[{string.Join(",", tiers)}]");
             }
         };
         Autotest.Commands["rewardcheck"] = _ =>
@@ -156,25 +173,13 @@ public static class JourneyArea
             return run.Game.Map.Nodes.Count(n => run.Mode.GetMapNodeData(n).SectorType.ID.ToString() != "basic");
         };
         Autotest.Fields["runmap"] = () => Autotest.RequireRun().Mode.Init is Cosmoteer.Modes.Career.CareerInit init && init.MapSizeIndex == RunMapSizeIndex() ? 1 : 0;
-        // Spec 2552: the low tier of the Buyer's system, the last band.
+        // Highest low tier among systems that are RunSectorCount - 1 jumps from the start: the last sector of a direct route.
         Autotest.Fields["finaltier"] = () =>
         {
             var run = Autotest.RequireRun();
-            return LowTier(run, RunMap.BuyerNode(run) ?? throw new InvalidOperationException("not the run map"));
-        };
-        Autotest.Fields["mapsteps"] = () => RunMap.Steps(Autotest.RequireRun());
-        // Spec 2550: systems on the map minus the lens widths of its steps. Expect 0.
-        Autotest.Fields["mapsizegap"] = () =>
-        {
-            var run = Autotest.RequireRun();
-            int steps = RunMap.Steps(run);
-            return run.Game.Map.Nodes.NodeCount - Enumerable.Range(0, steps).Sum(b => RunMapModel.Width(b, steps));
-        };
-        // Spec 2553: the band of the starting system. Expect 0.
-        Autotest.Fields["startband"] = () =>
-        {
-            var run = Autotest.RequireRun();
-            return RunMap.Band(run.Game.Map.Nodes.Single(n => run.Mode.GetMapNodeData(n).IsInitNode));
+            var rings = NodesByJumps(run);
+            int jumps = Math.Min(run.T.Journey.RunSectorCount - 1, rings.Count - 1);
+            return rings[jumps].Max(n => LowTier(run, n));
         };
         // Sell price to the Buyer divided by the sell price with no destination. Expect BuyerPriceFactor.
         Autotest.Fields["buyerprice"] = () =>
@@ -186,5 +191,15 @@ public static class JourneyArea
         };
         Autotest.Fields["delivered"] = () => Autotest.RequireRun().State.DeliveredUnits;
         Autotest.Fields["score"] = () => Autotest.RequireRun().State.Score;
+        // Systems whose low tier is above the HotCargoTierCap limit for their jump distance. Expect 0.
+        Autotest.Fields["tierovercap"] = () =>
+        {
+            var run = Autotest.RequireRun();
+            var cap = GameApp.Rules.CareerMode.MapSizes[RunMapSizeIndex()].MapGenerator.Spawners.OfType<TierCapSpawner>().Single();
+            var start = run.Game.Map.Nodes.Single(n => run.Mode.GetMapNodeData(n).IsInitNode);
+            int startTier = LowTier(run, start);
+            return TierCapSpawner.JumpDistances(start).Count(kv =>
+                LowTier(run, kv.Key) is int tier && tier <= cap.MaxChangeableLowTier && tier > cap.Cap(startTier, kv.Value));
+        };
     }
 }

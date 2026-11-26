@@ -21,7 +21,7 @@ expect rr_won == 1
 expect rr_score == 184500
 expect rr_peakheat >= 30
 expect rr_delivered == 4
-expect rr_sectors == 6
+expect rr_sectors == 8
 # A delivery after the win sets the score again (spec 7), and the entry follows.
 buyer deliver 1
 wait 2
