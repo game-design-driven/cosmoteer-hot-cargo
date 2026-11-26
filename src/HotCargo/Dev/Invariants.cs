@@ -36,6 +36,30 @@ public static class Invariants
     {
         Run.Hooks.Tick += OnTick;
         Autotest.Fields["invariants_broken"] = () => Broken;
+        // runhash_mark, then runhash_touch <member>: changes one saved member of the run state that the hand-kept hash did not read.
+        // runhash_changed is 1 when the run hash differs from the mark.
+        int marked = 0;
+        Autotest.Commands["runhash_mark"] = _ => marked = RunHash.Of(Autotest.RequireRun().State);
+        Autotest.Fields["runhash_changed"] = () => RunHash.Of(Autotest.RequireRun().State) != marked ? 1 : 0;
+        Autotest.Commands["runhash_touch"] = arg =>
+        {
+            var s = Autotest.RequireRun().State;
+            switch (arg)
+            {
+                case "HeatBuys": s.HeatBuys += 1f; break;
+                case "NodeHeat": s.NodeHeat[s.VisitedNodes.First()] = 12.5f; break;
+                case "EndReason": s.EndReason += "x"; break;
+                case "Tunables": s.Tunables.Heat.HeatPerGameMinute += 1f; break;
+                default: throw new InvalidOperationException("runhash_touch needs: HeatBuys|NodeHeat|EndReason|Tunables");
+            }
+        };
+        // runhash_bench: logs the time of one run state hash, and of each member of the run state, most costly first.
+        Autotest.Commands["runhash_bench"] = _ =>
+        {
+            var state = Autotest.RequireRun().State;
+            static double Micros(Action a) { a(); var sw = System.Diagnostics.Stopwatch.StartNew(); for (int i = 0; i < 2000; i++) a(); return sw.Elapsed.TotalMicroseconds / 2000; }
+            Log.Info($"AUTOTEST RUNHASH all={Micros(() => RunHash.Of(state)):0.0}us " + string.Join(" ", RunHash.MemberCosts(state, Micros)));
+        };
         // invariants_expect <rule>: the test breaks this rule on purpose. Its breaks count in invariants_expected and log no ERROR.
         Autotest.Commands["invariants_expect"] = arg => { lock (Reported) ExpectedNames.Add(arg); };
         Autotest.Fields["invariants_expected"] = () => _expected;
