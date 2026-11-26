@@ -73,14 +73,16 @@ public static class WeldModel
     }
 
     /// <summary>
-    /// Spec 2483: a place is valid when no target tile covers a ship tile (<paramref name="shipTiles"/>: its parts and its design) and
-    /// at least one target part touches a ship part with contact (<paramref name="both"/>: the ship's parts and the placed target's
-    /// parts in one grid; <paramref name="isTarget"/> tells the target's parts).
+    /// Spec 2483: a place is valid when no tile of <paramref name="targetCover"/> covers a tile of <paramref name="shipCover"/> (the
+    /// ship's parts and its design) and at least one target part touches a ship part with contact (<paramref name="targetTiles"/>: the
+    /// target's physical tiles; <paramref name="both"/>: the ship's parts and the placed target's parts in one grid;
+    /// <paramref name="isTarget"/> tells the target's parts). The cover sets hold the whole part rects, as the design keeps them: a
+    /// thruster's rect is larger than its physical tile.
     /// </summary>
-    public static WeldCheck Check(IReadOnlySet<Cell> shipTiles, IEnumerable<Cell> targetTiles, CutGrid both, Func<int, bool> isTarget)
+    public static WeldCheck Check(IReadOnlySet<Cell> shipCover, IEnumerable<Cell> targetCover, IEnumerable<Cell> targetTiles, CutGrid both, Func<int, bool> isTarget)
     {
+        if (targetCover.Any(shipCover.Contains)) return new(WeldVerdict.Covered, []);
         var tiles = targetTiles.ToList();
-        if (tiles.Any(shipTiles.Contains)) return new(WeldVerdict.Covered, []);
         var joints = new List<Edge>();
         foreach (var c in tiles.OrderBy(c => c.Y).ThenBy(c => c.X))
             foreach (var n in (Cell[])[new(c.X + 1, c.Y), new(c.X - 1, c.Y), new(c.X, c.Y + 1), new(c.X, c.Y - 1)])
