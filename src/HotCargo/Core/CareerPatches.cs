@@ -96,6 +96,8 @@ static class CareerPatches
         iHash.AddHash(s.Scavenge.Seen.Count);
         iHash.AddHash((int)(s.Scavenge.ProvokedUntil * 10));
         iHash.AddHash((int)(s.Storyteller.AdaptMinutes * 100));
+        // A step that failed on one machine only shows as a desync at once.
+        iHash.AddHash(s.RestingSteps.Count);
         int reports = 0;
         foreach (var r in s.AiReports.Groups)
             reports = unchecked(reports * 31 + ShipAi.ShipAiModel.StableHash(r.Group) + (r.Kite ? 1 : 0) + (r.Cloud ? 2 : 0) + (r.Focus + 1) * 4 + r.Age * 16);
