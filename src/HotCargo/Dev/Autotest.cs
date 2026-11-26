@@ -581,9 +581,10 @@ public static class Autotest
         {
             var sim = Game?.Sim ?? throw new InvalidOperationException("no game");
             var args = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (args.Length is < 1 or > 2) throw new InvalidOperationException("openspace needs: <station distance> [ship distance]");
+            if (args.Length is < 1 or > 3) throw new InvalidOperationException("openspace needs: <station distance> [ship distance] [max center distance]");
             float clearance = float.Parse(args[0], CultureInfo.InvariantCulture);
-            float shipClearance = args.Length == 2 ? float.Parse(args[1], CultureInfo.InvariantCulture) : 0f;
+            float shipClearance = args.Length >= 2 ? float.Parse(args[1], CultureInfo.InvariantCulture) : 0f;
+            float maxCenter = args.Length == 3 ? float.Parse(args[2], CultureInfo.InvariantCulture) : float.MaxValue;
             var from = SimQueries.FleetCenter(sim) ?? throw new InvalidOperationException("no player ships");
             var stations = SimQueries.TaggedShips(sim, new("station")).Select(t => t.Location).ToList();
             var others = sim.Ships.Where(s => !s.IsHumanPlayerShip && !s.IsJunk).Select(s => s.DetWorldCenter)
@@ -593,7 +594,7 @@ public static class Autotest
                 for (int k = 0; k < 16; k++)
                 {
                     var p = from + Halfling.Geometry.Vector2.FromAngle(k * MathF.Tau / 16f) * (ring * 500f);
-                    if (stations.Any(s => s.DistanceTo(p) < clearance) || others.Any(s => s.DistanceTo(p) < shipClearance)
+                    if (p.Length > maxCenter || stations.Any(s => s.DistanceTo(p) < clearance) || others.Any(s => s.DistanceTo(p) < shipClearance)
                         || sim.ShouldAIAvoidLocation(p, avoid, 1000f)) continue;
                     float offset = 0f;
                     foreach (var ship in sim.Ships.HumanPlayerSignificantShips.ToList())
