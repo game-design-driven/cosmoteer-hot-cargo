@@ -61,12 +61,16 @@ static void Run()
     Environment.Exit(done && bad.Count == 0 ? 0 : 1);
 }
 
-/// <summary>The innermost exception, its message and its first stack frame, on one line. The outer type when it wraps another.</summary>
+/// <summary>
+/// The innermost exception, its message and its first 4 stack frames, on one line. The outer type when it wraps another. One frame
+/// named only the thrower (Rand.Int32), not its caller.
+/// </summary>
 static string CrashLine(Exception ex)
 {
     var inner = ex.GetBaseException();
-    // An inner exception that was built, not thrown, has no stack: then the outer one's first frame.
-    string frame = (inner.StackTrace ?? ex.StackTrace)?.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "(no stack)";
+    // An inner exception that was built, not thrown, has no stack: then the outer one's frames.
+    var frames = (inner.StackTrace ?? ex.StackTrace)?.Split('\n', StringSplitOptions.RemoveEmptyEntries).Take(4).Select(f => f.Trim()).ToList();
+    string frame = frames is { Count: > 0 } ? string.Join(" < ", frames) : "(no stack)";
     string outer = inner == ex ? "" : $"{ex.GetType().Name} -> ";
     return $"{outer}{inner.GetType().FullName}: {inner.Message.ReplaceLineEndings(" ")} {frame}";
 }

@@ -126,11 +126,11 @@ static class CutAutotest
         _ => throw new InvalidOperationException($"unknown shape '{kind}' (l, loop or bigloop)"),
     };
 
-    /// <summary>Selects "me", opens its build window in the mode of cut_blueprint and clicks a vanilla button of it.</summary>
-    static void Buttons(string button)
+    /// <summary>Selects the ship, opens its build window and clicks a vanilla button of it (cut_apply and the weld tests).</summary>
+    internal static void Buttons(Ship ship, string button)
     {
         var game = Autotest.RequireRun().Game;
-        Sim().PlayerInput.SelectSingleShip(Me());
+        Sim().PlayerInput.SelectSingleShip(ship);
         game.Gui.ShipGui.BuildButton.IsSelected = true;
         var box = game.Gui.ShipGui.BuildToolbox;
         switch (button)
@@ -241,9 +241,9 @@ static class CutAutotest
         Autotest.Commands["cut_blueprint"] = arg => _blueprint = arg.Trim() == "on";
         // cut_apply | cut_discard | cut_cancelall: the vanilla buttons "Make it so", "Discard changes" and "Cancel all" of "me",
         // clicked in its build window (spec 2475).
-        Autotest.Commands["cut_apply"] = _ => Buttons("_constructBtn");
-        Autotest.Commands["cut_discard"] = _ => Buttons("_discardBtn");
-        Autotest.Commands["cut_cancelall"] = _ => Buttons("_cancelAllBtn");
+        Autotest.Commands["cut_apply"] = _ => Buttons(Me(), "_constructBtn");
+        Autotest.Commands["cut_discard"] = _ => Buttons(Me(), "_discardBtn");
+        Autotest.Commands["cut_cancelall"] = _ => Buttons(Me(), "_cancelAllBtn");
         // cut_blast: test only, single player. Destroys the parts on the staying side of the clean line of "me", as explosions would,
         // so the game splits the ship by itself (spec 2476).
         Autotest.Commands["cut_blast"] = _ =>

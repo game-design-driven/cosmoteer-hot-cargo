@@ -14,19 +14,23 @@ namespace HotCargo.Weld;
 internal static class WeldShip
 {
     /// <summary>
-    /// Spec 2481: a target for the ship of <paramref name="playerIndex"/>: within range, an own ship or a derelict, only parts of the
-    /// ship's part set, and named by no contract, the relic or an abandoned-ship event.
+    /// Spec 2481, 2482: whether <paramref name="target"/> is a target for the ship of <paramref name="playerIndex"/>, or why not: within
+    /// range, an own ship or a derelict, only parts of the ship's part set, and named by no contract, the relic or an abandoned-ship
+    /// event. Null for objects that are no candidates at all (the ship itself, a ship in another system, a ship without parts).
     /// </summary>
-    internal static bool IsTarget(Run run, Ship ship, Ship target, int playerIndex)
+    internal static WeldTargetVerdict? TargetVerdict(Run run, Ship ship, Ship target, int playerIndex)
     {
-        if (target == ship || target.IsDisposed || target.Sim != ship.Sim || target.Parts.Count == 0 || target.Rules.IsAsteroid) return false;
-        if (ship.DetWorldBoundingCircle.DistanceTo(target.DetWorldBoundingCircle) > run.T.Weld.Range) return false;
+        if (target == ship || target.IsDisposed || target.Sim != ship.Sim || target.Parts.Count == 0) return null;
+        if (target.Rules.IsAsteroid || target.Parts.Any(p => !ship.Rules.PartsByID.ContainsKey(p.Rules.ID))) return WeldTargetVerdict.OtherParts;
         bool own = target.IsHumanPlayerShip && target.Commands.IsCommandableBy(playerIndex);
-        if (!own && !target.IsJunk) return false;
-        if (target.Parts.Any(p => !ship.Rules.PartsByID.ContainsKey(p.Rules.ID))) return false;
-        if (target.HasTag(Events.Abandoned.RelicTag) || target.HasLabel(Events.Abandoned.Label)) return false;
-        return !run.Mode.Missions.Any(m => m.IsShipAssociated(target));
+        if (!own && !target.IsJunk) return WeldTargetVerdict.NotYours;
+        if (target.HasTag(Events.Abandoned.RelicTag) || target.HasLabel(Events.Abandoned.Label) || run.Mode.Missions.Any(m => m.IsShipAssociated(target)))
+            return WeldTargetVerdict.Mission;
+        if (ship.DetWorldBoundingCircle.DistanceTo(target.DetWorldBoundingCircle) > run.T.Weld.Range) return WeldTargetVerdict.TooFar;
+        return WeldTargetVerdict.Ok;
     }
+
+    internal static bool IsTarget(Run run, Ship ship, Ship target, int playerIndex) => TargetVerdict(run, ship, target, playerIndex) == WeldTargetVerdict.Ok;
 
     /// <summary>Spec 2482: the targets of the ship, nearest first, then by ID.</summary>
     internal static List<Ship> Targets(Run run, Ship ship, int playerIndex) =>
@@ -149,6 +153,17 @@ internal static class WeldShip
         foreach (var body in target is null ? [ship.Physics.Body] : (Halfling.Physics2D.Dynamics.Body[])[ship.Physics.Body, target.Physics.Body])
             foreach (var fixture in body.FixtureList)
                 if (fixture.CollisionGroup != group) fixture.CollisionGroup = group;
+    }
+
+    /// <summary>
+    /// Spec 2484: a piece that a weld lets go keeps the ship's motion at its point. So it floats where it is and does not drift on at
+    /// the pull speed into the ship or away.
+    /// </summary>
+    internal static void Release(Ship ship, Ship target)
+    {
+        var body = target.Physics.Body;
+        body.LinearVelocity = ship.Physics.Body.GetLinearVelocityFromWorldPoint(body.WorldCenter);
+        body.AngularVelocity = ship.Physics.Body.AngularVelocity;
     }
 
     /// <summary>Spec 2485: the target sits exactly at its place and moves with the ship.</summary>
