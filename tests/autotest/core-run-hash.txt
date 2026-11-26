@@ -1,0 +1,20 @@
+# Spec 58: the co-op run hash reads every saved member of the run state. Each member below was outside the old hand-kept hash.
+newgame run
+wait 3
+pause on
+waitfor paused == 1 10
+runhash_mark
+expect runhash_changed == 0
+runhash_touch HeatBuys
+expect runhash_changed == 1
+runhash_mark
+runhash_touch NodeHeat
+expect runhash_changed == 1
+runhash_mark
+runhash_touch EndReason
+expect runhash_changed == 1
+# A member with [NotInRunHash] stays out: the tunables hash stands for the tunables.
+runhash_mark
+runhash_touch Tunables
+expect runhash_changed == 0
+quit
