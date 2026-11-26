@@ -41,6 +41,7 @@ internal static class AggroAutotest
         // (AIAggroEnemiesModule.TacticalRetreat) or an attack order.
         Autotest.Fields["hc_track_turned"] = () =>
             Tracked().Commands.CurConfirmedCommand is MoveCommand { ForceDestinationRotation: true } or AttackCommand ? 1 : 0;
+        Autotest.Fields["hc_track_speed"] = () => Tracked().Physics.Body?.LinearVelocity.Length() ?? 0f;
         Autotest.Fields["hc_track_moved"] = () => Tracked().DetWorldCenter.DistanceTo(_markedAt);
         Autotest.Fields["hc_track_closed"] = () => _markedGap - Gap(Tracked());
         // hc_track_leave <distance>: the player ships go about <distance> from the tracked ship, on clear spots (MissionArea.TeleportPlayers).

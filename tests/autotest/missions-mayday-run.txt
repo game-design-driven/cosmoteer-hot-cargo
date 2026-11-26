@@ -1,5 +1,6 @@
-# Mayday victim (spec 2431): it runs to the players with its attackers on its radar. With the vanilla Normal AI it turned its hull to
-# an attacker (forced rotation, as the escort freighter in #372) and crawled.
+# Mayday victim (spec 2431): it runs to the players with its attackers on its radar. With the vanilla Normal AI it started fast, then
+# turned its hull to an attacker (forced rotation, as the escort freighter in #372) and crawled at 5 to 7 units per second once the
+# attackers reached it. Its own move order keeps it at cruise speed (about 30 for a Gannet).
 newgame run
 wait 8
 ev_set Enabled false
@@ -7,8 +8,10 @@ godmode on
 hc_mayday_start
 pause off
 hc_track hc_mayday_victim
+# The attackers reach it in about 10 s.
+wait 10
 hc_track_mark
-wait 13
-expect hc_track_closed > 250
+wait 10
+expect hc_track_closed > 150
 expect hc_track_turned == 0
 quit
