@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq.Expressions;
 using System.Reflection;
 using Halfling.Serialization;
 
@@ -18,35 +19,72 @@ public sealed class NotInRunHashAttribute(string reason) : Attribute
 /// Spec 58: the hash of the Hot Cargo run state in the game's integrity hash. It reads every saved member ([Serialize]) of RunState
 /// and of the state objects below it, so a new field is in the hash with no other change. A member with [NotInRunHash] stays out.
 /// Lists hash in order. Sets and dictionaries hash without order, so the hash does not depend on their add order.
-/// Limit: reflection (FieldInfo.GetValue) on each call. Revisit with compiled getters if "selfprof" shows it in a profile.
+/// Each type gets one compiled function that reads its members directly: the sim phase check (SimPhase) takes this hash several
+/// times in each frame, and reflection on each call cost about 18 to 40 µs.
 /// </summary>
 public static class RunHash
 {
-    static readonly Dictionary<Type, Func<object, object?>[]> Members = [];
+    /// <summary>What the hash reads of one type: the function over its members (null for a type with none), and for a collection whether its order counts.</summary>
+    sealed record Shape(Func<object, int>? Members, bool Ordered);
+
+    static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Shape> Shapes = new();
 
     public static int Of(RunState state) => Value(state);
 
-    /// <summary>The saved members of a state type that the hash reads, in name order. Empty for a type with no [Serialize] member.</summary>
-    static Func<object, object?>[] MembersOf(Type type)
+    /// <summary>Test only: the cost of each run state member in the hash, as "name=time", most costly first.</summary>
+    internal static IEnumerable<string> MemberCosts(RunState state, Func<Action, double> micros) =>
+        typeof(RunState).GetFields().Where(f => f.IsDefined(typeof(SerializeAttribute), true) && !f.IsDefined(typeof(NotInRunHashAttribute)))
+            .Select(f => (f.Name, Cost: micros(() => Value(f.GetValue(state))))).OrderByDescending(m => m.Cost).Take(12).Select(m => $"{m.Name}={m.Cost:0.0}");
+
+    /// <summary>
+    /// The members of a type that the hash reads, in name order: its saved members; for a value type with none (ObjectID, a vector,
+    /// a tuple) every field. A set has no order.
+    /// </summary>
+    static Shape ShapeOf(Type type) => Shapes.GetOrAdd(type, static type =>
     {
-        lock (Members)
+        const BindingFlags all = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+        var members = new List<MemberInfo>();
+        for (Type? t = type; t is not null && t != typeof(object); t = t.BaseType)
+            members.AddRange(t.GetMembers(all).Where(m => m.IsDefined(typeof(SerializeAttribute), inherit: true) && !m.IsDefined(typeof(NotInRunHashAttribute))));
+        if (members.Count == 0 && type.IsValueType) members.AddRange(type.GetFields(all));
+        bool set = type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ISet<>));
+        if (members.Count == 0) return new(null, Ordered: !set);
+
+        // h = 17; for each member: h = h * 31 + hash(member).
+        var boxed = Expression.Parameter(typeof(object));
+        var self = Expression.Convert(boxed, type);
+        Expression hash = Expression.Constant(17);
+        foreach (var m in members.OrderBy(m => m.Name, StringComparer.Ordinal))
         {
-            if (Members.TryGetValue(type, out var known)) return known;
-            const BindingFlags all = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-            var found = new List<(string Name, Func<object, object?> Get)>();
-            for (Type? t = type; t is not null && t != typeof(object); t = t.BaseType)
-                foreach (var m in t.GetMembers(all | BindingFlags.DeclaredOnly))
-                {
-                    if (!m.IsDefined(typeof(SerializeAttribute), inherit: true) || m.IsDefined(typeof(NotInRunHashAttribute))) continue;
-                    found.Add(m switch
-                    {
-                        FieldInfo f => (f.Name, f.GetValue),
-                        PropertyInfo p => (p.Name, p.GetValue),
-                        _ => throw new NotSupportedException($"{type.Name}.{m.Name} is a {m.MemberType}, not a field or property"),
-                    });
-                }
-            return Members[type] = [.. found.OrderBy(m => m.Name, StringComparer.Ordinal).Select(m => m.Get)];
+            if (m is not (FieldInfo or PropertyInfo)) throw new NotSupportedException($"{type.Name}.{m.Name} is a {m.MemberType}, not a field or property");
+            hash = Expression.Add(Expression.Multiply(hash, Expression.Constant(31)), HashOf(Expression.MakeMemberAccess(self, m)));
         }
+        return new(Expression.Lambda<Func<object, int>>(hash, boxed).Compile(), Ordered: !set);
+    });
+
+    /// <summary>The hash of a member value. Numbers, bool and text hash without a box; every other type goes through Value.</summary>
+    static Expression HashOf(Expression value)
+    {
+        var type = value.Type;
+        if (type == typeof(int)) return value;
+        string? direct = type == typeof(bool) ? nameof(Bool) : type == typeof(float) ? nameof(Float) : type == typeof(double) ? nameof(Double)
+            : type == typeof(long) ? nameof(Long) : type == typeof(string) ? nameof(Text) : null;
+        if (direct is not null) return Expression.Call(typeof(RunHash), direct, null, value);
+        if (type.IsEnum) return Expression.Call(typeof(RunHash), nameof(Long), null, Expression.Convert(value, typeof(long)));
+        return Expression.Call(typeof(RunHash), nameof(Value), null, Expression.Convert(value, typeof(object)));
+    }
+
+    static int Bool(bool b) => b ? 1 : 2;
+    static int Float(float f) => BitConverter.SingleToInt32Bits(f);
+    static int Long(long l) => unchecked((int)l ^ (int)(l >> 32));
+    static int Double(double d) => Long(BitConverter.DoubleToInt64Bits(d));
+    /// <summary>string.GetHashCode differs per process.</summary>
+    static int Text(string? s)
+    {
+        if (s is null) return 0;
+        int h = 17;
+        foreach (char c in s) h = unchecked(h * 31 + c);
+        return h;
     }
 
     static int Value(object? value)
@@ -54,17 +92,16 @@ public static class RunHash
         switch (value)
         {
             case null: return 0;
-            case bool b: return b ? 1 : 2;
+            case bool b: return Bool(b);
             case int i: return i;
             case uint u: return unchecked((int)u);
-            case long l: return unchecked((int)l ^ (int)(l >> 32));
-            case ulong l: return unchecked((int)l ^ (int)(l >> 32));
-            case float f: return BitConverter.SingleToInt32Bits(f);
-            case double d: return Value(BitConverter.DoubleToInt64Bits(d));
+            case long l: return Long(l);
+            case ulong l: return Long(unchecked((long)l));
+            case float f: return Float(f);
+            case double d: return Double(d);
             case byte or sbyte or short or ushort or char: return Convert.ToInt32(value);
-            case Enum e: return Value(Convert.ToInt64(e));
-            // string.GetHashCode differs per process.
-            case string s: { int h = 17; foreach (char c in s) h = unchecked(h * 31 + c); return h; }
+            case Enum e: return Long(Convert.ToInt64(e));
+            case string s: return Text(s);
             case IDictionary map:
             {
                 int sum = map.Count;
@@ -73,24 +110,13 @@ public static class RunHash
             }
             case IEnumerable items:
             {
-                bool ordered = !value.GetType().GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ISet<>));
+                bool ordered = ShapeOf(value.GetType()).Ordered;
                 int h = 17;
                 foreach (object? item in items) h = ordered ? unchecked(h * 31 + Value(item)) : unchecked(h + Value(item));
                 return h;
             }
         }
-        var type = value.GetType();
-        var members = MembersOf(type);
-        // A value type without saved members (ObjectID, a vector, a tuple) hashes by its fields.
-        if (members.Length == 0)
-        {
-            if (!type.IsValueType) throw new NotSupportedException($"RunHash: {type.FullName} has no [Serialize] member. Hash it by hand or mark its member [NotInRunHash].");
-            int h = 17;
-            foreach (var f in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)) h = unchecked(h * 31 + Value(f.GetValue(value)));
-            return h;
-        }
-        int hash = 17;
-        foreach (var get in members) hash = unchecked(hash * 31 + Value(get(value)));
-        return hash;
+        return ShapeOf(value.GetType()).Members is { } members ? members(value)
+            : throw new NotSupportedException($"RunHash: {value.GetType().FullName} has no [Serialize] member. Mark the member that holds it [NotInRunHash] with a reason.");
     }
 }
