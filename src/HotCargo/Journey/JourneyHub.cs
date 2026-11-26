@@ -9,3 +9,9 @@ public sealed partial class Tunables
 {
     [Serialize(Optional = true)] public JourneyTunables Journey = new();
 }
+
+public sealed partial class RunState
+{
+    /// <summary>The run map and its lockdown line (spec 2557 to 2579).</summary>
+    [Serialize(Optional = true)] public JourneyState Journey = new();
+}

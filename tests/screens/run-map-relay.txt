@@ -1,0 +1,21 @@
+# Red relay to a closed system (spec 2565): in the world, on its indicator and on the local map. Windowed test slot or RUNNER=mac.
+render on
+newgame run
+wait 10
+pause off
+closepanel
+wait 1
+ev_set Enabled false
+godmode on
+heat 100
+wait 65
+reveal on
+line_relaycam 2500
+wait 4
+line_relaycam 2500
+wait 3
+screenshot runmap-relay-near
+camera 0 0 9000
+wait 3
+screenshot runmap-relay-far
+quit

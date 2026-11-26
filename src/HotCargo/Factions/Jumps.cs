@@ -112,6 +112,7 @@ static class Jumps
             TestOverride = null;
             _charged = null;
             _pending = (run, kind, shipsToJump?.Select(s => s.UniqueID).ToArray() ?? []);
+            Journey.Lockdown.OnSwitch(run, node);
             Log.Info($"jump to {node.Name}: {kind}, {_pending.Value.Ships.Length} ships");
         }
     }

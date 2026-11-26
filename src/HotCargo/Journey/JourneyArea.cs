@@ -25,6 +25,7 @@ public static class JourneyArea
     {
         Run.Hooks.SystemEntered += Buyer.OnSystemEntered;
         Run.Hooks.NewRunStarted += Buyer.OnNewRun;
+        Lockdown.Register();
         AddAutotest();
     }
 

@@ -1,0 +1,39 @@
+# Run map and lockdown line (spec 2550 to 2565): a fresh run map, then closed choices at heat 100, then the line after two jumps.
+# Windowed test slot or RUNNER=mac (needs graphics).
+render on
+newgame run
+wait 10
+pause off
+closepanel
+wait 1
+ev_set Enabled false
+godmode on
+map on
+line_mapfit
+wait 3
+screenshot runmap-01-fresh
+map off
+heat 100
+wait 65
+map on
+line_mapfit
+wait 2
+line_tips
+screenshot runmap-02-heat100
+map off
+heat -100
+wait 2
+line_jump open
+waitfor sector == 2 30
+wait 5
+line_jump open
+waitfor sector == 3 30
+wait 5
+heat 100
+wait 65
+map on
+line_mapfit
+wait 2
+line_tips
+screenshot runmap-03-line
+quit
