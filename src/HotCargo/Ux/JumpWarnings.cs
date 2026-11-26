@@ -158,6 +158,8 @@ static class JumpWarnings
     {
         var lines = new List<string>();
         if (Run.Current is { } run && run.Game == game && TechLeftLine(run, JumpsOnEngage) is { } techLeft) lines.Add(techLeft);
+        // Spec 2566: a jump to a closed system of the run map asks first.
+        if (Run.Current is { } r && r.Game == game && Journey.Lockdown.ConfirmLine(r, game.DestinationMapNode.Confirmed) is { } closed) lines.Add(closed);
         return lines;
     }
 
@@ -173,6 +175,7 @@ static class JumpWarnings
     /// <summary>
     /// Spec 1565: the vanilla ENGAGE handler with the list in its dialog. The rest is the vanilla flow: no dialog when every local ship
     /// is ready and JumpLines is empty, and the jump goes ahead unless the player picks the second option.
+    /// Spec 2566: the vanilla question of this dialog is the confirmation of a jump to a closed system.
     /// </summary>
     [HarmonyPatch(typeof(FtlJumpGui), "OnJumpClicked")]
     static class DialogPatch

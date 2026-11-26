@@ -69,6 +69,17 @@ public static class Lockdown
             Dev.Autotest.Teleport(ship, Dev.Autotest.ClearSpotNear(run.Game.Sim, at, 900f, ship.DetWorldBoundingCircle.Radius));
             Dev.Autotest.Commands["camera"](string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{at.X} {at.Y} {arg.Trim()}"));
         };
+        // line_confirm: sets the jump destination to a closed choice (the vanilla input) and logs the ENGAGE dialog text.
+        Dev.Autotest.Commands["line_confirm"] = _ =>
+        {
+            var run = R();
+            var dest = Here().FirstOrDefault(n => Closed(run, n)) ?? throw new InvalidOperationException("no closed choice");
+            run.Game.NetManager.EnqueueInput(new Cosmoteer.Game.Multiplayer.MPInputs.MPSetDestinationMapNodeInput(dest, playLocalSound: false));
+            Dev.Autotest.WaitFor(() => run.Game.DestinationMapNode.Confirmed == dest, 10, "the jump destination", () =>
+                Log.Info($"AUTOTEST LINE confirm: {Ux.JumpWarnings.DialogText(run.Game, Ux.JumpWarnings.JumpLines(run.Game)).Replace('\n', ' ')}"));
+        };
+        Dev.Autotest.Fields["line_confirm_lines"] = () =>
+            Ux.JumpWarnings.JumpLines(R().Game).Count(l => l == ConfirmLine(R(), R().Game.DestinationMapNode.Confirmed));
         // line_jump closed|open: single player. A relay jump (spec 650) to a closed or an open choice, without the animation. "closed"
         // takes a closed choice, or else marks the first choice closed for the test.
         Dev.Autotest.Commands["line_jump"] = arg =>
@@ -127,6 +138,14 @@ public static class Lockdown
 
     /// <summary>Heat per game second from time now: the projection of the warnings (spec 2561). 0 while gains are blocked.</summary>
     internal static float HeatPerSecond(Run run) => Run.Hooks.HeatGainsBlocked(run) ? 0f : run.TimeHeatPerMinute(run.State.FleetTech) / 60f;
+
+    /// <summary>Spec 2566: the jump dialog line for a jump to a closed system, with what it costs. Null when the destination is open.</summary>
+    internal static string? ConfirmLine(Run run, MapNode? destination)
+    {
+        if (destination is null || !Closed(run, destination)) return null;
+        float stored = run.State.NodeHeat.TryGetValue(destination.UniqueID, out float h) ? h : 0f;
+        return Format("ConfirmClosedFmt", destination.Name, HeatModel.OnEnterSystem(run.State.Heat, stored, 1f));
+    }
 
     /// <summary>Spec 2559: a switch to a closed system starts (a relay jump or the vanilla switch to own ships). Called from the switch on every machine.</summary>
     internal static void OnSwitch(Run run, MapNode destination) => _closedArrival = Closed(run, destination) ? run : null;

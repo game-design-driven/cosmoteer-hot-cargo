@@ -17,5 +17,6 @@ HotCargoJourney
 	ClosedCenterFmt = "<bad>{0} CLOSED</bad>"
 	ReopenedFmt = "Lockdown: the relay to {0} is open again."
 	ArrivalClosedFmt = "<bad>{0} is closed.</bad> The jump cut no heat, and corporate hunters wait here."
+	ConfirmClosedFmt = "<bad>{0} is closed by the corporate lockdown.</bad> The jump cuts no heat (you arrive at heat {1:0}), and corporate hunters wait there."
 	ArrivalClosedCenter = "<bad>CLOSED SYSTEM: HUNTERS WAIT HERE</bad>"
 }

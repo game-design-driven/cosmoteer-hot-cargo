@@ -13,6 +13,9 @@ wait 3
 expect line_closed == 0
 wait 62
 expect line_closed_gap == 0
+# Spec 2566: the ENGAGE dialog of a jump to a closed choice names what closed costs, and asks.
+line_confirm
+waitfor line_confirm_lines == 1 10
 # Heat 0 opens every choice again.
 heat -100
 wait 3
