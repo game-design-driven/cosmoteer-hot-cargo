@@ -36,6 +36,15 @@ public static class Invariants
     {
         Run.Hooks.Tick += OnTick;
         Autotest.Fields["invariants_broken"] = () => Broken;
+        // err_step_fail: adds a sim step that throws in every tick, as a broken rule does. err_step_runs counts its runs.
+        int stepRuns = 0;
+        Autotest.Fields["err_step_runs"] = () => stepRuns;
+        Autotest.Commands["err_step_fail"] = _ =>
+        {
+            Errors.Expected = "test step";
+            Run.Hooks.Tick += (_, _, _) => Errors.Guard("test step", () => { stepRuns++; throw new InvalidOperationException("test failure"); });
+        };
+        Autotest.Commands["debug_set"] = arg => Autotest.SetField(Autotest.RequireRun().T.Debug, arg);
         // invariants_expect <rule>: the test breaks this rule on purpose. Its breaks count in invariants_expected and log no ERROR.
         Autotest.Commands["invariants_expect"] = arg => { lock (Reported) ExpectedNames.Add(arg); };
         Autotest.Fields["invariants_expected"] = () => _expected;

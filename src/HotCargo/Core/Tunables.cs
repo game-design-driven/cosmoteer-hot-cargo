@@ -75,6 +75,11 @@ public sealed class DebugTunables
     [Serialize(Optional = true)] public bool DebugKeys;
     /// <summary>Writes each hunter tactic decision to hot_cargo_log.txt. For tests and tuning.</summary>
     [Serialize(Optional = true)] public bool TacticsLog;
+    /// <summary>
+    /// After an error inside a game rule, that rule pauses for this many game seconds, then tries again. This stops a broken rule from
+    /// running half-way many times a second. 0: no pause.
+    /// </summary>
+    [Serialize(Optional = true)] public float FailedStepRestSeconds = 60f;
 }
 
 public static class HeatTunablesExtensions

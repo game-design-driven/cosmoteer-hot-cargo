@@ -1,0 +1,13 @@
+# Spec 17, Rules: a sim step that throws rests, so a broken rule does not run half-way in every tick.
+newgame run
+wait 3
+debug_set FailedStepRestSeconds 5
+err_step_fail
+# 30 ticks per second: without the rest the step runs about 90 times in 3 s.
+wait 3
+expect err_step_runs == 1
+# After the rest it tries again, fails again and rests again.
+wait 4
+expect err_step_runs == 2
+expect active == 1
+quit
