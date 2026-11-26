@@ -101,20 +101,22 @@ public static class RunMap
     internal static MapNode? BuyerNode(Run run) =>
         IsRunMap(run.Mode) ? EndsOf(run.Game.Map).Item2 : null;
 
-    /// <summary>Spec 2555: the steps of the run: the map's bands on the run map, else Journey.RunSectorCount.</summary>
-    public static int Steps(Run run) => IsRunMap(run.Mode) ? EndsOf(run.Game.Map).Item1 + 1 : run.T.Journey.RunSectorCount;
+    /// <summary>Spec 2555: the steps of the run map, its bands.</summary>
+    internal static int Steps(Run run) => EndsOf(run.Game.Map).Item1 + 1;
 
-    /// <summary>
-    /// Spec 2555: the step of the run (1 = the start, Steps = the Buyer): on the run map, 1 + the furthest band that the players
-    /// entered; else the sector index.
-    /// </summary>
-    public static int Step(Run run)
+    /// <summary>Spec 2555: the step of the run map: 1 + the furthest band that the players entered.</summary>
+    internal static int Step(Run run)
     {
-        if (!IsRunMap(run.Mode)) return run.State.SectorIndex;
         var visited = run.State.VisitedNodes;
         return 1 + run.Game.Map.Nodes.Where(n => visited.Contains(n.UniqueID) || n == run.Game.CurrentMapNode).Max(Band);
     }
 
-    /// <summary>Spec 2555: run progress from 0 at the start to 1 at the Buyer (hunter waves and the Pursuit ramp read it).</summary>
-    public static float Progress(Run run) => Hunters.WaveModel.Progress(Step(run), Steps(run));
+    /// <summary>Spec 2555: on the run map, the run's step and steps come from the map (Run.Step, Run.Steps).</summary>
+    internal static void Register()
+    {
+        var step = Run.Hooks.Step;
+        var steps = Run.Hooks.Steps;
+        Run.Hooks.Step = run => IsRunMap(run.Mode) ? Step(run) : step(run);
+        Run.Hooks.Steps = run => IsRunMap(run.Mode) ? Steps(run) : steps(run);
+    }
 }

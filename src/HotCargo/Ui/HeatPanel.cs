@@ -128,7 +128,7 @@ sealed class HeatPanel : LayoutBox
         // Spec 872: the texts below refresh every HudRefreshSeconds, not in every frame.
         if (!UxKit.HudDue(ref _nextText)) return;
 
-        _sector.Text = UxKit.Format("SectorFmt", Journey.RunMap.Step(run), Journey.RunMap.Steps(run));
+        _sector.Text = UxKit.Format("SectorFmt", run.Step, run.Steps);
         float mult = run.HeatMultiplier(s.FleetTech);
         _status.Text = s.Result switch
         {

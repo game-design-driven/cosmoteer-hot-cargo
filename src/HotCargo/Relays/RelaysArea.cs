@@ -129,8 +129,8 @@ public static class RelaysArea
     {
         var s = run.State.Relays;
         var t = run.T.Relays;
-        int step = Journey.RunMap.Step(run);
-        if (s.MarkedNode is not null || step + 1 >= Journey.RunMap.Steps(run)) return;
+        int step = run.Step;
+        if (s.MarkedNode is not null || step + 1 >= run.Steps) return;
         bool runMap = Journey.RunMap.IsRunMap(run.Mode);
         foreach (var next in node.Connections.OrderBy(c => c.UniqueID))
         {
