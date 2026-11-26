@@ -146,6 +146,11 @@ public static class MissionArea
         Autotest.Fields["hc_escort_scav_step"] = () =>
             (int?)(RequireEscort().Escort.TargetShip ?? throw new InvalidOperationException("escort is not live")).AI?.GetStrategyModule<Scavenge.ScavengeStrategy>()?.Step ?? -1;
         Autotest.Commands["hc_escort_advance"] = arg => TestEscortAdvance(float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture));
+        // hc_escort_watcher <distance>: a hostile platform with no AI, <distance> from the live freighter, square to its route (#372).
+        Autotest.Commands["hc_escort_watcher"] = arg => SpawnEscortWatcher(float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture));
+        // 1 while the freighter's move order turns its hull away from its course (forced rotation, as AIAggroEnemiesModule.TacticalRetreat).
+        Autotest.Fields["hc_escort_turned"] = () =>
+            (RequireEscort().Escort.TargetShip ?? throw new InvalidOperationException("escort is not live")).Commands.CurConfirmedCommand is MoveCommand { ForceDestinationRotation: true } ? 1 : 0;
         Autotest.Commands["hc_escort_ambush"] = _ =>
         {
             var o = RequireEscort();
@@ -824,6 +829,32 @@ public static class MissionArea
             behind += s.WorldBoundingRadius + 100f;
         }
         Autotest.Wait(3);
+    }
+
+    /// <summary>
+    /// Test only. A hostile Small Point Defense Platform with no AI: it stays where it spawns, and its point defense does not reach the
+    /// freighter. It stands on the freighter's radar, out of its sight circle when <paramref name="distance"/> is larger than that.
+    /// </summary>
+    static void SpawnEscortWatcher(float distance)
+    {
+        var o = RequireEscort();
+        Ship escort = o.Escort.TargetShip ?? throw new InvalidOperationException("escort is not live; run hc_escort_goto and wait first");
+        var sim = RequireSim();
+        const string hull = "Small Point Defense Platform";
+        var pick = Cosmoteer.GameApp.Rules.BuiltinShips.FirstOrDefault(b => b.File.ShipName == hull) ?? throw new InvalidOperationException($"no built-in ship '{hull}'");
+        Vector2 course = (o.Destination - escort.DetWorldCenter).Normalize();
+        Vector2 at = Autotest.ClearSpotNear(sim, escort.DetWorldCenter + new Vector2(-course.Y, course.X) * distance, 0f, 150f);
+        int hostile = ((CareerSimModeManager)sim.Mode).AllocUniquePlayerIndex();
+        if (!sim.Mode.AreEnemies(hostile, escort.Metadata.PlayerIndex)) throw new InvalidOperationException($"player {hostile} is no enemy of the freighter");
+        var spawner = new StasisShipSpawner(sim, pick.ID, at, SpawnedShipFeatures.None, sim.Rand.UInt64())
+        {
+            Direction = at.DirectionTo(escort.DetWorldCenter),
+            ObjectAllegiance = hostile,
+        };
+        spawner.Spawn(sim);
+        var ship = sim.Ships[spawner.ReservedObjectID] ?? throw new InvalidOperationException($"{pick.ID} did not spawn");
+        Log.Info($"AUTOTEST escort watcher {ship.Metadata.PlainShipName} id={ship.UniqueID} at {at}, {at.DistanceTo(escort.DetWorldCenter):0} from the freighter " +
+                 $"(sight {escort.Sensors.DetWorldSightCircle.Radius:0}, radar {escort.Sensors.DetWorldRadarCircle.Radius:0})");
     }
 
     static void TestShadySpring()
