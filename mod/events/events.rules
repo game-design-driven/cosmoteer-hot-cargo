@@ -1670,4 +1670,78 @@ Events
 			}
 		]
 	}
+
+	// Spec 2508: a hunter that took the players' pay-off sells their route.
+	{
+		ID = cb_route_sold
+		Trigger = Callback
+		Recalls = PaidOff
+		Carrier = Returning
+		Title = "Sold Out"
+		Text = "{mem_ship} hails you, all smiles. \"You paid us well at {mem_system}. The corporation pays better for your route. Unless you top it.\""
+		Choices
+		[
+			{
+				Text = "Top it."
+				Cost { Money = 0.5 }
+				Outcomes [ { Text = "\"Pleasure doing business. Twice.\""; Effect = leave } ]
+			}
+			{
+				Text = "Come and take it."
+				Outcomes [ { Text = "{mem_ship} jumps away. A corporate patrol drops in on its signal."; Spawn = CorporatePatrol; Effect = leave } ]
+			}
+			{
+				Text = "Let them talk."
+				Outcomes [ { Text = "Your route goes out on every corporate channel."; Heat = 15; Effect = leave } ]
+			}
+		]
+	}
+
+	// Spec 2508: a hunter that believed the players' bluff knows better now.
+	{
+		ID = cb_bluff_grudge
+		Trigger = Callback
+		Recalls = Bluffed
+		Carrier = Returning
+		Title = "That Wasn't All"
+		Text = "{mem_ship} hails you. \"That was all you had, you said at {mem_system}. Our scanners say otherwise. One more crate, and we stay fooled.\""
+		Choices
+		[
+			{
+				Text = "Hand over a crate."
+				Need { Tech = 1 }
+				Cost { Tech = 1 }
+				Outcomes [ { Text = "\"Now that's honest.\" They log you as clean."; Effect = leave } ]
+			}
+			{
+				Text = "Come and take it."
+				Outcomes [ { Text = "{mem_ship} pulls back and calls it in. A corporate patrol drops in."; Spawn = CorporatePatrol; Effect = leave } ]
+			}
+		]
+	}
+
+	// Spec 2509: the freighter that the players saved in a mayday says thank you.
+	{
+		ID = cb_rescued
+		Trigger = Callback
+		Recalls = Rescued
+		Carrier = Trader
+		Title = "Thank-You Run"
+		Text = "{mem_ship} hails you. \"You pulled us out of the fire at {mem_system}. We kept something back for you.\""
+		Choices
+		[
+			{
+				Text = "Take the cargo."
+				Outcomes [ { Text = "Steel and coils, with a note: thank you."; Resources = [{ ID = steel; Amount = 30; PerTier = 6 }, { ID = coil; Amount = 10; PerTier = 2 }]; Effect = leave } ]
+			}
+			{
+				Text = "Put in a quiet word for us."
+				Outcomes [ { Text = "\"We never saw you.\" Their reports send the patrols elsewhere."; Heat = -10; Effect = leave } ]
+			}
+			{
+				Text = "Tell your friends about us."
+				Outcomes [ { Text = "Your name gets a good story in every bar on their route."; Fame = 0.3; Effect = leave } ]
+			}
+		]
+	}
 ]

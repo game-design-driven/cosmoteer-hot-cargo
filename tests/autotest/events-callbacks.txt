@@ -56,4 +56,18 @@ expect ev_recall_named == 1
 choose 1
 expect ev_pending == 0
 expecteligible cb_spared 0
+# The other callbacks open on their memories, under the memory's name.
+ev_remember PaidOff
+event cb_route_sold
+expect ev_recall_named == 1
+choose last
+ev_remember Bluffed
+event cb_bluff_grudge
+expect ev_recall_named == 1
+choose 1
+ev_remember Rescued
+event cb_rescued
+expect ev_recall_named == 1
+choose 1
+expect ev_pending == 0
 quit
