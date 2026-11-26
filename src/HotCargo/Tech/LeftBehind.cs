@@ -85,6 +85,8 @@ public static class LeftBehind
         if (simChanged)
         {
             // The switch archived the old sim before this hook (GameRoot.JumpToNode), so the copy without the tech replaces it.
+            // Limit: vanilla archives on a worker thread, this second archive runs on the main thread, so such a switch takes a little
+            // longer. Revisit if a jump that leaves tech behind stutters in a large system.
             run.Game.SimArchive.RemoveSim(old.MapNode);
             run.Game.SimArchive.SaveSim(old.MapNode, old);
         }
