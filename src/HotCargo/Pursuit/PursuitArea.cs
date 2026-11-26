@@ -79,6 +79,15 @@ public static class PursuitArea
     {
         // pu_set <PursuitTunables field> <value>: changes a live tunable (use "mp pu_set" in co-op). Test only.
         Autotest.Commands["pu_set"] = arg => Autotest.SetField(R().T.Pursuit, arg);
+        // pu_pace <kind> <MaxPerRun> <MinGapSeconds>: changes the pacer limits of one big event kind (spec 906). Test only; "mp" in co-op.
+        Autotest.Commands["pu_pace"] = arg =>
+        {
+            var p = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (p.Length != 3) throw new InvalidOperationException("pu_pace needs: kind MaxPerRun MinGapSeconds");
+            var e = R().T.Pursuit.Events.FirstOrDefault(x => x.Kind == p[0]) ?? throw new InvalidOperationException($"no pacer kind {p[0]}");
+            e.MaxPerRun = int.Parse(p[1], CultureInfo.InvariantCulture);
+            e.MinGapSeconds = float.Parse(p[2], CultureInfo.InvariantCulture);
+        };
         // pu_gain <amount>: a heat gain like a mission or an event, which an outage blocks (the "heat" command ignores the block).
         Autotest.Commands["pu_gain"] = arg => R().AddHeat(float.Parse(arg, CultureInfo.InvariantCulture), Sim());
         // pu_scout: makes the first live hunter a reporting scout. pu_scoutnear <distance>: moves the scout this far from its relay.

@@ -24,6 +24,12 @@ public sealed class Run
         public static event Action<Run, SimRoot, int>? StageStarted;
         /// <summary>Runs inside the sim tick for each repeat wave of the last stage.</summary>
         public static event Action<Run, SimRoot>? StrikeWave;
+        /// <summary>
+        /// Runs when the players leave a system for another one, inside CareerGameModeManager.OnSwitchingSimulation: every machine runs it
+        /// at the same point, after the synchronized jump signals. Argument: the old sim. It holds only what stays: the ships that jump
+        /// are in the new sim already. The old sim is archived before this hook; GameSimArchive keeps that copy.
+        /// </summary>
+        public static event Action<Run, SimRoot>? SystemLeaving;
         /// <summary>Runs after the players switch to another system. Argument firstVisit.</summary>
         public static event Action<Run, bool>? SystemEntered;
         /// <summary>Runs once per new career, after the starting ship exists.</summary>
@@ -60,6 +66,7 @@ public sealed class Run
         internal static void RaiseRunEnded(Run r) => Each(RunEnded, h => h(r));
         internal static void RaiseStageStarted(Run r, SimRoot s, int i) => Each(StageStarted, h => h(r, s, i));
         internal static void RaiseStrikeWave(Run r, SimRoot s) => Each(StrikeWave, h => h(r, s));
+        internal static void RaiseSystemLeaving(Run r, SimRoot old) => Each(SystemLeaving, h => h(r, old));
         internal static void RaiseSystemEntered(Run r, bool first) => Each(SystemEntered, h => h(r, first));
         internal static void RaiseNewRunStarted(Run r) => Each(NewRunStarted, h => h(r));
         internal static void RaiseTick(Run r, SimRoot s, double dt) => Each(Tick, h => h(r, s, dt));
@@ -262,7 +269,12 @@ public sealed class Run
         Hooks.RaiseStrikeWave(this, sim);
     }
 
-    internal void BeforeSystemSwitch() => _nodeBeforeSwitch = Game.CurrentMapNode?.UniqueID;
+    internal void BeforeSystemSwitch()
+    {
+        _nodeBeforeSwitch = Game.CurrentMapNode?.UniqueID;
+        // Only a switch to another system archives the old sim first (GameRoot.JumpToNode). A new game or a load has no old sim.
+        if (Game.Sim is { } old && Game.SimArchive.ContainsSim(old.MapNode)) Hooks.RaiseSystemLeaving(this, old);
+    }
 
     internal void AfterSystemSwitch()
     {

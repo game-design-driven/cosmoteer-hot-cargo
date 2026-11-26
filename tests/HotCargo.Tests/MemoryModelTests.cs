@@ -1,4 +1,5 @@
 using HotCargo.Events;
+using HotCargo.Pursuit;
 using Xunit;
 
 namespace HotCargo.Tests;
@@ -39,5 +40,24 @@ public class MemoryModelTests
         Assert.Equal(MemoryKind.Spared, MemoryModel.SparedKind(hunter: false, hasFaction: true));
         Assert.Equal(MemoryKind.SparedPirate, MemoryModel.SparedKind(hunter: false, hasFaction: false));
         Assert.Equal(MemoryKind.None, MemoryModel.SparedKind(hunter: true, hasFaction: true));
+    }
+
+    [Fact]
+    public void Each_kind_comes_back_once_per_run_and_the_pirate_pair_counts_as_one_kind()
+    {
+        // User rule 2026-11-26: "never of same type". Pirate's Honor and Unfinished Business both recall SparedPirate.
+        var opened = new[] { (MemoryKind.SparedPirate, 0), (MemoryKind.SparedPirate, 1), (MemoryKind.Spared, 0) };
+        Assert.True(MemoryModel.KindUsed(opened, MemoryKind.SparedPirate));
+        Assert.False(MemoryModel.KindUsed(opened, MemoryKind.Spared));
+        Assert.False(MemoryModel.KindUsed(opened, MemoryKind.Bluffed));
+    }
+
+    [Fact]
+    public void Four_callbacks_fit_in_a_run_and_a_fifth_does_not()
+    {
+        // User rule 2026-11-26: "can do 4". The cap is the pacer's run limit of the kind Callback (spec 905).
+        var four = Enumerable.Range(0, 4).Select(i => new PaceStart("Callback", i * 1000.0)).ToList();
+        Assert.Equal(PaceVerdict.Ok, PursuitModel.MayStart(four.Take(3).ToList(), "Callback", 5000, MemoryModel.CallbackMaxPerRun, 900, 0));
+        Assert.Equal(PaceVerdict.RunLimit, PursuitModel.MayStart(four, "Callback", 5000, MemoryModel.CallbackMaxPerRun, 900, 0));
     }
 }

@@ -13,7 +13,7 @@ The heat clock is the core resource. The heat stages still start the waves (sect
 ### Pacer
 
 905. **Pacer API.** Big events (blockade, outage, hacker here; relay lockdowns and others in other areas) ask `Pacer.MayStart(run, kind)` before they start and call `Pacer.Started(run, kind)` when they start. A kind may start when it has fewer than its `MaxPerRun` starts in the run, at least its `MinGapSeconds` of run game time since its last start, and at least `MinEventGapSeconds` (300) since the last start of any kind. Both calls are sim logic (sim tick, Run hooks, MP inputs).
-906. **Kinds.** `Events` lists the kinds with their limits. Defaults: `Blockade` (2 per run, 1,200 s gap), `Outage` (2, 1,200 s), `Hacker` (1, no gap), `RelayLockdown` (2, 1,200 s), `StationAttack` (2, 1,200 s; requirement 90), `Thieves` (3, 900 s; requirement 1781), `Mayday` (3, 900 s; requirement 2430), `Callback` (2, 900 s; requirement 2505). A kind that is not in the list is an error: the call throws, so a missing entry shows at once. Each kind is in the list once (tunables validation).
+906. **Kinds.** `Events` lists the kinds with their limits. Defaults: `Blockade` (2 per run, 1,200 s gap), `Outage` (2, 1,200 s), `Hacker` (1, no gap), `RelayLockdown` (2, 1,200 s), `StationAttack` (2, 1,200 s; requirement 90), `Thieves` (3, 900 s; requirement 1781), `Mayday` (3, 900 s; requirement 2430), `Callback` (4, 900 s; requirement 2505). A kind that is not in the list is an error: the call throws, so a missing entry shows at once. Each kind is in the list once (tunables validation).
 907. **Save.** The run state saves every start (kind, run game seconds, sector index). The history lasts the whole run.
 
 ### Reporting scout

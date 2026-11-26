@@ -1,4 +1,4 @@
-## 73. Run map and the lockdown line
+## 74. Run map and the lockdown line
 
 The run map is a short, tapered map, like the sectors of FTL: a narrow start, a wide middle and one Buyer system at the end. The players move forward through it. Code: `src/HotCargo/Journey/RunMap.cs`, the pure rules in `Journey/RunMapModel.cs`. Rules: `mod/journey/galaxy.rules`. Numbers: the `Journey` tunables section. Requirements 2550 to 2579.
 

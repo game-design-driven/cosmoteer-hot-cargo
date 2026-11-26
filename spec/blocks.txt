@@ -105,4 +105,5 @@
 2460-2479 70-ship-cut.md
 2480-2499 71-weld.md
 2500-2519 72-callbacks.md
-2550-2579 73-run-map.md
+2520-2529 73-tech-left-behind.md
+2550-2579 74-run-map.md

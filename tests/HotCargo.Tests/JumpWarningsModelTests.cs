@@ -84,12 +84,14 @@ public class JumpWarningsModelTests
     }
 
     [Fact]
-    public void All_tech_stays_when_only_ships_that_stay_hold_it()
+    public void Tech_left_behind_is_none_some_or_all()
     {
+        Assert.Equal(TechLeft.None, JumpWarningsModel.LeftKind(0, 3));
+        Assert.Equal(TechLeft.Some, JumpWarningsModel.LeftKind(1, 2));
         // Playtest: the captured hunter jumped alone, the mothership with the last tech unit stayed.
-        Assert.True(JumpWarningsModel.AllTechStays([(true, 0), (false, 1), (false, 0)]));
-        Assert.False(JumpWarningsModel.AllTechStays([(true, 2), (false, 1)]));
+        Assert.Equal(TechLeft.All, JumpWarningsModel.LeftKind(1, 0));
         // No tech anywhere: nothing to warn about.
-        Assert.False(JumpWarningsModel.AllTechStays([(true, 0), (false, 0)]));
+        Assert.Equal(TechLeft.None, JumpWarningsModel.LeftKind(0, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => JumpWarningsModel.LeftKind(-1, 0));
     }
 }

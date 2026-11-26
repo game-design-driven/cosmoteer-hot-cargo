@@ -1,5 +1,5 @@
-# Cut ships apart screenshots (spec 2473, 2475, 2476): the hover edge, a pending cut in blueprint mode with the vanilla "Make it so"
-# button, the applied cut, and the cut-off piece that becomes a derelict. PC: scripts/screens.sh tests/screens/cut-apply.txt <out-dir>
+# Cut ships apart screenshots (spec 2473, 2475): the hover edge, a pending cut in blueprint mode with the vanilla "Make it so"
+# button, the applied cut, and the cut-off piece. PC: scripts/screens.sh tests/screens/cut-apply.txt <out-dir>
 render on
 newgame run
 wait 10

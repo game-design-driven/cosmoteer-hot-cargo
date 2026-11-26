@@ -393,6 +393,26 @@ on 1 waitfor vaultsbuilt == vaults 30
 expect techcrates == 0
 mp tech_set DecaySeconds 360
 
+step tech.left-behind
+# Spec 2520, 2525: only the host's ships jump; the other players' ships stay with their tech. Both machines remove the same tech at
+# the same point of the switch, and the loss timer does not pause for the ships that wait.
+mprestart
+mp ev_set Enabled false
+mp tech_set DecaySeconds 0
+expect vaulttech == 8
+mp tech_leave 0
+waitfor sector == 2 90
+on 1 waitfor sector == 2 60
+wait 2
+@2p expect tech == 4
+@2p expect techleftlost == 4
+@2p on 1 expect tech == 4
+@2p on 1 expect techleftlost == 4
+@3p expect tech == 3
+@3p expect techleftlost == 5
+@3p on 1 expect tech == 3
+@3p on 1 expect techleftlost == 5
+
 step tech.trade-loss
 # Spec 17, 443, 1011: a new run. Each player's starter ship has 2 vaults and a share of the tech (4 + 4, or 3 + 3 + 2 with
 # 3 players); each player sells from their own ship. The last sale loses the run for all.

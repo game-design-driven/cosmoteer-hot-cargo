@@ -1,5 +1,5 @@
-# The tech carrier stays behind (spec 1602): only a copy without tech gets a hyperdrive, so the ship with the tech stays.
-# The jump window tooltip shows "(carries N tech)", and the ENGAGE dialog starts with "All your tech stays behind."
+# The tech carrier stays behind (spec 1602, 2522): only a copy without tech gets a hyperdrive, so the ship with the tech stays.
+# The jump window tooltip shows "(carries N tech)", and the ENGAGE dialog starts with "All your tech stays behind: N tech will be lost."
 # RUNNER=mac scripts/screens.sh tests/screens/jump-carrier.txt <out-dir>
 render on
 newgame

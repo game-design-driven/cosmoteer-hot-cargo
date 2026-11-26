@@ -23,6 +23,19 @@ public readonly record struct MemoryFacts(MemoryKind Kind, int Sector, bool Reca
 public static class MemoryModel
 {
     /// <summary>
+    /// Spec 2505: callbacks in one run, at most (user rule 2026-11-26: "can do 4"). The default of the pacer kind Callback; the tunable
+    /// Pursuit.Events changes it.
+    /// </summary>
+    public const int CallbackMaxPerRun = 4;
+
+    /// <summary>
+    /// Spec 2505: true when a callback of this kind already opened in the run (user rule 2026-11-26: "never of same type"). The pairs are
+    /// the callback events with the kind they recall and how often each opened. Two events of one kind count together.
+    /// </summary>
+    public static bool KindUsed(IEnumerable<(MemoryKind Kind, int Seen)> callbacks, MemoryKind kind) =>
+        callbacks.Any(c => c.Kind == kind && c.Seen > 0);
+
+    /// <summary>
     /// Spec 2503: the memory that a callback of this kind recalls: the oldest one of the kind that no callback recalled yet and that is at
     /// least minSectors old (sector now minus the sector of the act). -1 when there is none.
     /// </summary>
