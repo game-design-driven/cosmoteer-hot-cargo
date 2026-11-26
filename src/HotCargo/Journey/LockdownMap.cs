@@ -23,12 +23,13 @@ static class LockdownMap
     internal static string Lines(Run run, MapNode node)
     {
         if (node == run.Game.CurrentMapNode) return "";
-        if (Lockdown.Closed(run, node))
+        var view = Lockdown.UiView(run);
+        if (view.ClosedNodes.Contains(node))
         {
             float stored = run.State.NodeHeat.TryGetValue(node.UniqueID, out float h) ? h : 0f;
             return "\n" + Lockdown.Format("TipClosedFmt", HeatModel.OnEnterSystem(run.State.Heat, stored, 1f));
         }
-        if (Lockdown.Threshold(run, node) is not { } level) return "";
+        if (!view.Thresholds.TryGetValue(node, out float level)) return "";
         string line = "\n" + Lockdown.Format("TipClosesAtFmt", level);
         if (LineModel.SecondsTo(level, run.State.Heat, Lockdown.HeatPerSecond(run)) is { } s)
             line += Lockdown.Format("TipClosesInFmt", $"{(int)s / 60}:{(int)s % 60:00}");
@@ -38,11 +39,13 @@ static class LockdownMap
     [HarmonyPatch(typeof(CareerGameModeManager), nameof(CareerGameModeManager.GetMapNodeToolTip))]
     static class Tooltip
     {
+        static readonly TipCache Cache = new();
+
         static void Postfix(CareerGameModeManager __instance, MapNode node, ref string? __result)
         {
             if (__result is null || For(__instance) is not { } run) return;
             string? result = __result;
-            UxKit.Guard("lockdown tooltip", () => result += Lines(run, node));
+            UxKit.Guard("lockdown tooltip", () => result += Cache.Get(run, node, () => Lines(run, node)));
             __result = result;
         }
     }
@@ -56,7 +59,7 @@ static class LockdownMap
             // Spec 872: this runs for each map node in every frame while the map shows, so it has no closure.
             try
             {
-                if (node != run.Game.CurrentMapNode && Lockdown.Closed(run, node))
+                if (node != run.Game.CurrentMapNode && Lockdown.UiView(run).ClosedNodes.Contains(node))
                     sb.Append("\n<s16><bad>").Append(Lockdown.Text("TagClosed")).Append("</bad></s16>");
             }
             catch (Exception ex) { Errors.Report("lockdown map tag", ex.Message, ex); }
@@ -73,7 +76,7 @@ static class LockdownMap
             try
             {
                 var rules = node.Rules;
-                if (node != run.Game.CurrentMapNode && Lockdown.Closed(run, node))
+                if (node != run.Game.CurrentMapNode && Lockdown.UiView(run).ClosedNodes.Contains(node))
                 {
                     var sprite = rules.NodeFtlPulseSprite;
                     App.Graphics.SetToMaterial(sprite);

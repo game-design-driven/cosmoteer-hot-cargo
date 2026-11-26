@@ -44,11 +44,15 @@ static class CareerInfoPatches
     [HarmonyPatch(typeof(CareerGameModeManager), nameof(CareerGameModeManager.GetMapNodeToolTip))]
     static class MapNodeTooltip
     {
+        static readonly TipCache Cache = new();
+
         static void Postfix(CareerGameModeManager __instance, MapNode node, ref string? __result)
         {
             if (__result is null || !UxKit.On(s => s.MapNodeDetails)) return;
             string? result = __result;
-            UxKit.Guard("map tooltip", () => result = result + Extra(__instance, node));
+            UxKit.Guard("map tooltip", () => result += Run.Current is { } run && run.Mode == __instance
+                ? Cache.Get(run, node, () => Extra(__instance, node))
+                : Extra(__instance, node));
             __result = result;
         }
 

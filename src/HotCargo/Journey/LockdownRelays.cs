@@ -23,7 +23,7 @@ static class LockdownRelays
     {
         // FtlGate.Game can be null (vanilla reads it with ?.), so the sim and the run's map decide.
         if (Run.Current is not { } run || run.Game.Sim != gate.Sim || !Lockdown.Active(run) || run.Game.Map.Nodes[gate.DestinationID] is not { } dest) return Mark.None;
-        if (Lockdown.Closed(run, dest)) return Mark.Closed;
+        if (Lockdown.UiView(run).ClosedNodes.Contains(dest)) return Mark.Closed;
         return run.State.Journey.Choices.TryGetValue(dest.UniqueID, out var c) && c.Warned > 0 ? Mark.Warned : Mark.None;
     }
 

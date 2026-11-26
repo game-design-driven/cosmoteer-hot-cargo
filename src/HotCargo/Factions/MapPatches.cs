@@ -20,12 +20,14 @@ static class MapPatches
     [HarmonyPatch(typeof(CareerGameModeManager), nameof(CareerGameModeManager.GetMapNodeToolTip))]
     static class Tooltip
     {
+        static readonly TipCache Cache = new();
+
         [HarmonyPriority(Priority.Low)]
         static void Postfix(CareerGameModeManager __instance, MapNode node, ref string? __result)
         {
             if (__result is null || For(__instance) is not { } run) return;
             string? result = __result;
-            UxKit.Guard("faction tooltip", () => result += Lines(run, node));
+            UxKit.Guard("faction tooltip", () => result += Cache.Get(run, node, () => Lines(run, node)));
             __result = result;
         }
     }

@@ -136,6 +136,26 @@ public static class Lockdown
         return run.State.Journey.Choices.TryGetValue(node.UniqueID, out var c) && c.Closed;
     }
 
+    /// <summary>The lockdown as the UI shows it: the closed systems and the closing heat of each choice, at one sim tick.</summary>
+    internal sealed record View(Run Run, double At, MapNode Current, HashSet<MapNode> ClosedNodes, Dictionary<MapNode, float> Thresholds);
+
+    static View? _view;
+
+    /// <summary>
+    /// Spec 872, 2562: the map texts, the tooltips and the relay marks read the lockdown for every node in every frame. They read this
+    /// snapshot, built at most once per sim tick (the game time and the players' system key it). UI only: sim code calls Closed.
+    /// </summary>
+    internal static View UiView(Run run)
+    {
+        if (_view is { } v && v.Run == run && v.At == run.State.GameSeconds && v.Current == run.Game.CurrentMapNode) return v;
+        var current = run.Game.CurrentMapNode;
+        var choices = Choices(run, current);
+        var thresholds = new Dictionary<MapNode, float>();
+        for (int i = 0; i < choices.Count; i++)
+            if (LineModel.Threshold(i, choices.Count) is { } level) thresholds[choices[i]] = level;
+        return _view = new View(run, run.State.GameSeconds, current, run.Game.Map.Nodes.Where(n => Closed(run, n)).ToHashSet(), thresholds);
+    }
+
     /// <summary>Heat per game second from time now: the projection of the warnings (spec 2561). 0 while gains are blocked.</summary>
     internal static float HeatPerSecond(Run run) => Run.Hooks.HeatGainsBlocked(run) ? 0f : run.TimeHeatPerMinute(run.State.FleetTech) / 60f;
 

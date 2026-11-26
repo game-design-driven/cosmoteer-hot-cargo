@@ -48,9 +48,12 @@ public static class UxKit
     {
         double now = App.Clock.Time.Seconds;
         if (now < next) return false;
-        next = now + (Switches?.HudRefreshSeconds ?? Defaults.HudRefreshSeconds);
+        next = now + HudRefreshSeconds;
         return true;
     }
+
+    /// <summary>Spec 872: real seconds between refreshes of a HUD text that changes all the time.</summary>
+    public static float HudRefreshSeconds => Switches?.HudRefreshSeconds ?? Defaults.HudRefreshSeconds;
 
     /// <summary>Text from mod/ux/strings.en.rules (section HotCargoUx).</summary>
     public static string Text(string key) => Strings.GetText("HotCargoUx/" + key);
