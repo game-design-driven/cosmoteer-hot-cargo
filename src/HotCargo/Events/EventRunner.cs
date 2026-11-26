@@ -271,6 +271,13 @@ public static class EventRunner
             Log.Info($"event {e.ID} not opened: its carrier needs a working player ship, and there is none");
             return false;
         }
+        // Spec 2503: a callback recalls the oldest memory of its kind. Checked before any state changes.
+        Memory? recall = null;
+        if (e.Recalls != MemoryKind.None)
+        {
+            int index = Memories.Pick(run, e.Recalls);
+            recall = index >= 0 ? s.Memories[index] : throw new InvalidOperationException($"callback {e.ID} opened with no {e.Recalls} memory to recall");
+        }
         s.Seen[e.ID] = s.Seen.GetValueOrDefault(e.ID) + 1;
         s.Pending = new PendingEvent
         {
@@ -283,11 +290,8 @@ public static class EventRunner
             Lead = lead,
         };
         ResearchOffers.Fill(run, s.Pending, e.Offer);
-        if (e.Recalls != MemoryKind.None)
+        if (recall is { } memory)
         {
-            int index = Memories.Pick(run, e.Recalls);
-            if (index < 0) throw new InvalidOperationException($"callback {e.ID} opened with no {e.Recalls} memory to recall");
-            var memory = s.Memories[index];
             memory.Recalled = true;
             s.Pending.Recall = memory.Copy();
         }
@@ -297,7 +301,7 @@ public static class EventRunner
             carrierHails = e.CarrierHails;
             // Spec 2503: the ship that comes back carries the name of the ship in the memory. Limit: its hull is a new ship from the
             // carrier spawn, not the old design. Revisit if players expect the same hull.
-            if (s.Pending.Recall is { } recall && sim.Ships[carrier.Value] is { } back) back.Metadata.PlainShipName = recall.Ship;
+            if (recall is not null && sim.Ships[carrier.Value] is { } back) back.Metadata.PlainShipName = recall.Ship;
         }
         s.Pending.Carrier = carrier;
         s.Pending.CarrierNode = carrier is null ? null : sim.NodeId();

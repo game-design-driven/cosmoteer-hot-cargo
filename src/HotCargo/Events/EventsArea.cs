@@ -160,14 +160,16 @@ public static class EventsArea
         Autotest.Fields["ev_recall_kind"] = () => (int)(RequireRun().State.Events.Pending?.Recall?.Kind ?? MemoryKind.None);
         Autotest.Fields["ev_recall_named"] = () => RequireRun().State.Events.Pending is { Recall: { } m, Carrier: { } c }
             && RequireSim().Ships[c]?.Metadata.PlainShipName == m.Ship ? 1 : 0;
-        // ev_remember <MemoryKind> [sectors ago, default 1]: records a memory of the test ship "Test Ship" in this system. Test only.
+        // ev_remember <MemoryKind> [sectors ago, default 1] [ship name, default "Test Ship"]: records a memory of that ship in this
+        // system. Test only.
         Autotest.Commands["ev_remember"] = arg =>
         {
-            var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var parts = arg.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
             var run = RequireRun();
             var kind = Enum.Parse<MemoryKind>(parts[0]);
             int ago = parts.Length > 1 ? Int(parts[1]) : 1;
-            Memories.Record(run, kind, "Test Ship", faction: "", RequireSim().MapNode?.Name ?? "", run.State.SectorIndex - ago);
+            string ship = parts.Length > 2 ? parts[2] : "Test Ship";
+            Memories.Record(run, kind, ship, faction: "", RequireSim().MapNode?.Name ?? "", run.State.SectorIndex - ago);
         };
         // expecttagged <spawn tag> <op> <count>: live and stasis ships with the tag, for spawn outcomes.
         Autotest.Commands["expecttagged"] = arg =>
