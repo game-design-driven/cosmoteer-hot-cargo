@@ -1,7 +1,8 @@
-// The escort freighter's AI (spec 36): convoy and chain freighters. No strategy modules: the escort objective gives every move order
-// (Missions/EscortObjective.cs), as for the blind courier. With the vanilla Normal AI, its AggroEnemies module took targets on radar and,
-// away from the AI origin, flew with the hull turned to the target (AIAggroEnemiesModule.TacticalRetreat), so the freighter crawled
-// past every enemy on radar (#372). Its turrets aim on their own, like the Easy AI with no targeting list.
+// The AI of mission ships that their objective flies with move orders (#372): the escort freighter (spec 36), the Mayday victim
+// (spec 2431), the Listening Post scout (spec 140) and the Dead in Space carrier (spec 767). No strategy modules. With the vanilla
+// Normal AI, its AggroEnemies module took targets on radar: away from the AI origin the ship flew with its hull turned to the target
+// (AIAggroEnemiesModule.TacticalRetreat) and crawled, near the origin it flew at the target. Turrets aim on their own, like the Easy AI
+// with no targeting list. The dialogue module answers comms.
 UpdateInterval = 1
 
 StrategyModules []

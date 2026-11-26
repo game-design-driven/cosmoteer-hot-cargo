@@ -40,6 +40,7 @@ internal static class Mayday
 {
     internal static readonly ID<MissionMetatype> Metatype = new("HotCargoMayday");
     /// <summary>The victim has the convoy freighter tag and the attackers the convoy raider tag, so the attackers want the victim (spec 36, 1885).</summary>
+    static readonly ID<ShipAIRules> MissionShipAi = new("HotCargoMissionShip");
     static readonly ID<SimObjectSpawner> FreighterTag = new("hc_escort_ship"), RaiderTag = new("hc_escort_raider"), VictimTag = new("hc_mayday_victim");
 
     internal static void Register()
@@ -111,16 +112,9 @@ internal static class Mayday
         var hull = WaveSpawns.PickShipNearTier(sim, [.. t.MaydayVictimTags.Select(s => new ID<BuiltinShipTag>(s))], tier);
         var spawner = new StasisShipSpawner(sim, hull.ID, at, SpawnedShipFeatures.None, sim.Rand.UInt64(), [FreighterTag, VictimTag])
         {
-            AI = new ID<ShipAIRules>("Normal"),
-            // A small unacquire range keeps it flying to its origin, the nearest player ship (MaydayObjective moves the origin).
-            AIParameters = new AIParameters
-            {
-                PatrolOrigin = player.DetWorldCenter,
-                PatrolRadius = 100f,
-                TargetAcquireRangeFromOrigin = 150f,
-                TargetUnacquireRangeFromOrigin = 150f,
-                ChanceToConsiderSurrenderingToPlayer = 0f,
-            },
+            // Spec 2431: MaydayObjective flies it to the nearest player ship with move orders, so no attacker turns it (#372).
+            AI = MissionShipAi,
+            AIParameters = new AIParameters { ChanceToConsiderSurrenderingToPlayer = 0f },
             Direction = at.DirectionTo(player.DetWorldCenter),
             ObjectAllegiance = faction.CivilianPlayerIndex,
         };

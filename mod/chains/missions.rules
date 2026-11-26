@@ -199,7 +199,7 @@ ChainEscort
 			// The freighter. Its AI has no strategy modules; the escort objective gives its move orders.
 			AI
 			{
-				Type = HotCargoFreighter
+				Type = HotCargoMissionShip
 				ChanceToConsiderSurrenderingToPlayer = 0
 			}
 		}
