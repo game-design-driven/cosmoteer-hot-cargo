@@ -12,6 +12,8 @@
 # - Parallel runs: the Mac sim cap (sim_jobs in autotest-lib.sh: HOT_CARGO_SIM_JOBS, else from the cores and the memory).
 #   The cap is for the whole machine: runs of every worktree, and Mac screenshot games (screens.sh RUNNER=mac), share the
 #   slot locks /tmp/hot_cargo_sim_slot_<n>.lock (take_sim_slots in autotest-lib.sh).
+# - SIM_JITTER=<seed>: the single-player runs vary their frame length like a real machine (tools/headless-sim/Boot.cs). Use it
+#   for a test that passes here and fails on the PC, and before you trust a new test that reads a value right after a command.
 # Needs the game files in ../.game (scripts/pull-game.sh). Exit code 0 only if every test passed.
 # Called by: agents, autotest-affected.sh and ci-sim-tests.sh (CI).
 set -uo pipefail
