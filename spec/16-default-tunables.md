@@ -23,8 +23,8 @@
 | `DecayInVault` | `Pause` | 1548 |
 | `HunterGrabChance`, `HunterGrabRange`, `HunterGrabReach` | 0.8, 3,000, 40 | 446 |
 | `TechShipFraction` | 0.25 | 19 |
-| `TechShipFractionPerGameHour` | 0.10 | 19 |
-| `TechShipFractionPer100Notoriety` | 0.05 | 19 |
+| `TechShipFractionPerGameHour` | 0.14 | 19 |
+| `TechShipFractionPer100Notoriety` | 0.07 | 19 |
 | `NotorietyStep` | 5 | 19 |
 | `HeatPerGameMinute` | 1.14 | 24 |
 | `HeatPerStandardMission` | 1.425 | 25 |

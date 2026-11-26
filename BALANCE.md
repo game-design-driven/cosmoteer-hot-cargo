@@ -9,7 +9,7 @@ A balance audit of Hot Cargo against vanilla Cosmoteer 0.30.5a, and the tuning t
 - **Measured.** Two game scripts in `tests/balance/` run headless on the PC:
   - `balance-census.txt` follows the main route for 7 sectors. In each system it loads every station, then logs each offer (money and fame in standard mission units, contract terms), the station fuel stock and the map distances.
   - `balance-hunters.txt` spawns 3 hunters at each tier, logs their mass, value and fuel, destroys them and logs the salvage value.
-- **Model.** The script models one run with the measured mission mix: 6 missions and 17.5 minutes per sector on the main route (tiers 1, 3, 5, 7, 9, 11, 12, 12), 8 tech units held, 1.5 hunters destroyed per sector (the Warning scouts). The logs are in `tools/balance/logs/`. To refresh:
+- **Model.** The script models one run with the measured mission mix: 6 missions and 17.5 minutes per sector along the bands of the run map (tiers 1, 3, 5, 8, 10, 12 with the default 6 steps; the model reads `RunSectorCount` and `FinalSectorTier` from the code and uses the tier rule of spec 2552), 8 tech units held, 1.5 hunters destroyed per sector (the Warning scouts). The logs are in `tools/balance/logs/`. To refresh:
 
 ```
 HOT_CARGO_SLOTS=8 scripts/autotest.sh tests/balance/balance-census.txt 500 > census.log
@@ -162,6 +162,15 @@ In the co-op playtest of 14 and 15 November, salvage and captures were 72 % of t
 - **Math.** After the cut, the same salvage pays 0.6 × 528k = 317k (211k less). The playtest players keep their total when f × 186k = 186k + 211k, so f = 1 + 0.4 × 528 / 186 = 2.14. Vanilla uses 2 when salvage is off (`SalvagingDisabledMoneyRewardFactor`). Chosen (Yarden): **1.5**. Then the playtest mix earns 317k + 279k = 596k, 83 % of 714k. A player who only salvages earns 60 %; a player who only follows missions earns 150 %.
 - **The model** counts only hunter salvage (1.5 kills per sector, about 7 % of its income), so its mission player earns about 1.5 times as much: 2.8 to 3.0 × the tier's ship value per sector (was 1.9 to 2.1), and a tech unit is worth 0.7 to 1.6 typical missions (was 1.1 to 2.4). The Strike still comes after about 6 missions, because fame does not change. Finding 1 cut `RewardScale` 2 → 1 because six missions paid about 4 × TVM per sector; 1.5 goes halfway back. The difference: finding 1 counted mission money only, and the playtest showed that salvage, not missions, paid for most of the building. Risk: money becomes less of a limit for a player who only does missions, and tech sales matter less next to missions. Check with telemetry; the factor is a tunable.
 
+### 12. Six steps to the Buyer (spec section 74)
+
+The run map has 6 steps by default (was 8 sectors on the open galaxy), and the tier rises from 1 to 12 in 5 jumps (1, 3, 5, 8, 10, 12). Each sector still has the same heat, missions and time, so the per-sector findings hold: about 6 missions to the Strike, income about 3 × the tier's ship value per sector, and the fleet keeps up with the tier.
+
+- **Run totals.** Income 5.6 million (was 9.4 million with 8 sectors), 1.75 hours of play (was 2.3). The base blueprints now cost 24 % of a run's income (was 15 %), so a player unlocks fewer of them. No change: a shorter run with fewer unlocks is the intent.
+- **Tech value.** The value grows with game hours and notoriety, so a run of 6 sectors ended at 0.65 × TVM(12) at the Buyer, not the target 0.8, and the score fell by a quarter. **Change:** `TechShipFractionPerGameHour` 0.10 → **0.14** and `TechShipFractionPer100Notoriety` 0.05 → **0.07**, both × 1.4 (7 jumps of the old run ÷ 5 of the new one). Now 0.34 of a ship at sector 1, 0.53 at sector 3, 0.81 at the Buyer; a unit at the Buyer is 4 × 0.81 × TVM(12) ≈ 2.6 million, and the model score is 25 million (was 28.5).
+- **Pursuit events.** The natural outage rolls in sectors 2 to 5: 4 rolls at 0.5 with a cap of 2 give about 1.6 a run (was about 1.9 with 6 rolls). The hacker rolls in the same 4 sectors. No change; check with telemetry.
+- **The lockdown line** (spec 2557 to 2566) adds heat only through closed systems: a jump into one keeps all heat, and hunters wait there. A run that moves forward meets neither, so the heat budget of finding 4 holds.
+
 ## Changes
 
 | Tunable or rule | Before | After | Requirement |
@@ -172,12 +181,12 @@ In the co-op playtest of 14 and 15 November, salvage and captures were 72 % of t
 | `Heat.HeatPerGameMinute` | 2 | 1.14 | 24 |
 | `Heat.Stages` | Warning 25, Patrol 50, Hunt 75, Strike 100 | Warning 40, Hunt 75, Strike 100 | 30 |
 | Heat for fame above the cap | none | uncapped fame heat | 302 |
-| Peak tier | any system tier | at most start tier + 2 × (sector − 1) | 303 |
+| Peak tier | any system tier | at most start tier + 2 × (sector − 1); removed with the run map (every system has its band's tier) | 303 |
 | `Missions.EscortHeatChange` | −15 | −8 | 36 |
 | `Chains.StationChance` | 1 | 0.6 | 160 |
 | `Chains.MaxNewChainsPerSystem` (new) | no limit | 2 | 160 |
 | `Hunters.MinFuel` | 40 | 60 | 192 |
-| `Hunters.RouteTierFloor` (new) | system tier | at least the route tier of the sector index | 305 |
+| `Hunters.RouteTierFloor` (new) | system tier | at least the route tier of the sector index; since the run map, at least the peak tier | 305 |
 | Hyperium price | 50 | 150 | 300 |
 | Hyperium stack | 20 | 10 | 300 |
 | Station fuel stock (typed, untyped) | 80–90 %, 0–10 % | 25–40 %, 0–2 % | 300 |
@@ -201,6 +210,8 @@ In the co-op playtest of 14 and 15 November, salvage and captures were 72 % of t
 | `Debris.SalvageComponentDropFactor`, `SalvageComponentPrice` (new) | 1, — | 0.85, 1000 | 1832 |
 | `Debris.MiningYieldFactor`, `LaserMiningYieldFactor` (new) | 1, 1 | 1.2, 1.3 | 1248 |
 | `Journey.MissionMoneyScale` (new) | 1 | 1.5 | 4 |
+| `Journey.RunSectorCount` | 8 | 6 (the run map, spec section 74) | 2550 |
+| `Tech.TechShipFractionPerGameHour`, `TechShipFractionPer100Notoriety` | 0.10, 0.05 | 0.14, 0.07 | 19 |
 | Convoy reward sort value | int.MinValue (the sum wrapped) | 0 | — |
 
 ## Dependencies on other areas
