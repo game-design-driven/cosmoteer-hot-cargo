@@ -1,0 +1,21 @@
+// The escort freighter's AI (spec 36): convoy and chain freighters. It flies to its AI origin, which the escort objective moves
+// (Missions/EscortObjective.cs). No aggro module: vanilla AggroEnemies takes targets on radar and, away from the origin, flies with the
+// hull turned to the target (AIAggroEnemiesModule.TacticalRetreat), so the freighter crawled past every enemy on radar (#372).
+// Its turrets aim on their own, like the Easy AI with no targeting list.
+UpdateInterval = [.25, .75]
+
+StrategyModules
+[
+	// As in Data/ai/ai_normal.rules.
+	{
+		Type = AreaPatrol
+		DefaultPatrolRadius = 500
+		AvoidableDoodadTags = [sun, station]
+		AvoidableDoodadBuffer = 100
+	}
+]
+TacticsModules []
+TargetingModules []
+CommsModules = &<ai/ai_common.rules>/CommsModulesDefault
+// An escort in stasis does not move (spec 1851).
+StasisModules []

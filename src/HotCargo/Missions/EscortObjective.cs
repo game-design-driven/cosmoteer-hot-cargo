@@ -303,8 +303,8 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
     }
 
     /// <summary>
-    /// Moves the AI origin to a point, unless it is already within <paramref name="slack"/> of it. The escort rules give a small
-    /// TargetUnacquireRangeFromOrigin, so AggroEnemies keeps flying it to the origin and fights only while it moves.
+    /// Moves the AI origin to a point, unless it is already within <paramref name="slack"/> of it. The freighter AI
+    /// (mod/missions/ai_freighter.rules) flies to the origin and has no aggro module, so no enemy turns it from its course (#372).
     /// </summary>
     static void SteerTo(ShipAI ai, Vector2 to, float slack)
     {

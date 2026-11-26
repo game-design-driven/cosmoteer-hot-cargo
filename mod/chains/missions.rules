@@ -196,14 +196,12 @@ ChainEscort
 				AllowTierRangeExpansion = true
 				Tags = [trade]
 			}
-			// A small unacquire range keeps the freighter flying to its origin. The escort objective moves the origin to the jump point.
+			// The freighter. Its AI flies it to its AI origin; the escort objective moves the origin to the jump point.
 			AI
 			{
-				Type = Normal
+				Type = HotCargoFreighter
 				ChanceToConsiderSurrenderingToPlayer = 0
 				PatrolRadius = 100
-				TargetAcquireRangeFromOrigin = 150
-				TargetUnacquireRangeFromOrigin = 150
 			}
 		}
 		: ~/StationMission
