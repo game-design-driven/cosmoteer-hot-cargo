@@ -1,0 +1,135 @@
+# Weld picking screenshots (spec 2482): several pieces around the ship. Targets show an outline; the piece under the cursor a strong
+# one, or the reason it is not a target. A pick shows the ghost in the part brush art; blueprint mode shows a pending ghost.
+# Mac: RUNNER=mac scripts/screens.sh tests/screens/weld-pick.txt <out-dir>. Video: ffmpeg over the pick-v*.png frames.
+render on
+newgame run
+wait 10
+ev_set Enabled false
+closepanel
+wait 1
+pause off
+godmode on
+weld_set EdgeSeconds 8
+weld_set PullSpeed 2
+weld_build arm
+wait 1
+weld_build piece 14 -2
+weld_build piece -12 8
+weld_build piece 10 -16
+weld_build piece 60 -10
+weld_tool
+wait 1
+weld_frame 100
+wait 0.5
+weld_frame 100
+weld_hover none
+wait 0.5
+screenshot pick-1-targets
+weld_hover target
+wait 0.5
+screenshot pick-2-too-far
+weld_target nearest
+weld_hover target
+wait 0.5
+screenshot pick-3-hover
+weld_frame 40
+wait 0.5
+weld_frame 40
+weld_pick
+weld_show auto
+wait 0.5
+screenshot pick-4-ghost
+weld_show covered
+wait 0.5
+screenshot pick-5-refused
+weld_esc
+cut_blueprints on
+weld_blueprint on
+weld_auto
+wait 1
+weld_hover none
+screenshot pick-6-pending
+weld_button discard
+wait 1
+cut_blueprints off
+weld_blueprint off
+weld_auto
+weld_frame 40
+wait 0.5
+weld_frame 40
+screenshot pick-v000
+wait 0.4
+screenshot pick-v001
+wait 0.4
+screenshot pick-v002
+wait 0.4
+screenshot pick-v003
+wait 0.4
+screenshot pick-v004
+wait 0.4
+screenshot pick-v005
+wait 0.4
+screenshot pick-v006
+wait 0.4
+screenshot pick-v007
+wait 0.4
+screenshot pick-v008
+wait 0.4
+screenshot pick-v009
+wait 0.4
+screenshot pick-v010
+wait 0.4
+screenshot pick-v011
+wait 0.4
+screenshot pick-v012
+wait 0.4
+screenshot pick-v013
+wait 0.4
+screenshot pick-v014
+wait 0.4
+screenshot pick-v015
+wait 0.4
+screenshot pick-v016
+wait 0.4
+screenshot pick-v017
+wait 0.4
+screenshot pick-v018
+wait 0.4
+screenshot pick-v019
+wait 0.4
+screenshot pick-v020
+wait 0.4
+screenshot pick-v021
+wait 0.4
+screenshot pick-v022
+wait 0.4
+screenshot pick-v023
+wait 0.4
+screenshot pick-v024
+wait 0.4
+screenshot pick-v025
+wait 0.4
+screenshot pick-v026
+wait 0.4
+screenshot pick-v027
+wait 0.4
+screenshot pick-v028
+wait 0.4
+screenshot pick-v029
+wait 0.4
+screenshot pick-v030
+wait 0.4
+screenshot pick-v031
+wait 0.4
+screenshot pick-v032
+wait 0.4
+screenshot pick-v033
+wait 0.4
+screenshot pick-v034
+wait 0.4
+screenshot pick-v035
+wait 0.4
+waitfor weld_merges == 1 120
+wait 1
+screenshot pick-7-merged
+quit
