@@ -11,11 +11,12 @@ public sealed class TechTunables
     [Serialize(Optional = true)] public string[] StartingResearch = ["cosmoteer.hyperdrive_small"];
     /// <summary>
     /// Spec 19: tech value in fractions of the highest ship value of the peak tier (vanilla TierValueMaximums).
-    /// Defaults: 0.25 of a ship at the start, about 0.5 mid-run (1.2 h, 250 notoriety), so 2 units buy a full ship of the tier.
+    /// Defaults: 0.25 of a ship at the start, about 0.5 mid-run, 0.8 at the Buyer of a 6-step run (BALANCE.md, finding 12), so 2 units
+    /// buy a full ship of the tier.
     /// </summary>
     [Serialize(Optional = true)] public float TechShipFraction = 0.25f;
-    [Serialize(Optional = true)] public float TechShipFractionPerGameHour = 0.10f;
-    [Serialize(Optional = true)] public float TechShipFractionPer100Notoriety = 0.05f;
+    [Serialize(Optional = true)] public float TechShipFractionPerGameHour = 0.14f;
+    [Serialize(Optional = true)] public float TechShipFractionPer100Notoriety = 0.07f;
     /// <summary>The price changes in steps of this many game minutes, so that a sale in flight sees the same price on all clients.</summary>
     [Serialize(Optional = true)] public float PriceStepMinutes = 1f;
     /// <summary>The price changes in steps of this much notoriety, for the same reason.</summary>
