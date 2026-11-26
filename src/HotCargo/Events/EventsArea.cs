@@ -48,6 +48,7 @@ public static class EventsArea
         Run.Hooks.Frame += PatrolListen.OnFrame;
         Run.Hooks.Tick += RescueBeacon.OnTick;
         OffBooks.Register();
+        Memories.Register();
         Run.Hooks.SystemEntered += StationAttack.OnSystemEntered;
         Run.Hooks.Tick += StationAttack.OnTick;
         Hunters.HunterOrders.Overrides.Add(StationAttack.Override);
@@ -150,6 +151,23 @@ public static class EventsArea
             var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             bool has = RequireRun().State.Events.Flags.Contains(parts[0]);
             Autotest.Check(has == (parts[1] == "1"), $"flag {parts[0]} is {parts[1]} (actual {(has ? 1 : 0)})");
+        };
+        // Callbacks (spec 2500 to 2509). ev_memories: memories in the run. ev_memory_kind: the kind of the newest one (MemoryKind as a
+        // number, 0 = none). ev_recall_kind: the kind that the pending page recalls (0 = none). ev_recall_named: 1 when the pending page's
+        // carrier carries the name of the recalled ship.
+        Autotest.Fields["ev_memories"] = () => RequireRun().State.Events.Memories.Count;
+        Autotest.Fields["ev_memory_kind"] = () => (int)(RequireRun().State.Events.Memories.LastOrDefault()?.Kind ?? MemoryKind.None);
+        Autotest.Fields["ev_recall_kind"] = () => (int)(RequireRun().State.Events.Pending?.Recall?.Kind ?? MemoryKind.None);
+        Autotest.Fields["ev_recall_named"] = () => RequireRun().State.Events.Pending is { Recall: { } m, Carrier: { } c }
+            && RequireSim().Ships[c]?.Metadata.PlainShipName == m.Ship ? 1 : 0;
+        // ev_remember <MemoryKind> [sectors ago, default 1]: records a memory of the test ship "Test Ship" in this system. Test only.
+        Autotest.Commands["ev_remember"] = arg =>
+        {
+            var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var run = RequireRun();
+            var kind = Enum.Parse<MemoryKind>(parts[0]);
+            int ago = parts.Length > 1 ? Int(parts[1]) : 1;
+            Memories.Record(run, kind, "Test Ship", faction: "", RequireSim().MapNode?.Name ?? "", run.State.SectorIndex - ago);
         };
         // expecttagged <spawn tag> <op> <count>: live and stasis ships with the tag, for spawn outcomes.
         Autotest.Commands["expecttagged"] = arg =>

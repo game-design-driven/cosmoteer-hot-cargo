@@ -152,6 +152,13 @@ public sealed class EventsTunables
     [Serialize(Optional = true)] public float RelicMessageDistance = 2000f;
     /// <summary>Distance at which the relic event opens.</summary>
     [Serialize(Optional = true)] public float RelicBoardDistance = 900f;
+    /// <summary>
+    /// Spec 2504: chance that the Arrival point of a new sector opens a callback page, when a memory is old enough and the big event pacer
+    /// (kind Callback) allows one. A miss leaves the memory for a later sector, and the normal Arrival roll runs.
+    /// </summary>
+    [Serialize(Optional = true)] public float CallbackChance = 0.5f;
+    /// <summary>Spec 2503: a memory comes back at least this many sectors after the act. 1: the next sector at the earliest.</summary>
+    [Serialize(Optional = true)] public int CallbackMinSectors = 1;
     /// <summary>Events of the Unavoidable category (every choice costs something) per run.</summary>
     [Serialize(Optional = true)] public int MaxUnavoidablePerRun = 1;
     /// <summary>Global scales on event outcomes, on top of the per-event amounts.</summary>

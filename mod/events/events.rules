@@ -1595,4 +1595,79 @@ Events
 			}
 		]
 	}
+
+	// ---- Callbacks (spec 2500 to 2519, EVENTS.md "Callbacks"): a past act comes back. Each recalls one memory; its ship carries the
+	// memory's name. They open at the Arrival point of a new sector, at most one per sector, within the pacer kind Callback.
+
+	// Spec 2506: a faction ship whose surrender the players accepted comes back as a friend.
+	{
+		ID = cb_spared
+		Trigger = Callback
+		Recalls = Spared
+		Carrier = Returning
+		Title = "An Old Debt"
+		Text = "{mem_ship} hails you. \"You let us live at {mem_system}. We have not forgotten. Say the word.\""
+		Choices
+		[
+			{
+				Text = "Fly with us."
+				Outcomes [ { Text = "They paint your colors over their old ones."; Effect = join } ]
+			}
+			{
+				Text = "Share what you can spare."
+				Outcomes [ { Text = "They send over a share of their pay."; Money = 0.5; Effect = leave } ]
+			}
+			{
+				Text = "Tell the patrols you saw us go the other way."
+				Outcomes [ { Text = "\"Consider it done.\" Their report sends the corporation the wrong way."; Heat = -10; Effect = leave } ]
+			}
+			{
+				Text = "Go in peace."
+				Outcomes [ { Text = "\"Fair skies, then.\""; Effect = leave } ]
+			}
+		]
+	}
+
+	// Spec 2507: a pirate whose surrender the players accepted pays its debt.
+	{
+		ID = cb_pirate_debt
+		Trigger = Callback
+		Recalls = SparedPirate
+		Carrier = Returning
+		Title = "Pirate's Honor"
+		Text = "{mem_ship} hails you. \"You let us run at {mem_system}. Pirates pay their debts, whatever they say about us.\" A cargo pod drifts toward you."
+		Choices
+		[
+			{
+				Text = "Take the pod."
+				Outcomes [ { Text = "Processors and steel, no questions asked."; DropNear = hc_ev_carrier; Resources = [{ ID = processor; Amount = 2; PerTier = 1 }, { ID = steel; Amount = 20; PerTier = 4 }]; Effect = leave } ]
+			}
+			{
+				Text = "Keep your pod."
+				Outcomes [ { Text = "\"Suit yourself.\" They take it back and go."; Effect = leave } ]
+			}
+		]
+	}
+
+	// Spec 2507: a pirate whose surrender the players accepted comes back with friends.
+	{
+		ID = cb_pirate_grudge
+		Trigger = Callback
+		Recalls = SparedPirate
+		Carrier = Returning
+		Title = "Unfinished Business"
+		Text = "{mem_ship} hails you, and this time it brought friends. \"You let us run at {mem_system}. Our boss calls that a debt. Pay it, or we take it out of your hull.\""
+		Choices
+		[
+			{
+				Text = "Pay the boss."
+				Cost { Money = 0.6 }
+				Outcomes [ { Text = "They count it twice and peel away."; Effect = leave } ]
+			}
+			{
+				Text = "Come and take it."
+				Outcomes [ { Text = "{mem_ship} pulls back. Its friends open fire."; Spawn = TollGuards; Effect = leave } ]
+			}
+		]
+	}
 ]

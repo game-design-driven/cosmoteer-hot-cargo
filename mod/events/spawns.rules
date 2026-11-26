@@ -1453,3 +1453,35 @@ BuyerCourier
 		}
 	]
 }
+
+// Spec 2503: a ship from a memory comes back (callback pages). The page renames it to the ship in the memory. Neutral while it talks;
+// a fight outcome spawns its own hostile ships.
+Returning
+{
+	Spawners
+	[
+		{
+			Type = Ships
+			Tags = [hc_ev_carrier]
+			Distance = [700, 900]
+			Allegiance = Neutral
+			SuppressLocationAssertions = true
+			ShipCriteria
+			{
+				UseLocalFactionWeights = true
+				UseTierField = true
+				Tier = -1
+				AllowTierRangeExpansion = true
+				Tags = [combat]
+			}
+			AI
+			{
+				Type = Normal
+				ChanceToConsiderSurrenderingToPlayer = 0
+				PatrolRadius = 50
+				TargetAcquireRangeFromOrigin = 100
+				TargetUnacquireRangeFromOrigin = 100
+			}
+		}
+	]
+}
