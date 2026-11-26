@@ -118,8 +118,10 @@ public static class RunModesArea
             var (ships, tier) = ExpectedStage(run, arg);
             var sim = run.Game.Sim;
             var career = (CareerSimModeManager)sim.Mode;
+            // Hunters spawn 2,000 to 3,000 from a player ship, so some can be in stasis: count those too, check the tier of the live ones.
+            int count = SimQueries.TaggedShips(sim, HunterSpawner.HunterTag).Count;
             var tiers = HunterSpawner.Hunters(sim).Select(h => career.GetShipTier(h) ?? -1).ToList();
-            Autotest.Check(tiers.Count == ships, $"stage {arg}: {ships} hunters (actual {tiers.Count})");
+            Autotest.Check(count == ships, $"stage {arg}: {ships} hunters (actual {count})");
             Autotest.Check(tiers.All(t => t <= tier && t >= Math.Max(1, tier - 2)), $"stage {arg}: hunter tiers near {tier} (actual [{string.Join(", ", tiers)}])");
         };
         Autotest.Commands["rm_log"] = arg =>
