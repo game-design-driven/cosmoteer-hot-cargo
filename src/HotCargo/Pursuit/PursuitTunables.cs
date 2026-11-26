@@ -44,7 +44,7 @@ public sealed class PursuitTunables
         new() { Kind = PacedKinds.StationAttack, MaxPerRun = 2, MinGapSeconds = 1200f },
         new() { Kind = PacedKinds.Thieves, MaxPerRun = 3, MinGapSeconds = 900f },
         new() { Kind = PacedKinds.Mayday, MaxPerRun = 3, MinGapSeconds = 900f },
-        new() { Kind = PacedKinds.Callback, MaxPerRun = 2, MinGapSeconds = 900f },
+        new() { Kind = PacedKinds.Callback, MaxPerRun = global::HotCargo.Events.MemoryModel.CallbackMaxPerRun, MinGapSeconds = 900f },
     ];
 
     // ---- Reporting scout (spec 910 to 914)

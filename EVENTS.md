@@ -18,7 +18,7 @@ FTL-style choice events for the Hot Cargo run. Spec requirements 67 to 87 (`spec
 | Arrival | `ArrivalDelaySeconds` (6 s) after the first arrival in a system, with chance `ArrivalEventChance` (60 %). | Cooldown, per-system cap. |
 | Signal | A player ship comes within `SignalTriggerDistance` (900) of a signal POI ("?" icon). The POI goes away. | None: the player chose to go there. 1 to 2 signals spawn in 80 % of systems. |
 | Station | The first trade station that a player ship comes within `StationTriggerDistance` (1,500) of, once per system visit, with chance `StationEventChance` (50 %). | Cooldown, per-system cap. The Buyer station never triggers it. |
-| Callback | The Arrival point of a new sector, before the Arrival roll, while a memory waits (spec 2504), with chance `CallbackChance` (50 %). | The pacer kind `Callback` (2 per run, 900 s gap), cooldown, per-system cap. |
+| Callback | The Arrival point of a new sector, before the Arrival roll, while a memory waits (spec 2504). The picked callback rolls its own `CallbackChance`. | The pacer kind `Callback` (4 per run, 900 s gap), each kind once per run, cooldown, per-system cap. |
 
 - Cooldown: Arrival and Station events wait `CooldownSeconds` (120 game s) after the last triggered event of any kind, and after the start of a run. No event opens at the start of a run.
 - First system of a run: it has no jump in, so its Arrival roll comes when the start cooldown ends (120 game s). Its Arrival and Station chances are × `FirstSystemChanceFactor` (1.5): 90 % and 75 %. Its Station roll waits for the start cooldown instead of being used up. System 1 then has an event in about 97 % of visits that reach a station (1 − 0.10 × 0.25), 90 % without a station. Before: about 50 % (the Station roll alone, and less when a station sat inside the start cooldown).
@@ -365,16 +365,16 @@ When you are clearly outclassed in an actual fight (enemies near you at least tw
 
 ### Callbacks (spec 2500 to 2510)
 
-What you did comes back. A surrender you accept, a hunter you pay off or fool, a freighter you save: the run remembers the ship, its faction and the system. In a later sector, at the arrival, that ship may come back under its old name and hail: "You let us live at <system>." At most 2 callbacks a run, 15 game minutes apart (the big event pacer), at most one per sector, 50 % at each new sector while a memory waits. Each memory comes back once, at the earliest one sector later.
+What you did comes back. A surrender you accept, a hunter you pay off or fool, a freighter you save: the run remembers the ship, its faction and the system. In a later sector, at the arrival, that ship may come back under its old name and hail: "You let us live at <system>." At most 4 callbacks a run, each of another kind, 15 game minutes apart (the big event pacer), at most one per sector. Each callback has its own chance at each new sector while its memory waits. Each memory comes back once, at the earliest one sector later.
 
-| Callback | Trigger | Choices | Tone |
-|---|---|---|---|
-| An Old Debt (`cb_spared`) | You accepted a faction ship's surrender. | Fly with us: the ship joins your fleet. Share what you can spare: 0.5 money. Tell the patrols: heat −10. Go in peace. | good |
-| Pirate's Honor (`cb_pirate_debt`) | You accepted a pirate's surrender (half the time). | Take the pod: processors and steel drift beside them. Keep your pod. | good |
-| Unfinished Business (`cb_pirate_grudge`) | You accepted a pirate's surrender (the other half). | Pay the boss: 0.6 money. Come and take it: three pirates attack. | bad |
-| Sold Out (`cb_route_sold`) | A hunter took your pay-off. | Top it: 0.5 money. Come and take it: a corporate patrol. Let them talk: heat +15. | bad |
-| That Wasn't All (`cb_bluff_grudge`) | A hunter believed your bluff. | Hand over a crate (one stays). Come and take it: a corporate patrol. | bad |
-| Thank-You Run (`cb_rescued`) | You won a mayday. | Take the cargo: steel and coils. A quiet word: heat −10. Tell your friends: fame +0.3. | good |
+| Callback | Trigger | Chance | Choices | Tone |
+|---|---|---|---|---|
+| An Old Debt (`cb_spared`) | You accepted a faction ship's surrender. | 40 % | Fly with us: the ship joins your fleet. Share what you can spare: 0.5 money. Tell the patrols: heat −10. Go in peace. | good |
+| Pirate's Honor (`cb_pirate_debt`) | You accepted a pirate's surrender (an even pick with Unfinished Business). | 40 % | Take the pod: processors and steel drift beside them. Keep your pod. | good |
+| Unfinished Business (`cb_pirate_grudge`) | You accepted a pirate's surrender (an even pick with Pirate's Honor). | 25 % | Pay the boss: 0.6 money. Come and take it: three pirates attack. | bad |
+| Sold Out (`cb_route_sold`) | A hunter took your pay-off. | 20 % | Top it: 0.5 money. Come and take it: a corporate patrol. Let them talk: heat +15. | bad |
+| That Wasn't All (`cb_bluff_grudge`) | A hunter believed your bluff. | 15 % | Hand over a crate (one stays). Come and take it: a corporate patrol. | bad |
+| Thank-You Run (`cb_rescued`) | You won a mayday. | 50 % | Take the cargo: steel and coils. A quiet word: heat −10. Tell your friends: fame +0.3. | good |
 
 Reads as: FTL's returning crews. Mercy is a gamble that can pay, a pay-off or a bluff has a price that can come back, and none of them is common enough to decide a choice.
 

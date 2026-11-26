@@ -160,6 +160,16 @@ public static class EventsArea
         Autotest.Fields["ev_recall_kind"] = () => (int)(RequireRun().State.Events.Pending?.Recall?.Kind ?? MemoryKind.None);
         Autotest.Fields["ev_recall_named"] = () => RequireRun().State.Events.Pending is { Recall: { } m, Carrier: { } c }
             && RequireSim().Ships[c]?.Metadata.PlainShipName == m.Ship ? 1 : 0;
+        // ev_callback_chance <event id | all> <chance>: changes the CallbackChance of a callback in the loaded rules (all: every callback),
+        // so a test does not hang on a roll. Test only; use "mp" in co-op.
+        Autotest.Commands["ev_callback_chance"] = arg =>
+        {
+            var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            float chance = float.Parse(parts[1], CultureInfo.InvariantCulture);
+            var targets = parts[0] == "all" ? EventLibrary.InOrder.Where(e => e.Recalls != MemoryKind.None).ToList() : [EventLibrary.Get(parts[0])];
+            foreach (var e in targets)
+                e.CallbackChance = e.Recalls != MemoryKind.None ? chance : throw new InvalidOperationException($"{e.ID} is not a callback");
+        };
         // ev_remember <MemoryKind> [sectors ago, default 1] [ship name, default "Test Ship"]: records a memory of that ship in this
         // system. Test only.
         Autotest.Commands["ev_remember"] = arg =>
