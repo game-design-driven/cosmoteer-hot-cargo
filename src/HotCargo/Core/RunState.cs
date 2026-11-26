@@ -28,6 +28,8 @@ public sealed partial class RunState
     /// The next arrival there removes them.
     /// </summary>
     [Serialize(Optional = true)] public Dictionary<ObjectID, HashSet<ObjectID>> EndedMarkers = new();
+    /// <summary>Sim steps that failed (Errors.Guard), by place, with the game second (GameSeconds) at which each runs again.</summary>
+    [Serialize(Optional = true)] public Dictionary<string, double> RestingSteps = new();
     /// <summary>Game time of the run, summed from simulation ticks across systems.</summary>
     [Serialize] public double GameSeconds;
     /// <summary>

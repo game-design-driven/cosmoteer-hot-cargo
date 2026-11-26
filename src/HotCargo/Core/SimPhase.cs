@@ -37,6 +37,9 @@ public static class SimPhase
     static string _lastPhase = "game start";
 
     /// <summary>The main thread runs every phase. A game that loads builds its state on a worker thread, outside the check.</summary>
+    /// <summary>True on the main thread inside a sim phase: the code that runs now is sim code, the same on every co-op machine.</summary>
+    internal static bool InPhaseOnMain => _depth > 0 && OnMain;
+
     static bool OnMain => Halfling.App.Director.MainThread == Thread.CurrentThread;
 
     /// <summary>Ends the phase that <see cref="Open"/> started.</summary>

@@ -36,6 +36,15 @@ public static class Invariants
     {
         Run.Hooks.Tick += OnTick;
         Autotest.Fields["invariants_broken"] = () => Broken;
+        // err_step_fail: adds a sim step that throws in every tick, as a broken rule does. err_step_runs counts its runs.
+        int stepRuns = 0;
+        Autotest.Fields["err_step_runs"] = () => stepRuns;
+        Autotest.Commands["err_step_fail"] = _ =>
+        {
+            Errors.Expected = "test step";
+            Run.Hooks.Tick += (_, _, _) => Errors.Guard("test step", () => { stepRuns++; throw new InvalidOperationException("test failure"); });
+        };
+        Autotest.Commands["debug_set"] = arg => Autotest.SetField(Autotest.RequireRun().T.Debug, arg);
         // runhash_mark, then runhash_touch <member>: changes one saved member of the run state that the hand-kept hash did not read.
         // runhash_changed is 1 when the run hash differs from the mark.
         int marked = 0;
