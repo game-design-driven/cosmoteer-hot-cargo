@@ -158,6 +158,9 @@ static class JumpWarnings
     {
         var lines = new List<string>();
         if (Run.Current is { } run && run.Game == game && TechLeftLine(run, JumpsOnEngage) is { } techLeft) lines.Add(techLeft);
+        // Spec 2567: on the run map, pay that waits here is lost with the jump.
+        if (Run.Current is { } p && p.Game == game && Journey.Lockdown.Active(p) && Journey.LeftPayments.Here(p).Count is > 0 and var pays)
+            lines.Add(UxKit.Format("PaymentsLostFmt", pays));
         // Spec 2566: a jump to a closed system of the run map asks first.
         if (Run.Current is { } r && r.Game == game && Journey.Lockdown.ConfirmLine(r, game.DestinationMapNode.Confirmed) is { } closed) lines.Add(closed);
         return lines;

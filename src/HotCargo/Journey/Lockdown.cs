@@ -37,6 +37,7 @@ public static class Lockdown
         Dev.Autotest.Fields["line_closed_gap"] = () =>
             Here().Count(n => Closed(R(), n)) - Here().Count(n => Threshold(R(), n) is { } l && R().State.Heat >= l);
         Dev.Autotest.Fields["line_warned"] = () => R().State.Journey.Choices.Values.Count(c => c.Warned >= 2);
+        Dev.Autotest.Fields["line_payments"] = () => LeftPayments.Here(R()).Count;
         Dev.Autotest.Fields["line_wave_due"] = () => R().State.Journey.ClosedWaveAt >= 0 ? 1 : 0;
         // line_mapfit: the galaxy map camera shows the whole run map (screenshots). line_tips: logs the lockdown tooltip of each system.
         Dev.Autotest.Commands["line_mapfit"] = _ =>
@@ -55,12 +56,14 @@ public static class Lockdown
             foreach (var n in R().Game.Map.Nodes.OrderBy(RunMap.Band).ThenBy(n => n.Location.Y))
                 Log.Info($"AUTOTEST LINE band={RunMap.Band(n)} {n.Name}: closed={Closed(R(), n)}{LockdownMap.Lines(R(), n).Replace('\n', ' ')}");
         };
-        // line_relaycam <size>: single player. Moves the own ship next to the relay to the first closed choice and puts the sim camera
+        // line_relaycam <size>: single player. Moves the own ship next to the relay to the first closed (else warned) choice and puts the sim camera
         // on that relay (screenshots).
         Dev.Autotest.Commands["line_relaycam"] = arg =>
         {
             var run = R();
-            var dest = Here().FirstOrDefault(n => Closed(run, n)) ?? throw new InvalidOperationException("no closed choice");
+            var dest = Here().FirstOrDefault(n => Closed(run, n))
+                ?? Here().FirstOrDefault(n => run.State.Journey.Choices.TryGetValue(n.UniqueID, out var c) && c.Warned > 0)
+                ?? throw new InvalidOperationException("no closed or warned choice");
             var gate = Cosmoteer.Ships.Special.FtlGate.GetGateForDestination(run.Game.Sim, dest)
                 ?? throw new InvalidOperationException($"no relay to {dest.Name}");
             var at = gate.DetWorldCenter;
