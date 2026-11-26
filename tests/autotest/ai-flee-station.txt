@@ -24,6 +24,8 @@ dip_set RiskEnabled false
 # range, so the station stays live and can trade.
 openspace 2200
 fr_kill_enemies
+# Enemies of the test world near the spot would keep the ship busy.
+quiethostiles
 # A fixed hull: the random pick depends on the sim random stream, which differs on the PC (#336: a Spotter instead of the sim's Iota).
 aispawn monolith 1 1 hull=Iota
 # Enemies of the ship that are already in the system leave: the spawn starts a war with the faction, and scavengers come for damaged

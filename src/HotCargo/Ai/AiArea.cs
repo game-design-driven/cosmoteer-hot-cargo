@@ -63,8 +63,13 @@ public static class AiArea
                 ?? throw new InvalidOperationException($"no hunter stage '{stage}'");
             Autotest.SetField(response, arg[(space + 1)..]);
         };
-        // sectorindex <n>: sets the run's sector index, for the strike scaling checks. Test only.
-        Autotest.Commands["sectorindex"] = arg => Autotest.RequireRun().State.SectorIndex = int.Parse(arg, CultureInfo.InvariantCulture);
+        // sectorindex <n>: test only. The sector index and the run's step (spec 2555) both become n, as in sector n of the run.
+        Autotest.Commands["sectorindex"] = arg =>
+        {
+            var run = Autotest.RequireRun();
+            run.State.SectorIndex = int.Parse(arg, CultureInfo.InvariantCulture);
+            run.TestStep = run.State.SectorIndex;
+        };
         // spawnstage <stage>: starts the hunter response of one stage without heat. Test only.
         Autotest.Commands["spawnstage"] = arg =>
         {

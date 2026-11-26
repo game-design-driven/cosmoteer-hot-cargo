@@ -6,7 +6,8 @@ wait 8
 ev_set Enabled false
 godmode on
 playerweapons off
-openspace 5000
+# Inside the system: near the edge a trade ship goes into stasis between the steps.
+openspace 5000 0 9000
 # Only the player is an enemy of the trade ship: other hostile ships near it also hold its flee.
 fr_kill_enemies all
 dip_spawn trader 600

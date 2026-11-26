@@ -5,6 +5,8 @@ newgame run
 wait 8
 ev_set Enabled false
 godmode on
+# Asteroid field platforms of the test world can sit on the route and fight the freighter and the raiders.
+quiethostiles
 hc_generate escort
 hc_accept escort
 expect hc_escort_raiders == 0

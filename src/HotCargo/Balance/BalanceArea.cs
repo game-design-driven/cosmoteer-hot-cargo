@@ -159,6 +159,8 @@ public static class BalanceArea
             .Select(st => st.PhysicalShip).OfType<Cosmoteer.Ships.Ship>()
             .Sum(ship => ship.Resources.GetResourceTotal(GameApp.Rules.FtlFuelResource, includeStored: false, includeCarried: true));
         // Spec 305: the tier that hunter stage responses start from, and how far it is above the system tier.
+        // balance_peaktier <tier>: test only. The run's peak tier (spec 19), as after a visit to a system of that tier.
+        Autotest.Commands["balance_peaktier"] = arg => Autotest.RequireRun().State.PeakTier = int.Parse(arg, System.Globalization.CultureInfo.InvariantCulture);
         Autotest.Fields["balance_hunter_base_tier"] = () => Hunters.HunterSpawner.BaseTier(Autotest.RequireRun());
         Autotest.Fields["balance_hunter_floor_gap"] = () => Hunters.HunterSpawner.BaseTier(Autotest.RequireRun()) - Autotest.RequireRun().CurrentTier;
         // balance_hunters_set <HunterTunables field> <value>: changes a live hunter tunable for this run. Test only.

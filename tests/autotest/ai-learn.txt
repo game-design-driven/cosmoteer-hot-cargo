@@ -4,6 +4,8 @@ newgame run
 wait 8
 ev_set Enabled false
 godmode on
+# The test world can hold pirates near the kite spot; they would join the fight.
+quiethostiles
 shieldplayers on
 tacticlog on
 aiset PersonalitiesEnabled false
