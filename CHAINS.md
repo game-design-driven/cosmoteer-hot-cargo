@@ -29,7 +29,7 @@ The content files are the source of truth: `mod/chains/chains.rules` (chains, st
 | Page | Station | The choice window opens when a player ship comes within `PageTriggerDistance` (1,500) of the station. |
 | Page | Return, Arrival | The choice window opens `LaterDelaySeconds` (8 s) after the system switch. |
 
-- **Return**: the next time the players enter the station's system, after they left it.
+- **Return**: the next time the players enter the station's system, after they left it. No chain uses it: on the run map the players do not come back (spec 2557).
 - **Arrival**: the first arrival in a new system, `AfterSectors` sectors after the stage began. `AfterSectors = 0` starts the stage in the current system, 8 s after it began.
 
 ### Results
@@ -78,7 +78,7 @@ graph LR
   standing -->|closed| END3[END]
   debt -->|pay: 1 money| END4[END]
   debt -->|crate: 1 tech for 0.2 money| END5[END]
-  debt -->|refuse: reputation -1| collectors["later, Return: Debt Collectors"]
+  debt -->|refuse: reputation -1| collectors["later, Arrival: Debt Collectors"]
   collectors -->|success: fame| END6[END]
   collectors -->|fail: heat +10| END7[END]
 ```
@@ -136,7 +136,7 @@ Station master Ilse Brandt refused to report you, and the corporation cut her re
 graph LR
   ore["Reactor Shielding: deliver 40-60 iron, 15 min"] -->|success| thanks("Brandt's Thanks")
   ore -->|fail| dark("Dark Station")
-  thanks -->|hide: heat -20| inspection["later, Return: Corporate Inspection"]
+  thanks -->|hide: heat -20| inspection["later, Arrival: Corporate Inspection"]
   thanks -->|crew: +2 crew| END1[END]
   dark -->|refugees: +2 crew, fame, heat +10| END2[END]
   dark -->|coil: 20 coil for 0.6 money, reputation +1| END3[END]
@@ -157,7 +157,7 @@ graph LR
   patrol -->|fail: reputation -0.5| END1[END]
   offer -->|bribe: 1 money, heat -25| END2[END]
   offer -->|job| convoy["Navy Tender: escort"]
-  offer -->|refuse: reputation -1| reported["later, Return: Hale's Report"]
+  offer -->|refuse: reputation -1| reported["later, Arrival: Hale's Report"]
   convoy -->|success: heat -30, reputation +1| END3[END]
   convoy -->|lost: heat +15, reputation -1.5| END4[END]
   convoy -->|fail: heat +10, reputation -1| END5[END]
@@ -201,7 +201,7 @@ Reads as: the corporation's own data is worth money, safety or a crate. Selling 
 | `ChainSalvageRace` | Station | Salvage | 8 minutes: haul 3 processors from a drifting cargo pod to the station; 2 rival ships guard it (vanilla Normal AI, so they fight only near the pod). |
 | `ChainClearRaiders` | Station | Combat | Defeat 2 to 3 raiders near the station, payment at the station. |
 | `ChainBlackBox` | Station | Combat, salvage | Defeat a tier + 1 security drone at a hunter wreck (vanilla Normal AI, so it fights only near the wreck). Salvage the capsule beside the wreck for the Flight Recorder, hand it to the station's broker in comms, then collect the payment. |
-| `ChainStationRaid` | Return | Defend | Defeat 2 corporate ships (hunter AI) near the station. |
+| `ChainStationRaid` | Arrival | Defend | Defeat 2 corporate ships (hunter AI) near the fleet. |
 | `ChainAmbush` | Arrival | Combat | Defeat a rival fleet (hunter AI) that drops in near the fleet. |
 | `ChainDepot` | Arrival | Combat | Destroy 2 defense platforms and a guard ship. |
 
@@ -215,5 +215,5 @@ Contract terms (spec 164): each Station stage has `Terms` (a `HotCargoContract`)
 - Write one short story line per row, in the past tense, for "So far:". The last two lines show.
 - Page titles start with the chain title. Every page outcome has a `ChainResult` or a `Next`.
 - Give a page a safe choice when it has costs. Use `Need { Tech = 1 }` next to every tech cost, like events.
-- Put Return and Arrival stages where a consequence should feel earned, not random.
+- Put Arrival stages where a consequence should feel earned, not random. Use Arrival, not Return: on the run map the players do not come back (spec 2557).
 - Validation runs at the first chain check and shows errors in the overlay. Chains then stay off until the game restarts.
