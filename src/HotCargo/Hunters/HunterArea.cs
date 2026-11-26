@@ -26,9 +26,8 @@ public static class HunterArea
         // Hunter groups that wait to arrive in this system (spec 191).
         Autotest.Fields["hunterspending"] = () => Autotest.RequireRun().State.Hunters.Pending.Count;
         // Least FTL fuel on any live hunter (spec 192). -1 without hunters.
-        // The newest wave only (LastSpawned): an older hunter may have spent fuel on its own drive (vanilla flee spin-up).
-        Autotest.Fields["hunterfuelmin_new"] = () => HunterSpawner.LastSpawned.Select(id => Sim().Ships[id]).OfType<Cosmoteer.Ships.Ship>()
-            .Select(h => HunterSpawner.Fuel(Autotest.RequireRun(), h)).DefaultIfEmpty(-1).Min();
+        // The fuel the newest wave spawned with (spec 192). Later readings move: a hunter can spend fuel on a local jump to close in.
+        Autotest.Fields["hunterfuelmin_spawn"] = () => HunterSpawner.LastSpawnFuelMin;
         Autotest.Fields["hunterfuelmin"] = () => HunterSpawner.Hunters(Sim()).Select(h => HunterSpawner.Fuel(Autotest.RequireRun(), h)).DefaultIfEmpty(-1).Min();
 
         Autotest.Fields["hunters"] = () => HunterSpawner.Hunters(Sim()).Count();

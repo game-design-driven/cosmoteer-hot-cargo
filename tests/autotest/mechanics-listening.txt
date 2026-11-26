@@ -1,7 +1,7 @@
 # Listening Post (spec 140, 141): the scout follows the players, the scan starts only near the base, intensive scans raise the pay,
 # and leaving early pays per survived wave.
 # missions: random
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

@@ -1,5 +1,5 @@
 # Calls for help (spec 196-199): start, complete (brings the next hunter group), interrupt by disruptor and EMP hits, storm block.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

@@ -1,5 +1,5 @@
 # Core heat loop: new career, heat, stages, fame heat, time heat, save and load.
-newgame run
+newgame
 wait 8
 log start
 expect active == 1

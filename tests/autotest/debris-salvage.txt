@@ -1,7 +1,7 @@
 # Salvage and ore drops (spec 1247 to 1249, 2370, 1832, 1834, 1835): a broken junk part drops loose resources × SalvageDropFactor, and a broken ore deposit
 # drops its ore × the mining factor (any break) or the laser factor (salvage damage). Exact counts: a laser break of an iron deposit
 # drops its 1 iron at 100 % (Fast economy), and a salvage factor of 0 drops nothing.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 debris_set Enabled false

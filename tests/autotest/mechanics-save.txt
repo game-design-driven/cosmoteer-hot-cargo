@@ -1,6 +1,6 @@
 # Mechanics missions survive save and load (all custom objective types in the save; spec 130).
 # missions: random
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 # The test takes several offers of one rival group (spec 103: tow and capture share salvage_rights, sun mining and

@@ -1,6 +1,6 @@
 # Rescue Beacon (spec 2351, 2352): a station sells it in its trade window, the fire action shows the fee and heat, and a tug tows the ship to
 # the nearest friendly station. Without money the tug comes anyway. A lost tug ends the tow with a message.
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

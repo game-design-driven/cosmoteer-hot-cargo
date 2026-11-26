@@ -1,0 +1,19 @@
+# Dead in Space carrier under a Tow Job (spec 88, 767): an enemy on its radar does not pull it away. With the vanilla Normal AI it took
+# the enemy as a target and flew at it, and the tow moved its AI origin along (#372 class).
+newgame
+wait 8
+ev_set Enabled false
+godmode on
+event distress_beacon
+choose 1 4
+expectevent broken_down
+eventview
+ev_spawn TowMission
+hc_track hc_ev_carrier
+hc_watcher 1000
+pause off
+hc_track_mark
+wait 15
+expect hc_track_moved < 150
+expect hc_track_turned == 0
+quit

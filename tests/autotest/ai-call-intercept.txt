@@ -1,6 +1,6 @@
 # Call trigger (spec 196): no call from a radar blip, a call once seen. Call interception (spec 1300-1303): a call takes CallSeconds,
 # or CallInterceptSeconds when a player sensor part reaches the caller.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

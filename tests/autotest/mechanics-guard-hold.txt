@@ -2,7 +2,7 @@
 # claim. The player's ship fights with the Defensive preset, like a player who engages what comes near. The barge lasts the whole hold.
 # missions: random
 # timeout: 900
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

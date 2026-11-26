@@ -1,5 +1,5 @@
 # Relay blockade (spec 915 to 918): at Hunt the stage's ships park at the needed relay, chase when players come close, at most once per pacer gap.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 # Autotests start with the Pursuit off (spec 943).

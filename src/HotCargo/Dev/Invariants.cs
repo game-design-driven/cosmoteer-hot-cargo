@@ -36,18 +36,62 @@ public static class Invariants
     {
         Run.Hooks.Tick += OnTick;
         Autotest.Fields["invariants_broken"] = () => Broken;
+        // err_step_fail: adds a sim step that throws in every tick, as a broken rule does. err_step_runs counts its runs.
+        int stepRuns = 0;
+        Autotest.Fields["err_step_runs"] = () => stepRuns;
+        Autotest.Commands["err_step_fail"] = _ =>
+        {
+            Errors.Expected = "test step";
+            Run.Hooks.Tick += (_, _, _) => Errors.Guard("test step", () => { stepRuns++; throw new InvalidOperationException("test failure"); });
+        };
+        Autotest.Commands["debug_set"] = arg => Autotest.SetField(Autotest.RequireRun().T.Debug, arg);
+        // runhash_mark, then runhash_touch <member>: changes one saved member of the run state that the hand-kept hash did not read.
+        // runhash_changed is 1 when the run hash differs from the mark.
+        int marked = 0;
+        Autotest.Commands["runhash_mark"] = _ => marked = RunHash.Of(Autotest.RequireRun().State);
+        Autotest.Fields["runhash_changed"] = () => RunHash.Of(Autotest.RequireRun().State) != marked ? 1 : 0;
+        Autotest.Commands["runhash_touch"] = arg =>
+        {
+            var s = Autotest.RequireRun().State;
+            switch (arg)
+            {
+                case "HeatBuys": s.HeatBuys += 1f; break;
+                case "NodeHeat": s.NodeHeat[s.VisitedNodes.First()] = 12.5f; break;
+                case "EndReason": s.EndReason += "x"; break;
+                case "Tunables": s.Tunables.Heat.HeatPerGameMinute += 1f; break;
+                default: throw new InvalidOperationException("runhash_touch needs: HeatBuys|NodeHeat|EndReason|Tunables");
+            }
+        };
+        // runhash_bench: logs the time of one run state hash, and of each member of the run state, most costly first.
+        Autotest.Commands["runhash_bench"] = _ =>
+        {
+            var state = Autotest.RequireRun().State;
+            static double Micros(Action a) { a(); var sw = System.Diagnostics.Stopwatch.StartNew(); for (int i = 0; i < 2000; i++) a(); return sw.Elapsed.TotalMicroseconds / 2000; }
+            Log.Info($"AUTOTEST RUNHASH all={Micros(() => RunHash.Of(state)):0.0}us " + string.Join(" ", RunHash.MemberCosts(state, Micros)));
+        };
         // invariants_expect <rule>: the test breaks this rule on purpose. Its breaks count in invariants_expected and log no ERROR.
         Autotest.Commands["invariants_expect"] = arg => { lock (Reported) ExpectedNames.Add(arg); };
         Autotest.Fields["invariants_expected"] = () => _expected;
-        // simphase_leak state|rand: changes the sim from a frame handler outside every sim phase, as a UI bug does (spec 1009).
+        // simphase_leak state|rand|player|jump: changes the sim from a frame handler outside every sim phase, as a UI bug does (spec
+        // 1009). player: a new player state, as the build of a new system makes one. jump: the same, in the first frame of a running node
+        // jump, where vanilla builds the next system on a worker thread (issue 386).
         Autotest.Commands["simphase_leak"] = arg =>
         {
             var run = Autotest.RequireRun();
+            void NewPlayer() => run.Game.GetPlayerState(LeakPlayerIndex + _leaks++, deterministic: true);
+            void InJump()
+            {
+                if (Run.Current != run) return;
+                if (run.Game.IsDoingNodeJump) NewPlayer();
+                else Run.OnNextFrame(InJump);
+            }
             Run.OnNextFrame(arg switch
             {
                 "state" => () => run.State.Notoriety += 1f,
                 "rand" => () => run.Game.Sim.Rand.Int32(0, 10),
-                _ => throw new InvalidOperationException("simphase_leak needs: state|rand"),
+                "player" => NewPlayer,
+                "jump" => InJump,
+                _ => throw new InvalidOperationException("simphase_leak needs: state|rand|player|jump"),
             });
         };
         // invariants_check: runs every check now, also while the game is paused.
@@ -56,6 +100,10 @@ public static class Invariants
     }
 
     static bool On => Run.Current?.T.Invariants.Enabled == true;
+
+    /// <summary>simphase_leak player: player indexes far above every vanilla and Hot Cargo allegiance.</summary>
+    const int LeakPlayerIndex = 900_000;
+    static int _leaks;
 
     /// <summary>Logs a broken rule once for each name and subject.</summary>
     internal static void Fail(string name, string subject, string details)

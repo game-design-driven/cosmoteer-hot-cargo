@@ -182,8 +182,7 @@ step missions.escort-ambush
 # Playtest 2026-11-15: after a resync, the convoy freighter reached the ambush point at a different tick on each machine,
 # the raiders spawned at different spots, and the game desynced (spec 1512). Objectives read the sim position of their ships.
 # No hunter fights the freighter on its way: on main (CI 2026-11-16) a hunter of the steps before held it up past the limit.
-# The hunters go, also the ones in stasis. Parked in stasis (stasishunters), a hunter woke when the advance put the fleet near it, and the
-# freighter flew on at half speed with its hull turned to the hunter (#331, queue run 45615338866).
+# The hunters go, also the ones in stasis (stasishunters): a hunter woke when the advance put the fleet near it (#331).
 mp godmode on
 mp maxhunters 0
 mp worlds kill hc_hunter

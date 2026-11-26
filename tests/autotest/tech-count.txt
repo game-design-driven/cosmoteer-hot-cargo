@@ -1,5 +1,5 @@
 # Tech count, single player (spec 65, 442, 449): damage costs no tech, a destroyed vault drops crates, tech in a derelict ship counts.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 tech_set LossGraceSeconds 600

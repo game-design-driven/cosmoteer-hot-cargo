@@ -1,6 +1,6 @@
 # Ship tactics persistence (spec 405 to 407): the career save, the ship design file (with and without the mod),
 # and the build menu's "Load ship (replace)".
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

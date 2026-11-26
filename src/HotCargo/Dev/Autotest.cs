@@ -133,6 +133,7 @@ public static class Autotest
         _script = new(Parse(lines, firstLine: 1));
         AddBaseCommands();
         MpAutotest.AddCommands();
+        TestGalaxy.Add();
         // Test slots start with empty settings, so every tutorial page is unseen. Pages with AutoPause would pause the game
         // for good the first time their condition fires (for example the combat page when enemies appear).
         int unpaused = 0;
@@ -497,12 +498,17 @@ public static class Autotest
         Commands["defaultspeed"] = arg => { _defaultSpeed = float.Parse(arg, CultureInfo.InvariantCulture); _speedApplied = null; };
         Commands["newgame"] = arg =>
         {
-            // arg: [map size index, or "run" / nothing for the Hot Cargo run map] [starter ship index, default 0] [vanilla: the vanilla
-            // file of that starter from Data/builtin_ships/Starter, without Tech Vaults (spec 1552)].
+            // arg: [map: "test" or nothing for the fixed test galaxy (spec 1702), "run" for a new galaxy of the run map generator, or a
+            // map size index] [starter ship index, default 0] [vanilla: the vanilla file of that starter from
+            // Data/builtin_ships/Starter, without Tech Vaults (spec 1552)].
             var rules = GameApp.Rules.CareerMode;
             var args = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            string map = args.Length > 0 ? args[0] : "run";
-            int mapSize = map == "run" ? Journey.JourneyArea.RunMapSizeIndex() : int.Parse(map, CultureInfo.InvariantCulture);
+            int mapSize = (args.Length > 0 ? args[0] : "test") switch
+            {
+                "test" => TestGalaxy.Index(),
+                "run" => Journey.JourneyArea.RunMapSizeIndex(),
+                var index => int.Parse(index, CultureInfo.InvariantCulture),
+            };
             ShipFile ship = rules.StarterShips[args.Length > 1 ? int.Parse(args[1], CultureInfo.InvariantCulture) : 0].Ship;
             if (args is [_, _, "vanilla"]) ship = new ShipFile(Paths.DataFolder / "builtin_ships" / "Starter" / Path.GetFileName((string)ship.FilePath));
             // The game's default levels, not the player's saved choices: test slots start with an empty settings file.
@@ -515,6 +521,10 @@ public static class Autotest
             App.Director.PushState(init.CreateGame(SPManager.Create));
             Wait(5);
         };
+        // testworld_dump: writes mod/dev/test_world.rules from the galaxy of this game (spec 1702). Start it with newgame run.
+        Commands["testworld_dump"] = _ => TestGalaxy.Dump();
+        // systemprint: what the current system holds, in a stable order with a hash (spec 1702: proves that two starts match).
+        Commands["systemprint"] = _ => TestGalaxy.PrintSystem();
         Commands["save"] = arg =>
         {
             var game = Game ?? throw new InvalidOperationException("no game");

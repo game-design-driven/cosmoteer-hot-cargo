@@ -1,7 +1,7 @@
 # Co-op enemy scaling (spec 330 to 336) with a faked player count, at the default setting 1.5.
 # Factor = 1 + 0.5 x (players - 1): 1 player 1x, 2 players 1.5x, 3 players 2x. These counts are whole, so no roll decides them.
 # Checks a vanilla fleet bounty (and its mission targets), a single bounty (stays one ship), a hunter wave and an event group.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

@@ -4,7 +4,7 @@
 # a save and a load, and a win at the Buyer. It checks telemetry coverage, not balance, so the player's ships cannot be hurt
 # (shieldplayers) and damagehostiles stands in for won fights.
 # missions: random
-newgame run
+newgame
 wait 8
 shieldplayers on
 # System 1: an event, a contract, a sale, an escort, mission fame and heat up to Warning.

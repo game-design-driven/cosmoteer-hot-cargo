@@ -1,7 +1,7 @@
 # Spec 2381: the recover step of a hand-over shows where the item is. Playtest 2026-11-23: "we killed a ship and not sure where
 # flight recorder". The Black Box recorder is in a junk storage pod beside the wreck (spec 1107).
 # The focus field gives the FocusStep value: 0 none, 1 galaxy map, 2 the pod, 3 area marker, 4 the item's place (a loose crate or the pod in stasis).
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 # The chain station's faction must not be the corporation's ally, which never shelters (spec 643, 665).

@@ -1,7 +1,7 @@
 # Miner aim (spec 1070): a miner whose mining laser faces -X (left) mines a large, turning rock. It holds beside the nearest ordered
 # ore part, on the part's side of the rock, with the laser's arc aimed at the part and within its reach. Before the fix, the ship
 # turned its +X axis to the rock center: the rock sat in the laser's blind wedge, and the laser never took a target.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

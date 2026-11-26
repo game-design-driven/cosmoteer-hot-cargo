@@ -1,6 +1,6 @@
 # Cut ships apart (spec 2475): a cut follows the vanilla edit flow. In blueprint mode it waits: no crew work, "Discard changes" drops
 # it, and "Make it so" applies it even when it is the only edit. In live mode it starts at once and "Cancel all" cancels it.
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

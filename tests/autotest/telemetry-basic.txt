@@ -1,7 +1,7 @@
 # speed: 1
 # Telemetry (TELEMETRY.md, spec 530 and later): a session file with the header, heat sources, money sources, tech causes,
 # snapshots, perf, the log copy, and a save and load that continues the run ID. Telemetry overhead stays below 1 % of frame time.
-newgame run
+newgame
 wait 8
 expect tele_active == 1
 expect tele_trace_missing == 0
@@ -20,9 +20,6 @@ telemove 0
 tostation
 tech sell 1
 wait 6
-# Issue #370: the corridor needs steel and coil, and not every start station sells them (the game refuses a build it cannot pay).
-give steel 10
-give coil 10
 pt_build cosmoteer.corridor
 wait 5
 expect tele_time_idle > 0

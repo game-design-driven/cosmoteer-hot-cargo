@@ -19,6 +19,11 @@
 # - Docs (*.md, docs/), CI (.github/), scripts and unit tests (tests/HotCargo.Tests) add no autotest beyond core.
 # - A mod rules file that overrides the vanilla system generation (OverrideIn "<modes/career/sectors/...") or that rules of
 #   another area reference (for example contracts/system_scale.rules) changes every system, so it runs the full suite.
+# - A change of the generated world runs every test, at every tier (WORLD below): most tests start in that world, so a change
+#   there can break any of them (issue 383: a new run map broke 18 tests that the smoke tier did not run). Rule, from the file
+#   contents (the changed version or the version on BASE): a rules file that makes a galaxy ("MapGenerator") or overrides the
+#   vanilla system generation (OverrideIn "<modes/career/sectors/"), or C# code that is a galaxy spawner (": GalaxySpawner") or
+#   patches the galaxy start (InitGalaxyMap).
 # - Anything else (Core, shared UI, root files, a folder with no tests of its own) runs the full suite.
 #   Core is shared: every area builds on it, so its own "core" test alone is not enough.
 # The "core" smoke test always runs.
@@ -50,6 +55,7 @@ else
 fi
 TESTS=("core")
 FULL=no
+WORLD=no
 TIER="${AUTOTEST_TIER:-smoke}"
 [[ "$TIER" == smoke || "$TIER" == full ]] || { echo "AUTOTEST_TIER must be smoke or full (got '$TIER')" >&2; exit 2; }
 smoke() { grep -qx '# tier: smoke' "$1"; }
@@ -72,6 +78,17 @@ add_area() {
   return $found
 }
 
+# world_change <path>: true when the file makes or changes the generated world (see the rule list at the top).
+world_change() {
+  local path="$1" text
+  text="$( { [[ -f "$path" ]] && cat "$path"; git show "$BASE:$path" 2>/dev/null; } || true)"
+  case "$path" in
+    *.rules) grep -qE 'MapGenerator|OverrideIn = "<modes/career/sectors/' <<<"$text" ;;
+    *.cs) grep -qE ': GalaxySpawner|InitGalaxyMap' <<<"$text" ;;
+    *) return 1 ;;
+  esac
+}
+
 # shared_rules <path>: true when a mod rules file changes every system (see the rule list at the top).
 shared_rules() {
   local path="$1" rel area
@@ -83,6 +100,7 @@ shared_rules() {
 
 while IFS= read -r path; do
   [[ -z "$path" ]] && continue
+  world_change "$path" && WORLD=yes
   case "$path" in
     *.md|docs/*|tests/HotCargo.Tests/*|tests/screens/*|tests/balance/*|tests/runmodes/*|tools/*|.claude/*|.github/*) ;;
     # Test and tool scripts do not change the game; the core smoke test (always in the list) runs them.
@@ -103,7 +121,10 @@ while IFS= read -r path; do
   esac
 done <<<"$CHANGED"
 
-if [[ "$FULL" == yes && "$TIER" == smoke ]]; then
+if [[ "$WORLD" == yes ]]; then
+  echo "== the generated world changed: every test, at every tier"
+  FULL=yes
+elif [[ "$FULL" == yes && "$TIER" == smoke ]]; then
   FULL=no
   for f in tests/autotest/*.txt; do if smoke "$f"; then add "$(basename "$f" .txt)"; fi; done
   for n in $(coop_sessions); do if smoke "tests/autotest-mp/$n.txt"; then add "mp:$n"; fi; done

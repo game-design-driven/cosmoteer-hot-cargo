@@ -1,6 +1,6 @@
 # Enemies learn tactics (spec 1920 to 1927): a kited pirate reports the kite, the next pirate of its group reads a kite sooner, and
 # the report fades after two jumps. Same setup as ai-counterkite.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

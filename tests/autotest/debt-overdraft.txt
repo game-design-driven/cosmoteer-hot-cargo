@@ -1,7 +1,7 @@
 # Money below 0 (spec 1417 to 1419). A real build that takes money below 0 opens a debt with the system's faction, up to the
 # credit limit; at the limit a build buys nothing. The lender gets in touch 60 s later when the debt is at the limit, once; not
 # below the limit; not after the debt is paid. The money tooltip lists each lender.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

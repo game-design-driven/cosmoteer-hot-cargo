@@ -1,7 +1,7 @@
 # Weld cancel (spec 2484, 2475): a right click during the pull, "Cancel all" during the joint work, a cancel just before the merge and
 # "Discard changes" of a pending weld each end the order. The piece is a free object again: it floats where it is, and a new weld works
 # and merges. Esc in the Weld tool returns from a picked piece to picking; another tool and closing the build window drop it.
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

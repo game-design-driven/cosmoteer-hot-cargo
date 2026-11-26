@@ -1,6 +1,6 @@
 # Telemetry: positions of the fleet and of mission objects (spec 1990 to 1994). An escort mission names its freighter, so the
 # accept writes a mission.positions event with that ship, and the snapshot carries the fleet and the open missions.
-newgame run
+newgame
 wait 8
 hc_generate escort
 wait 3

@@ -1,15 +1,25 @@
 # Spec 1009: a change of the sim from frame code breaks the rule sim_outside_phase. The test makes two such changes on purpose.
-newgame run
+newgame
 wait 3
 invariants_expect sim_outside_phase
 simphase_leak state
 waitfor invariants_expected >= 1 10
 simphase_leak rand
 waitfor invariants_expected >= 2 10
+simphase_leak player
+waitfor invariants_expected >= 3 10
 # Test commands, sim ticks and player inputs change the sim inside a phase: no other break.
 heat 5
 fame 10
 wait 3
-expect invariants_expected == 2
+expect invariants_expected == 3
+# Issue 386: during a node jump vanilla builds the next system on a worker thread, which adds player states. The rule waits for the
+# jump to end, and its check never reads the player states while that thread can change them (a crash on the PC).
+simphase_leak jump
+jump
+waitfor sector == 2 25
+pause off
+wait 3
+expect invariants_expected == 3
 expect invariants_broken == 0
 quit

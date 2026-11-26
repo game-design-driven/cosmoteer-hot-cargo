@@ -1,6 +1,6 @@
 # UX area: the panels and patches build and run without errors in a headless game (the null graphics device still draws the GUI).
 # Any "ux: ... failed" line is an ERROR line, so a broken UI patch fails this test.
-newgame run
+newgame
 wait 8
 # A short loss timer (spec 443), so the loss at the end comes soon after the ship is gone.
 tech_set LossGraceSeconds 3

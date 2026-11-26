@@ -1,6 +1,6 @@
 # Station attack (spec 90 to 98): raiders attack a trade station. They go for the station and shoot a player ship only in their way.
 # The players get a warning (hail, tag, chat), pay when they help, and the station rebuilds its parts from the debris near it.
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0
