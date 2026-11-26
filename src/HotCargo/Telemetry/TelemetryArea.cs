@@ -238,6 +238,17 @@ public static class TelemetryArea
                 gui.RootWidget.Children.Remove(_textBox);
             }
         };
+        // telenote_stale: adds an own note line of an older game to the live notes file, like a test slot keeps it (issue #390). Test only.
+        Autotest.Commands["telenote_stale"] = _ => PlaytestNotes.AppendLive(Tele.Json(w =>
+        {
+            w.WriteStartObject();
+            w.WriteString("e", "note");
+            w.WriteString("text", "a note of an older game");
+            w.WriteNumber("local_player", Autotest.RequireRun().Game.LocalPlayerIndex);
+            w.WriteString("wall_utc", "2000-01-01T00:00:00.0000000Z");
+            w.WriteNull("screenshot");
+            w.WriteEndObject();
+        }));
         // Lines of the live notes file from this player and from other players (spec 1988).
         Autotest.Fields["telenote_live_own"] = () => LiveNotes(own: true);
         Autotest.Fields["telenote_live_others"] = () => LiveNotes(own: false);
@@ -260,29 +271,39 @@ public static class TelemetryArea
                      $"missing=[{string.Join(", ", Trace.MissingMethods)}] file={Session.Current?.FilePath}");
     }
 
-    static int LiveNotes(bool own)
+    static readonly DateTime ProcessStartUtc = System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime();
+
+    /// <summary>
+    /// Lines of the live notes file that this game process wrote or received. A test slot keeps the file of older games (issue #390),
+    /// so the test fields count only lines whose wall_utc is after the process start.
+    /// </summary>
+    static List<System.Text.Json.JsonElement> LiveLines()
     {
-        if (!File.Exists(PlaytestNotes.LivePath)) return 0;
-        int me = Autotest.RequireRun().Game.LocalPlayerIndex;
-        return File.ReadLines(PlaytestNotes.LivePath).Count(l =>
+        if (!File.Exists(PlaytestNotes.LivePath)) return [];
+        var lines = new List<System.Text.Json.JsonElement>();
+        foreach (string l in File.ReadLines(PlaytestNotes.LivePath))
         {
             using var doc = System.Text.Json.JsonDocument.Parse(l);
-            return (doc.RootElement.GetProperty("local_player").GetInt32() == me) == own;
-        });
+            var r = doc.RootElement.Clone();
+            var wall = DateTime.Parse(r.GetProperty("wall_utc").GetString()!, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal);
+            if (wall >= ProcessStartUtc) lines.Add(r);
+        }
+        return lines;
+    }
+
+    static int LiveNotes(bool own)
+    {
+        int me = Autotest.RequireRun().Game.LocalPlayerIndex;
+        return LiveLines().Count(r => (r.GetProperty("local_player").GetInt32() == me) == own);
     }
 
     /// <summary>Host note lines from other players whose "screenshot" names a non-empty file in the host's notes folder.</summary>
     static int HostShots()
     {
-        if (!File.Exists(PlaytestNotes.LivePath)) return 0;
         int me = Autotest.RequireRun().Game.LocalPlayerIndex;
-        return File.ReadLines(PlaytestNotes.LivePath).Count(l =>
-        {
-            using var doc = System.Text.Json.JsonDocument.Parse(l);
-            var r = doc.RootElement;
-            return r.GetProperty("local_player").GetInt32() != me && r.TryGetProperty("screenshot", out var shot) && shot.ValueKind == System.Text.Json.JsonValueKind.String
-                && new FileInfo(Path.Combine(Relay.NotesFolder, shot.GetString()!)) is { Exists: true, Length: > 0 };
-        });
+        return LiveLines().Count(r =>
+            r.GetProperty("local_player").GetInt32() != me && r.TryGetProperty("screenshot", out var shot) && shot.ValueKind == System.Text.Json.JsonValueKind.String
+            && new FileInfo(Path.Combine(Relay.NotesFolder, shot.GetString()!)) is { Exists: true, Length: > 0 });
     }
 
     /// <summary>Counts lines with "e":"name" in the files of a run: every session and part file.</summary>

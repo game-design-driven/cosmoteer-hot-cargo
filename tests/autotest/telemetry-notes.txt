@@ -2,6 +2,8 @@
 # nothing. Headless games have no graphics device, so the note has no screenshot here.
 newgame
 wait 8
+# A test slot keeps the live notes file of older games (issue #390): only the notes of this game count.
+telenote_stale
 # A focused text box that blocks other input (like the co-op chat) keeps the key from opening a note.
 expect telenote_can_open == 1
 telenote_textbox on
