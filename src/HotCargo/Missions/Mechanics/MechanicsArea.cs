@@ -59,6 +59,18 @@ public static class MechanicsArea
             Autotest.Fields[$"mech_goal_{kind.Name}"] = () => (int)Goal(Accepted(kind)).Completion;
         }
         Autotest.Commands["mech_generate"] = TestGenerate;
+        // mech_clear_field_pirates: test only. Removes the vanilla asteroid field pirates (tag asteroid_pirate), live or in stasis, so a
+        // test world always has a field for the Mining Escort (spec 1860). Run it inside the sim in co-op ("mp").
+        Autotest.Commands["mech_clear_field_pirates"] = _ =>
+        {
+            var sim = RequireRun().Game.Sim;
+            var tag = new Cosmoteer.Data.ID<SimObjectSpawner>("asteroid_pirate");
+            var live = sim.Ships.Where(s => s.HasTag(tag)).ToList();
+            foreach (var s in live) sim.Ships.Remove(s, dispose: true, handleLostShip: false);
+            var stasis = sim.Stasis.OfType<Cosmoteer.Simulation.Stasis.StasisShipSpawner>().Where(s => s.Tags?.Contains(tag) == true).ToList();
+            foreach (var s in stasis) sim.Stasis.RemoveStasisSpawner(s);
+            Log.Info($"AUTOTEST mech_clear_field_pirates: removed {live.Count} live and {stasis.Count} in stasis");
+        };
         // mech_set <MechanicsTunables field> <value>: changes a live tunable for this run (spawn chances apply from the next system). Test only.
         Autotest.Commands["mech_set"] = arg => Autotest.SetField(RequireRun().T.Mechanics, arg);
         // mech_hold_set <Siege|Guard|Scan> <HoldOutTunables field> <value>: changes a hold-out profile tunable for this run. Test only.
