@@ -34,6 +34,7 @@ public sealed partial class RunState
     /// Tunables in effect. Saved so that multiplayer clients that join get the host's values with the save.
     /// Single player replaces them when tunables.rules changes.
     /// </summary>
+    [NotInRunHash("TunablesHash is the hash of these values and is in the run hash")]
     [Serialize] public Tunables Tunables = new();
     [Serialize(Optional = true)] public string TunablesHash = "";
     /// <summary>Last fleet tech count seen in a tick. Shown in the overlay and used by the heat multiplier.</summary>
