@@ -144,7 +144,7 @@ internal sealed class MaydayObjective : Objective, IMissionMarkers
     /// </summary>
     internal void ShowRing(SimRoot sim) => RingId = EscortGuard.WarningRing(sim, RingId, Victim.DetLocation());
 
-    /// <summary>A moving player ship changes the victim's goal a little each tick. Its AI origin follows only past this distance.</summary>
+    /// <summary>A moving player ship changes the victim's goal a little each tick. Its move order follows only past this distance.</summary>
     const float FollowSlack = 300f;
 
     void OnTick(object? sender, SimRoot sim)
@@ -171,14 +171,9 @@ internal sealed class MaydayObjective : Objective, IMissionMarkers
             return;
         }
         // Spec 2431: the victim runs to the nearest player ship.
-        if (Victim.TargetShip is { AI: { } ai } ship
-            && sim.Ships.HumanPlayerSignificantShips.OrderBy(h => h.DetWorldCenter.DistanceSquaredTo(ship.DetWorldCenter)).ThenBy(h => h.UniqueID).FirstOrDefault() is { } lead
-            && (ai.Parameters?.PatrolOrigin is not { } origin || origin.DistanceTo(lead.DetWorldCenter) > FollowSlack))
-        {
-            AIParameters p = ai.Parameters?.Clone() ?? new AIParameters();
-            p.PatrolOrigin = lead.DetWorldCenter;
-            ai.Parameters = p;
-        }
+        if (Victim.TargetShip is { } ship
+            && sim.Ships.HumanPlayerSignificantShips.OrderBy(h => h.DetWorldCenter.DistanceSquaredTo(ship.DetWorldCenter)).ThenBy(h => h.UniqueID).FirstOrDefault() is { } lead)
+            MoveOrder.To(ship, lead.DetWorldCenter, FollowSlack);
     }
 
     public override int GetTypeIntegrityHash() => 0x4843_4D59; // "HCMY"

@@ -302,10 +302,10 @@ internal sealed class HoldOutObjective : Objective
         if (Phase == HoldOutPhase.Positioning)
         {
             // The scout follows the nearest player ship until the players pick the scan spot.
-            if (SimQueries.NearestHumanShip(sim, target.DetWorldCenter) is { } lead) Steer(target, lead.DetWorldCenter, 250f);
+            if (SimQueries.NearestHumanShip(sim, target.DetWorldCenter) is { } lead) MoveOrder.To(target, lead.DetWorldCenter, 250f);
             return;
         }
-        if (ScanSpot is { } spot) Steer(target, spot, 1f);
+        if (ScanSpot is { } spot) MoveOrder.To(target, spot, 1f);
         var t = Settings(sim.RequireGame());
         Circle area = target.DetWorldBoundingCircle;
         Guarded = sim.Ships.HumanPlayerSignificantShips.Any(s =>
@@ -321,16 +321,6 @@ internal sealed class HoldOutObjective : Objective
             Settle(1f);
             Complete();
         }
-    }
-
-    /// <summary>Moves the AI origin to a point, like the escort does. A small change below minMove keeps the AI from re-planning every tick.</summary>
-    static void Steer(Ship ship, Vector2 to, float minMove)
-    {
-        if (ship.AI is not { } ai) return;
-        if (ai.Parameters?.PatrolOrigin is { } origin && origin.DistanceTo(to) < minMove) return;
-        AIParameters p = ai.Parameters?.Clone() ?? new AIParameters();
-        p.PatrolOrigin = to;
-        ai.Parameters = p;
     }
 
     /// <summary>Runs an order from HoldOutOrderInput. Every client runs it in the same input order. Invalid orders do nothing.</summary>

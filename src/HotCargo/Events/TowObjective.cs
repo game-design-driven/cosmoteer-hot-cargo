@@ -145,13 +145,6 @@ internal sealed class TowObjective : Objective
     {
         if (Mission is null || Completion != CompletionState.InProgress || sim != Mission.Game.Sim) return;
         if (sim.NodeId() != Towed.MapNodeID || Towed.DetLocation() is not { } at) return;
-        // A towed ship with an AI (an event carrier answers comms) would fly back to its spot. Its spot follows it instead.
-        if (Towed.TargetShip?.AI is { Parameters: { PatrolOrigin: { } origin } } ai && origin.DistanceTo(at) > 100f)
-        {
-            var p = ai.Parameters.Clone();
-            p.PatrolOrigin = at;
-            ai.Parameters = p;
-        }
         // By ID: the vanilla target tracker drops a ship that it counts as insignificant (a dead freighter), and DetLocation reads it by ID too.
         if (sim.Ships[Towed.ShipID] is not { } towed || !Missions.ShipDelivery.ArrivedAtStation(Mission.Game, sim, towed, Destination)) return;
         Log.Info($"towed ship {Towed.GetPlainTargetName(sim)} reached the station");

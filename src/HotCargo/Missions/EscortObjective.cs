@@ -25,7 +25,7 @@ namespace HotCargo.Missions;
 /// <summary>
 /// Rules type "HotCargoEscort" (spec requirement 36): completes when the escorted AI ship arrives at the destination (spec 1877, ShipDelivery).
 /// While the mission is active, the escort is live and a player ship is near (spec 1881, <see cref="EscortGuard"/>), the objective gives
-/// the escort a move order to the destination. Its AI has no strategy modules (mod/missions/ai_freighter.rules), so no enemy turns it (#372). Alone, the escort holds where it is, draws raiders, and in stasis it is lost (spec 1882, 1883).
+/// the escort a move order to the destination. Its AI has no strategy modules (mod/missions/ai_mission_ship.rules), so no enemy turns it (#372). Alone, the escort holds where it is, draws raiders, and in stasis it is lost (spec 1882, 1883).
 /// Put it in an AnyOrder next to a ProtectShips on the same ship: ProtectShips fails the mission if the escort dies.
 /// At creation it moves the destination POI to MissionTunables.EscortRouteShare of the gate ring. When the escort covers
 /// EscortAmbushAt of the route, it spawns the raiders from missions/convoy_ambush.rules ahead of the escort.

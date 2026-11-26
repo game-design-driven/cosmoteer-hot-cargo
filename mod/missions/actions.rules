@@ -14,8 +14,8 @@
 {
 	Action = Add
 	AddTo = "<ai/ai.rules>"
-	Name = HotCargoFreighter
-	ToAdd = &<missions/ai_freighter.rules>
+	Name = HotCargoMissionShip
+	ToAdd = &<missions/ai_mission_ship.rules>
 }
 {
 	Action = Overrides
