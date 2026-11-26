@@ -13,6 +13,8 @@ public sealed class EventsState
     [Serialize(Optional = true)] public HashSet<string> Flags = new();
     /// <summary>Sector index at which each flag was last set, for FlagAges needs.</summary>
     [Serialize(Optional = true)] public Dictionary<string, int> FlagSectors = new();
+    /// <summary>Spec 2500: past acts of the players, in the order they happened. Callback pages recall them (spec 2503).</summary>
+    [Serialize(Optional = true)] public List<Memory> Memories = [];
     /// <summary>True while the wanted-and-hunted warning is up; it fires again only after the players stop being both.</summary>
     [Serialize(Optional = true)] public bool WantedWarned;
     /// <summary>Hail lines already used, as "eventId@shipId": each ship offers each line once per run (spec 769).</summary>
@@ -95,6 +97,28 @@ public sealed class PendingEvent
     [Serialize(Optional = true)] public float PickedUnits;
     /// <summary>Outcome text and result lines of the choice that led to this page, or empty.</summary>
     [Serialize(Optional = true)] public string Lead = "";
+    /// <summary>Spec 2503: the memory that this callback page recalls (a copy), or null for any other page.</summary>
+    [Serialize(Optional = true)] public Memory? Recall;
+}
+
+/// <summary>Spec 2500: one past act of the players: what it was, the other ship, its faction, and where and when it happened.</summary>
+[ReflectiveSerialization(Explicit = true)]
+public sealed class Memory
+{
+    [Serialize] public MemoryKind Kind;
+    /// <summary>The plain name of the other ship (the one that surrendered, took the pay-off, was saved).</summary>
+    [Serialize] public string Ship = "";
+    /// <summary>The faction ID of the other ship, or empty for a ship with no faction.</summary>
+    [Serialize(Optional = true)] public string Faction = "";
+    /// <summary>The name of the system where it happened.</summary>
+    [Serialize] public string System = "";
+    /// <summary>The sector index where it happened.</summary>
+    [Serialize] public int Sector;
+    /// <summary>True once a callback page recalled it: each memory comes back at most once.</summary>
+    [Serialize(Optional = true)] public bool Recalled;
+
+    public MemoryFacts Facts => new(Kind, Sector, Recalled);
+    public Memory Copy() => (Memory)MemberwiseClone();
 }
 
 public enum AttackPhase { Attack, Rebuild }

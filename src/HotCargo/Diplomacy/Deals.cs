@@ -23,6 +23,13 @@ public static class Deals
     /// <summary>Raised after each hail choice that ran, in the shared choice input. Handlers only read.</summary>
     public static event Action<Run, SimRoot, DealResult>? Decided;
 
+    /// <summary>
+    /// Spec 2501: raised when the players accept the surrender of an AI ship: a demand, a hunter's yield or the vanilla offer. Sim logic.
+    /// </summary>
+    public static event Action<Run, SimRoot, Ship>? Spared;
+
+    internal static void RaiseSpared(Run run, SimRoot sim, Ship ai) => Spared?.Invoke(run, sim, ai);
+
     public static bool Choose(Run run, SimRoot sim, int player, Ship caller, Ship callee, Offer offer, int amount)
     {
         var t = run.T.Diplomacy;
@@ -283,6 +290,7 @@ public static class Deals
         bool hunter = Situation.IsHunter(ai);
         int payout = Quotes.SurrenderPayout(run, sim, ai);
         var lines = Loot.Surrender(run, sim, ai, playerShip, payout, seed);
+        RaiseSpared(run, sim, ai);
         // A surrendered hunter has no exit module and its truce runs out, so it jumps out instead.
         if (hunter) Leave(run, sim, ai, playerShip);
         Result(run, ai, DipText.Format("SurrenderYesFmt", ai.Metadata.XmlShipName) + (lines.Count > 0 ? "\n" + string.Join("\n", lines) : ""));

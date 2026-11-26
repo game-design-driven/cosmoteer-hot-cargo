@@ -51,6 +51,8 @@ expect dip_moneyspent == 0
 expect hunters == 1
 expect dip_leaving == 0
 expect dip_picks == 0
+# Spec 2501: a refused pay-off leaves no memory.
+expect ev_memories == 0
 dip_pick hunter tech 1
 wait 1
 expect dip_picks == 0
@@ -81,6 +83,9 @@ expect dip_moneyspent > 0
 expect dip_vaulttech == 3
 expect dip_leaving >= 1
 expect heat < 1
+# Spec 2501: the run remembers the hunter that took the pay-off (MemoryKind.PaidOff).
+expect ev_memories == 1
+expect ev_memory_kind == 3
 wait 8
 expect hunters == 0
 # Bluff that works (spec 565): BluffShare of 3 tech is 1; it goes, the wave leaves, heat drops.
@@ -97,6 +102,9 @@ dip_bluff hunter
 wait 1
 expect dip_vaulttech == 2
 expect heat < 1
+# MemoryKind.Bluffed
+expect ev_memories == 2
+expect ev_memory_kind == 4
 wait 8
 expect hunters == 0
 # Bluff that fails: the tech goes, heat rises, the hunter stays.
@@ -113,6 +121,7 @@ wait 1
 expect dip_vaulttech == 3
 expect hunters == 1
 expect heat >= 10
+expect ev_memories == 2
 # More hunters near the hailed one make a pay-off harder: × (1 − others ÷ 7) with PayMaxOtherHunters 6, and 0 above the limit.
 dip_shield off
 killhunter 0

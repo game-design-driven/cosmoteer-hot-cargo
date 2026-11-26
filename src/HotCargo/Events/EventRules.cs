@@ -25,6 +25,8 @@ public enum EventTrigger
     Relic,
     /// <summary>A line in the comms of a station or faction ship (HailLine, HailTarget). Clicking it opens the page there (spec 769).</summary>
     Hail,
+    /// <summary>Spec 2504: a past act comes back (Recalls). The Arrival point of a new sector tries it before the Arrival roll.</summary>
+    Callback,
 }
 
 /// <summary>Which ships show a Hail event's line in their comms (spec 769).</summary>
@@ -316,6 +318,11 @@ public sealed class EventRules
     [Serialize(Optional = true)] public HailTarget HailTarget;
     /// <summary>A computed offer. The event can open only when the offer can be built.</summary>
     [Serialize(Optional = true)] public OfferKind Offer;
+    /// <summary>
+    /// Spec 2503: the kind of memory that a Callback event recalls. It opens only with such a memory, its carrier takes the memory's ship
+    /// name, and its texts fill {mem_ship} and {mem_system}.
+    /// </summary>
+    [Serialize(Optional = true)] public MemoryKind Recalls;
     [Serialize(Optional = true)] public float Weight = 10f;
     [Serialize(Optional = true)] public float WeightPerHeat;
     [Serialize(Optional = true)] public float WeightPerTech;
@@ -419,6 +426,9 @@ public static class EventLibrary
         if (e.Title.Length == 0 || e.Text.Length == 0) throw new InvalidDataException($"{at} needs a Title and a Text");
         if (e.Trigger == EventTrigger.Hail && e.HailLine.Length == 0) throw new InvalidDataException($"{at}: a Hail event needs a HailLine");
         if (e.Carrier.Length > 0) Spawn(e.Carrier);
+        if ((e.Trigger == EventTrigger.Callback) != (e.Recalls != MemoryKind.None)) throw new InvalidDataException($"{at}: Trigger = Callback and Recalls go together");
+        if (e.Recalls != MemoryKind.None && e.Carrier.Length == 0) throw new InvalidDataException($"{at}: a callback needs a Carrier, the ship that comes back");
+        if (e.Recalls == MemoryKind.None && UsesMemoryTokens(e)) throw new InvalidDataException($"{at}: {{mem_ship}} and {{mem_system}} need Recalls");
         if (e.Choices.Length is < 1 or > MaxChoices) throw new InvalidDataException($"{at} needs 1 to {MaxChoices} choices");
         if (e.Weight < 0) throw new InvalidDataException($"{at}: Weight must not be negative");
         ValidateNeed(e.Need, at);
@@ -478,6 +488,11 @@ public static class EventLibrary
             }
         }
     }
+
+    /// <summary>True when a text of the page or of its outcomes names the recalled memory.</summary>
+    static bool UsesMemoryTokens(EventRules e) =>
+        new[] { e.Text }.Concat(e.Choices.SelectMany(c => c.Outcomes.Select(o => o.Text).Prepend(c.Text)))
+            .Any(t => t.Contains("{mem_", StringComparison.Ordinal));
 
     /// <summary>Slider steps of an option stay below this, like the amounts of other multiselect domains.</summary>
     const int MultiChoiceSpan = 1000;

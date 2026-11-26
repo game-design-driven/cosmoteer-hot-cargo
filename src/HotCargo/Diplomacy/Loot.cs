@@ -158,6 +158,7 @@ public static class Loot
             {
                 var lines = Give(run, sim, ai, player, ((ulong)(uint)ai.UniqueID << 32) ^ (uint)sim.Tick);
                 Deals.Result(run, ai, string.Join("\n", lines));
+                Deals.RaiseSpared(run, sim, ai);
             });
         }
     }
