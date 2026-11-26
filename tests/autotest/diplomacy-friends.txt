@@ -1,6 +1,6 @@
 # Friendly ships (spec 574 to 583): hold tech and its return, the fee, betrayal, held tech against the loss rule,
 # hired help that joins and runs, the wanted rule, mercenaries that hail and take pay by the minute.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 aiset FleeEnabled false

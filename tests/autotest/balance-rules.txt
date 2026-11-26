@@ -1,5 +1,5 @@
 # Balance (spec 300 to 304, BALANCE.md): fuel rules, blueprint price scale, heat for fame above the cap, peak tier cap, station fuel floor.
-newgame run
+newgame
 wait 8
 # Spec 300: scarce FTL fuel.
 expect balance_fuel_stack == 10

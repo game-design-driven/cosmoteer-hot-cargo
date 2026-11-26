@@ -1,5 +1,5 @@
 # Flee decisions (spec 193-195): a damaged ship rolls once, an unarmed ship always runs, a fleeing hunter jumps out.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

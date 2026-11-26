@@ -1,7 +1,7 @@
 # Onboarding (spec 720 to 726): each trigger shows its How to Play page once, and Hot Cargo pages come before vanilla tutorials.
 codex_reset
 tutorials on
-newgame run
+newgame
 wait 8
 closepanel
 # The run page shows after a few seconds of play. No event page opens at the start, so the events page waits.

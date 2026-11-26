@@ -1,6 +1,6 @@
 # Engage range (spec 401, 402, 406): an Aggressive ship does not chase an enemy far away on the team radar, and a Defensive ship
 # does not leave to help an ally that is far away. A near enemy still pulls the ship, and a large AllyHelpRadius gives the old reach.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

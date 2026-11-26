@@ -1,7 +1,7 @@
 # Mayday (spec 2430 to 2434): a live distress fight. The arrival roll makes one due, and it starts by itself: a civilian ship and its
 # attackers spawn in sight, the attackers go for the victim, and the victim runs to the players. With every attacker dead, the pay waits
 # at the victim's station. In a second mayday the victim dies, and the mission fails.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

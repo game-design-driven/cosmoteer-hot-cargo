@@ -1,6 +1,6 @@
 # Run modes, difficulty pressure (spec 680 to 684). Every vanilla level has a row, every level reaches every effective value,
 # and one hard combination goes through the real paths: the vanilla settings inputs, the heat tick, the hunter spawn, the fee roll.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

@@ -1,6 +1,6 @@
 # Formations (spec 423 to 427): two copies of the starting ship hold slots of a V behind the first ship, keep their spacing when
 # pushed together, and the first ship holds fire while an ally is in its line of fire.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

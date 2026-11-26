@@ -1,6 +1,6 @@
 # Repairs hold in combat (spec 1317): a damaged AI ship that returns to the fight with repairs queued cancels them while an
 # enemy within the combat block range fires, as the players' block rule (EnemyCombatNoBuildRadius and Duration).
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 # A quiet world: no scavengers or Wayfarers arrive, and nearby enemies are cleared before the test ships spawn, so no other

@@ -1,6 +1,6 @@
 # Pages from ships (spec 1815, 2420): popup events with a ship in the story come from that ship. It hails, and the page shows in its
 # comms. Ships with nothing left to do jump out after the answer (effect leave).
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

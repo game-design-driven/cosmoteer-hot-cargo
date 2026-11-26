@@ -1,7 +1,7 @@
 # Escort (spec 36, 1850 to 1853): accept, the freighter comes to the players and hails, the answer in its comms starts the route,
 # it steers to the jump point, and arrival completes the objective.
 # missions: random
-newgame run
+newgame
 wait 8
 hc_generate escort
 hc_accept escort

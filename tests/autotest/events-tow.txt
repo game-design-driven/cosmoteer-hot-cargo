@@ -1,5 +1,5 @@
 # Dead in Space and the Tow Job (spec 88), and live text tokens (spec 89).
-newgame run
+newgame
 wait 8
 # Distress Beacon can turn out to be a broken-down ship (follow-up page).
 event distress_beacon

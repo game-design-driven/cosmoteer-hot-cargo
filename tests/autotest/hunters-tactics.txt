@@ -1,5 +1,5 @@
 # Hunter AI tactics: modules load, act, and log. Strike stage turns on every tactic (Disable at Hunt, Bait at Strike).
-newgame run
+newgame
 wait 8
 # No random events during the hunter checks.
 ev_set Enabled false

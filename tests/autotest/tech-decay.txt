@@ -1,7 +1,7 @@
 # Tech in normal storage (spec 1543-1552): a start without vaults, crews fill a new vault first, tech outside a vault decays.
 # Bug-prone: the decay follows each stack through the crew transfers that the game makes, and the vault-first rule comes from vanilla priorities.
 # Spec 1552: the vanilla Model-L has no vault. The run starts anyway, and the tech goes to normal storage.
-newgame run 0 vanilla
+newgame test 0 vanilla
 wait 8
 ev_set Enabled false
 tech_set LossGraceSeconds 600

@@ -1,6 +1,6 @@
 # Fall back to a faction mate (spec 1305, 1307): a damaged Monolith combat ship without resources or storage flies next to a
 # Monolith trade ship (another player index of the same faction) that holds them, and repairs from the shared pool.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 # A quiet world: no scavengers or Wayfarers arrive, and nearby enemies are cleared before the test ships spawn, so no other

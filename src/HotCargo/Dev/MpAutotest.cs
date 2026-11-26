@@ -357,7 +357,7 @@ public static class MpAutotest
         // gets the drop list's mode, so the test only checks it.
         var career = gss._curModeConfigGui as CareerMPModeConfigGui
             ?? throw new InvalidOperationException($"the default MP mode is {gss._gameMode.Value}, not career");
-        (career._mapSize ?? throw new InvalidOperationException("career config has no map size")).Value = GameApp.Rules.CareerMode.MapSizes[Journey.JourneyArea.RunMapSizeIndex()];
+        (career._mapSize ?? throw new InvalidOperationException("career config has no map size")).Value = GameApp.Rules.CareerMode.MapSizes[TestGalaxy.Index()];
         (career._galaxySeed ?? throw new InvalidOperationException("career config has no seed")).Value = 12345UL;
         var me = Me(gss);
         AddStarterShip(gss, me);

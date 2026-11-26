@@ -1,6 +1,6 @@
 # Ship tactics, Hot Cargo hooks (spec 413 to 418): condition chains with NOT, tech crates and the crew collect order,
 # heat stage, hunters, a hunter that holds our tech, facing, the Strike timer and the loss timer.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

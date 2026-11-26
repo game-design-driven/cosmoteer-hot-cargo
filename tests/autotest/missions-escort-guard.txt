@@ -2,7 +2,7 @@
 # follows it, the alone line counts down, raiders find it after EscortRaidSeconds, and raiders take it when its time alone runs out.
 # Before this rule the freighter flew alone past raiders that the game had frozen in stasis, and arrived.
 # missions: random
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

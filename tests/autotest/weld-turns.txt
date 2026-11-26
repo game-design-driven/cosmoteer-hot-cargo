@@ -1,6 +1,6 @@
 # Weld (spec 2482, 2487): a derelict piece of structure, armor and wedges is welded on at a quarter turn, a half turn and three quarter
 # turns. Structure and armor cannot turn; the game builds them at rotation 0, and the merge keeps every part (issue #347).
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

@@ -1,5 +1,5 @@
 # Reporting scout (spec 910 to 913): at Warning the scout flies to the relay; if it gets there, heat +15. Destroyed first: nothing.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 # Autotests start with the Pursuit off (spec 943).

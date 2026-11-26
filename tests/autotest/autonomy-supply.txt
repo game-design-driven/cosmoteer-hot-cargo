@@ -1,5 +1,5 @@
 # Supply runner scenario (spec 1078): buys steel at the cheapest station and unloads it into the crewed ship.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

@@ -1,6 +1,6 @@
 # Miner scenario (spec 1077): the Computer mans a mining laser; the ship mines the nearest asteroid, the Funnel takes the ore in,
 # and with a full bay it flies to the station and sells the ore. The bay limit is 25 % here, so the test stays short.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

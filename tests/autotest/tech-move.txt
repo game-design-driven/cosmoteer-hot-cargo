@@ -1,5 +1,5 @@
 # Spec 447: a vault that the player moves with the vanilla grab tool gets rebuilt by crew at the new spot, and holds tech again.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 tech_set LossGraceSeconds 600

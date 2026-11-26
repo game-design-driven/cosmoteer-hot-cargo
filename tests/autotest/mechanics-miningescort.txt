@@ -3,7 +3,7 @@
 # missions: random
 # timeout: 900
 # tier: smoke
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

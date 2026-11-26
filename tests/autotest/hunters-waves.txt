@@ -1,6 +1,6 @@
 # Strike stage scaling and waves (spec 190-192): fewer and lower-tier ships in early sectors, one group at a time, FTL fuel on every hunter.
 # hunterwaves counts spawned groups; it does not drop when the starter ship destroys a hunter.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

@@ -1,6 +1,6 @@
 # Missions: rules load, natural offers, forced offers, and the sides of the AI ships (spec 36, 37, 41).
 # missions: random
-newgame run
+newgame
 wait 8
 log start
 expect active == 1

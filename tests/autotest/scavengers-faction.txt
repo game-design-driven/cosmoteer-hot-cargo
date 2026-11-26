@@ -1,6 +1,6 @@
 # Scavengers faction (spec 1340 to 1346): scavengers arrive up to the cap, are friendly to players and factions, salvage an old wreck
 # with their mining lasers, turn hostile when a player shoots one and forgive later, are enemies of pirates and flee from them.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

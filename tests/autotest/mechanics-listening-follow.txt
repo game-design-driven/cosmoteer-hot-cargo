@@ -1,7 +1,7 @@
 # Listening Post scout (spec 140): it follows the nearest player ship, also with an enemy on its radar. With the vanilla Normal AI it
 # turned its hull to the enemy (forced rotation, as the escort freighter in #372) and crawled.
 # missions: random
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

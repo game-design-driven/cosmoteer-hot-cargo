@@ -1,7 +1,7 @@
 # Missions: a vanilla Visit mission through the Hot Cargo accept, the jump hook and the comms payment (spec 2251).
 # Playtest 2026-11-14: "Visit Titraness" stayed open after the arrival. Vanilla ends it in two steps: the arrival (GotoNode),
 # then the receive payment button at any station of that system (ReceiveRewards). The players never called a station there.
-newgame run
+newgame
 wait 8
 # Vanilla gates a Visit offer by fame (FamePrereqPerLowTier: 40 for tier 1).
 fame 100

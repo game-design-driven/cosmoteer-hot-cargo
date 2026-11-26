@@ -1,6 +1,6 @@
 # Faction and pirate scavenging (spec 1350 to 1352): an idle pirate collects an old wreck and keeps the loot (no station trades with it);
 # an idle faction ship collects, then sells only what it collected and keeps its own stock; the switch turns a side off.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

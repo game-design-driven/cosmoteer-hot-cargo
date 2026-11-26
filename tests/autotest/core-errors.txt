@@ -1,5 +1,5 @@
 # Spec 17, Rules: a sim step that throws rests, so a broken rule does not run half-way in every tick.
-newgame run
+newgame
 wait 3
 debug_set FailedStepRestSeconds 5
 err_step_fail

@@ -1,7 +1,7 @@
 # Cut ships apart (spec 2463 to 2469): a clean cut becomes an order with crew work. The ship stays one ship until the last edge is
 # done, then splits; the design loses the far side. The order and its work survive a save and a load.
 # tier: smoke
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

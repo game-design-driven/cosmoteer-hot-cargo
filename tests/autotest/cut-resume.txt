@@ -1,6 +1,6 @@
 # Cut ships apart (spec 2464): when crew leave the cut jobs, the edges keep their work, the jobs go back to the queue, and the cut
 # ends after the crew come back.
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

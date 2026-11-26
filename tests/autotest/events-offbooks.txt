@@ -1,6 +1,6 @@
 # Off the Books through the real comms window (spec 1801 to 1809): the station line opens the quote; the meet spawns a fence away from the
 # station; the crates go over in the fence's comms. A clean sale, a sting, "Changed my mind" and a fence that leaves.
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

@@ -2,7 +2,7 @@
 # circle and gun reach. The freighter keeps its course and speed. Before the fix, the vanilla aggro module turned its hull to the
 # platform (forced rotation), and it crawled at 2 to 40 units per second.
 # missions: random
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on
