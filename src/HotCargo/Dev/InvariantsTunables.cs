@@ -12,6 +12,4 @@ public sealed class InvariantsTunables
     [Serialize(Optional = true)] public float CheckSeconds = 1f;
     /// <summary>Checks that only sim ticks and player inputs change the game state, never screen code. A break would desync co-op.</summary>
     [Serialize(Optional = true)] public bool SimPhase = true;
-    /// <summary>The sim phase check also compares every ship. It finds more, and it costs more time in each frame.</summary>
-    [Serialize(Optional = true)] public bool SimPhaseShips = false;
 }

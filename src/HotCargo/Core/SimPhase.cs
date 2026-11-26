@@ -13,13 +13,13 @@ namespace HotCargo.Core;
 /// of player inputs (SPManager.Update, BaseMPManager.AdvanceNetworkTime). All other code is frame code: UI, draw, widget callbacks, Run.Hooks.Frame.
 /// At the end of each phase this takes a fingerprint of sim state. At the start of the next phase the fingerprint must be the same.
 /// A difference means that frame code changed the sim, which desyncs co-op. It reads only.
-/// Limit: the fingerprint holds the sim random stream, the run state hash and the player states, plus the ships with
-/// Invariants.SimPhaseShips. A change of other state passes. Revisit if a desync gets through with the ships hash on.
+/// Limit: the fingerprint holds the sim random stream, the run state hash and the player states. A change of other state (a ship,
+/// a run state field outside CareerPatches.AddRunHash) passes. Revisit with the ships hash (sim.Ships.GetIntegrityHash) in the
+/// fingerprint if a desync from frame code gets through; first check that vanilla frame code does not break it.
 /// </summary>
 public static class SimPhase
 {
-    /// <summary>The parts of the fingerprint. Ships is 0 while Invariants.SimPhaseShips is off.</summary>
-    readonly record struct Print(Run Run, SimRoot Sim, int Rand, int State, int Players, int Ships)
+    readonly record struct Print(Run Run, SimRoot Sim, int Rand, int State, int Players)
     {
         /// <summary>The names of the parts that differ from another fingerprint of the same run and sim.</summary>
         internal List<string> Changed(Print now)
@@ -28,7 +28,6 @@ public static class SimPhase
             if (Rand != now.Rand) parts.Add("the sim random stream");
             if (State != now.State) parts.Add("the run state");
             if (Players != now.Players) parts.Add("a player state");
-            if (Ships != now.Ships) parts.Add("the ships");
             return parts;
         }
     }
@@ -128,7 +127,7 @@ public static class SimPhase
                 index.GetIntegrityHash(h);
                 state.GetIntegrityHash(h);
             }
-        }), run.T.Invariants.SimPhaseShips ? Hash(sim.Ships.GetIntegrityHash) : 0);
+        }));
     }
 
     static int Hash(Action<IntegrityHash> add)
