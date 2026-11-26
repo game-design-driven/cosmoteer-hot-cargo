@@ -10,6 +10,13 @@
 	AddTo = "<doodads/doodads.rules>/Doodads"
 	ToAdd = &<missions/escort_alone.rules>/AloneRing
 }
+// The escort freighter's AI (spec 36).
+{
+	Action = Add
+	AddTo = "<ai/ai.rules>"
+	Name = HotCargoFreighter
+	ToAdd = &<missions/ai_freighter.rules>
+}
 {
 	Action = Overrides
 	OverrideIn = "<modes/career/mission_metatypes.rules>"

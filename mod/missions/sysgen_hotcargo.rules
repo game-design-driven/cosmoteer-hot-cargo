@@ -127,8 +127,7 @@ Escort
 			SuppressLocationAssertions = true
 		}
 
-		// The freighter. A small unacquire range makes AggroEnemies fly it to its AI origin all the time,
-		// turning to fight on the way. The escort objective moves the origin to the jump point.
+		// The freighter. Its AI has no strategy modules; the escort objective gives its move orders.
 		{
 			Type = Ships
 			Tags = [hc_escort_ship]
@@ -144,11 +143,8 @@ Escort
 			}
 			AI
 			{
-				Type = Normal
+				Type = HotCargoFreighter
 				ChanceToConsiderSurrenderingToPlayer = 0
-				PatrolRadius = 100
-				TargetAcquireRangeFromOrigin = 150
-				TargetUnacquireRangeFromOrigin = 150
 			}
 
 			SubSpawners

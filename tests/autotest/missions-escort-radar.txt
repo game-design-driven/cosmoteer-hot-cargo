@@ -1,0 +1,26 @@
+# Escort freighter and an enemy on its radar (#372, spec 36): a hostile platform 1,000 beside the route, out of the freighter's sight
+# circle and gun reach. The freighter keeps its course and speed. Before the fix, the vanilla aggro module turned its hull to the
+# platform (forced rotation), and it crawled at 2 to 40 units per second.
+# missions: random
+newgame run
+wait 8
+ev_set Enabled false
+godmode on
+hc_generate escort
+hc_accept escort
+hc_escort_goto
+pause off
+wait 3
+hc_escort_ready
+hc_escort_advance 0.1
+hc_escort_watcher 1000
+pause off
+# The AI picks targets every 0.25 to 0.75 s.
+wait 3
+hc_escort_diag watcher
+expect hc_escort_turned == 0
+hc_mark
+waitfor hc_escort_progress > 200 20
+expect hc_escort_turned == 0
+hc_escort_diag after
+quit
