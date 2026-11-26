@@ -4,6 +4,14 @@
 	AddTo = "<modes/career/sectors/sector_basic/sector_basic.rules>/Sector/SystemGenerator/Spawners"
 	ToAdd = &<missions/mechanics/sysgen_mechanics.rules>
 }
+// Issue #364, spec 137: the vanilla ship graveyard POI no longer carries asteroid_field_poi, so Claim Jumpers (and every other
+// mission that roots at a field) never picks a graveyard, which can lie past the relays. The root pick still draws one random number,
+// so the rest of system generation does not shift.
+{
+	Action = Overrides
+	OverrideIn = "<modes/career/sectors/sysgen_misc_discoverables.rules>/SubSpawners/0/SubSpawners/2"
+	Overrides { Tags = [poi_unknown] }
+}
 // Prototype Core part (spec 133).
 {
 	Action = AddMany
