@@ -39,15 +39,26 @@ public static class Invariants
         // invariants_expect <rule>: the test breaks this rule on purpose. Its breaks count in invariants_expected and log no ERROR.
         Autotest.Commands["invariants_expect"] = arg => { lock (Reported) ExpectedNames.Add(arg); };
         Autotest.Fields["invariants_expected"] = () => _expected;
-        // simphase_leak state|rand: changes the sim from a frame handler outside every sim phase, as a UI bug does (spec 1009).
+        // simphase_leak state|rand|player|jump: changes the sim from a frame handler outside every sim phase, as a UI bug does (spec
+        // 1009). player: a new player state, as the build of a new system makes one. jump: the same, in the first frame of a running node
+        // jump, where vanilla builds the next system on a worker thread (issue 386).
         Autotest.Commands["simphase_leak"] = arg =>
         {
             var run = Autotest.RequireRun();
+            void NewPlayer() => run.Game.GetPlayerState(LeakPlayerIndex + _leaks++, deterministic: true);
+            void InJump()
+            {
+                if (Run.Current != run) return;
+                if (run.Game.IsDoingNodeJump) NewPlayer();
+                else Run.OnNextFrame(InJump);
+            }
             Run.OnNextFrame(arg switch
             {
                 "state" => () => run.State.Notoriety += 1f,
                 "rand" => () => run.Game.Sim.Rand.Int32(0, 10),
-                _ => throw new InvalidOperationException("simphase_leak needs: state|rand"),
+                "player" => NewPlayer,
+                "jump" => InJump,
+                _ => throw new InvalidOperationException("simphase_leak needs: state|rand|player|jump"),
             });
         };
         // invariants_check: runs every check now, also while the game is paused.
@@ -56,6 +67,10 @@ public static class Invariants
     }
 
     static bool On => Run.Current?.T.Invariants.Enabled == true;
+
+    /// <summary>simphase_leak player: player indexes far above every vanilla and Hot Cargo allegiance.</summary>
+    const int LeakPlayerIndex = 900_000;
+    static int _leaks;
 
     /// <summary>Logs a broken rule once for each name and subject.</summary>
     internal static void Fail(string name, string subject, string details)
