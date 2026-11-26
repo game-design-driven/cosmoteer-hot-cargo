@@ -3,14 +3,12 @@ newgame
 wait 8
 log start
 expect runmap == 1
-expect nodes >= 45
-expect nodes <= 55
+# Spec 2550, 2552, 2553: a lens of 6 steps, the start in band 0, the Buyer's system at FinalSectorTier (12).
+expect mapsteps == 6
+expect mapsizegap == 0
+expect startband == 0
 maptiers
-# No system is more dangerous than the main route at the same jump distance (HotCargoTierCap).
-expect tierovercap == 0
-# The last sector of a direct route (RunSectorCount - 1 jumps) is about FinalSectorTier (12).
-expect finaltier >= 10
-expect finaltier <= 13
+expect finaltier == 12
 rewardcheck
 expect buyers == 0
 buyer spawn
@@ -44,13 +42,13 @@ log won
 heat -100
 wait 10
 expect heat == 0
-# Spec 2414: the galaxy tunables apply to the next new galaxy: fewer systems, a lower final tier, only basic systems.
-tunablesfile Journey { FinalSectorTier = 6; MapSystems = 30 }; Worlds { SystemTypeWeights = [ { Type = basic; Weight = 1 } ] }
+# Spec 2414: the galaxy tunables apply to the next new galaxy: fewer steps, a lower final tier, only basic systems.
+tunablesfile Journey { FinalSectorTier = 6; RunSectorCount = 4 }; Worlds { SystemTypeWeights = [ { Type = basic; Weight = 1 } ] }
 newgame
 wait 8
-expect nodes >= 25
-expect nodes <= 33
-expect finaltier <= 7
+expect mapsteps == 4
+expect mapsizegap == 0
+expect finaltier == 6
 expect mapnonbasic == 0
 quit
 # tier: smoke
