@@ -150,18 +150,29 @@ static class JumpWarnings
         };
     }
 
-    /// <summary>Spec 1565, 2522: the tech line, the local ships that stay with their reasons, and the question.</summary>
-    internal static string DialogText(GameRoot game, string? techLeft)
+    /// <summary>
+    /// Spec 1565: the warning lines of the ENGAGE dialog, top first. This is the one place for them: each line also makes the dialog
+    /// ask when every local ship is ready. Spec 2522: the tech that stays and is lost.
+    /// </summary>
+    internal static List<string> JumpLines(GameRoot game)
+    {
+        var lines = new List<string>();
+        if (Run.Current is { } run && run.Game == game && TechLeftLine(run, JumpsOnEngage) is { } techLeft) lines.Add(techLeft);
+        return lines;
+    }
+
+    /// <summary>Spec 1565: the warning lines, the local ships that stay with their reasons, and the question.</summary>
+    internal static string DialogText(GameRoot game, IReadOnlyList<string> lines)
     {
         var staying = Staying(game);
         string ships = staying.Count == 0 ? "" : UxKit.Text("JumpDialogHead") + "\n" +
             string.Join("\n", staying.Select(x => UxKit.Format("JumpDialogLineFmt", x.Ship.Metadata.XmlShipName, Short(x.Reason)) + Carries(x.Ship))) + "\n";
-        return (techLeft is null ? "" : techLeft + "\n") + ships + "\n" + UxKit.Text("JumpDialogAsk");
+        return string.Concat(lines.Select(l => l + "\n")) + ships + "\n" + UxKit.Text("JumpDialogAsk");
     }
 
     /// <summary>
     /// Spec 1565: the vanilla ENGAGE handler with the list in its dialog. The rest is the vanilla flow: no dialog when every local ship
-    /// is ready, and the jump goes ahead unless the player picks the second option.
+    /// is ready and JumpLines is empty, and the jump goes ahead unless the player picks the second option.
     /// </summary>
     [HarmonyPatch(typeof(FtlJumpGui), "OnJumpClicked")]
     static class DialogPatch
@@ -183,12 +194,11 @@ static class JumpWarnings
         {
             var game = gui.Game;
             bool ready = gui.AreAllShipsReadyToJump(onlyWithCommands: false);
-            // Spec 2522: tech that stays in this system is lost, so it also asks first.
-            string? techLeft = Run.Current is { } run && run.Game == game ? TechLeftLine(run, JumpsOnEngage) : null;
-            if (!ready || techLeft is not null)
+            var lines = JumpLines(game);
+            if (!ready || lines.Count > 0)
             {
                 DialogsShown++;
-                if (await TwoButtonDialog.Show(DialogText(game, techLeft)) == TwoButtonDialog.DialogResponse.Option2) return;
+                if (await TwoButtonDialog.Show(DialogText(game, lines)) == TwoButtonDialog.DialogResponse.Option2) return;
             }
             game.NetManager.EnqueueInput(new MPReadyFtlJumpInput());
         }
