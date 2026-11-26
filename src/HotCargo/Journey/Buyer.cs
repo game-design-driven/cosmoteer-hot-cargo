@@ -46,14 +46,15 @@ public static class Buyer
 
     internal static void OnSystemEntered(Run run, bool firstVisit)
     {
-        // At or after RunSectorCount, so that a value lowered mid-run below the current sector still gives a Buyer in the next new system.
-        if (!firstVisit || run.State.BuyerSpawned || run.State.SectorIndex < run.T.Journey.RunSectorCount) return;
-        Spawn(run);
+        if (!firstVisit || run.State.BuyerSpawned) return;
+        // Spec 2554: on the run map, the Buyer waits in the one system of the last band. Another map size keeps the sector rule (spec 1).
+        bool here = RunMap.BuyerNode(run) is { } node ? node == run.Game.CurrentMapNode : run.State.SectorIndex >= run.T.Journey.RunSectorCount;
+        if (here) Spawn(run);
     }
 
     internal static void OnNewRun(Run run)
     {
-        if (run.T.Journey.RunSectorCount <= 1) Spawn(run);
+        if (RunMap.BuyerNode(run) is null && run.T.Journey.RunSectorCount <= 1) Spawn(run);
     }
 
     /// <summary>Spawns the Buyer into the current system. Deterministic: uses the sim random source only.</summary>

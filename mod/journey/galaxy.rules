@@ -1,15 +1,7 @@
-// Hot Cargo run map (spec section 5, requirements 2 and 3).
-// A small galaxy whose tiers rise about +2 for each jump on the main route, from tier 1 to FinalSectorTier.
-// The tunables Journey.FinalSectorTier and Journey.MapSystems set the tier and the system count when a new galaxy is made
-// (Journey/MapRules.cs, spec 2414). The numbers here only let the rules load: the tier values that derive from FinalSectorTier
-// move with the tunable. The other values here are rules: a change needs a game restart and applies to new careers only.
-// Based on Data/galaxy_map/map_generators/base_galaxy.rules. The tier and size values differ, and TierCap is new.
-
-// Highest low tier that a normal system gets. The system after about 8 jumps on the main route reaches it.
-FinalSectorTier = 12
-TierSpread = 2
-// Faction home systems sit one tier above the final sector tier.
-MaxTier = (&~/FinalSectorTier) + (&~/TierSpread) + 1
+// Hot Cargo run map (spec section 74, requirements 2550 to 2556): a lens of systems in bands, from one start system to one Buyer
+// system. MapRules (Journey/MapRules.cs, spec 2414) sets Steps from Journey.RunSectorCount and FinalTier from Journey.FinalSectorTier
+// just before a new galaxy is made. The numbers here only let the rules load. The other values are rules: a change needs a game
+// restart and applies to new careers only.
 
 HotCargoRun
 {
@@ -19,116 +11,20 @@ HotCargoRun
 	{
 		Spawners
 		[
-			: <./Data/galaxy_map/map_generators/base_galaxy.rules>/MapNodes
 			{
-				Count = 50
+				Type = HotCargoRunMap
+				Steps = 6
+				NameGenerator = &<./Data/name_generators/name_celestial.rules>
 			}
-
 			&<./Data/galaxy_map/map_generators/base_galaxy.rules>/Factions
-			&~/FactionTiers
-			&~/StartingNodePicker
-			&~/ProgressionTiers
-			&~/TierCap
+			{
+				Type = HotCargoRunMapTiers
+				FinalTier = 12
+				TierSpread = 2
+				StartFaction = fringe
+				StartSectorType = basic
+			}
 			&<../worlds/archetypes.rules>/SectorTypes // System archetypes (spec 220), instead of the vanilla weights.
 		]
 	}
-}
-
-FactionTiers
-{
-	Type = FactionNodeTiers
-	Factions
-	[
-		{
-			FactionID = monolith
-			TierRangeLow = [1, (&~/MaxTier) - (&~/TierSpread)]
-			TierRangeHigh = [1 + (&~/TierSpread), (&~/MaxTier)]
-		}
-		{
-			FactionID = cabal
-			TierRangeLow = [1, (&~/MaxTier) - (&~/TierSpread)]
-			TierRangeHigh = [1 + (&~/TierSpread), (&~/MaxTier)]
-		}
-		{
-			FactionID = imperium
-			TierRangeLow = [1, (&~/MaxTier) - (&~/TierSpread)]
-			TierRangeHigh = [1 + (&~/TierSpread), (&~/MaxTier)]
-		}
-		{
-			FactionID = io
-			TierRangeLow = [1, (&~/MaxTier) - (&~/TierSpread)]
-			TierRangeHigh = [1 + (&~/TierSpread), (&~/MaxTier)]
-		}
-		{
-			FactionID = fringe
-			TierRangeLow = 1
-			TierRangeHigh = 1
-		}
-	]
-}
-
-StartingNodePicker
-{
-	Type = StartingNodePicker
-	AllowedFactions = [fringe]
-	MinConnections = 2
-	CandidatesFarthestFromFactions = [5, [imperium, io]]
-	CandidatesClosestToFactions = [1, [monolith, cabal]]
-	SetTierRangeTo = [1, 1 + (&~/TierSpread)]
-	SetSectorTypeTo = basic
-}
-
-// Vanilla uses +3 for the main route and +2 for side routes. Hot Cargo uses +2 and +1, so that the main route
-// reaches FinalSectorTier after 6 to 7 jumps and then stays there.
-ProgressionTiers
-{
-	Type = ProgressionNodeTiers
-	MaxLowTier = &~/FinalSectorTier
-	MaxChangeableLowTier = &MaxLowTier // Do not change the tier of faction home systems.
-	DesiredTierDeltas
-	[
-		{
-			SourceLowTierDelta = 2
-			Priority = 0 // Low priority is more important.
-			HighTierSpread = &~/TierSpread
-			PreferredAvailableConnections = 2
-		}
-		{
-			SourceLowTierDelta = 1
-			Priority = 0
-			HighTierSpread = &~/TierSpread
-			SourceLowTierRange = [1, 1] // A gentle step from the starting system.
-			PreferredAvailableConnections = 1
-		}
-		{
-			SourceLowTierDelta = 1
-			Priority = 1
-			HighTierSpread = &~/TierSpread
-		}
-		{
-			SourceLowTierDelta = 0
-			Priority = 2
-			HighTierSpread = &~/TierSpread
-		}
-		{
-			SourceLowTierDelta = -1
-			Priority = 3
-			HighTierSpread = &~/TierSpread
-		}
-		{
-			SourceLowTierDelta = -1
-			Priority = 3
-			HighTierSpread = &~/TierSpread
-		}
-	]
-}
-
-// Hot Cargo C# type (Journey/TierCap.cs). Vanilla side systems keep their faction tiers, so a system next to the start
-// can be tier 10 or more. This caps the low tier of each system at start tier + TierPerJump x jumps from the start.
-// Faction home systems (above MaxChangeableLowTier) keep their tier.
-TierCap
-{
-	Type = HotCargoTierCap
-	TierPerJump = 2
-	MaxChangeableLowTier = &~/FinalSectorTier
 }

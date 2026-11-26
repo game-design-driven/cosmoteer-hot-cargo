@@ -78,8 +78,8 @@ public static class Recorder
             Score: won ? s.Score : 0,
             Delivered: s.DeliveredUnits,
             Seconds: Math.Round(s.GameSeconds),
-            Sector: s.SectorIndex,
-            Sectors: run.T.Journey.RunSectorCount,
+            Sector: run.Step,
+            Sectors: run.Steps,
             PeakHeat: MathF.Round(s.RunRecord.PeakHeat),
             VaultsLost: s.Log.Count(e => e.Kind == Onboarding.RunLogKind.Loss),
             Players: run.Game.HumanPlayerCount);

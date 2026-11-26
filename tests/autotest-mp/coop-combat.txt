@@ -104,6 +104,7 @@ on 1 expect hc_money_gain > 0
 step mechanics.mining-escort
 # Spec 1850, 1860 to 1866: the client answers the miner's "Ready" from its machine (the shared choice input). The miner mines
 # and takes in dropped ore on both machines, the two waves come at the same ore count, and it docks. The state hash compares the objective.
+mp mech_clear_field_pirates
 mp mech_generate miningescort
 mp mech_accept miningescort
 mp mech_mine_goto

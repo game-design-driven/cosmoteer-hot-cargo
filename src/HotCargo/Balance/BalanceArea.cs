@@ -97,18 +97,15 @@ public static class BalanceArea
         };
         // balance_salvage <label>: destroys every hunter part and logs the value of the nuggets in the system after the last mark.
         Autotest.Commands["balance_salvage"] = arg => BalanceCensus.Salvage(arg);
-        // Single player only: jumps the human ships to the unvisited neighbor with the highest low tier that is not a faction home system (the main route), without fuel.
+        // Single player only: jumps the human ships one band ahead on the run map (the unvisited neighbor of the next band), without fuel.
         Autotest.Commands["balance_route"] = _ =>
         {
             var run = Autotest.RequireRun();
-            int maxTier = Cosmoteer.GameApp.Rules.CareerMode.MapSizes[Journey.JourneyArea.RunMapSizeIndex()].MapGenerator.Spawners
-                .OfType<Journey.TierCapSpawner>().Single().MaxChangeableLowTier;
+            int band = Journey.RunMap.Band(run.Game.CurrentMapNode);
             var next = run.Game.CurrentMapNode.Connections
-                .Where(n => !run.State.VisitedNodes.Contains(n.UniqueID) && (run.Mode.GetMapNodeData(n).TierRange?.Min ?? 0) <= maxTier)
-                .OrderByDescending(n => run.Mode.GetMapNodeData(n).TierRange?.Min ?? 0).ThenBy(n => n.UniqueID)
-                .FirstOrDefault()
-                ?? run.Game.CurrentMapNode.Connections.Where(n => !run.State.VisitedNodes.Contains(n.UniqueID)).OrderBy(n => n.UniqueID).FirstOrDefault()
-                ?? throw new InvalidOperationException("no unvisited neighbor system");
+                .Where(n => !run.State.VisitedNodes.Contains(n.UniqueID) && Journey.RunMap.Band(n) == band + 1)
+                .OrderBy(n => n.UniqueID).FirstOrDefault()
+                ?? throw new InvalidOperationException("no unvisited neighbor system in the next band");
             Autotest.JumpWhenAllowed(run, next, "balance_route");
         };
     }
@@ -166,10 +163,5 @@ public static class BalanceArea
         Autotest.Fields["balance_hunter_floor_gap"] = () => Hunters.HunterSpawner.BaseTier(Autotest.RequireRun()) - Autotest.RequireRun().CurrentTier;
         // balance_hunters_set <HunterTunables field> <value>: changes a live hunter tunable for this run. Test only.
         Autotest.Commands["balance_hunters_set"] = arg => Autotest.SetField(Autotest.RequireRun().T.Hunters, arg);
-        Autotest.Fields["balance_peak_tier_cap"] = () =>
-        {
-            var run = Autotest.RequireRun();
-            return Journey.TierCapSpawner.PeakTierCap(run.Mode, run.State.SectorIndex) ?? -1;
-        };
     }
 }

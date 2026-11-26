@@ -77,10 +77,12 @@ static class CareerInfoPatches
                     sb.Append('\n').Append(UxKit.Format("MapHeatFmt", heat));
                 if (!visited)
                 {
-                    // A first visit to any new system raises the sector index by one (Run.AfterSystemSwitch).
-                    int sector = s.SectorIndex + 1;
-                    int last = run.T.Journey.RunSectorCount;
-                    sb.Append('\n').Append(sector == last
+                    // Spec 2555: on the run map the sector of a system is its band + 1; elsewhere a first visit raises the sector index by one.
+                    bool runMap = Journey.RunMap.IsRunMap(mode);
+                    int sector = runMap ? Journey.RunMap.Band(node) + 1 : s.SectorIndex + 1;
+                    int last = run.Steps;
+                    bool buyerHere = runMap ? node == Journey.RunMap.BuyerNode(run) : sector == last;
+                    sb.Append('\n').Append(buyerHere
                         ? $"<good>{UxKit.Text("MapBuyerHere")}</good>"
                         : UxKit.Format("MapSectorFmt", sector, last));
                 }
