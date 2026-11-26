@@ -18,7 +18,6 @@ static class CutAutotest
     static CutVerdict? _verdict;
     /// <summary>cut_blueprint on: test orders are made as in blueprint mode, so they wait for cut_apply (spec 2475).</summary>
     static bool _blueprint;
-    static HashSet<ObjectID> _beforeBlast = [];
     static double _notedDist;
 
     static SimRoot Sim() => Autotest.RequireRun().Game.Sim;
@@ -244,27 +243,8 @@ static class CutAutotest
         Autotest.Commands["cut_apply"] = _ => Buttons(Me(), "_constructBtn");
         Autotest.Commands["cut_discard"] = _ => Buttons(Me(), "_discardBtn");
         Autotest.Commands["cut_cancelall"] = _ => Buttons(Me(), "_cancelAllBtn");
-        // cut_blast: test only, single player. Destroys the parts on the staying side of the clean line of "me", as explosions would,
-        // so the game splits the ship by itself (spec 2476).
-        Autotest.Commands["cut_blast"] = _ =>
-        {
-            if (Autotest.RequireRun().IsMultiplayer) throw new InvalidOperationException("cut_blast is single player only");
-            var ship = Me();
-            var layout = CutShip.Grid(ship.Parts);
-            var check = CutModel.Check(layout.Grid, CutModel.Edges(CleanLine(layout.Grid)));
-            int stay = CutModel.StayPiece(check.Pieces, i => layout.Parts[i].Rules.ContiguityOriginPriority, i => CutShip.Area(layout.Parts[i]));
-            _beforeBlast = Sim().Ships.Select(x => x.UniqueID).ToHashSet();
-            var hit = check.Work.Select(e => layout.Grid.PartAt(CutModel.WorkCell(layout.Grid, check.Pieces, stay, e))).OfType<int>().Distinct().Select(i => layout.Parts[i]).ToList();
-            foreach (var part in hit) part.Health = 0;
-            Log.Info($"AUTOTEST cut: blast destroyed {hit.Count} parts of {ship.Metadata.PlainShipName}");
-        };
-        // Ships that appeared since cut_blast, and how many of them are a human player's ship.
-        Autotest.Fields["cut_blast_new"] = () => Sim().Ships.Count(x => !_beforeBlast.Contains(x.UniqueID));
-        Autotest.Fields["cut_blast_own"] = () => Sim().Ships.Count(x => !_beforeBlast.Contains(x.UniqueID) && x.IsHumanPlayerShip);
-        Autotest.Fields["cut_me_own"] = () => Me().IsHumanPlayerShip ? 1 : 0;
         // 1 when the newest cut-off piece is a derelict.
         Autotest.Fields["cut_piece_junk"] = () => Piece() is { IsJunk: true } ? 1 : 0;
-        Autotest.Fields["cut_piece_beds"] = () => Piece() is { } p ? p.Crew.TotalCrewCapacityWithConstruction : 0;
         Autotest.Fields["cut_pending"] = () => Order() is { Pending: true } ? 1 : 0;
         // cut_interrupt: every crew member leaves the cut jobs, as when a higher priority job takes them (the tick puts the jobs back).
         Autotest.Commands["cut_interrupt"] = _ =>
