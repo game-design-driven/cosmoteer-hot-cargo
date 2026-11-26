@@ -115,7 +115,7 @@ public static class TunablesFile
         Require(c.InformantDelayMin >= 0 && c.InformantDelayMax >= c.InformantDelayMin, "Contracts.InformantDelayMin must be 0 or more and at most InformantDelayMax");
         Require(c.MoneyRoundTo >= 1, "Contracts.MoneyRoundTo must be 1 or more");
         Require(c.Metatypes.All(m => m.Metatype.Length > 0), "Contracts.Metatypes entries need a Metatype");
-        Require(t.Journey.RunSectorCount >= 1, "Journey.RunSectorCount must be 1 or more");
+        Require(t.Journey.RunSectorCount is >= 2 and <= 20, "Journey.RunSectorCount must be 2 to 20 (the start and the Buyer are 2 steps)");
         Require(t.Journey.RewardScale > 0 && t.Journey.TechCostScale >= 0, "Journey.RewardScale must be above 0 and Journey.TechCostScale must not be negative");
         Require(t.Journey.MissionMoneyScale > 0, "Journey.MissionMoneyScale must be above 0");
         Require(t.Balance.StationFuelPerMillion >= 0 && t.Balance.StationFuelMinimum >= 0, "Balance.StationFuelPerMillion and StationFuelMinimum must not be negative");
@@ -127,8 +127,7 @@ public static class TunablesFile
         Require(b.StationFuelTypedMin is >= 0 and <= 1 && b.StationFuelTypedMax >= b.StationFuelTypedMin && b.StationFuelTypedMax <= 1
             && b.StationFuelUntypedMin is >= 0 and <= 1 && b.StationFuelUntypedMax >= b.StationFuelUntypedMin && b.StationFuelUntypedMax <= 1,
             "Balance.StationFuel shares must be 0 to 1, min at most max");
-        Require(t.Journey.FinalSectorTier is >= 2 and <= 15, "Journey.FinalSectorTier must be 2 to 15 (faction home systems sit 3 tiers higher; the tier tables end at 18)");
-        Require(t.Journey.MapSystems is >= 10 and <= 200, "Journey.MapSystems must be 10 to 200");
+        Require(t.Journey.FinalSectorTier is >= 2 and <= 16, "Journey.FinalSectorTier must be 2 to 16 (systems span 2 tiers more; the tier tables end at 18)");
         Require(t.Worlds.SystemTypeWeights.All(w => w.Type.Length > 0 && w.Weight >= 0) && t.Worlds.SystemTypeWeights.Any(w => w.Weight > 0),
             "Worlds.SystemTypeWeights entries need a Type and a weight of 0 or more, and one weight above 0");
         Require(t.Worlds.ClosePassDeadlineSeconds > 0f && t.Worlds.ClosePassRunLength > 0f && t.Worlds.ClosePassFreighters >= 1 && t.Worlds.ClosePassEscorts >= 0

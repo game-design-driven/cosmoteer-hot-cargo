@@ -36,6 +36,9 @@ public static class HunterSpawner
     /// </summary>
     public static IReadOnlyList<ObjectID> LastSpawned { get; private set; } = [];
 
+    /// <summary>Tests: the least fuel that a hunter of the newest wave spawned with (spec 192), -1 for none.</summary>
+    internal static int LastSpawnFuelMin { get; private set; } = -1;
+
     /// <summary>Waves spawned since game start. For autotest fields only; not sim state.</summary>
     public static int WavesSpawned { get; private set; }
 
@@ -103,20 +106,16 @@ public static class HunterSpawner
         ?? throw new InvalidOperationException($"Hunters.Stages has no response for heat stage '{stageName}'");
 
     /// <summary>
-    /// Spec 305: the tier that a stage response starts from: the system tier, but never below the main route tier of the sector index
-    /// (`HotCargoTierCap`, capped at its MaxChangeableLowTier) while `RouteTierFloor` is on. So a low side system late in the run
-    /// does not make the hunters weak. A faction home system keeps its higher tier.
+    /// Spec 305: the tier that a stage response starts from: the system tier, but never below the peak tier of the run (requirement 19)
+    /// while `RouteTierFloor` is on. So a jump back to a low system late in the run does not make the hunters weak.
     /// </summary>
-    public static int BaseTier(Run run) =>
-        run.T.Hunters.RouteTierFloor && Journey.TierCapSpawner.RouteTier(run.Mode, run.State.SectorIndex) is { } route
-            ? Math.Max(run.CurrentTier, route)
-            : run.CurrentTier;
+    public static int BaseTier(Run run) => run.T.Hunters.RouteTierFloor ? Math.Max(run.CurrentTier, run.State.PeakTier) : run.CurrentTier;
 
     /// <summary>Ships and tier of a stage response at the current run progress. ScaleShips (the Pursuit factors) first, then
     /// the difficulty factors (spec 682). Spec 305: the route tier floor.</summary>
     static (int Ships, int Tier) Plan(Run run, SimRoot sim, StageResponse r)
     {
-        float progress = WaveModel.Progress(run.State.SectorIndex, run.T.Journey.RunSectorCount);
+        float progress = run.Progress;
         int ships = run.Pressure().Ships(ScaleShips(run, sim, WaveModel.ShipCount(r.ShipCount, r.EarlyScale, progress)));
         int tier = BaseTier(run) + WaveModel.TierOffset(r.TierOffset, r.EarlyTierReduction, progress) + RunModes.Difficulty.ExtraHunterTiers(run);
         return (ships, tier);
@@ -182,6 +181,7 @@ public static class HunterSpawner
     {
         string reason = $"stage {stageName}";
         LastSpawned = [];
+        LastSpawnFuelMin = -1;
         if (sim != run.Game.Sim) return;
         if (sim.Mode is not CareerSimModeManager career) throw new InvalidOperationException("hunters need a career simulation");
         var t = run.T.Hunters;
@@ -219,6 +219,7 @@ public static class HunterSpawner
             _ = spawned.Renderer.AnimateFtlJumpIn(spawned.WorldFlightDirection);
             Dev.Invariants.HunterSpawned(spawned);
             int fuel = EnsureFuel(run, spawned, t.MinFuel);
+            LastSpawnFuelMin = LastSpawnFuelMin < 0 ? fuel : Math.Min(LastSpawnFuelMin, fuel);
             spawnedIds.Add(spawned.UniqueID);
             Log.Info($"hunters: {reason} spawned {spawned.Metadata.PlainShipName} tier {ship.SpawnTier ?? ship.Tier} " +
                      $"(wanted {tier}) at {loc.DistanceTo(in at):0} from {anchor.Metadata.PlainShipName}, player index {allegiance}, fuel {fuel}");
@@ -232,7 +233,9 @@ public static class HunterSpawner
 
     /// <summary>Fuel that a hunter carries: in its storage, plus held fuel that drops when it dies (spec 192).</summary>
     public static int Fuel(Run run, Ship ship) =>
-        StoredFuel(ship) + run.State.Hunters.HeldFuel.Where(h => h.Ship == ship.UniqueID).Sum(h => h.Amount);
+        // Fuel in crew hands (on its way from a storage to a drive) is still on the ship.
+        ship.Resources.GetResourceTotal(GameApp.Rules.FtlFuelResource, includeStored: true, includeCarried: true)
+        + run.State.Hunters.HeldFuel.Where(h => h.Ship == ship.UniqueID).Sum(h => h.Amount);
 
     /// <summary>
     /// Spec 192. Built-in ships spawn with full hyperdrive tanks. A hunter with less fuel gets the rest in any storage that takes hyperium.

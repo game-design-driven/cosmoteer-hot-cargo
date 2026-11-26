@@ -32,7 +32,6 @@ Contracts Onboarding
 Contracts RunModes
 Contracts Tech
 Contracts Ux
-Core Journey
 Core Missions
 Core RunModes
 Core Scaling
@@ -101,7 +100,6 @@ Friendly Events
 Friendly Hunters
 Friendly Ux
 Hunters Ai
-Hunters Journey
 Hunters RunModes
 Hunters Scaling
 Hunters Tactics
@@ -146,7 +144,6 @@ Relays Tech
 Relays Ux
 RunModes Contracts
 RunModes Hunters
-RunModes Journey
 RunModes Tech
 RunModes Ux
 RunRecord Onboarding

@@ -101,8 +101,7 @@ static class TestGalaxy
 
     /// <summary>
     /// Adds the test galaxy to the career map sizes. Autotest.Init calls it on every machine of a test, so co-op machines list it at
-    /// the same index. The map size also holds the TierCap spawner of the run map: the route tier rules read it from the map size
-    /// (TierCapSpawner.RunMapCap). On the stored tiers it changes nothing, because the dump holds the tiers after the cap.
+    /// the same index. It is not the run map size, so the run map rules (spec 2550 to 2567) are off in it.
     /// </summary>
     internal static void Add()
     {
@@ -110,9 +109,7 @@ static class TestGalaxy
         if (Array.Exists(rules.MapSizes, m => m.NameKey.Key == NameKey)) return;
         var spawner = App.ObjectTextSerializer.ReadFromPath<TestGalaxySpawner>(new OTFile(FilePath), "TestGalaxy")
             ?? throw new InvalidDataException($"TestGalaxy missing in {FilePath}");
-        var run = rules.MapSizes[Journey.JourneyArea.RunMapSizeIndex()];
-        GalaxySpawner[] spawners = [spawner, .. run.MapGenerator.Spawners.OfType<Journey.TierCapSpawner>()];
-        rules.MapSizes = [.. rules.MapSizes, new MapSize { NameKey = new KeyString(NameKey), TipKey = new KeyString(NameKey), MapGenerator = new GalaxyGenerator { Spawners = spawners } }];
+        rules.MapSizes = [.. rules.MapSizes, new MapSize { NameKey = new KeyString(NameKey), TipKey = new KeyString(NameKey), MapGenerator = new GalaxyGenerator { Spawners = [spawner] } }];
         Log.Info($"test galaxy: {spawner.Systems.Length} systems from {FilePath}");
     }
 

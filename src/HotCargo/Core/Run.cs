@@ -42,6 +42,10 @@ public sealed class Run
         public static event Action<Run>? RunEnded;
         /// <summary>Factor on time heat in the current system (spec 24). Set by the Factions area: shelter and corporate ally space.</summary>
         public static Func<Run, float> TimeHeatFactor = _ => 1f;
+        /// <summary>Spec 2555: the sector of the run (1 = the start). The Journey area sets it from the run map; else the sector index.</summary>
+        public static Func<Run, int> Step = run => run.State.SectorIndex;
+        /// <summary>Spec 2555: the sectors of the run, the start and the Buyer counted. The Journey area sets it from the run map.</summary>
+        public static Func<Run, int> Steps = run => run.T.Journey.RunSectorCount;
         /// <summary>Factor on notoriety gains in the current system (spec 19). Set by the Factions area: corporate ally space.</summary>
         public static Func<Run, float> NotorietyFactor = _ => 1f;
         /// <summary>Share of the heat that stays after the system switch that runs now (spec 28). The Factions area sets it per jump kind (spec 650).</summary>
@@ -169,6 +173,18 @@ public sealed class Run
 
     public int CurrentTier => Mode.CurrentMapNodeData.TierRange?.Min ?? 1;
 
+    /// <summary>Spec 2555: the sector of the run (1 = the start, Steps = the Buyer).</summary>
+    public int Step => TestStep ?? Hooks.Step(this);
+
+    /// <summary>Tests: the step that "sectorindex" sets, so a test can stand in a later sector of the run map.</summary>
+    internal int? TestStep;
+
+    /// <summary>Spec 2555: the sectors of the run.</summary>
+    public int Steps => Hooks.Steps(this);
+
+    /// <summary>Spec 2555: run progress from 0 at the start to 1 at the Buyer (hunter waves and the Pursuit ramp read it).</summary>
+    public float Progress => RunModel.Progress(Step, Steps);
+
     /// <summary>
     /// A seeded roll for this run and sector (galaxy seed, sector index, salt): the same on every machine, after a load and whatever
     /// number of sim ticks ran before. Use it for world rolls that sim.Rand would make depend on frame timing.
@@ -182,8 +198,7 @@ public sealed class Run
         double dt = sim.FixedUpdater.Interval.Seconds;
         State.GameSeconds += dt;
         State.FleetTech = Hooks.CountFleetTech(sim);
-        if (CurrentTier > State.PeakTier)
-            State.PeakTier = Math.Max(State.PeakTier, Math.Min(CurrentTier, Journey.TierCapSpawner.PeakTierCap(Mode, State.SectorIndex) ?? int.MaxValue));
+        if (CurrentTier > State.PeakTier) State.PeakTier = CurrentTier;
         Hooks.RaiseTick(this, sim, dt);
         if (State.HeatBuys > 0f) State.HeatBuys = HeatModel.BuyDecay(State.HeatBuys, dt, T.Heat.HeatBuyHalfLifeMinutes);
         if (State.Result != RunResult.Running || !State.HeatEnabled) return;

@@ -23,7 +23,8 @@ wait 9
 hunters early_second
 expect hunterwaves == 2
 expect hunterspending == 0
-expect hunterfuelmin >= 40
+# The second group carries its fuel at the spawn; a hunter can already have spent some on a local jump to close in.
+expect hunterfuelmin_spawn >= 40
 # Last sector: 3 ships of tier + 2, three groups.
 sectorindex 8
 spawnstage Strike
@@ -35,8 +36,8 @@ wait 22
 hunters late_all
 expect hunterwaves == 5
 expect hunterspending == 0
-# The last wave carries its fuel. An older hunter may have spent some on its own drive already.
-expect hunterfuelmin_new >= 40
+# The last wave carries its fuel at the spawn. A hunter may have spent some on its own drive already.
+expect hunterfuelmin_spawn >= 40
 # Waiting groups survive a save and load.
 stageset Strike WaveGapSeconds 60
 spawnstage Strike

@@ -1,5 +1,6 @@
-# Balance (spec 300 to 304, BALANCE.md): fuel rules, blueprint price scale, heat for fame above the cap, peak tier cap, station fuel floor.
-newgame
+# Balance (spec 300 to 304, BALANCE.md): fuel rules, blueprint price scale, heat for fame above the cap, station fuel floor.
+# The run map (spec 1702): the peak tier below follows its bands.
+newgame run
 wait 8
 # Spec 300: scarce FTL fuel.
 expect balance_fuel_stack == 10
@@ -24,8 +25,6 @@ tostation
 wait 3
 expect balance_techcost_scale >= 2.4
 expect balance_techcost_scale <= 2.6
-# Spec 303: the peak tier counts at most start tier + 2 per sector after the first.
-expect balance_peak_tier_cap == 1
 expect peaktier == 1
 # Spec 304: every trade station keeps the fuel floor (tier 1: 10 fuel), the stations near the start too.
 expect balance_station_fuel_floor == 10
@@ -67,7 +66,7 @@ wait 3
 balance_visit 3
 wait 3
 expect balance_station_fuel_gap >= 0
-# Spec 303: two sectors in, the cap is start tier + 2.
-expect balance_peak_tier_cap == 3
+# Spec 19, 2552: one band in, the peak tier is the tier of band 1 (3 with 6 steps and final tier 12).
+expect peaktier == 3
 quit
 # tier: smoke

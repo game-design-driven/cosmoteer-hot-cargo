@@ -139,18 +139,6 @@ public class ContractsModelTests
 public class MapRulesModelTests
 {
     [Xunit.Fact]
-    public void Tiers_at_or_above_the_rules_final_tier_move_with_the_tunable()
-    {
-        // galaxy.rules: FinalSectorTier 12, TierSpread 2, MaxTier 15; faction ranges [1, 13] and [3, 15].
-        Xunit.Assert.Equal(8, HotCargo.Journey.MapRulesModel.Shift(12, 12, 8));
-        Xunit.Assert.Equal(11, HotCargo.Journey.MapRulesModel.Shift(15, 12, 8));
-        Xunit.Assert.Equal(9, HotCargo.Journey.MapRulesModel.Shift(13, 12, 8));
-        Xunit.Assert.Equal(3, HotCargo.Journey.MapRulesModel.Shift(3, 12, 8));
-        Xunit.Assert.Equal(1, HotCargo.Journey.MapRulesModel.Shift(1, 12, 14));
-        Xunit.Assert.Equal(17, HotCargo.Journey.MapRulesModel.Shift(15, 12, 14));
-    }
-
-    [Xunit.Fact]
     public void A_type_left_out_gets_no_weight_and_the_last_entry_wins()
     {
         (string, float)[] w = [("basic", 0.5f), ("hc_trade_hub", 1f), ("basic", 0.7f)];
