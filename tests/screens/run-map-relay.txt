@@ -1,4 +1,4 @@
-# Red relay to a closed system (spec 2565): in the world, on its indicator and on the local map. Windowed test slot or RUNNER=mac.
+# Red relay to a closed system (spec 2565, 2566): in the world, on its indicator and on the local map. Windowed test slot or RUNNER=mac.
 render on
 newgame run
 wait 10
@@ -18,4 +18,10 @@ screenshot runmap-relay-near
 camera 0 0 9000
 wait 3
 screenshot runmap-relay-far
+# Spec 2566: ENGAGE toward the closed system asks first.
+line_confirm
+wait 2
+jw_engage
+wait 2
+screenshot runmap-confirm
 quit

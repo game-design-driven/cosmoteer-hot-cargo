@@ -15,13 +15,14 @@ namespace HotCargo.Journey;
 /// </summary>
 static class LockdownRelays
 {
-    static readonly Color Red = new(1f, 0.15f, 0.1f, 1f);
+    static readonly Color Red = new(1f, 0.15f, 0.1f, 0.7f);
 
     enum Mark { None, Warned, Closed }
 
     static Mark MarkOf(FtlGate gate)
     {
-        if (Run.Current is not { } run || run.Game != gate.Game || !Lockdown.Active(run) || gate.DestinationNode is not { } dest) return Mark.None;
+        // FtlGate.Game can be null (vanilla reads it with ?.), so the sim and the run's map decide.
+        if (Run.Current is not { } run || run.Game.Sim != gate.Sim || !Lockdown.Active(run) || run.Game.Map.Nodes[gate.DestinationID] is not { } dest) return Mark.None;
         if (Lockdown.Closed(run, dest)) return Mark.Closed;
         return run.State.Journey.Choices.TryGetValue(dest.UniqueID, out var c) && c.Warned > 0 ? Mark.Warned : Mark.None;
     }
@@ -65,10 +66,12 @@ static class LockdownRelays
             {
                 var mark = MarkOf(__instance);
                 if (mark == Mark.None || mark == Mark.Warned && !Blink()) return;
-                var rules = GameApp.Rules.Game.GameGui.ObjectIndicators;
-                var sim = __instance.Sim;
-                var rect = Rect.CenteredOn(__instance.Ship.WorldCenter, __instance.Ship.WorldBoundingCircle.BoundingRect.Size * 1.15f);
-                rules.DestinationGateNineSlice.Draw(rect, sim.Camera.Rotation, Red, sim.Camera.WorldUniformScale);
+                // The vanilla destination frame is green, so a red tint turns it dark: the white jump pulse ring of the galaxy map
+                // (MapRules.NodeFtlPulseSprite) takes the red as it is.
+                if (Run.Current?.Game.Map.Rules.NodeFtlPulseSprite is not { } ring) return;
+                var rect = Rect.CenteredOn(__instance.Ship.WorldCenter, __instance.Ship.WorldBoundingCircle.BoundingRect.Size * 1.6f);
+                App.Graphics.SetToMaterial(ring);
+                App.Graphics.Draw(new Quad(rect, Red, ring.UVRect));
             }
             catch (Exception ex) { Errors.Report("lockdown relay frame", ex.Message, ex); }
         }
@@ -84,8 +87,9 @@ static class LockdownRelays
             {
                 var mark = MarkOf(__instance);
                 if (mark == Mark.None || mark == Mark.Warned && !Blink()) return;
-                var rules = GameApp.Rules.Game.GameGui.ObjectIndicators;
-                rules.DestinationGateNineSlice.Draw(Rect.CenteredOn(uiScreenRect.Center, uiScreenRect.Size * 1.2f), Direction.Zero, Red, uiScreenRect.Width);
+                if (Run.Current?.Game.Map.Rules.NodeFtlPulseSprite is not { } ring) return;
+                App.Graphics.SetToMaterial(ring);
+                App.Graphics.Draw(new Quad(Rect.CenteredOn(uiScreenRect.Center, uiScreenRect.Size * 1.6f), Red, ring.UVRect));
             }
             catch (Exception ex) { Errors.Report("lockdown relay indicator", ex.Message, ex); }
         }
