@@ -28,10 +28,28 @@ public static class Invariants
     /// <summary>Broken rules reported in this game session. For autotests.</summary>
     public static int Broken { get; private set; }
 
+    /// <summary>Test only: rule names that a test breaks on purpose ("invariants_expect"), and how many breaks of them came.</summary>
+    static readonly HashSet<string> ExpectedNames = [];
+    static int _expected;
+
     internal static void Register()
     {
         Run.Hooks.Tick += OnTick;
         Autotest.Fields["invariants_broken"] = () => Broken;
+        // invariants_expect <rule>: the test breaks this rule on purpose. Its breaks count in invariants_expected and log no ERROR.
+        Autotest.Commands["invariants_expect"] = arg => { lock (Reported) ExpectedNames.Add(arg); };
+        Autotest.Fields["invariants_expected"] = () => _expected;
+        // simphase_leak state|rand: changes the sim from a frame handler outside every sim phase, as a UI bug does (spec 1009).
+        Autotest.Commands["simphase_leak"] = arg =>
+        {
+            var run = Autotest.RequireRun();
+            Run.OnNextFrame(arg switch
+            {
+                "state" => () => run.State.Notoriety += 1f,
+                "rand" => () => run.Game.Sim.Rand.Int32(0, 10),
+                _ => throw new InvalidOperationException("simphase_leak needs: state|rand"),
+            });
+        };
         // invariants_check: runs every check now, also while the game is paused.
         Autotest.Commands["invariants_check"] = _ => CheckAll(Run.Current ?? throw new InvalidOperationException("no run"),
             Run.Current.Game.Sim ?? throw new InvalidOperationException("no sim"));
@@ -44,6 +62,12 @@ public static class Invariants
     {
         lock (Reported)
         {
+            if (ExpectedNames.Contains(name))
+            {
+                _expected++;
+                Log.Info($"invariant {name} broke as the test expects: {details}");
+                return;
+            }
             if (!Reported.Add($"{name}|{subject}")) return;
             Broken++;
         }

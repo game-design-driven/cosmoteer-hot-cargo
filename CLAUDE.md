@@ -69,6 +69,7 @@ Procedures are skills in `.claude/skills/`:
 - Positions: `Ship.DetWorldCenter` or `SimQueries.DetLocation`. Never `Ship.Location` or `ObjectiveTargetShip.Location` in sim logic: rendering moves them (spec 1512).
 - Player choices that change the sim go through an `MPInput`, allowed in `CareerGameModeManager.AllowMPInput`.
 - `tools/determinism-lint.py` (CI `build`) enforces these rules: it fails on new clock, random, local-player, hash, thread or unsorted file-order lines in sim code. A line that never changes the sim gets `// determinism: <reason>`. Never raise a count in `tools/determinism-allow.txt` to pass it.
+- The invariant `sim_outside_phase` (spec 1009) fails every test in which frame code changes the run state, a player state or the sim random stream. Fix the code: move the change into a sim tick or an MP input. `SimPhase.Open` is only for code that never runs in co-op (test commands, single-player debug keys).
 - Test sim changes with the co-op harness (see `hot-cargo-testing`).
 
 ## Text
