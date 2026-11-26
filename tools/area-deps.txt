@@ -144,7 +144,6 @@ Relays Tech
 Relays Ux
 RunModes Contracts
 RunModes Hunters
-RunModes Journey
 RunModes Tech
 RunModes Ux
 RunRecord Onboarding
