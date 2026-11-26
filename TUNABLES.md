@@ -41,7 +41,7 @@ Fields not listed in the "Not now" column apply Now.
 | Storyteller | Every stage response, Strike interval and other hostile spawn (`AllFightsEnabled`, spec 1732) reads the pressure from the saved adapt minutes. `AdaptPerMinute`, `AdaptLossShip` and `AdaptLossCrew` apply at the next update (each game second); a curve or impact change applies at the next read. |
 | Pursuit | `OutageMinSector`, `OutageChance`, `OutageDelayMin`, `OutageDelayMax`, `HackerMinSector`, `HackerChance`, `HackerDelayMin`, `HackerDelayMax`: next new system. `EarlyShipFactor`, `LateShipFactor`, `FleetReferenceShare`, `FleetFactorPerDoubling`, `FleetFactorMax`: next spawned ships | A rolled outage or hacker keeps its time. `OutageSeconds`, `HackerOutageSeconds`: next outage (tagged "next use"). The pacer limits and gaps, the scout and blockade values and the interval factors apply now. |
 | Balance | `FuelStackSize`, `BuildStackSize`, `BuildStackResources`: next new or loaded game. `StationFuelTypedMin`/`Max`, `StationFuelUntypedMin`/`Max`: next new system | A higher fuel floor tops up the live stations at once (spec 852). A lower floor takes no fuel away. Trade ships use the new floor at once. `FuelPrice` and the jump fuel costs apply to the next trade and the next jump (spec 2411). |
-| Debug | `FailedStepRestSeconds` | Now (the next failure of a rule) |
+| Debug | (none) | |
 
 ## Why some values stay delayed
 
