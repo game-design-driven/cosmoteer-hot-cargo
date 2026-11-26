@@ -61,6 +61,7 @@ Procedures are skills in `.claude/skills/`:
 - Every designer number is a tunable with `[Serialize(Optional = true)]`, a default and a doc comment. The doc comment is the description in the in-game settings window. A tunable that does not apply at once gets an entry in `TunablesMenu/TunableTiming.cs` and in `TUNABLES.md`.
 - Comments only where needed. A simpler approach with a known limit gets a comment that names the limit and when to revisit it.
 - No regex unless no string method works. Modern C#.
+- An area uses another area only through `Run.Hooks`, an event in `Core`, or an edge that `tools/area-deps.txt` lists. `tools/area-deps.py` (CI) fails on a new edge: use a hook, move the shared part to `Core`, or add the line with a reason and say so in Decisions.
 
 ## Co-op determinism (lockstep)
 
