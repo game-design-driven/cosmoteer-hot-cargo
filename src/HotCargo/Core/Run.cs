@@ -60,7 +60,12 @@ public sealed class Run
         /// <summary>Runs after new tunables replace the old ones: in the host's MP input on every machine, or at the single-player reload.</summary>
         public static event Action<Run>? TunablesApplied;
 
-        internal static void RaiseFrame(Run r) => Each(Frame, h => h(r));
+        /// <summary>In autotests the sim phase check (spec 1009) runs after each handler, so a broken rule names the handler.</summary>
+        internal static void RaiseFrame(Run r) => Each(Frame, h =>
+        {
+            h(r);
+            if (Dev.Autotest.IsActive) SimPhase.Checkpoint($"frame hook {h.Method.DeclaringType?.Name}.{h.Method.Name}");
+        });
         internal static void RaiseTunablesApplied(Run r) => Each(TunablesApplied, h => h(r));
         internal static void RaiseGameStarted(Run r) => Each(GameStarted, h => h(r));
         internal static void RaiseRunEnded(Run r) => Each(RunEnded, h => h(r));
@@ -335,6 +340,9 @@ public sealed class Run
     /// <summary>Replaces the tunables of the run. Deterministic callers only: single-player reload or the host's MP input.</summary>
     internal void ApplyTunables(TunablesFile.Loaded file)
     {
+        // Single player applies a changed file or a menu edit from a frame. In co-op only the host's MP input may call this,
+        // so there the sim phase check (spec 1009) stays on.
+        using SimPhase.Scope? phase = IsMultiplayer ? null : SimPhase.Open("single-player tunables");
         State.Tunables = file.Values;
         State.TunablesHash = file.Hash;
         // New stage thresholds re-baseline like a system entry: stages at or below the current heat count as started and

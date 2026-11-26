@@ -75,6 +75,7 @@ Co-op runs in lockstep: every machine runs every sim tick, so the game runs at t
 | `Tech.TechMarkers`, `Ux.EdgeLabels`, `Ux.StationBadges`, `Ux.DamagePings` | Off: no tech tag on blips, no edge label alignment, no comms badges, no hit pings. | Each runs in every frame, for every ship blip or own ship: about 0.1 to 0.2 µs each. |
 | `Worlds.CurrentArrows` | Off: no flow arrows over a current. | Under 1 µs per frame. |
 | `Invariants.Enabled` | Off: no rule checks (spec 1000). | About 6 µs per sim tick. Keep it on: playtests need its ERROR lines. |
+| `Invariants.SimPhase`, `Invariants.SimPhaseShips` | Off: no check that only sim ticks and inputs change the game state (spec 1009). `SimPhaseShips` on adds a hash of every ship. | Measured in the PR that added it. |
 
 The slow player also lowers the vanilla graphics settings on their own machine (resolution, effects, frame limit). These are not tunables and change only that machine.
 
