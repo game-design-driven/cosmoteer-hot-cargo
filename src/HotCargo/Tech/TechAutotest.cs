@@ -410,6 +410,24 @@ static class TechAutotest
     {
         var ship = PlayerShip();
         _station = null;
+        // Stations far from the ship are in stasis: fly to the nearest one first and wait until it loads (any test world).
+        if (!Active().Game.Sim.Ships.AllShips.Any(s => s != ship && s.AI?.WillTradeWith(ship) == true))
+        {
+            var far = SimQueries.TaggedShips(Active().Game.Sim, new("station")).OrderBy(t => t.Location.DistanceSquaredTo(ship.WorldCenter)).FirstOrDefault();
+            if (far.Live is null && far.Id != default)
+            {
+                Autotest.Teleport(ship, Autotest.ClearSpotNear(Active().Game.Sim, far.Location, 1500f, ship.WorldBoundingRadius));
+                Autotest.WaitFor(() => Active().Game.Sim.Ships.AllShips.Any(s => s != ship && s.AI?.WillTradeWith(ship) == true), 20,
+                    "a trading station to leave stasis", PlaceAtStation);
+                return;
+            }
+        }
+        PlaceAtStation();
+    }
+
+    static void PlaceAtStation()
+    {
+        var ship = PlayerShip();
         var station = _station = NearestStation();
         // In co-op each player's ship gets its own spot on the same side, so two ships never land on each other.
         float side = Autotest.ActingPlayerIndex * (2f * ship.WorldBoundingRadius + 50f);

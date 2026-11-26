@@ -563,6 +563,20 @@ public static class Autotest
         // openspace <station distance> [ship distance]: moves the fleet to the nearest point at least that far from every station and,
         // when given, from every other ship (live or in stasis, wrecks left out), clear of suns, on rings around the fleet. For tests
         // that must not depend on the start world: which faction owns a nearby station, or which patrols and raiders wait near it.
+        // quiethostiles: test only. Removes every ship that is hostile to the human players now, live or in stasis (pirates, wanderers,
+        // field guards, pirate bases), so a test that spawns its own enemies does not depend on what its test world holds. Run it inside the
+        // sim in co-op ("mp quiethostiles").
+        Commands["quiethostiles"] = _ =>
+        {
+            var sim = Game?.Sim ?? throw new InvalidOperationException("no game");
+            var humans = sim.RequireGame().HumanPlayersIndexes;
+            bool Hostile(int index) => humans.Any(h => sim.Mode.AreEnemies(index, h));
+            var live = sim.Ships.Where(s => !s.IsHumanPlayerShip && !s.IsJunk && Hostile(s.Metadata.PlayerIndex)).ToList();
+            foreach (var s in live) sim.Ships.Remove(s, dispose: true, handleLostShip: false);
+            var stasis = sim.Stasis.OfType<Cosmoteer.Simulation.Stasis.StasisShipSpawner>().Where(s => Hostile(s.ObjectAllegiance)).ToList();
+            foreach (var s in stasis) sim.Stasis.RemoveStasisSpawner(s);
+            Log.Info($"AUTOTEST quiethostiles: removed {live.Count} live and {stasis.Count} in stasis");
+        };
         Commands["openspace"] = arg =>
         {
             var sim = Game?.Sim ?? throw new InvalidOperationException("no game");
