@@ -1,12 +1,10 @@
-# Journey: the Buyer appears on the first visit of the Buyer's system (spec 2554), through the real jump hook.
+# Journey: the Buyer appears on the first visit of the system at sector RunSectorCount, through the real jump hook.
 # Headless test slots do not draw frames, so the jump animation never ends and the sim stays paused after the switch.
 # So this test checks only what the switch itself does. journey-run.txt checks trading with the Buyer.
-# A run map of 2 steps: the start and the Buyer's system.
-tunablesfile Journey { RunSectorCount = 2 }
 newgame
 wait 8
-expect nodes == 2
 expect buyers == 0
+buyer sectors 2
 jump
 # The jump runs in real time (no run tick, spec 1007): wait for the arrival, not a fixed time.
 waitfor sector == 2 25

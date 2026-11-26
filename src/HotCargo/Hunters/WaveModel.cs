@@ -3,6 +3,10 @@ namespace HotCargo.Hunters;
 /// <summary>Pure wave math on plain numbers (spec 190-192). No game types.</summary>
 public static class WaveModel
 {
+    /// <summary>Run progress from 0 in sector 1 to 1 in the last sector. A one-sector run counts as the last sector.</summary>
+    public static float Progress(int sectorIndex, int runSectorCount) =>
+        runSectorCount <= 1 ? 1f : Math.Clamp((sectorIndex - 1f) / (runSectorCount - 1f), 0f, 1f);
+
     /// <summary>
     /// Ships in a stage response: ShipCount × EarlyScale in sector 1, rising linearly to ShipCount in the last sector.
     /// Never below 1, so a stage always sends someone.

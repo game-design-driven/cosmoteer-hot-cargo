@@ -5,11 +5,8 @@ namespace HotCargo.Journey;
 [ReflectiveSerialization(Explicit = true)]
 public sealed class JourneyTunables
 {
-    /// <summary>
-    /// Spec 2550: steps from the start to the Buyer's system, both counted. It sets the size of the run map, its width, its tier ramp
-    /// and the speed of the lockdown line. New runs only (the galaxy is made once per run); in co-op the galaxy uses the default.
-    /// </summary>
-    [Serialize(Optional = true)] public int RunSectorCount = 6;
+    /// <summary>Sector index at which the Buyer station appears. The short map rules size the galaxy for this.</summary>
+    [Serialize(Optional = true)] public int RunSectorCount = 8;
     /// <summary>
     /// Spec 4: mission money and fame × this, on top of the economy difficulty (Fast pays 2× money and 1.5× fame).
     /// 1 = vanilla rates. On Fast, six missions a sector pay about twice what a fleet of even power needs to keep up, and about three
@@ -26,8 +23,10 @@ public sealed class JourneyTunables
     /// <summary>Spec 301: blueprint prices × this, so that unlocks stay a choice in a short run. The faction reputation factor applies too.</summary>
     [Serialize(Optional = true)] public float TechCostScale = 2.5f;
     /// <summary>
-    /// Spec 2552: the low tier of the Buyer's system. The tier rises in even steps from 1 at the start. New runs only (the galaxy is
-    /// made once per run); in co-op the galaxy uses the default.
+    /// Spec 2414: the highest low tier of a normal system; the main route reaches it after about 6 jumps. Faction home systems sit
+    /// TierSpread + 1 tiers higher. New runs only (the galaxy is made once per run); in co-op the galaxy uses the default.
     /// </summary>
     [Serialize(Optional = true)] public int FinalSectorTier = 12;
+    /// <summary>Spec 2414: star systems in the run galaxy. New runs only; in co-op the galaxy uses the default.</summary>
+    [Serialize(Optional = true)] public int MapSystems = 50;
 }

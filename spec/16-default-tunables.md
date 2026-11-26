@@ -2,8 +2,8 @@
 
 | Tunable | Default | Requirement |
 |---|---|---|
-| `RunSectorCount` | 6 | 2550 |
-| `FinalSectorTier` | 12 (new runs) | 2552 |
+| `RunSectorCount` | 8 | 1 |
+| `FinalSectorTier` | 12 (rules value in `mod/journey/galaxy.rules`, restart needed) | 3 |
 | `RewardScale` | 1.0 | 4 |
 | `Journey.MissionMoneyScale` | 1.5 | 4 |
 | `Debris.SalvageDropFactor` | 0.6 | 1247 |
