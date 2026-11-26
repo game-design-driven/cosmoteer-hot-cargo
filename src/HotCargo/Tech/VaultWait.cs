@@ -13,7 +13,7 @@ public sealed class WaitingTech
 {
     [Serialize] public ObjectID Ship;
     [Serialize] public string ShipName = "";
-    /// <summary>The system where the ship was last seen. An entry of another system waits until the ship is back in the sim.</summary>
+    /// <summary>The system where the ship was last seen. A move to another system loses the entries of the ships that stay (spec 2520).</summary>
     [Serialize] public ObjectID Node;
     [Serialize] public int Units;
 }
@@ -43,7 +43,7 @@ public static class VaultWait
 
     /// <summary>
     /// Waiting tech goes aboard when its ship has room. A ship that became a wreck spills it as crates; a ship that is gone from its
-    /// system (destroyed to the last part) takes it. A ship in jump limbo, in stasis or in another system keeps it.
+    /// system (destroyed to the last part) takes it. A ship in jump limbo or in stasis keeps it. LeftBehind removes the entries of the ships that stay when the players leave the system.
     /// Both cases warn in red: only there tech leaves the ship.
     /// </summary>
     internal static void OnTick(Run run, SimRoot sim, double dt)

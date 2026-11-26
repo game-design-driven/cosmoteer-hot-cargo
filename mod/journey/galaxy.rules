@@ -1,4 +1,4 @@
-// Hot Cargo run map (spec section 73, requirements 2550 to 2556): a lens of systems in bands, from one start system to one Buyer
+// Hot Cargo run map (spec section 74, requirements 2550 to 2556): a lens of systems in bands, from one start system to one Buyer
 // system. MapRules (Journey/MapRules.cs, spec 2414) sets Steps from Journey.RunSectorCount and FinalTier from Journey.FinalSectorTier
 // just before a new galaxy is made. The numbers here only let the rules load. The other values are rules: a change needs a game
 // restart and applies to new careers only.

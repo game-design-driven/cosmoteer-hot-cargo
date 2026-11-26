@@ -20,7 +20,7 @@ public sealed class HunterTech
 {
     [Serialize] public ObjectID Ship;
     [Serialize] public string ShipName = "";
-    /// <summary>The system of the hunter. An entry of another system waits until the players come back.</summary>
+    /// <summary>The system of the hunter. A move to another system loses the entries of that system (spec 2520).</summary>
     [Serialize] public ObjectID Node;
     [Serialize] public int Units;
     /// <summary>Last known position of the hunter.</summary>
@@ -120,7 +120,7 @@ public static class HunterGrab
 
     /// <summary>
     /// Held tech follows its hunter. A hunter that becomes a wreck spills the tech as crates. A hunter that is gone from the system
-    /// (it jumped out, or nothing is left of it) takes the tech. A hunter in stasis or in another system keeps it.
+    /// (it jumped out, or nothing is left of it) takes the tech. A hunter in stasis keeps it. LeftBehind removes it when the players leave the system.
     /// Limit: a hunter destroyed to its last part in one tick, without a wreck first, takes the tech too. Revisit if players report it.
     /// </summary>
     static void TrackHeld(Run run, SimRoot sim)

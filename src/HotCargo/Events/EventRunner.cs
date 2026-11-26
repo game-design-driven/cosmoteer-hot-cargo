@@ -194,7 +194,8 @@ public static class EventRunner
             Log.Info($"events: callback held by the pacer ({Pursuit.Pacer.Verdict(run, Pursuit.PacedKinds.Callback)})");
             return false;
         }
-        if (!TryTrigger(run, sim, EventTrigger.Callback, run.T.Events.CallbackChance, limited: true)) return false;
+        // Spec 2504: the chance is the picked callback's own (CallbackChance in events.rules), rolled after the pick.
+        if (!TryTrigger(run, sim, EventTrigger.Callback, chance: 1f, limited: true)) return false;
         Pursuit.Pacer.Started(run, Pursuit.PacedKinds.Callback);
         return true;
     }
@@ -228,6 +229,11 @@ public static class EventRunner
             * (e.Offer == OfferKind.None ? 1f : Math.Max(0f, t.ResearchWeightScale))).ToList();
         int pick = EventModel.PickWeighted(weights, sim.Rand.Single());
         if (pick < 0) { Log.Info($"events: no eligible {trigger} event"); return false; }
+        if (candidates[pick].Recalls != MemoryKind.None && sim.Rand.Single() is var own && own >= candidates[pick].CallbackChance)
+        {
+            Log.Info($"events: callback {candidates[pick].ID} roll {own:0.00} >= its chance {candidates[pick].CallbackChance:0.00}, no event");
+            return false;
+        }
         // Every triggered event starts the cooldown, so an Arrival or Station event does not follow right after another dialog.
         s.LastEventSeconds = run.State.GameSeconds;
         if (limited) s.NodeEvents[node] = s.NodeEvents.GetValueOrDefault(node) + 1;
@@ -253,7 +259,9 @@ public static class EventRunner
             if (seen >= run.T.Events.MaxUnavoidablePerRun) return false;
         }
         if (!ResearchOffers.Possible(run, e.Offer, run.CurrentTier, CurrentTechValue(run))) return false;
-        if (e.Recalls != MemoryKind.None && Memories.Pick(run, e.Recalls) < 0) return false;
+        if (e.Recalls != MemoryKind.None && (Memories.Pick(run, e.Recalls) < 0
+            || MemoryModel.KindUsed(EventLibrary.InOrder.Where(x => x.Recalls != MemoryKind.None).Select(x => (x.Recalls, s.Seen.GetValueOrDefault(x.ID))), e.Recalls)))
+            return false;
         return EventModel.FirstUnmet(ToNeed(run, e.Need, run.CurrentTier, CurrentTechValue(run)), snapshot) is null;
     }
 

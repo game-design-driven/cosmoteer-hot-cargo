@@ -72,22 +72,30 @@ public class WeldModelTests
     {
         var (grid, ship) = Both(["AB1", "CD2"]);
         var target = new[] { new Cell(2, 0), new Cell(2, 1) };
-        var check = WeldModel.Check(ship, target, grid, p => char.IsDigit((char)p));
+        var check = WeldModel.Check(ship, target, target, grid, p => char.IsDigit((char)p));
         Assert.Equal(WeldVerdict.Ok, check.Verdict);
         Assert.Equal([new Edge(1, 0, false), new Edge(1, 1, false)], check.Joints);
     }
 
     [Fact]
     public void A_target_on_a_ship_tile_is_covered() =>
-        Assert.Equal(WeldVerdict.Covered, WeldModel.Check(new HashSet<Cell> { new(0, 0) }, [new Cell(0, 0)], Both(["A"]).Grid, _ => false).Verdict);
+        Assert.Equal(WeldVerdict.Covered, WeldModel.Check(new HashSet<Cell> { new(0, 0) }, [new Cell(0, 0)], [new Cell(0, 0)], Both(["A"]).Grid, _ => false).Verdict);
+
+    [Fact]
+    public void A_target_part_rect_on_a_ship_tile_is_covered_even_when_its_physical_tile_is_free()
+    {
+        // A thruster: its rect (1,0) to (2,0) covers the ship tile (1,0); its physical tile (2,0) does not.
+        var (grid, ship) = Both(["AB1"]);
+        Assert.Equal(WeldVerdict.Covered, WeldModel.Check(ship, [new Cell(1, 0), new Cell(2, 0)], [new Cell(2, 0)], grid, p => p == '1').Verdict);
+    }
 
     [Fact]
     public void A_target_in_space_or_without_contact_does_not_weld()
     {
         var (grid, ship) = Both(["A.1"]);
-        Assert.Equal(WeldVerdict.NoContact, WeldModel.Check(ship, [new Cell(2, 0)], grid, p => p == '1').Verdict);
+        Assert.Equal(WeldVerdict.NoContact, WeldModel.Check(ship, [new Cell(2, 0)], [new Cell(2, 0)], grid, p => p == '1').Verdict);
         var (grid2, ship2) = Both(["A1"], _ => false);
-        Assert.Equal(WeldVerdict.NoContact, WeldModel.Check(ship2, [new Cell(1, 0)], grid2, p => p == '1').Verdict);
+        Assert.Equal(WeldVerdict.NoContact, WeldModel.Check(ship2, [new Cell(1, 0)], [new Cell(1, 0)], grid2, p => p == '1').Verdict);
     }
 
     [Fact]

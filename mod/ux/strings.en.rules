@@ -161,7 +161,11 @@ HotCargoUx
 	RecallInFmt = "Going to {0} in {1} s."
 	RecallButtonFmt = "Go to {0}"
 	JumpCarriesFmt = "(carries {0} tech)"
-	JumpAllTechStays = "All your tech stays behind."
+	// Tech left behind (spec 2522): {0} units, {1} system
+	TechLeftFmt = "<bad><b>{0} tech will be left behind and lost.</b></bad>"
+	TechLeftAllFmt = "<bad><b>All your tech stays behind: {0} tech will be lost.</b></bad>"
+	SwitchAskFmt = "Go to {0} anyway?"
+	StrandedTechFmt = "{0} tech here is lost when you go."
 	// Tech watch (spec 2120 to 2129): {0} units, {1} ship name, {2} time left
 	WatchHeadFmt = "<bad><b>{0} TECH OUTSIDE YOUR VAULTS</b></bad>"
 	WatchHeadDesign = "<bad><b>TECH WILL LEAVE YOUR VAULTS</b></bad>"
@@ -172,10 +176,8 @@ HotCargoUx
 	WatchHunterFmt = "Recover {0} tech: destroy {1}"
 	WatchFriendFmt = "Recover {0} tech: hail {1}"
 	WatchWaitingFmt = "<gray>{0} tech waits for a vault on {1}</gray>"
-	WatchInSystemFmt = "<gray>in {0}</gray>"
 	WatchBannerFmt = "{0} TECH AT RISK OUTSIDE YOUR VAULTS"
 	WatchChatFmt = "<bad><b>{0} tech at risk outside your vaults!</b></bad> {1}. Click the lines under the heat panel to find it."
 	WatchDesignBannerFmt = "{0}: NO VAULT FOR {1} TECH IN THE NEW DESIGN"
 	WatchDesignChatFmt = "<bad><b>{0}: the new design has no vault for {1} tech.</b></bad> Crew will move it to normal storage, where it decays. Undo, or add Tech Vaults."
-	WatchJumpFmt = "<bad>{0} tech stays in this system</bad> (crates, derelicts)."
 }

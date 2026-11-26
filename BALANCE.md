@@ -99,7 +99,7 @@ Heat stages and missions. One typical mission adds about 11.8 heat: 5.8 from fam
 
 ### 6. System scaling
 
-The run map of spec section 73 replaced the open galaxy that these findings measured: every system now has the tier of its band (1, 3, 5, 8, 10, 12 with 6 steps), there are no faction home systems, and the hunter floor is the peak tier (requirement 305). Requirement 303 (the peak tier cap) is removed. The findings below stay as the record of why.
+The run map of spec section 74 replaced the open galaxy that these findings measured: every system now has the tier of its band (1, 3, 5, 8, 10, 12 with 6 steps), there are no faction home systems, and the hunter floor is the peak tier (requirement 305). Requirement 303 (the peak tier cap) is removed. The findings below stay as the record of why.
 
 - Measured run map (`maptiers`): by jump distance the low tiers are 1 | 1–3 | 3–5 | 6–7 | 9 | 10–11 | 10–12 | 9–12. The main route reaches tier 12 after 6 jumps. `HotCargoTierCap` holds for all normal systems.
 - **Bug:** faction home systems (tier 13 or more) keep their tier and can sit 2 jumps from the start. A short visit raised the peak tier from 5 to 13 and so the tech value four-fold (and the Buyer score with it). **Change:** the peak tier counts a system only up to start tier + 2 × (sector index − 1) (requirement 303). A home system stays dangerous: its hunters use its own tier.

@@ -63,6 +63,7 @@ public static class Invariants
     {
         HeatRange(run);
         TechInVaults(sim);
+        TechOnlyHere(run, sim);
         HostilesWaitForTrigger(run, sim);
         MarkersEndWithMission(run, sim);
         RivalsSymmetric(run, sim);
@@ -119,6 +120,23 @@ public static class Invariants
                 Fail("tech_count", $"{ship.UniqueID}/{stored}/{held}",
                     $"{ship.Metadata.PlainShipName}: the game counts {stored} stored tech, but its vaults and storage hold {held}");
         }
+    }
+
+    /// <summary>
+    /// Spec 1008, 2520: a move to another system loses the tech that stays, so no tech that hunters or friendly ships hold, and no
+    /// waiting tech, belongs to another system. A waiting ship that just arrived keeps its old system until the next VaultWait tick.
+    /// </summary>
+    static void TechOnlyHere(Run run, SimRoot sim)
+    {
+        var here = sim.NodeId();
+        var t = run.State.Tech;
+        var elsewhere = t.HunterHeld.Where(h => h.Node != here).Select(h => $"hunter {h.ShipName}")
+            .Concat(run.State.Diplomacy.Held.Where(h => h.Node != here).Select(h => $"holder {h.ShipName}"))
+            .Concat(t.Waiting.Where(w => w.Node != here && sim.Ships[w.Ship] is null && !run.Game.ShipsInJumpLimbo.Any(s => s.UniqueID == w.Ship))
+                .Select(w => $"waiting on {w.ShipName}"))
+            .ToList();
+        if (elsewhere.Count > 0)
+            Fail("tech_elsewhere", string.Join("/", elsewhere), $"tech of another system is still in the run state: {string.Join(", ", elsewhere)}");
     }
 
     /// <summary>
