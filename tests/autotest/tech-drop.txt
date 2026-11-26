@@ -1,5 +1,5 @@
 # Destroyed vaults (spec 65, 445): crates or burned tech by a forced roll. A new vault that crew build takes the crates back (spec 447).
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 tech_set LossGraceSeconds 600

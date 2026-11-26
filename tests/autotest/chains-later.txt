@@ -1,6 +1,6 @@
 # Chains (CHAINS.md): a guarded wreck paid out through the station's comms, a choice page, an Arrival page in a later system,
 # a careful-targeting mission that starts at once in that system, and a tech reward at the end.
-newgame run
+newgame
 wait 8
 # Sell one crate, so the vault has room for the chain's tech reward.
 event the_fence

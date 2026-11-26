@@ -1,6 +1,6 @@
 # Autonomous ships (spec 1050 to 1061): a Computer flies a ship without crew, mans the one part in front of it, the targeted reactor
 # powers the parts next to it, the sim refuses player orders, and the ship stays the player's while a Computer works.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

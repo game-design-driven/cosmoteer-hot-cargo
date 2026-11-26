@@ -1,6 +1,6 @@
 # Looter scenario (spec 1076, 1083): the looter waits while another ship needs repair, collects after, sells at a known station,
 # and leaves loot near an enemy alone.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 shipai Log on

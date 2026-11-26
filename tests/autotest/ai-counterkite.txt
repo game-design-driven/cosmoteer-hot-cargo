@@ -1,6 +1,6 @@
 # Counter kiting (spec 1900 to 1907): an enemy that a player ship outranges and hits stops feeding it. It closes in hard; when the
 # kiter keeps the gap, it breaks off and holds out of reach.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

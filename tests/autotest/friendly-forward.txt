@@ -1,6 +1,6 @@
 # Pay it forward (spec 1369 to 1371): outclassed players in an actual fight get help from the Wayfarers, who have their own allegiance (friends of the
 # players, enemies of their enemies). After the fight they hail with the "pay it forward" page, repair and leave.
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

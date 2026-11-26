@@ -1,6 +1,6 @@
 # Run modes, Ironman (spec 685). Without Ironman a loss keeps the save. With Ironman a loss deletes the Ironman save and clears the
 # last save, the game-over screen says so, and a win keeps the save and says that the score is final.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 expect ironman == 0

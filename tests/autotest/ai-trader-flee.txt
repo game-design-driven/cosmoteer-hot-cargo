@@ -1,7 +1,7 @@
 # Trader flee hysteresis (spec 1531): a fleeing trade ship keeps fleeing while an enemy is within radar × TraderFleeStopFactor.
 # Each step waits 2 s (the trade ship AI checks every 0.75 to 1.25 s) and the whole flee stays short: vanilla jumps a fleeing
 # trade ship away after 10 to 20 s.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

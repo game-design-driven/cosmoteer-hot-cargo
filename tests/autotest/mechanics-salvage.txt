@@ -1,6 +1,6 @@
 # Tow (spec 134) and capture (spec 135, 2380: the bank takes the freighter at the station).
 # missions: random
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 # The test takes several offers of one rival group (spec 103: tow and capture share salvage_rights, sun mining and

@@ -1,6 +1,6 @@
 # Ship tactics (spec 400 to 411): rows set through the tactics input, evaluation order, conditions and actions
 # on the starting ship against two hunters, the manual order override, and an ally.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

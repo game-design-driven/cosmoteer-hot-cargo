@@ -1,6 +1,6 @@
 # Option rows wrap inside their box (spec 591): playtest 2026-11-23, a friendly ship's help row spilled out of its box. The hire row
 # is long and shares its row with a slider, so it wraps the most. Headless layout check at the sizes and UI scales of the readability pass.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 dip_set DemandHailChance 0

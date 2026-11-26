@@ -1,5 +1,5 @@
 # Storm survey (spec 136) and sun mining (spec 138).
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 # The test takes several offers of one rival group (spec 103: tow and capture share salvage_rights, sun mining and

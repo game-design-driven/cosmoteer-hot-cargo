@@ -1,6 +1,6 @@
 # The scientist (spec 486 to 499): research, defection, and the fair duel with the partner of a scientist who died. Each roll is fixed by
 # its chance (1 or 0).
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

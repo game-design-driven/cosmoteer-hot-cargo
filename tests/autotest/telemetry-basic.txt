@@ -1,7 +1,7 @@
 # speed: 1
 # Telemetry (TELEMETRY.md, spec 530 and later): a session file with the header, heat sources, money sources, tech causes,
 # snapshots, perf, the log copy, and a save and load that continues the run ID. Telemetry overhead stays below 1 % of frame time.
-newgame run
+newgame
 wait 8
 expect tele_active == 1
 expect tele_trace_missing == 0

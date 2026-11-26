@@ -1,6 +1,6 @@
 # Telemetry: playtest notes (spec 1984 to 1986). The note key opens a text dialog, Enter saves a "note" event, Escape saves
 # nothing. Headless games have no graphics device, so the note has no screenshot here.
-newgame run
+newgame
 wait 8
 # A focused text box that blocks other input (like the co-op chat) keeps the key from opening a note.
 expect telenote_can_open == 1

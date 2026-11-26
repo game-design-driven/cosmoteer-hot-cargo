@@ -1,7 +1,7 @@
 # Pirate thieves (spec 1770 to 1799): a thief group fights a player ship and aims at its cargo. When enough player cargo floats near it,
 # it stops fighting, collects with crew and funnel, flees and jumps out. A second group dies, and its storage drops.
 # tier: smoke
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 scav_set FactionEnabled false

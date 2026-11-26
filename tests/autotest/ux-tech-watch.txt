@@ -1,7 +1,7 @@
 # Spec 2120 to 2129: the tech watch lists the players' tech outside their vaults, each line clicks to it, and banners warn.
 # Playtest 2026-11-24 (co-op): a rebuild took a vault out of the design, the tech left the vaults, nobody saw it, the run was lost.
 # watch_<kind>: units of that kind; watch_focus_<kind>: the FocusStep of its first line (-1 none, 0 none, 1 galaxy map, 2 ship, 3 marker, 4 place).
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 tech_set LossGraceSeconds 600

@@ -1,5 +1,5 @@
 # Salvager scenario (spec 1079): the Computer mans a mining laser; the ship salvages a wreck and the Funnel takes the parts in.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

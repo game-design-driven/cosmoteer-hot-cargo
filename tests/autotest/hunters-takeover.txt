@@ -1,7 +1,7 @@
 # Hunters never join the players (playtest 2026-11-13, spec 33, 1002, 1003). The players take over a hunter ship, then new
 # hunters arrive: none of them has a human index (invariant hunter_spawn_hostile), and all are enemies of the players. A wave that
 # arrives while the other hunters wait in stasis joins their side. The taken ship is a normal player ship and stays (spec 2280).
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

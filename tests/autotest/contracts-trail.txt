@@ -1,5 +1,5 @@
 # Economy: spec 101, 104, 57. Four open contracts leave a trail; an informant sells the players out with a named warning; terms survive a save.
-newgame run
+newgame
 wait 8
 hc_generate all
 wait 3

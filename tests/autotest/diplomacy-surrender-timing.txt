@@ -1,7 +1,7 @@
 # Issue #289 (spec 2220, 2221): an enemy offered its surrender right after it attacked, and its page offered the players' own
 # surrender to it. Now it offers its surrender only after SurrenderMinFightSeconds in the fight or SurrenderMinDamage lost, and its
 # page then shows only the vanilla accept and decline. Vanilla decides alone here (RiskEnabled false), so the stance does not matter.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

@@ -1,6 +1,6 @@
 # Chains (CHAINS.md): a chain walks through a stage result, a choice page, a standing offer that loops, and its end.
 # missions: random
-newgame run
+newgame
 wait 8
 # Random events off, so they do not take the event window.
 ev_set Enabled false

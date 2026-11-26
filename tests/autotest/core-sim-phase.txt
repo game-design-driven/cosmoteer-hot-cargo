@@ -1,5 +1,5 @@
 # Spec 1009: a change of the sim from frame code breaks the rule sim_outside_phase. The test makes two such changes on purpose.
-newgame run
+newgame
 wait 3
 invariants_expect sim_outside_phase
 simphase_leak state

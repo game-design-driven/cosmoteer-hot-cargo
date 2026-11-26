@@ -1,6 +1,6 @@
 # Spec 2300: the guard of a station stage offer stays neutral until the players accept the stage; then it fights.
 # The Black Box's first stage is a station offer with a raider guard (vanilla Normal AI) at the wreck.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 # The guard's personality rolls with the start world; a cover or bait personality would hide instead of attacking.

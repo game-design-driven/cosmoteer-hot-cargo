@@ -1,6 +1,6 @@
 # Extraction (spec 1105): after the escorts, Okafor crosses over in the transport's comms and joins as crew. The debrief hands her
 # on (crew -1). A transport that dies before the pickup fails the stage with the "lost" result.
-newgame run
+newgame
 wait 8
 ev_set ArrivalEventChance 0
 ev_set StationEventChance 0

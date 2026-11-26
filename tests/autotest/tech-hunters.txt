@@ -1,5 +1,5 @@
 # Hunters and tech crates (spec 446): a hunter leaves the fight for crates, takes them, shows them on its blip, and its wreck drops them.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

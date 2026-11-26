@@ -1,4 +1,5 @@
 # Balance (spec 300 to 304, BALANCE.md): fuel rules, blueprint price scale, heat for fame above the cap, station fuel floor.
+# The run map (spec 1702): the peak tier below follows its bands.
 newgame run
 wait 8
 # Spec 300: scarce FTL fuel.

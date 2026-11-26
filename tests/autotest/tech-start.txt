@@ -1,5 +1,5 @@
 # Tech: starting cargo in the vaults of the preset design, starting research, price, storage rule, vault damage, save and load.
-newgame run
+newgame
 wait 8
 log start
 # Spec 1014, 1017, 1541: the Model-L preset has the vaults for the starting tech by design (2x2, one unit per tile). The run fills them.

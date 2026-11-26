@@ -1,5 +1,5 @@
 # Spec 58: the co-op run hash reads every saved member of the run state. Each member below was outside the old hand-kept hash.
-newgame run
+newgame
 wait 3
 pause on
 waitfor paused == 1 10

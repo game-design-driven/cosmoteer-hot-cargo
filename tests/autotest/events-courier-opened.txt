@@ -1,6 +1,6 @@
 # Spec 1117, 1118: the courier contact takes an opened case and reacts (forced rolls). It pays 20 % less, turns hostile, or jumps
 # away. Hostile and gone fail the job; the case is gone either way.
-newgame run
+newgame
 wait 8
 godmode on
 ev_set CourierChance 0
