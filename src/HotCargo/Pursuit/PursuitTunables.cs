@@ -44,6 +44,7 @@ public sealed class PursuitTunables
         new() { Kind = PacedKinds.StationAttack, MaxPerRun = 2, MinGapSeconds = 1200f },
         new() { Kind = PacedKinds.Thieves, MaxPerRun = 3, MinGapSeconds = 900f },
         new() { Kind = PacedKinds.Mayday, MaxPerRun = 3, MinGapSeconds = 900f },
+        new() { Kind = PacedKinds.Callback, MaxPerRun = 2, MinGapSeconds = 900f },
     ];
 
     // ---- Reporting scout (spec 910 to 914)
@@ -143,4 +144,6 @@ public static class PacedKinds
     public const string Thieves = "Thieves";
     /// <summary>Spec 2430: a live distress fight (Missions/Mayday.cs).</summary>
     public const string Mayday = "Mayday";
+    /// <summary>Spec 2505: a callback page, a past act that comes back (Events/Memories.cs).</summary>
+    public const string Callback = "Callback";
 }

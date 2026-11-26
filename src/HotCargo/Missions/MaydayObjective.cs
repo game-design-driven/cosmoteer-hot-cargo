@@ -165,6 +165,8 @@ internal sealed class MaydayObjective : Objective, IMissionMarkers
         if (AttackersLeft(sim) == 0)
         {
             Ux.UxKit.ChatLine(sim.RequireGame(), Strings.FormatText("HotCargoMissions/MaydayThanksFmt", Victim.GetXmlTargetName(sim)));
+            // Spec 2501: the run remembers the saved ship for a callback.
+            if (Run.Current is { } run && Victim.TargetShip is { } saved) Events.Memories.Record(run, sim, Events.MemoryKind.Rescued, saved);
             End(fail: false, "every attacker is dead");
             return;
         }

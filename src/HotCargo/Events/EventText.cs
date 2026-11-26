@@ -104,7 +104,8 @@ public static class EventText
     /// <summary>
     /// Fills text tokens. {crates}: the fleet tech count ("7 crates"). From the page's offer (spec 763): {offer_techs} (names),
     /// {offer_units} ("2 crates"), {offer_worth} (the tech value of those units), {offer_value} (the research value),
-    /// {offer_price} (a research sale's price).
+    /// {offer_price} (a research sale's price). From a callback's memory (spec 2503): {mem_ship} (the other ship's name) and {mem_system}
+    /// (where it happened). A page without a memory keeps those tokens as they are; the rules check allows them only with Recalls.
     /// </summary>
     /// <summary>Token fillers of other code (Off the Books, spec 1802): each gets the text and returns it with its tokens filled. UI text only.</summary>
     public static readonly List<Func<string, string>> Tokens = [];
@@ -113,6 +114,9 @@ public static class EventText
     {
         text = text.Replace("{crates}", Crates(fleetTech), StringComparison.Ordinal);
         foreach (var fill in Tokens) text = fill(text);
+        if (p?.Recall is { } m)
+            text = text.Replace("{mem_ship}", Halfling.StringTools.EscapeForXml(m.Ship), StringComparison.Ordinal)
+                .Replace("{mem_system}", Halfling.StringTools.EscapeForXml(m.System), StringComparison.Ordinal);
         if (p is null || !text.Contains("{offer_", StringComparison.Ordinal)) return text;
         return text
             .Replace("{offer_techs}", ResearchOffers.Names(p), StringComparison.Ordinal)

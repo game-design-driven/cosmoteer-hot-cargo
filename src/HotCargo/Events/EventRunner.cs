@@ -71,7 +71,7 @@ public static class EventRunner
         if (s.ArrivalDueSeconds >= 0 && now >= s.ArrivalDueSeconds)
         {
             s.ArrivalDueSeconds = -1;
-            TryTrigger(run, sim, EventTrigger.Arrival, Chance(run, sim, t.ArrivalEventChance), limited: true);
+            if (!TryCallback(run, sim)) TryTrigger(run, sim, EventTrigger.Arrival, Chance(run, sim, t.ArrivalEventChance), limited: true);
             return;
         }
         // Proximity checks run twice a game second. The step comes from game time, so every client checks on the same tick.
@@ -182,25 +182,43 @@ public static class EventRunner
     public const string CourierSpawn = "Courier";
 
     /// <summary>
-    /// Rolls the chance, then picks an eligible event of the trigger by weight and opens it.
-    /// limited: the cooldown and the per-system cap apply (Arrival and Station).
+    /// Spec 2504, 2505: the Arrival point of a new sector first tries a callback, while the big event pacer allows one. An Arrival point
+    /// comes once per sector (the first visit of a system), so a sector gets at most one callback. True when a callback page opened.
     /// </summary>
-    static void TryTrigger(Run run, SimRoot sim, EventTrigger trigger, float chance, bool limited, ObjectID? carrier = null)
+    static bool TryCallback(Run run, SimRoot sim)
+    {
+        // No memory to recall: no roll, so the sim random stream of a run without memories stays as it was.
+        if (!State(run).Memories.Any(m => !m.Recalled)) return false;
+        if (!Pursuit.Pacer.MayStart(run, Pursuit.PacedKinds.Callback))
+        {
+            Log.Info($"events: callback held by the pacer ({Pursuit.Pacer.Verdict(run, Pursuit.PacedKinds.Callback)})");
+            return false;
+        }
+        if (!TryTrigger(run, sim, EventTrigger.Callback, run.T.Events.CallbackChance, limited: true)) return false;
+        Pursuit.Pacer.Started(run, Pursuit.PacedKinds.Callback);
+        return true;
+    }
+
+    /// <summary>
+    /// Rolls the chance, then picks an eligible event of the trigger by weight and opens it. True when a page opened.
+    /// limited: the cooldown and the per-system cap apply (Arrival, Station and Callback).
+    /// </summary>
+    static bool TryTrigger(Run run, SimRoot sim, EventTrigger trigger, float chance, bool limited, ObjectID? carrier = null)
     {
         var t = run.T.Events;
         var s = State(run);
         ObjectID node = sim.MapNode?.UniqueID ?? throw new InvalidOperationException("sim has no map node");
         float roll = sim.Rand.Single();
-        if (roll >= chance) { Log.Info($"events: {trigger} roll {roll:0.00} >= chance {chance:0.00}, no event"); return; }
+        if (roll >= chance) { Log.Info($"events: {trigger} roll {roll:0.00} >= chance {chance:0.00}, no event"); return false; }
         if (limited && !EventModel.CooldownOver(run.State.GameSeconds, s.LastEventSeconds, t.CooldownSeconds))
         {
             Log.Info($"events: {trigger} skipped, cooldown");
-            return;
+            return false;
         }
         if (limited && s.NodeEvents.GetValueOrDefault(node) >= t.MaxEventsPerSystem)
         {
             Log.Info($"events: {trigger} skipped, {t.MaxEventsPerSystem} events in this system already");
-            return;
+            return false;
         }
         var snapshot = Snap(run, sim, RichestHumanMoney(run), run.CurrentTier, CurrentTechValue(run));
         // Spec 1813: an event that brings its own carrier waits for a working player ship.
@@ -209,16 +227,16 @@ public static class EventRunner
         var weights = candidates.Select(e => EventModel.EffectiveWeight(e.Weight, e.WeightPerHeat, e.WeightPerTech, run.State.Heat, run.State.FleetTech)
             * (e.Offer == OfferKind.None ? 1f : Math.Max(0f, t.ResearchWeightScale))).ToList();
         int pick = EventModel.PickWeighted(weights, sim.Rand.Single());
-        if (pick < 0) { Log.Info($"events: no eligible {trigger} event"); return; }
+        if (pick < 0) { Log.Info($"events: no eligible {trigger} event"); return false; }
         // Every triggered event starts the cooldown, so an Arrival or Station event does not follow right after another dialog.
         s.LastEventSeconds = run.State.GameSeconds;
         if (limited) s.NodeEvents[node] = s.NodeEvents.GetValueOrDefault(node) + 1;
-        Open(run, sim, candidates[pick], lead: "", carrier, carrierHails: carrier is not null);
+        return Open(run, sim, candidates[pick], lead: "", carrier, carrierHails: carrier is not null);
     }
 
     /// <summary>A trigger without the cooldown and the per-system cap: Relic (the player chose to fly there).</summary>
     internal static void TriggerUnlimited(Run run, SimRoot sim, EventTrigger trigger, float chance) =>
-        TryTrigger(run, sim, trigger, chance, limited: false);
+        _ = TryTrigger(run, sim, trigger, chance, limited: false);
 
     /// <summary>
     /// True when the event may open now: under its run limit, under its category limit, and its need is met.
@@ -235,6 +253,7 @@ public static class EventRunner
             if (seen >= run.T.Events.MaxUnavoidablePerRun) return false;
         }
         if (!ResearchOffers.Possible(run, e.Offer, run.CurrentTier, CurrentTechValue(run))) return false;
+        if (e.Recalls != MemoryKind.None && Memories.Pick(run, e.Recalls) < 0) return false;
         return EventModel.FirstUnmet(ToNeed(run, e.Need, run.CurrentTier, CurrentTechValue(run)), snapshot) is null;
     }
 
@@ -252,6 +271,13 @@ public static class EventRunner
             Log.Info($"event {e.ID} not opened: its carrier needs a working player ship, and there is none");
             return false;
         }
+        // Spec 2503: a callback recalls the oldest memory of its kind. Checked before any state changes.
+        Memory? recall = null;
+        if (e.Recalls != MemoryKind.None)
+        {
+            int index = Memories.Pick(run, e.Recalls);
+            recall = index >= 0 ? s.Memories[index] : throw new InvalidOperationException($"callback {e.ID} opened with no {e.Recalls} memory to recall");
+        }
         s.Seen[e.ID] = s.Seen.GetValueOrDefault(e.ID) + 1;
         s.Pending = new PendingEvent
         {
@@ -264,10 +290,18 @@ public static class EventRunner
             Lead = lead,
         };
         ResearchOffers.Fill(run, s.Pending, e.Offer);
+        if (recall is { } memory)
+        {
+            memory.Recalled = true;
+            s.Pending.Recall = memory.Copy();
+        }
         if (carrier is null && e.Carrier.Length > 0)
         {
             carrier = EventHail.SpawnCarrier(sim, e, s.Pending.Seed) ?? throw new InvalidOperationException("no working player ship after the check");
             carrierHails = e.CarrierHails;
+            // Spec 2503: the ship that comes back carries the name of the ship in the memory. Limit: its hull is a new ship from the
+            // carrier spawn, not the old design. Revisit if players expect the same hull.
+            if (recall is not null && sim.Ships[carrier.Value] is { } back) back.Metadata.PlainShipName = recall.Ship;
         }
         s.Pending.Carrier = carrier;
         s.Pending.CarrierNode = carrier is null ? null : sim.NodeId();

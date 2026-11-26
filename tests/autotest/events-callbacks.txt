@@ -1,0 +1,73 @@
+# Callbacks (spec 2500 to 2509): an accepted surrender leaves a memory. The next sector brings that ship back by name with its callback
+# page. Each memory comes back once, and the big event pacer keeps the next callback for its gap.
+newgame run
+wait 8
+ev_set ArrivalEventChance 0
+ev_set StationEventChance 0
+ev_set CourierChance 0
+ev_set CooldownSeconds 0
+ev_set CallbackChance 1
+godmode on
+aiset FleeEnabled false
+openspace 6000 3000
+# A pirate (a ship with no faction) surrenders to the players' demand: the run remembers it.
+dip_set SurrenderChanceBase 5
+dip_spawn enemy 250
+wait 2
+dip demandsurrender enemy
+wait 1
+expect dip_surrendered == 1
+expect ev_memories == 1
+# MemoryKind.SparedPirate
+expect ev_memory_kind == 2
+# Not in the same sector: a memory comes back at least one sector later.
+ev_arrive
+wait 8
+expect ev_recall_kind == 0
+# The memory survives a save and a load.
+save callbacks
+load callbacks
+wait 2
+expect ev_memories == 1
+ev_set ArrivalEventChance 0
+ev_set StationEventChance 0
+ev_set CourierChance 0
+ev_set CooldownSeconds 0
+ev_set CallbackChance 1
+# The next sector: the pirate's ship hails with its callback page, under its old name.
+jump
+waitfor sector == 2 25
+pause off
+waitfor ev_recall_kind == 2 20
+expect ev_recall_named == 1
+expect ev_carrier == 1
+choose last
+expect ev_pending == 0
+# The pacer holds the next callback for its gap (Pursuit.Events, kind Callback).
+ev_remember Spared
+ev_arrive
+wait 8
+expect ev_recall_kind == 0
+expect ev_pending == 0
+# A faction ship that was spared offers to join: the page opens on the memory, and the memory is used up.
+event cb_spared
+expect ev_recall_kind == 1
+expect ev_recall_named == 1
+choose 1
+expect ev_pending == 0
+expecteligible cb_spared 0
+# The other callbacks open on their memories, under the memory's name.
+ev_remember PaidOff
+event cb_route_sold
+expect ev_recall_named == 1
+choose last
+ev_remember Bluffed
+event cb_bluff_grudge
+expect ev_recall_named == 1
+choose 1
+ev_remember Rescued
+event cb_rescued
+expect ev_recall_named == 1
+choose 1
+expect ev_pending == 0
+quit

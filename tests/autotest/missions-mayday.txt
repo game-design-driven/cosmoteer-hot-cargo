@@ -25,6 +25,8 @@ hc_mayday_kill_attackers
 wait 3
 expect hc_mayday_done == 1
 expect hc_mayday_ring == 0
+# Spec 2501: the run remembers the saved ship (MemoryKind.Rescued).
+expect ev_memory_kind == 5
 hc_mark
 hc_mayday_collect
 wait 5

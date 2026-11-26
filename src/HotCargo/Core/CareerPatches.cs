@@ -85,6 +85,7 @@ static class CareerPatches
         iHash.AddHash(s.Tech.Decay.Count * 100_000 + (int)(s.Tech.Decay.Sum(d => d.Wear) * 10 % 100_000));
         iHash.AddHash(s.Events.LastSerial);
         iHash.AddHash(s.Events.Pending?.Serial ?? 0);
+        iHash.AddHash(s.Events.Memories.Count * 1000 + s.Events.Memories.Count(m => m.Recalled));
         iHash.AddHash((int)(s.Notoriety * 100));
         iHash.AddHash(s.PeakTier);
         iHash.AddHash(s.Contracts.Terms.Count);
