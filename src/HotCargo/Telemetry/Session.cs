@@ -674,13 +674,6 @@ sealed class Session
             w.WriteBoolean("timer_running", LossTimer.IsRunning(Run));
             Tele.Num(w, "elapsed_s", s.SecondsWithoutTech);
             if (LossTimer.SecondsLeft(Run) is { } left) Tele.Num(w, "left_s", left);
-            if (pause == "ships_elsewhere")
-            {
-                w.WriteStartObject("waiting");
-                foreach (var (node, data) in Run.Mode._nodeData.Where(kv => kv.Key != Game.CurrentMapNode && kv.Value.NumFriendlyShips > 0).OrderBy(kv => kv.Key.Name))
-                    w.WriteNumber(node.Name, data.NumFriendlyShips);
-                w.WriteEndObject();
-            }
         });
     }
 

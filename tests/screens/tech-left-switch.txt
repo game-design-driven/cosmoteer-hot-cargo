@@ -1,0 +1,23 @@
+# Spec 2522: a switch back to the waiting fleet asks first, because the tech of this system is lost.
+# RUNNER=mac scripts/screens.sh tests/screens/tech-left-switch.txt <out-dir>
+render on
+newgame
+wait 8
+closepanel
+wait 1
+ev_set Enabled false
+godmode on
+pause off
+jw_twin save
+jw_twin spawn
+wait 2
+jw_jump_split
+waitfor sector == 2 30
+wait 3
+tech add 2
+wait 2
+jw_switch back
+wait 1
+screenshot leftswitch-01-dialog
+jw_answer no
+quit

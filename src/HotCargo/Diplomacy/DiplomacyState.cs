@@ -73,7 +73,7 @@ public sealed class HeldTech
 {
     [Serialize] public ObjectID Ship;
     [Serialize] public string ShipName = "";
-    /// <summary>The system of the ship. Held tech in another system counts until the players come back and find the ship gone.</summary>
+    /// <summary>The system of the ship. A move to another system loses the held tech of that system (spec 2524).</summary>
     [Serialize] public ObjectID Node;
     [Serialize] public int Player;
     [Serialize] public int Units;

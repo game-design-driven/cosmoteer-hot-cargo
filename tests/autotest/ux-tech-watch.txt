@@ -37,18 +37,18 @@ dip return friend
 wait 1
 expect watch_friend == 0
 expect tech == 8
-# Crates in space: one line that clicks to their place, the crate marker, and the jump dialog line.
+# Crates in space: one line that clicks to their place, and the crate marker. No ship is ready, so ENGAGE would leave all tech
+# behind, the crates too (spec 2522).
 tech drop 2
 wait 1
 expect watch_crates == 2
 expect watch_focus_crates == 4
 expect cratemarkers >= 1
-expect watch_jumpline == 1
+expect ux_jump_techleft == 8
 watch_click crates
 waitfor watch_alarms == 1 10
 tech collect
 waitfor watch_crates == 0 120
-expect watch_jumpline == 0
 waitfor vaulttech == 8 120
 # The playtest rebuild: a full vault leaves the design while the other vault is full. The design warning comes at once, before crew
 # take the vault apart. Then its tech has no vault and goes to normal storage, where the line counts down its decay.

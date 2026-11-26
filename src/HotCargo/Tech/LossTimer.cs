@@ -79,7 +79,7 @@ public static class LossTimer
             if (s.Tech.LossTimerRunning) Stop(run);
             return;
         }
-        // An uncertain count (a jump, friendly ships in another system) pauses the timer. It neither starts nor resets it.
+        // An uncertain count (a jump under way) pauses the timer. It neither starts nor resets it.
         if (!CountIsCertain(run, sim)) return;
         if (!s.Tech.LossTimerRunning) Start(run, Strings.GetText("HotCargoTech/LossTimerNoTech"));
         s.SecondsWithoutTech += dt;
@@ -99,16 +99,15 @@ public static class LossTimer
     }
 
     /// <summary>
-    /// The conditions of the vanilla game-over check in CareerGameModeManager.Update: no jump in progress, no friendly ships in another system.
-    /// It checks ships in jump limbo instead of GameRoot.IsDoingNodeJump: that flag follows local animations and the local FTL autosave
-    /// setting, so it changes at different ticks on each multiplayer machine. Jump limbo changes only at synchronized jump signals.
+    /// Spec 12: no jump in progress. It checks ships in jump limbo instead of GameRoot.IsDoingNodeJump: that flag follows local animations
+    /// and the local FTL autosave setting, so it changes at different ticks on each multiplayer machine. Jump limbo changes only at
+    /// synchronized jump signals. Ships in another system do not pause it: they hold no tech (spec 2520).
     /// </summary>
     static bool CountIsCertain(Run run, SimRoot sim) => PauseReason(run, sim) is null;
 
-    /// <summary>Why the count is uncertain now (spec 12): local_jump, jump_limbo or ships_elsewhere. Null when it is certain. Reads sim state only.</summary>
+    /// <summary>Why the count is uncertain now (spec 12): local_jump or jump_limbo. Null when it is certain. Reads sim state only.</summary>
     internal static string? PauseReason(Run run, SimRoot sim) =>
         sim.Ships.IsDoingLocalJump ? "local_jump"
         : run.Game.ShipsInJumpLimbo.Count > 0 ? "jump_limbo"
-        : run.Mode._nodeData.Any(kv => kv.Key != run.Game.CurrentMapNode && kv.Value.NumFriendlyShips > 0) ? "ships_elsewhere"
         : null;
 }

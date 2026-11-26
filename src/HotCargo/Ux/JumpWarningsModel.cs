@@ -10,6 +10,9 @@ public enum StayReason { None, NoDrive, NoControl, TooBig, NeedFuel, NotOrdered,
 /// </summary>
 public readonly record struct JumpFacts(bool HasDrive, bool CanCommand, int Cost, int Capacity, int Fuel, bool Ordered, bool Ready);
 
+/// <summary>Spec 2522: the tech that a move to another system leaves behind: none, some, or all of it.</summary>
+public enum TechLeft { None, Some, All }
+
 public static class JumpWarningsModel
 {
     /// <summary>Spec 1560: the reason a ship stays behind on the planned jump, in the order a player fixes them.</summary>
@@ -40,7 +43,7 @@ public static class JumpWarningsModel
     /// <summary>
     /// Spec 1566: the system that the players go back to when no human ship is in the current system: the one with the most waiting
     /// ships (a tie keeps the order of the list). Null while a human ship is here, while a jump is under way, or when no ship waits.
-    /// The loss timer stays paused meanwhile (spec 12): the waiting ships can hold tech, and the vanilla map switch brings the players back.
+    /// The waiting ships hold no tech (spec 2520), so the loss timer runs meanwhile (spec 12); the vanilla map switch brings the players back.
     /// </summary>
     public static TNode? RejoinTarget<TNode>(int shipsHere, bool jumpUnderWay, IEnumerable<(TNode Node, int Ships)> elsewhere) where TNode : class =>
         shipsHere > 0 || jumpUnderWay ? null : elsewhere.Where(e => e.Ships > 0).OrderByDescending(e => e.Ships).Select(e => e.Node).FirstOrDefault();
@@ -52,11 +55,15 @@ public static class JumpWarningsModel
     public static double RecallLeft(double now, double strandedSince, double? lastRecall, float recallSeconds) =>
         (lastRecall ?? strandedSince) + recallSeconds - now;
 
-    /// <summary>Spec 1602: no ship that jumps holds tech, and a ship that stays holds some. Playtest: the mothership kept the last unit.</summary>
-    public static bool AllTechStays(IEnumerable<(bool Jumps, int Tech)> fleet)
+    /// <summary>
+    /// Spec 2522: what a move to another system leaves behind. stays: tech that stays in this system and is lost; goes: tech that comes
+    /// along. All: no tech comes along. Playtest 2026-11-15: the mothership with the last unit stayed.
+    /// </summary>
+    public static TechLeft LeftKind(int stays, int goes)
     {
-        var ships = fleet.ToList();
-        return ships.Any(s => !s.Jumps && s.Tech > 0) && !ships.Any(s => s.Jumps && s.Tech > 0);
+        ArgumentOutOfRangeException.ThrowIfNegative(stays);
+        ArgumentOutOfRangeException.ThrowIfNegative(goes);
+        return stays == 0 ? TechLeft.None : goes == 0 ? TechLeft.All : TechLeft.Some;
     }
 }
 

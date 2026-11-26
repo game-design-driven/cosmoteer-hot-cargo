@@ -68,10 +68,10 @@ Spec: [Tech value and selling](spec/08-tech-value-and-selling.md), [Win and loss
 <details>
 <summary><b>Jumps cool you down</b>: reach a quiet relay first</summary>
 
-Every jump to another system leaves most of the heat behind. A relay with no hunter near it cuts more heat than a watched one. Ships that cannot make the jump get a warning before you leave, so nobody is stranded by surprise. The jump dialog also says when a ship that stays carries your tech.
+Every jump to another system leaves most of the heat behind. A relay with no hunter near it cuts more heat than a watched one. Ships that cannot make the jump get a warning before you leave, so nobody is stranded by surprise. Tech that stays behind is lost, and the jump dialog says how much before you go.
 
 <img src="docs/screenshots/jump-warnings.jpg" width="60%" alt="The jump window names the ships that stay behind">
-<img src="docs/screenshots/jump-carrier.jpg" width="38%" alt="The jump dialog warns that all your tech stays behind">
+<img src="docs/screenshots/jump-carrier.jpg" width="38%" alt="The jump dialog warns that all your tech stays behind and is lost">
 
 Spec: [Factions, jumps and station prices](spec/38-factions-jumps-and-station-prices.md), [Jump warnings](spec/58-jump-warnings.md)
 </details>
