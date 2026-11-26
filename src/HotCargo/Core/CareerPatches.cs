@@ -67,44 +67,11 @@ static class CareerPatches
         if (Run.Current is { } run && run.Mode == __instance) AddRunHash(run, iHash);
     }
 
-    /// <summary>The Hot Cargo part of the mode's integrity hash. MpAutotest logs it alone at the first ticks of a co-op game.</summary>
-    internal static void AddRunHash(Run run, IntegrityHash iHash)
-    {
-        var s = run.State;
-        iHash.AddHash((int)(s.Heat * 1000));
-        iHash.AddHash(s.SectorIndex);
-        // Run state that the sim does not hash itself, so a divergence shows at once and not only when it reaches the sim.
-        iHash.AddHash((int)s.Result);
-        iHash.AddHash(s.StagesStarted);
-        iHash.AddHash(s.FleetTech);
-        iHash.AddHash(s.DeliveredUnits);
-        iHash.AddHash((int)(s.GameSeconds * 10));
-        iHash.AddHash((int)(s.SecondsWithoutTech * 10));
-        iHash.AddHash(s.Tech.HunterHeld.Sum(h => h.Units));
-        iHash.AddHash(s.Tech.Waiting.Sum(w => w.Units));
-        iHash.AddHash(s.Tech.Decay.Count * 100_000 + (int)(s.Tech.Decay.Sum(d => d.Wear) * 10 % 100_000));
-        iHash.AddHash(s.Events.LastSerial);
-        iHash.AddHash(s.Events.Pending?.Serial ?? 0);
-        iHash.AddHash(s.Events.Memories.Count * 1000 + s.Events.Memories.Count(m => m.Recalled));
-        iHash.AddHash((int)(s.Notoriety * 100));
-        iHash.AddHash(s.PeakTier);
-        iHash.AddHash(s.Contracts.Terms.Count);
-        iHash.AddHash(s.Contracts.Informants.Count);
-        iHash.AddHash(s.SharedChoice.Boxes.Sum(b => b.Votes.Count) * 2 + (s.SharedChoice.VoteMode ? 1 : 0));
-        iHash.AddHash((int)(s.Debt.Total % int.MaxValue) * 31 + s.Debt.Collectors.Count);
-        iHash.AddHash((int)(((s.Debt.Help?.HelperDamage ?? -1) * 31 + (s.Debt.Help?.PlayerDamage ?? -1)) % int.MaxValue));
-        iHash.AddHash(s.Scavenge.Seen.Count);
-        iHash.AddHash((int)(s.Scavenge.ProvokedUntil * 10));
-        iHash.AddHash((int)(s.Storyteller.AdaptMinutes * 100));
-        int reports = 0;
-        foreach (var r in s.AiReports.Groups)
-            reports = unchecked(reports * 31 + ShipAi.ShipAiModel.StableHash(r.Group) + (r.Kite ? 1 : 0) + (r.Cloud ? 2 : 0) + (r.Focus + 1) * 4 + r.Age * 16);
-        iHash.AddHash(reports * 31 + s.AiReports.Noticed.Count);
-        // string.GetHashCode is random per process, so it would differ between clients. This hash is stable.
-        int tunables = 0;
-        foreach (char c in run.State.TunablesHash) tunables = tunables * 31 + c;
-        iHash.AddHash(tunables);
-    }
+    /// <summary>
+    /// The Hot Cargo part of the mode's integrity hash: every saved member of the run state (RunHash), so a divergence shows at once
+    /// and not only when it reaches the sim. MpAutotest logs it alone at the first ticks of a co-op game.
+    /// </summary>
+    internal static void AddRunHash(Run run, IntegrityHash iHash) => iHash.AddHash(RunHash.Of(run.State));
 
     /// <summary>A failure in a lifecycle hook leaves Hot Cargo inactive for this game instead of crashing the game.</summary>
     static void Guard(string what, Action action) => Errors.Guard(what, action);

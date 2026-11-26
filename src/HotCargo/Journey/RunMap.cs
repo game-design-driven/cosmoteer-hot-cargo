@@ -70,7 +70,10 @@ internal sealed class RunMapTiersSpawner : GalaxySpawner
             if (RunMap.Band(node) != 0) continue;
             data.IsInitNode = true;
             data.SectorTypeID = StartSectorType;
-            node.SetFactionStrength(StartFaction, 1f, clearOthers: true);
+            // Fringe controls the start, as in vanilla (StartingNodePicker: AllowedFactions fringe), and the other factions keep their
+            // presence there: the local ship and station mix draws on them.
+            float strongest = node.FactionStrengths.Where(f => f.Key != StartFaction).Select(f => f.Value).DefaultIfEmpty(0f).Max();
+            node.SetFactionStrength(StartFaction, Math.Max(node.GetFactionStrength(StartFaction), strongest + 0.01f));
         }
     }
 }

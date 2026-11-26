@@ -1,6 +1,6 @@
 # The troublemaker (spec 480 to 485): a ship pays the players to take a troublemaker aboard. A thief steals twice the pay at the next
 # station visit and slips off; an honest one stays. One branch each, with the roll fixed by the chance (0 or 1).
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

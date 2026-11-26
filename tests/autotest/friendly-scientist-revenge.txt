@@ -1,6 +1,6 @@
 # The scientist's partner (spec 493, 495): an ally joins the duel, so the partner flees and comes back with a fleet. A declined challenge
 # brings the fleet too.
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

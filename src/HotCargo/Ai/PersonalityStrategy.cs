@@ -182,6 +182,17 @@ internal sealed class PersonalityStrategy(PersonalityStrategyRules rules) : AISt
         return m._traits;
     }
 
+    /// <summary>
+    /// The test commands aitrait, aijitter and aiset change tactics tunables in place, so the cache key in <see cref="Traits"/> (tick and
+    /// tunables object) does not see the change within the tick. The game's own edits make a new tunables object (TunablesEditor.Change).
+    /// After this call, the next Traits call of each ship computes its traits again (issue 371).
+    /// </summary>
+    internal static void ForgetTraits(Cosmoteer.Simulation.SimRoot sim)
+    {
+        foreach (Ship ship in sim.Ships)
+            if (ship.AI?.GetStrategyModule<PersonalityStrategy>() is { } m) m._traitsTick = -1;
+    }
+
     static TraitSet ComputeTraits(Ship ship, TacticsTunables t) =>
         Weights(Group(ship), ship.UniqueID, t) is { } weights ? PersonalityModel.Choose(weights, Scores(ship, t), t.PersonalityThreshold) : TraitSet.None;
 

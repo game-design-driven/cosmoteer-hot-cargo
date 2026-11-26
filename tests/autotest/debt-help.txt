@@ -1,5 +1,5 @@
 # Paid help (spec 1430 to 1436): help comes in a fight, real hits count for both sides, the hail after the fight, and each answer.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

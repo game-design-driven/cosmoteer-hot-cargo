@@ -2,7 +2,7 @@
 # Playtest 2026-11-23 (dev.239): the Repossession line had no click while the freighter was far away, so the players could not find it.
 # The focus fields give the FocusStep value: 0 none, 1 galaxy map (another system), 2 target ship, 3 area marker, 4 target place.
 # missions: random
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 contract_set RivalsEnabled off

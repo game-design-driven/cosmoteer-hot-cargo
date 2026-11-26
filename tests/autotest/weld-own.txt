@@ -1,6 +1,6 @@
 # Weld (spec 2481 to 2487): a ship cut into two own ships is welded back. The ship pulls the piece into place, crew join the edges,
 # and the piece becomes part of the ship again with its parts, health, stored resources and crew.
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

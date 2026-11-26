@@ -1,6 +1,6 @@
 # Weld (spec 2486): a piece is welded onto the tip of an armor arm, far from the walkable tiles of the ship. The crew reach the joints
 # from outside, and the crew search does not leave the crew path grid (issue #346: the game crashed).
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

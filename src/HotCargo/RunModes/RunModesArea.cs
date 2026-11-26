@@ -150,7 +150,7 @@ public static class RunModesArea
         };
         // rm_tipshot <name>: a screenshot that keeps the open tooltips (the screenshot command hides them).
         Autotest.Commands["rm_tipshot"] = arg => { Ux.Screenshot.Capture(arg, keepToolTips: true); Autotest.Wait(1.5); };
-        // rm_ironman_newgame <name>: a new Ironman career on the run map with the save HotCargoTest_<name>. Test only.
+        // rm_ironman_newgame <name>: a new Ironman career in the fixed test galaxy (spec 1702) with the save HotCargoTest_<name>. Test only.
         Autotest.Commands["rm_ironman_newgame"] = arg =>
         {
             var rules = GameApp.Rules.CareerMode;
@@ -158,7 +158,7 @@ public static class RunModesArea
             int Default<T>(T[] levels, Func<T, bool> isDefault) => Array.FindIndex(levels, l => isDefault(l)) is var i and >= 0 ? i
                 : throw new InvalidOperationException("no default difficulty level in career rules");
             var path = new Halfling.IO.AbsolutePath((string)(Paths.SavedGamesFolder / $"HotCargoTest_{arg}.savedgame"));
-            var init = new CareerInit(null, Journey.JourneyArea.RunMapSizeIndex(), Default(rules.CombatDifficultyLevels, l => l.IsDefault),
+            var init = new CareerInit(null, Dev.TestGalaxy.Index(), Default(rules.CombatDifficultyLevels, l => l.IsDefault),
                 Default(rules.EconDifficultyLevels, l => l.IsDefault), Default(rules.CrewScarcityLevels, l => l.IsDefault),
                 false, false, false, false, enableIronmanMode: true, path, 12345UL, (ship.ShipName, Ship.LoadBytes(ship.FilePath)));
             if (Autotest.Game is { } old) Halfling.App.Director.PopState(old);

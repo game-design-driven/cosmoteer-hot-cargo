@@ -1,7 +1,7 @@
 # Debris decay (spec 1240 to 1246), single player: small loose junk glows, then burns up. A wreck with more than MaxParts parts
 # and tech crates stay. The ages survive a save and load. With the switch off, junk stays and nothing is tracked.
 # tier: smoke
-newgame run
+newgame
 wait 5
 ev_set Enabled false
 godmode on

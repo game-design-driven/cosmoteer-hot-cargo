@@ -1,6 +1,6 @@
 # Chains (CHAINS.md): every chain page renders, every mission stage spawns a mission, and a protected transport that dies fails
 # its mission with the "lost" result.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode

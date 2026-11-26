@@ -1,5 +1,5 @@
 # Fall back in cover (spec 1305, 1306): a damaged pirate cargo ship that carries the resources hides behind a rock and repairs.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 # A quiet world: no scavengers or Wayfarers arrive, and nearby enemies are cleared before the test ships spawn, so no other

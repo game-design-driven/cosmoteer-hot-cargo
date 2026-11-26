@@ -28,12 +28,15 @@ public sealed partial class RunState
     /// The next arrival there removes them.
     /// </summary>
     [Serialize(Optional = true)] public Dictionary<ObjectID, HashSet<ObjectID>> EndedMarkers = new();
+    /// <summary>Sim steps that failed (Errors.Guard), by place, with the game second (GameSeconds) at which each runs again.</summary>
+    [Serialize(Optional = true)] public Dictionary<string, double> RestingSteps = new();
     /// <summary>Game time of the run, summed from simulation ticks across systems.</summary>
     [Serialize] public double GameSeconds;
     /// <summary>
     /// Tunables in effect. Saved so that multiplayer clients that join get the host's values with the save.
     /// Single player replaces them when tunables.rules changes.
     /// </summary>
+    [NotInRunHash("TunablesHash is the hash of these values and is in the run hash")]
     [Serialize] public Tunables Tunables = new();
     [Serialize(Optional = true)] public string TunablesHash = "";
     /// <summary>Last fleet tech count seen in a tick. Shown in the overlay and used by the heat multiplier.</summary>

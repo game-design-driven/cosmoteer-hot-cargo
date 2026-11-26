@@ -1,7 +1,7 @@
 # Build ship and refit (spec 1084 to 1090): an autonomous ship collects what the fleet lacks for a saved design, "Can afford" turns
 # true, one new ship starts and the crew finish it, and no second one starts. Then a refit row rebuilds the builder into a design
 # without one thruster, once.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

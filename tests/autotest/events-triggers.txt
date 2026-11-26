@@ -1,5 +1,5 @@
 # Event triggers: Arrival (without a jump), Signal POI and Station.
-newgame run
+newgame
 wait 8
 ev_set CooldownSeconds 0
 ev_set ArrivalEventChance 1

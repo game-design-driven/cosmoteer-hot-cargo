@@ -1,6 +1,6 @@
 # Abandoned ships (spec 764, 1124 to 1126) and the run's relic ship (spec 765).
 # A vanilla abandoned ship carries real loot and opens no dialog. The hold shows its outcome when it breaks open.
-newgame run
+newgame
 wait 8
 ev_set CooldownSeconds 0
 ev_set StationEventChance 0

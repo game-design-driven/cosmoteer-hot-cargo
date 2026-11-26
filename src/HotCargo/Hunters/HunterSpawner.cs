@@ -36,6 +36,9 @@ public static class HunterSpawner
     /// </summary>
     public static IReadOnlyList<ObjectID> LastSpawned { get; private set; } = [];
 
+    /// <summary>Tests: the least fuel that a hunter of the newest wave spawned with (spec 192), -1 for none.</summary>
+    internal static int LastSpawnFuelMin { get; private set; } = -1;
+
     /// <summary>Waves spawned since game start. For autotest fields only; not sim state.</summary>
     public static int WavesSpawned { get; private set; }
 
@@ -178,6 +181,7 @@ public static class HunterSpawner
     {
         string reason = $"stage {stageName}";
         LastSpawned = [];
+        LastSpawnFuelMin = -1;
         if (sim != run.Game.Sim) return;
         if (sim.Mode is not CareerSimModeManager career) throw new InvalidOperationException("hunters need a career simulation");
         var t = run.T.Hunters;
@@ -215,6 +219,7 @@ public static class HunterSpawner
             _ = spawned.Renderer.AnimateFtlJumpIn(spawned.WorldFlightDirection);
             Dev.Invariants.HunterSpawned(spawned);
             int fuel = EnsureFuel(run, spawned, t.MinFuel);
+            LastSpawnFuelMin = LastSpawnFuelMin < 0 ? fuel : Math.Min(LastSpawnFuelMin, fuel);
             spawnedIds.Add(spawned.UniqueID);
             Log.Info($"hunters: {reason} spawned {spawned.Metadata.PlainShipName} tier {ship.SpawnTier ?? ship.Tier} " +
                      $"(wanted {tier}) at {loc.DistanceTo(in at):0} from {anchor.Metadata.PlainShipName}, player index {allegiance}, fuel {fuel}");
@@ -228,7 +233,9 @@ public static class HunterSpawner
 
     /// <summary>Fuel that a hunter carries: in its storage, plus held fuel that drops when it dies (spec 192).</summary>
     public static int Fuel(Run run, Ship ship) =>
-        StoredFuel(ship) + run.State.Hunters.HeldFuel.Where(h => h.Ship == ship.UniqueID).Sum(h => h.Amount);
+        // Fuel in crew hands (on its way from a storage to a drive) is still on the ship.
+        ship.Resources.GetResourceTotal(GameApp.Rules.FtlFuelResource, includeStored: true, includeCarried: true)
+        + run.State.Hunters.HeldFuel.Where(h => h.Ship == ship.UniqueID).Sum(h => h.Amount);
 
     /// <summary>
     /// Spec 192. Built-in ships spawn with full hyperdrive tanks. A hunter with less fuel gets the rest in any storage that takes hyperium.

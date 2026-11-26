@@ -1,6 +1,6 @@
 # The storyteller's adaptation (spec 1720 to 1731): game time raises the adapt minutes (not above 0 in sector 1), a lost
 # player ship lowers them at once, and the pressure scales the next hunter stage response.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

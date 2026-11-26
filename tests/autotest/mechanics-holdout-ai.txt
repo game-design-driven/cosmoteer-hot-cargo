@@ -4,7 +4,7 @@
 # Claim Jumpers raiders go for the barge (spec 137), so a one-gun platform is not enough there: mechanics-guard-hold.
 # missions: random
 # timeout: 900
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

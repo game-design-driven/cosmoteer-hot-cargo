@@ -1,6 +1,6 @@
 # Flee to a station (spec 1314-1316): a damaged fleeing faction ship short of crew docks at a friendly station, gets crew,
 # repairs and fights again.
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 godmode on

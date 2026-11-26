@@ -2,7 +2,7 @@
 # part rect is larger than its physical tile, and the design keeps one part per tile of the rect: a place where such a rect covers a
 # ship tile is not valid. Without that rule, the merge failed in the game's door search ("Internal Error") or with two design parts
 # on one tile.
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

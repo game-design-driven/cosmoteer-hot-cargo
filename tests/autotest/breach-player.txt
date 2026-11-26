@@ -1,6 +1,6 @@
 # Crew breach (spec 1610 to 1617): crew of a ship with a working airlock walk in as in vanilla, and no breach is made. A player ship that
 # lost every airlock gets its crew back in through a breach.
-newgame run
+newgame
 wait 8
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0

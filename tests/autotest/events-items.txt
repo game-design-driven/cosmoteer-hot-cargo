@@ -1,7 +1,7 @@
 # Item actions (spec 1111 to 1116): a Sealed Case opens in the hold, without a dialog. Its button shows only while a selected storage
 # part holds a case. A Tracer Beacon adds heat each minute until the crew spaces it. Contents go loose when the storage is full.
 # The codes sell at a station.
-newgame run
+newgame
 wait 8
 # The fleet must keep its hold: a random fight at the station or the arrival gate can destroy the case or the beacon.
 shieldplayers on

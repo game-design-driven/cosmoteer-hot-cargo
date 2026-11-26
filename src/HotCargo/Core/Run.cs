@@ -177,7 +177,10 @@ public sealed class Run
     public int CurrentTier => Mode.CurrentMapNodeData.TierRange?.Min ?? 1;
 
     /// <summary>Spec 2555: the sector of the run (1 = the start, Steps = the Buyer).</summary>
-    public int Step => Hooks.Step(this);
+    public int Step => TestStep ?? Hooks.Step(this);
+
+    /// <summary>Tests: the step that "sectorindex" sets, so a test can stand in a later sector of the run map.</summary>
+    internal int? TestStep;
 
     /// <summary>Spec 2555: the sectors of the run.</summary>
     public int Steps => Hooks.Steps(this);

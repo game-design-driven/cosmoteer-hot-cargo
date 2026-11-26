@@ -1,7 +1,7 @@
 # Debt (spec 1402 to 1412): a loan at a station, interest, a payment, collectors at 1x, 2x and 3x, the wanted state,
 # a collector after the wanted state ends, the heat panel line and the score.
 # tier: smoke
-newgame run
+newgame
 wait 8
 ev_set Enabled false
 debt_set LoanStationChance 1
