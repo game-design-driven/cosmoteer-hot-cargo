@@ -3,7 +3,8 @@
 # - the PR text (scripts/check-pr-text.sh: Decisions block, Game tests last, a test for "Fixes #N", no PLAN.md when ready);
 # - the lines of the Game tests block (scripts/ci-test-set.sh);
 # - spec numbers, their blocks and the references to them (scripts/check-spec-numbers.sh);
-# - the co-op determinism lint (tools/determinism-lint.py).
+# - the co-op determinism lint (tools/determinism-lint.py);
+# - the area dependency ratchet (tools/area-deps.py).
 # Usage: check-rules.sh <pr number> [--no-comment]   a PR: then it updates its one rule comment, or deletes it when all pass
 #        check-rules.sh --group <base sha> <head sha>  a merge queue group: the texts of its PRs, and the merged tree
 # Needs gh with a token (GH_TOKEN) and GITHUB_REPOSITORY (or a gh login), and the git history of the base.
@@ -27,6 +28,7 @@ if [[ "${1:-}" == --group ]]; then
   for pr in $(scripts/queue-group-prs.sh "$base" "$head"); do rule "PR #$pr: PR text" scripts/check-pr-text.sh "$pr"; done
   rule "Spec numbers" scripts/check-spec-numbers.sh
   rule "Co-op determinism" python3 tools/determinism-lint.py
+  rule "Area dependencies" python3 tools/area-deps.py
   cat "$report"
   exit "$failed"
 fi
@@ -36,6 +38,7 @@ rule "PR text" scripts/check-pr-text.sh "$pr"
 rule "Game tests block" scripts/ci-test-set.sh "$pr"
 rule "Spec numbers" scripts/check-spec-numbers.sh
 rule "Co-op determinism" python3 tools/determinism-lint.py
+rule "Area dependencies" python3 tools/area-deps.py
 cat "$report"
 [[ "${2:-}" == --no-comment ]] && exit "$failed"
 
