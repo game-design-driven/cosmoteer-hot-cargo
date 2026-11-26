@@ -86,6 +86,15 @@ internal sealed class CutToolState : BaseBuildState
         _blocked = null;
     }
 
+    /// <summary>Esc during a drag drops the line and keeps the tool, as Esc resets the vanilla select tool (GameGui.HandleHotkeys).</summary>
+    public override bool TryReset()
+    {
+        if (_line is null) return false;
+        OnDeselected();
+        App.Audio.Play(Rules.CancelConstructionSound, AudioGroups.Interface);
+        return true;
+    }
+
     public override void InputImpl()
     {
         if (Run.Current is not { } run || !run.T.Cut.Enabled || Sim.PlayerInput.GetSingleSelectedShip() is not { } ship) return;
