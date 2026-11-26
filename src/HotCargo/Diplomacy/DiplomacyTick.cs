@@ -31,7 +31,7 @@ static class DiplomacyTick
         TickHails(run, sim);
     });
 
-    /// <summary>A jump to another system ends every hire: AI ships cannot follow. Held tech stays with its ship.</summary>
+    /// <summary>A jump to another system ends every hire: AI ships cannot follow. Tech.LeftBehind already removed the held tech of the old system (spec 2524).</summary>
     internal static void OnSystemEntered(Run run, bool firstVisit)
     {
         var s = S(run);

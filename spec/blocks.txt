@@ -104,3 +104,4 @@
 2440-2449 27-system-archetypes.md
 2460-2479 70-ship-cut.md
 2480-2499 71-weld.md
+2520-2529 73-tech-left-behind.md

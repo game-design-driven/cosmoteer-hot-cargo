@@ -25,6 +25,22 @@ static class TechAutotest
         // tech_set Field value: changes a Tech tunable of the run. In co-op run it through "mp".
         Autotest.Commands["tech_set"] = arg => Autotest.SetField(Active().T.Tech, arg);
         Autotest.Fields["techleftlost"] = () => LeftBehind.Lost;
+        // tech_leave <player>: co-op, in the sim on every machine ("mp tech_leave 0"). Only that player's ships jump to the first unvisited
+        // neighbor, without the animation; the other ships stay (spec 2525). Every machine starts the vanilla jump from the same input,
+        // like MPJumpToNodeInput, and the jump signals keep them together.
+        Autotest.Commands["tech_leave"] = arg =>
+        {
+            var run = Active();
+            int player = int.Parse(arg, System.Globalization.CultureInfo.InvariantCulture);
+            if (run.Game.IsGameSavingBlocked) throw new InvalidOperationException("tech_leave: game saving is blocked, so no jump can start");
+            var jumpers = run.Game.Sim.Ships.HumanPlayerSignificantShips.Where(s => s.Metadata.PlayerIndex == player).OrderBy(s => s.UniqueID).ToList();
+            if (jumpers.Count == 0) throw new InvalidOperationException($"tech_leave: player {player} has no ship");
+            var next = run.Game.CurrentMapNode.Connections.FirstOrDefault(n => !run.State.VisitedNodes.Contains(n.UniqueID))
+                ?? throw new InvalidOperationException("tech_leave: no unvisited neighbor system");
+            Log.Info($"AUTOTEST tech_leave: {jumpers.Count} ships of player {player} jump to {next.Name}");
+            run.Game.JumpToNode(next, doFtlAnimation: false, jumpers)
+                .ContinueWith(t => Log.Error("AUTOTEST tech_leave failed", t.Exception), TaskContinuationOptions.OnlyOnFaulted);
+        };
         Autotest.Fields["losstimer"] = () => LossTimer.IsRunning(Active()) ? 1 : 0;
         Autotest.Fields["losstimerleft"] = () => LossTimer.SecondsLeft(Active()) ?? -1;
         // Spec 444: tech crate indicators in the scene, and the TECH count on the player ship's blip.

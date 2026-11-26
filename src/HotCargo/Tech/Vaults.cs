@@ -42,7 +42,7 @@ public static class Vaults
 
     /// <summary>
     /// The fleet tech count (spec section 4, requirement 59): tech in the vaults and normal storage of human and derelict ships, plus tech that crew carry
-    /// for the players. Tech on ships left in another system is not in this sim, so it is not counted.
+    /// for the players. Ships in another system hold no tech: a move to another system loses the tech that stays (spec 2520).
     /// </summary>
     public static int CountFleetTech(SimRoot sim)
     {
