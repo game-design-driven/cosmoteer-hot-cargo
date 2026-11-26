@@ -126,7 +126,16 @@ for t in sorted({int(p[0]) for p in probes}):
                      salvageFraction=round(salvage[t] / value, 3))
 
 # ---- Run model ---------------------------------------------------------------------------------------------------------
-ROUTE = [1, 3, 5, 7, 9, 11, 12, 12]  # main route low tier per sector (galaxy.rules: +2 per jump up to FinalSectorTier)
+def cs_int(path, field):
+    m = re.search(rf"public int {field} = (\d+);", (Path(__file__).parents[2] / "src/HotCargo" / path).read_text())
+    if not m: raise SystemExit(f"no int default {field} in {path}")
+    return int(m.group(1))
+
+
+STEPS = cs_int("Journey/JourneyTunables.cs", "RunSectorCount")
+FINAL_TIER = cs_int("Journey/JourneyTunables.cs", "FinalSectorTier")
+# Low tier of each band of the run map, start to Buyer: the same rule as RunMapModel.Tier (spec 2552).
+ROUTE = [1 + round((FINAL_TIER - 1) * b / (STEPS - 1)) for b in range(STEPS)]
 MISSIONS_PER_SECTOR = 6
 MINUTES_PER_SECTOR = 17.5
 KILLS_PER_SECTOR = 1.5  # hunters destroyed per sector before the players jump at Hunt (Warning: 1 early, 2 late), salvage only
@@ -144,8 +153,13 @@ CARRY = 0.25
 CONTRACT_HEAT = MISSION_FLAT + MISSION_INFORMANT * 0.75 * 15  # flat heat and expected informant heat per accepted contract
 
 
+TECH_BASE_FRACTION = cs_default("Tech/TechTunables.cs", "TechShipFraction")
+TECH_PER_HOUR = cs_default("Tech/TechTunables.cs", "TechShipFractionPerGameHour")
+TECH_PER_100_NOTORIETY = cs_default("Tech/TechTunables.cs", "TechShipFractionPer100Notoriety")
+
+
 def tech_value(tier, hours, notoriety):
-    return tvm(tier) * (0.25 + 0.10 * hours + 0.05 * notoriety / 100)
+    return tvm(tier) * (TECH_BASE_FRACTION + TECH_PER_HOUR * hours + TECH_PER_100_NOTORIETY * notoriety / 100)
 
 
 def run(p):

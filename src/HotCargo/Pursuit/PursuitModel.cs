@@ -63,8 +63,8 @@ public static class PursuitModel
     public static bool OutageSector(int sector, int runSectors, int minSector) => sector >= minSector && sector < runSectors;
 
     /// <summary>
-    /// Expected events with one roll of chance p in each of n tries, capped at max. Shows that the outage default gives about 2 a run
-    /// (spec 920): 6 tries at 0.5 with cap 2 give 1.88.
+    /// Expected events with one roll of chance p in each of n tries, capped at max. Shows what the outage default gives a run (spec 920):
+    /// a 6-step run map has 4 tries (sectors 2 to 5); 4 tries at 0.5 with cap 2 give 1.63 (BALANCE.md, finding 12).
     /// </summary>
     public static double ExpectedCapped(int tries, double p, int max)
     {
