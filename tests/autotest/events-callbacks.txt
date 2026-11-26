@@ -10,7 +10,7 @@ ev_callback_chance all 1
 ev_set MaxEventsPerSystem 99
 godmode on
 aiset FleeEnabled false
-openspace 4000 3000
+openspace 6000 3000
 # A pirate (a ship with no faction) surrenders to the players' demand: the run remembers it.
 dip_set SurrenderChanceBase 5
 dip_spawn enemy 250

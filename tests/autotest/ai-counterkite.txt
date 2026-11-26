@@ -4,8 +4,6 @@ newgame
 wait 8
 ev_set Enabled false
 godmode on
-# The test world can hold pirates near the kite spot; they would join the fight. Open space keeps rocks out of the way.
-quiethostiles
 shieldplayers on
 tacticlog on
 # Without personalities the build decides (spec 1902). Every ship counts as fast, so the first answer is a close in.
@@ -15,7 +13,6 @@ aiset CloseInAgility 0
 aiset CloseInSeconds 5
 aiset FleeOnVanilla false
 aiset CallOnVanilla false
-openspace 6000 3000
 aispawn pirates 1 1
 # Tier 1 pirates reach 260; a Helioblade reaches 700, so it outranges them.
 aiplayership hull=Helioblade

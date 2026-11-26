@@ -22,23 +22,6 @@ static class TechAutotest
         Autotest.Commands["tech"] = Tech;
         Autotest.Commands["vault"] = Vault;
         Autotest.Commands["tostation"] = _ => ToStation();
-        // give <resource> <amount>: test only. Puts resources straight into the storage bays of the acting player's first ship, so a test
-        // does not depend on what the stations of its test world sell.
-        Autotest.Commands["give"] = arg =>
-        {
-            var p = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (p.Length != 2) throw new InvalidOperationException("give needs: <resource> <amount>");
-            var type = new Cosmoteer.Data.ID<Cosmoteer.Resources.ResourceRules>(p[0]);
-            if (!Cosmoteer.GameApp.Rules.HasResourceRules(type)) throw new InvalidOperationException($"unknown resource '{p[0]}'");
-            int left = int.Parse(p[1], System.Globalization.CultureInfo.InvariantCulture);
-            foreach (Cosmoteer.Ships.Resources.IResourceSink t in Cosmoteer.Ships.Parts.Resources.FlexResourceGrid.GetAllOnShip(PlayerShip()).SelectMany(g => g))
-            {
-                int room = t.GetRemainingCapacity(type, allowPreferredTypeMismatch: false);
-                if (room > 0) left -= t.ReceiveResources(type, Math.Min(room, left), false, false, false);
-                if (left <= 0) break;
-            }
-            if (left > 0) throw new InvalidOperationException($"give: {left} {p[0]} did not fit");
-        };
         // tech_set Field value: changes a Tech tunable of the run. In co-op run it through "mp".
         Autotest.Commands["tech_set"] = arg => Autotest.SetField(Active().T.Tech, arg);
         Autotest.Fields["techleftlost"] = () => LeftBehind.Lost;
@@ -410,24 +393,6 @@ static class TechAutotest
     {
         var ship = PlayerShip();
         _station = null;
-        // Stations far from the ship are in stasis: fly to the nearest one first and wait until it loads (any test world).
-        if (!Active().Game.Sim.Ships.AllShips.Any(s => s != ship && s.AI?.WillTradeWith(ship) == true))
-        {
-            var far = SimQueries.TaggedShips(Active().Game.Sim, new("station")).OrderBy(t => t.Location.DistanceSquaredTo(ship.WorldCenter)).FirstOrDefault();
-            if (far.Live is null && far.Id != default)
-            {
-                Autotest.Teleport(ship, Autotest.ClearSpotNear(Active().Game.Sim, far.Location, 1500f, ship.WorldBoundingRadius));
-                Autotest.WaitFor(() => Active().Game.Sim.Ships.AllShips.Any(s => s != ship && s.AI?.WillTradeWith(ship) == true), 20,
-                    "a trading station to leave stasis", PlaceAtStation);
-                return;
-            }
-        }
-        PlaceAtStation();
-    }
-
-    static void PlaceAtStation()
-    {
-        var ship = PlayerShip();
         var station = _station = NearestStation();
         // In co-op each player's ship gets its own spot on the same side, so two ships never land on each other.
         float side = Autotest.ActingPlayerIndex * (2f * ship.WorldBoundingRadius + 50f);
