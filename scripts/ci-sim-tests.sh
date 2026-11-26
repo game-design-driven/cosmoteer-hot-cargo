@@ -32,6 +32,7 @@ MINE=()
 for i in "${!SESSIONS[@]}"; do (( i % SHARDS == SHARD - 1 )) && MINE+=("${SESSIONS[$i]}"); done
 start=$(( ${#SESSIONS[@]} % SHARDS ))
 for i in "${!SINGLES[@]}"; do (( (start + i) % SHARDS == SHARD - 1 )) && MINE+=("${SINGLES[$i]}"); done
+echo "== frame jitter: ${SIM_JITTER:-off} (rerun a failure here with SIM_JITTER=<this seed> scripts/autotest-sim.sh <name>)"
 echo "== runner: $(nproc) cores, $(awk '/^MemTotal:/ { printf "%.1f", $2 / 1048576 }' /proc/meminfo) GB, ${HOT_CARGO_SIM_JOBS:-default} sims at once"
 echo "== shard $SHARD of $SHARDS: ${MINE[*]:-none}"
 echo "== not in CI (# runner: pc, run on the PC): ${PC[*]:-none}"

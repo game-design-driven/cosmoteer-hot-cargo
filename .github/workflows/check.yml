@@ -150,7 +150,10 @@ jobs:
         env:
           HOT_CARGO_SIM_JOBS: "4"
           HOT_CARGO_TEST_SPEED: ${{ inputs.test_speed }}
-          SIM_JITTER: ${{ inputs.sim_jitter }}
+          # The scheduled full suite on main runs with frame jitter, with a new seed for each run (the run number), so tests that
+          # lean on the sim's tick order show there and not first on the PC. Merge queue runs keep the fixed frame: jitter
+          # costs about 28 % more shard time (measured 2026-11-26: 6065 s against 4746 s for the full suite).
+          SIM_JITTER: ${{ inputs.sim_jitter || (github.event_name == 'schedule' && github.run_number) || '' }}
           CI_TESTS: ${{ needs.build.outputs.tests }}
         run: scripts/ci-sim-tests.sh ${{ matrix.shard }} ${{ strategy.job-total }}
       # Only text logs, checked for game data (scripts/ci-check-logs.sh); never the game files or the staged mod.
