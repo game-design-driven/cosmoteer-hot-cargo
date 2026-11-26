@@ -1,5 +1,5 @@
 # Journey: Hot Cargo run map, reward scale, Buyer spawn and price, save and load, win.
-newgame
+newgame run
 wait 8
 log start
 expect runmap == 1
@@ -46,7 +46,7 @@ wait 10
 expect heat == 0
 # Spec 2414: the galaxy tunables apply to the next new galaxy: fewer systems, a lower final tier, only basic systems.
 tunablesfile Journey { FinalSectorTier = 6; MapSystems = 30 }; Worlds { SystemTypeWeights = [ { Type = basic; Weight = 1 } ] }
-newgame
+newgame run
 wait 8
 expect nodes >= 25
 expect nodes <= 33
