@@ -1,7 +1,7 @@
 # Journey: the lockdown line (spec 2557 to 2561). Choices close as heat rises, a heat jump gives a grace, falling heat reopens them,
 # and a jump into a closed system cuts no heat and brings hunters.
 # Headless slots draw no frames, so the sim stays paused after a jump (see journey-jump.txt): the jump comes last.
-newgame
+newgame run
 wait 8
 ev_set Enabled false
 godmode on
