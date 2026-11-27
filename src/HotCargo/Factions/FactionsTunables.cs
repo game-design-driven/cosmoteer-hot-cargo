@@ -14,7 +14,7 @@ public sealed class FactionsTunables
     /// <summary>Spec 641: time heat in a system that the corporate ally controls (a hot zone).</summary>
     [Serialize(Optional = true)] public float AllyHeatFactor = 1.2f;
     /// <summary>Spec 642: mission money of offers that a hot zone gives.</summary>
-    [Serialize(Optional = true)] public float AllyMoneyFactor = 1.3f;
+    [Serialize(Optional = true)] public float AllyMoneyFactor = 1.2f;
     /// <summary>Spec 642: notoriety gains in a hot zone. Notoriety raises the tech value (spec 19), so the tech gains value faster there.</summary>
     [Serialize(Optional = true)] public float AllyNotorietyFactor = 1.5f;
 

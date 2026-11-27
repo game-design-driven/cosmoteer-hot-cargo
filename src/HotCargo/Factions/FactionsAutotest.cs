@@ -154,7 +154,7 @@ static class FactionsAutotest
             _baseOffers = OfferMoney();
             Log.Info($"AUTOTEST factions base: buy {_baseBuy} crew {_baseCrew} fuel {_baseFuel} offers {_baseOffers}");
         };
-        // fa_mark: records heat, game time and notoriety for fa_measuredrate and fa_notorietyratio.
+        // fa_mark: records heat, game time and notoriety for fa_rateratio and fa_notorietyvsally.
         Autotest.Commands["fa_mark"] = _ => { var s = R().State; (_markHeat, _markSeconds, _markNotoriety) = (s.Heat, s.GameSeconds, s.Notoriety); };
         // fa_hail: hails the nearest station like the comms button (UI path, shows a refusal message).
         Autotest.Commands["fa_hail"] = arg =>
@@ -220,11 +220,14 @@ static class FactionsAutotest
         Autotest.Fields["fa_zone"] = () => (int)FactionsArea.ZoneOf(R(), R().Game.CurrentMapNode);
         Autotest.Fields["fa_timefactor"] = () => Run.Hooks.TimeHeatFactor(R());
         Autotest.Fields["fa_allyheat"] = () => R().T.Factions.AllyHeatFactor;
+        // The measured ally money and notoriety factors over the tunables: 1 when the zone applies them.
+        Autotest.Fields["fa_offervsally"] = () => OfferMoney() / Base(_baseOffers) / R().T.Factions.AllyMoneyFactor;
+        Autotest.Fields["fa_notorietyvsally"] = () =>
+            (R().State.Notoriety - _markNotoriety) / Math.Max(1e-6, R().State.Heat - _markHeat) / R().T.Factions.AllyNotorietyFactor;
         Autotest.Fields["fa_heatrate"] = () => R().TimeHeatPerMinute(R().State.FleetTech);
         // Heat per game minute since fa_mark, divided by the rate that the heat panel shows. 1 when the tick applies the zone factor.
         Autotest.Fields["fa_rateratio"] = () =>
             (R().State.Heat - _markHeat) / Math.Max(1e-6, (R().State.GameSeconds - _markSeconds) / 60.0) / R().TimeHeatPerMinute(R().State.FleetTech);
-        Autotest.Fields["fa_notorietyratio"] = () => (R().State.Notoriety - _markNotoriety) / Math.Max(1e-6, R().State.Heat - _markHeat);
         Autotest.Fields["fa_markup"] = () => FactionsArea.Markup(R());
         Autotest.Fields["fa_crewmarkup"] = () => FactionsArea.CrewMarkup(R());
         Autotest.Fields["fa_buyratio"] = () => BuyPrice() / Base(_baseBuy);

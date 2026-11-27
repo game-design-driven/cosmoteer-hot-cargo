@@ -216,6 +216,44 @@ def run(p):
                 score=round(sum(r["bank"] for r in rows[-1:]) + 8 * 4 * rows[-1]["techValue"]))
 
 
+# ---- Route choice: zones (spec 641 to 643, 664) ----------------------------------------------------------------------
+# The zone factors follow FactionsModel.TimeHeatFactor, FactionsModel.NotorietyFactor and the hot zone money patch (spec 642).
+# Limit: one sector after a watched relay (CARRY), the typical mission mix, no convoy cover, no salvage, no fence sales (spec 644).
+# The costs that are not numbers (no local help against hunters in a hot zone, the reputation that shelter needs) stay out.
+# Revisit when a zone changes salvage, fees or the mission mix.
+ZONES = dict(
+    neutral=(1.0, 1.0, 1.0),
+    ally=(cs_default("Factions/FactionsTunables.cs", "AllyHeatFactor"), cs_default("Factions/FactionsTunables.cs", "AllyMoneyFactor"),
+          cs_default("Factions/FactionsTunables.cs", "AllyNotorietyFactor")),
+    shelter=(cs_default("Factions/FactionsTunables.cs", "ShelterHeatFactor"), 1.0, 1.0),
+    watch=(cs_default("Factions/FactionsTunables.cs", "WatchHeatFactor"), 1.0, 1.0),
+)
+UNITS_HELD = 8  # the tech units that MULT assumes
+
+
+def zone_sector(p, heat_f, money_f, notoriety_f):
+    """One sector from the carried heat to the Strike. Money and tech value in TVM of the sector tier, the mean over the route."""
+    minutes_per_mission = MINUTES_PER_SECTOR / MISSIONS_PER_SECTOR
+    time_rate = MULT * p["HeatPerGameMinute"] * heat_f
+    per_mission = MULT * p["HeatPerStandardMission"] * MISSION_FAME + CONTRACT_HEAT + time_rate * minutes_per_mission
+    heat_gained = 100 * (1 - CARRY)
+    missions = heat_gained / per_mission
+    minutes = missions * minutes_per_mission
+    money = statistics.mean(missions * money_f * PICK_MONEY * std_money(t) * FAST_MONEY * p["RewardScale"] * p["MissionMoneyScale"] / tvm(t)
+                            for t in ROUTE)
+    tech = UNITS_HELD * (TECH_PER_HOUR * minutes / 60 + TECH_PER_100_NOTORIETY * heat_gained * notoriety_f / 100)
+    return dict(heatPerMinute=round(time_rate, 2), heatPerMission=round(per_mission, 1), missionsToStrike=round(missions, 2),
+                minutes=round(minutes, 1), notoriety=round(heat_gained * notoriety_f), missionMoneyTvm=round(money, 2),
+                techGainTvm=round(tech, 2), totalTvm=round(money + tech, 2))
+
+
+def zones(p):
+    rows = {z: zone_sector(p, *f) for z, f in ZONES.items()}
+    for r in rows.values():
+        r["vsNeutral"] = round(r["totalTvm"] / rows["neutral"]["totalTvm"] - 1, 3)
+    return dict(factors={z: dict(heat=f[0], money=f[1], notoriety=f[2]) for z, f in ZONES.items()}, sector=rows)
+
+
 result = dict(
     vanilla=dict(tvm=TVM[:15], stdMoney=[round(std_money(t)) for t in range(1, 16)], stdFame=[round(std_fame(t), 1) for t in range(1, 16)],
                  maxFame=[max_fame(t) for t in range(1, 16)], fastMoney=FAST_MONEY, fastFame=FAST_FAME, startMoneyAfterShip=FAST_START_MONEY - 65350,
@@ -224,7 +262,7 @@ result = dict(
                   missionFame=round(MISSION_FAME, 2), contractHeat=round(CONTRACT_HEAT, 2), hunters=HUNTER,
                   stationFuel={s: v for s, v in fuel_lines.items()}, systems=systems, jumpLY=round(JUMP_LY, 1)),
     model=dict(missionsPerSector=MISSIONS_PER_SECTOR, minutesPerSector=MINUTES_PER_SECTOR, route=ROUTE, stages=STAGES),
-    before=run(OLD), after=run(NEW),
+    before=run(OLD), after=run(NEW), zones=zones(NEW),
 )
 OUT.write_text(json.dumps(result, indent=1))
 for k in ("before", "after"):
@@ -234,6 +272,8 @@ for k in ("before", "after"):
         print("  ", {x: s[x] for x in ("sector", "tier", "income", "incomeShipFraction", "fleet", "bank", "fame", "heatIn", "heatMissions",
                                          "heatTime", "heatContracts", "heatRaw", "missionsToStrike", "techValueShipFraction", "techUnitInMissions",
                                          "jumpFuel", "worstJumpFuel", "stationFuelFloor", "jumpFuelInMissions")})
+for z, r in result["zones"]["sector"].items():
+    print("zone", z, result["zones"]["factors"][z], r)
 print("board after", board_after, "fuel after", fuel_after)
 print("pick money", PICK_MONEY, "mission fame", MISSION_FAME, "contract heat", CONTRACT_HEAT, "techs", TECH_BASE, TECH_OVERCLOCK)
 print("hunters", HUNTER)
