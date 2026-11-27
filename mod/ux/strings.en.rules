@@ -19,6 +19,9 @@ HotCargoUx
 	StatusWonFmt = "DELIVERED   score {0}"
 	StatusLost = "TECH LOST"
 	StatusHeatOff = "Heat is off"
+	// Spec 2582, 2583: the titles of the heat rate and tech value breakdown tooltips
+	RateTipFmt = "Heat {0:+0.00;-0.00}/min"
+	TechTipFmt = "Tech value {0} each"
 
 	// Stage alerts: one line for each stage name in Heat.Stages
 	StageWarning = "Corporate scouts found your trail."
@@ -126,7 +129,9 @@ HotCargoUx
 	// Trade tab
 	TechSaleFmt = "<fame_color>Sell {0} tech:</fame_color> heat <bad>+{1:0.0}</bad> → <good>+{2:0.0}</good>/min, score <bad>{3}</bad> <gray>(today's price)</gray>"
 	TechSaleBuyer = "The Buyer: sell tech here to win."
-	TradePricesFmt = "<gray>{0} ({1}): buy x{2:0.00}, sell x{3:0.00}</gray>"
+	TradePricesFmt = "<gray>{0} ({1}): buy {2}, sell {3}</gray>"
+	// Spec 2586: the title of the buy price breakdown tooltip
+	BuyTipTitle = "Buy prices here"
 
 	// Wanted
 	WantedSeenFmt = "{0}   <bad>seen, timer paused</bad>"
@@ -163,10 +168,10 @@ HotCargoUx
 	JumpCarriesFmt = "(carries {0} tech)"
 	// Tech left behind (spec 2522): {0} units, {1} system
 	TechLeftFmt = "<bad><b>{0} tech will be left behind and lost.</b></bad>"
-	TechLeftAllFmt = "<bad><b>All your tech stays behind: {0} tech will be lost.</b></bad>"
+	TechLeftAll = "<bad><s20><b>All your tech stays behind. You lose the run.</b></s20></bad>"
+	LoseRunButton = "Lose the run"
 	PaymentsLostFmt = "<bad>Unpaid missions here: {0}. Their pay is lost with the jump.</bad> Collect it at a station first."
 	SwitchAskFmt = "Go to {0} anyway?"
-	StrandedTechFmt = "{0} tech here is lost when you go."
 	// Tech watch (spec 2120 to 2129): {0} units, {1} ship name, {2} time left
 	WatchHeadFmt = "<bad><b>{0} TECH OUTSIDE YOUR VAULTS</b></bad>"
 	WatchHeadDesign = "<bad><b>TECH WILL LEAVE YOUR VAULTS</b></bad>"
@@ -181,4 +186,67 @@ HotCargoUx
 	WatchChatFmt = "<bad><b>{0} tech at risk outside your vaults!</b></bad> {1}. Click the lines under the heat panel to find it."
 	WatchDesignBannerFmt = "{0}: NO VAULT FOR {1} TECH IN THE NEW DESIGN"
 	WatchDesignChatFmt = "<bad><b>{0}: the new design has no vault for {1} tech.</b></bad> Crew will move it to normal storage, where it decays. Undo, or add Tech Vaults."
+}
+
+// Spec 2580 to 2584: the steps of number breakdowns in tooltips. A step with a text argument uses the key with "Fmt".
+HotCargoBreakdown
+{
+	TotalFmt = "Total: {0}"
+	Subtotal = "Subtotal"
+	ClampMinFmt = "At least {0}"
+	ClampMaxFmt = "At most {0}"
+	Option = "Option"
+	OfferNone = "Nothing offered"
+
+	// Heat rate (spec 24, 101, 1425)
+	HeatBase = "Base rate"
+	HeatTechFmt = "{0} tech held"
+	HeatDifficultyFmt = "Difficulty ({0})"
+	ZoneNeutral = "Neutral space"
+	ZoneNeutralFmt = "Neutral space ({0})"
+	ZoneAlly = "Corporate ally space"
+	ZoneAllyFmt = "Corporate ally space ({0})"
+	ZoneShelter = "Shelter"
+	ZoneShelterFmt = "Shelter ({0})"
+	ZoneWatch = "Corporate watch"
+	ZoneWatchFmt = "Corporate watch ({0})"
+	Debt = "You owe money"
+	Outage = "Network outage: no heat gain"
+	TrailFmt = "Contract trail ({0} open)"
+	HintSellOne = "Sell 1 tech"
+	HintLeaveAlly = "Leave corporate ally space"
+	HintLeaveWatch = "Leave corporate watch"
+	HintPayDebt = "Pay your debts"
+	HintCloseContracts = "Finish or drop the contracts"
+
+	// Tech value (spec 19, 683)
+	TechBaseFmt = "Base share of a tier {0} ship"
+	TechTimeFmt = "Game time ({0} h)"
+	TechNotorietyFmt = "Notoriety ({0})"
+	TechDifficultyFmt = "Difficulty ({0})"
+
+	// Surrender, bluff and pay-off chances (spec 565, 567, 594)
+	SurrenderBase = "Base"
+	LeverageUpFmt = "You are {0} stronger"
+	LeverageDownFmt = "They are {0} stronger"
+	DamageFmt = "Their hull at {0}"
+	FameFmt = "Your fame title ({0})"
+	ReputationFmt = "Their standing with you ({0})"
+	AlliesFmt = "{0} allies of theirs near"
+	Wanted = "Their faction wants you"
+	HunterHeatFmt = "Hunter pride at heat {0}"
+	BluffBase = "Base"
+	BluffShareFmt = "Share you hand over ({0})"
+	BluffPileFmt = "Biggest pile left ({0})"
+	PayTechFmt = "Tech ({0})"
+	PayMoneyFmt = "Money ({0})"
+	PayCrewFmt = "Crew ({0})"
+	CrowdFmt = "{0} other hunters near"
+
+	// Station prices (spec 644, 655, 2586)
+	Vanilla = "Price"
+	StandingFmt = "Your standing ({0})"
+	HeatMarkupFmt = "Heat markup (heat {0})"
+	RivalFence = "Rival fence premium"
+	HintCoolDown = "With no heat"
 }

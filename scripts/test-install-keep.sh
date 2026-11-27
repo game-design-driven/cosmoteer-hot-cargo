@@ -66,7 +66,7 @@ check_removed() {
 
 if command -v plutil > /dev/null && [[ "$(uname)" == Darwin ]]; then
   R="$T/mac-release"; G="$T/mac-game"; S="$T/mac-save/12345"
-  make_release "$R" "$G"; cp release/install-mac.sh "$R/"
+  make_release "$R" "$G"; cp release/install-mac.sh release/install-paths-mac.sh "$R/"
   make_played "$S/Mods/hot_cargo"
   printf 'GameSettings\n{\n\tEnabledMods ["other_mod"]\n}\n' > "$S/settings.rules"
   # The installer refuses while the Mac app runs; a stub pgrep lets the test run while a person plays.

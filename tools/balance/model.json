@@ -887,5 +887,75 @@
   "techOverclock": 10487500,
   "techBaseShareOfIncome": 0.243,
   "score": 25407951
+ },
+ "zones": {
+  "factors": {
+   "neutral": {
+    "heat": 1.0,
+    "money": 1.0,
+    "notoriety": 1.0
+   },
+   "ally": {
+    "heat": 1.2,
+    "money": 1.2,
+    "notoriety": 1.5
+   },
+   "shelter": {
+    "heat": 0.6,
+    "money": 1.0,
+    "notoriety": 1.0
+   },
+   "watch": {
+    "heat": 1.1,
+    "money": 1.0,
+    "notoriety": 1.0
+   }
+  },
+  "sector": {
+   "neutral": {
+    "heatPerMinute": 1.37,
+    "heatPerMission": 12.5,
+    "missionsToStrike": 6.02,
+    "minutes": 17.5,
+    "notoriety": 75,
+    "missionMoneyTvm": 2.87,
+    "techGainTvm": 0.75,
+    "totalTvm": 3.61,
+    "vsNeutral": 0.0
+   },
+   "ally": {
+    "heatPerMinute": 1.64,
+    "heatPerMission": 13.3,
+    "missionsToStrike": 5.65,
+    "minutes": 16.5,
+    "notoriety": 112,
+    "missionMoneyTvm": 3.23,
+    "techGainTvm": 0.94,
+    "totalTvm": 4.17,
+    "vsNeutral": 0.155
+   },
+   "shelter": {
+    "heatPerMinute": 0.82,
+    "heatPerMission": 10.9,
+    "missionsToStrike": 6.9,
+    "minutes": 20.1,
+    "notoriety": 75,
+    "missionMoneyTvm": 3.29,
+    "techGainTvm": 0.8,
+    "totalTvm": 4.08,
+    "vsNeutral": 0.13
+   },
+   "watch": {
+    "heatPerMinute": 1.5,
+    "heatPerMission": 12.9,
+    "missionsToStrike": 5.83,
+    "minutes": 17.0,
+    "notoriety": 75,
+    "missionMoneyTvm": 2.78,
+    "techGainTvm": 0.74,
+    "totalTvm": 3.51,
+    "vsNeutral": -0.028
+   }
+  }
  }
 }

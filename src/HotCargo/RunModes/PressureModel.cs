@@ -19,9 +19,6 @@ public readonly record struct Pressure(float HeatRate, float HunterShips, int Hu
         if (ships < 1) throw new ArgumentOutOfRangeException(nameof(ships), ships, "a stage sends at least 1 ship");
         return Math.Max(1, (int)MathF.Round(ships * HunterShips, MidpointRounding.AwayFromZero));
     }
-
-    /// <summary>Tech value of one unit, rounded to 100 like the base value (spec 19).</summary>
-    public long Tech(long baseValue) => (long)Math.Round(baseValue * (double)TechValue / 100.0, MidpointRounding.AwayFromZero) * 100;
 }
 
 public static class PressureModel

@@ -90,6 +90,7 @@ jobs:
       # Co-op determinism lint: new code that can desync co-op (clock, random, local player, hashes, threads, file order).
       - run: python3 tools/determinism-lint.py
       - run: python3 tools/area-deps.py
+      - run: scripts/test-pc-suite.sh
       - uses: actions/checkout@v7.0.1
         with:
           repository: Yarden-zamir/cosmoteer-hot-cargo-game-refs

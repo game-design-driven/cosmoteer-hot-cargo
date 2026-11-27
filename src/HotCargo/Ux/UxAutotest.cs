@@ -437,6 +437,9 @@ static class UxAutotest
         };
         Autotest.Fields["ux_switch_techleft"] = () => Tech.LeftBehind.OnSwitch(Autotest.RequireRun(), Autotest.RequireRun().Game.Sim);
         Autotest.Fields["ux_switch_dialogs"] = () => JumpWarnings.SwitchDialogsShown;
+        // Spec 2527: 1 when the open dialog's first button is "Lose the run", 0 for another dialog, -1 without a dialog.
+        Autotest.Fields["ux_dialog_lose"] = () =>
+            App.Director.States.OfType<Halfling.Gui.Dialogs.TwoButtonDialog>().LastOrDefault() is { } d ? d.Option1Button.Text == UxKit.Text("LoseRunButton") ? 1 : 0 : -1;
         Autotest.Commands["jw_switch"] = arg =>
         {
             if (arg != "back") throw new InvalidOperationException("jw_switch needs: back");
@@ -445,21 +448,23 @@ static class UxAutotest
                 ?? throw new InvalidOperationException("no neighbor system with own ships");
             JumpWarnings.ConfirmSwitchForTest(run.Game, back);
         };
+        Autotest.Fields["ux_stranded_loses"] = () => JumpWarnings.StrandedLine(Autotest.RequireRun()) is { } l && l.Contains(UxKit.Text("TechLeftAll"), StringComparison.Ordinal) ? 1 : 0;
         Autotest.Fields["ux_stranded"] = () => JumpWarnings.Stranded(Autotest.RequireRun()) is null ? 0 : 1;
         Autotest.Fields["ux_recalls"] = () => JumpWarnings.RecallsSent;
         Autotest.Fields["ux_ships_here"] = () => Autotest.RequireRun().Game.Sim.Ships.HumanPlayerSignificantShips.Count();
-        // jw_jump_split: single player. The playtest case (spec 1601): only the own ships without tech jump to the first unvisited
-        // neighbor, like a captured ship that jumps alone; the tech carrier stays behind.
-        Autotest.Commands["jw_jump_split"] = _ =>
+        // jw_jump_split [carrier]: single player. The playtest case (spec 1601): only the own ships without tech jump to the first unvisited
+        // neighbor, like a captured ship that jumps alone; the tech carrier stays behind. "carrier": only the ships with tech jump.
+        Autotest.Commands["jw_jump_split"] = arg =>
         {
             var run = Autotest.RequireRun();
             if (run.IsMultiplayer) throw new InvalidOperationException("jw_jump_split is single player only");
+            bool carrier = arg.Trim() switch { "" => false, "carrier" => true, _ => throw new InvalidOperationException("jw_jump_split needs: nothing | carrier") };
             var ships = run.Game.Sim.Ships.HumanPlayerSignificantShips.ToList();
-            var jumpers = ships.Where(s => Tech.Vaults.ShipTech(s) == 0).ToList();
+            var jumpers = ships.Where(s => Tech.Vaults.ShipTech(s) > 0 == carrier).ToList();
             if (jumpers.Count == 0 || jumpers.Count == ships.Count) throw new InvalidOperationException("jw_jump_split needs ships with and without tech");
             var next = run.Game.CurrentMapNode.Connections.FirstOrDefault(n => !run.State.VisitedNodes.Contains(n.UniqueID))
                 ?? throw new InvalidOperationException("no unvisited neighbor system");
-            Log.Info($"AUTOTEST ux: {jumpers.Count} of {ships.Count} ships jump to {next.Name}, the carrier stays");
+            Log.Info($"AUTOTEST ux: {jumpers.Count} of {ships.Count} ships jump to {next.Name} (carrier jumps: {carrier})");
             Autotest.WaitFor(() => !run.Game.IsGameSavingBlocked, 30, "game saving to be allowed", () =>
                 run.Game.JumpToNode(next, doFtlAnimation: false, jumpers)
                     .ContinueWith(t => Log.Error("AUTOTEST jw_jump_split failed", t.Exception), TaskContinuationOptions.OnlyOnFaulted));

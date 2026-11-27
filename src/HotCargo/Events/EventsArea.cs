@@ -155,6 +155,8 @@ public static class EventsArea
         // Callbacks (spec 2500 to 2509). ev_memories: memories in the run. ev_memory_kind: the kind of the newest one (MemoryKind as a
         // number, 0 = none). ev_recall_kind: the kind that the pending page recalls (0 = none). ev_recall_named: 1 when the pending page's
         // carrier carries the name of the recalled ship.
+        // ev_join_price: the join price of the pending page in credits (spec 2506), -1 without a join deal.
+        Autotest.Fields["ev_join_price"] = () => RequireRun().State.Events.Pending?.JoinPrice ?? -1;
         Autotest.Fields["ev_memories"] = () => RequireRun().State.Events.Memories.Count;
         Autotest.Fields["ev_memory_kind"] = () => (int)(RequireRun().State.Events.Memories.LastOrDefault()?.Kind ?? MemoryKind.None);
         Autotest.Fields["ev_recall_kind"] = () => (int)(RequireRun().State.Events.Pending?.Recall?.Kind ?? MemoryKind.None);
@@ -179,7 +181,9 @@ public static class EventsArea
             var kind = Enum.Parse<MemoryKind>(parts[0]);
             int ago = parts.Length > 1 ? Int(parts[1]) : 1;
             string ship = parts.Length > 2 ? parts[2] : "Test Ship";
-            Memories.Record(run, kind, ship, faction: "", RequireSim().MapNode?.Name ?? "", run.State.SectorIndex - ago);
+            // The faction that controls the system, as a spared faction ship of this system has.
+            string faction = RequireSim().MapNode?.ControllingFaction?.ToString() ?? "";
+            Memories.Record(run, kind, ship, faction, RequireSim().MapNode?.Name ?? "", run.State.SectorIndex - ago);
         };
         // expecttagged <spawn tag> <op> <count>: live and stasis ships with the tag, for spawn outcomes.
         Autotest.Commands["expecttagged"] = arg =>
@@ -206,6 +210,8 @@ public static class EventsArea
             {
                 // The goods page (spec 2384) takes its option from an open goods hand-over, so it renders only at one.
                 if (e.Options.Any(o => o.Resource == OptionRules.HandOverResource)) continue;
+                // A join deal (spec 2506) comes from the page's memory, so it renders only on a callback page (test events-callbacks).
+                if (e.JoinDeal) continue;
                 var p = new PendingEvent { EventId = e.ID, Serial = 0, Tier = run.CurrentTier, TechValue = EventRunner.CurrentTechValue(run) };
                 var page = EventView.Pending(run, sim, p, run.Game.LocalPlayerIndex);
                 Log.Info($"AUTOTEST EVENT {e.ID} ({e.Trigger}): {page.Title}\n{EventView.Plain(page.Body)}");

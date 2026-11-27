@@ -27,11 +27,12 @@ Every PC script sources `scripts/pc.sh`. Its header names the settings: `PC_MACH
 - `scripts/stop.sh`: closes the slot's game.
 - `scripts/logs.sh [lines]`: the Hot Cargo log and the newest game log of the slot.
 - `scripts/mod-toggle.sh on|off`: turns the mod on or off in the slot's settings. The game must be closed.
-- `scripts/detach.sh <name> <command>` and `scripts/suite-wait.sh <log> [timeout]`: a run in its own session, with its log in `../.state/suites/`. A detached run loses PC access when the Bash call that started it ends. Use it only for runs without PC calls.
+- `scripts/pc-suite.sh start|wait|run|stop|list`: game tests as a suite that the PC runs by itself (`hot-cargo-testing`). Its folder on the PC: `%USERPROFILE%\HotCargoSlots\_suites\<id>` (`runner.log` tells what the suite did; folders older than 2 days go at the next start).
+- `scripts/detach.sh <name> <command>` and `scripts/suite-wait.sh <log> [timeout]`: a Mac run in its own session, with its log in `../.state/suites/`. A detached run loses PC access when the Bash call that started it ends. Use it only for runs without PC calls.
 
 ## Locks (on the Mac, in /tmp)
 
-- `hot_cargo_slot_<n>.lock`: one for each test slot, with `owner` (the worktree) and `pid`. `take_slot` and `take_slots` in `scripts/autotest-lib.sh` take them. Co-op takers queue on `hot_cargo_slot_pair.lock`.
+- `hot_cargo_slot_<n>.lock`: one for each test slot, with `owner` (the worktree) and `pid`, or, for a slot of a PC suite, `suite` (the suite id) and `until` (its time limit); its `pid` is a holder process that only sleeps, for worktrees with older scripts. A suite lock ends when its suite ended on the PC or at that time. `take_slot` and `take_slots` in `scripts/autotest-lib.sh` take them. Co-op takers queue on `hot_cargo_slot_pair.lock`.
 - `hot_cargo_main_slot.lock`: `install-player.sh` and `vault-saved-ships.sh` take it.
 - `hot_cargo_build_<hash>.lock`: one build at a time in each worktree (`stage.sh`).
 - A lock whose pid is gone is stale, and the next taker takes it over. Never remove a lock whose owner process lives.
@@ -42,5 +43,5 @@ Every PC script sources `scripts/pc.sh`. Its header names the settings: `PC_MACH
 - Find a slot's game only with `Get-SlotProcess`. It finds a test slot's game by its `--rootsavepath` folder `HotCargoSlots\<slot>`, and the player's game as each game without that path. Never use a pid file or a process id: Windows reuses ids, and a stale id can name the player's game.
 - Never kill Cosmoteer processes by hand. Use `SLOT=tN scripts/stop.sh`.
 - Never print process command lines.
-- PC calls work only while your turn is active (CLAUDE.md, Agents).
+- PC calls work only while your turn is active (CLAUDE.md, Agents). Game tests do not need the link while they run.
 - The T3 link to the PC drops when the PC's display turns off, even when the PC does not sleep. The display, sleep and hibernate timeouts on AC are "never" for that reason. If the link drops after some idle minutes, check them first (`powercfg /q`).

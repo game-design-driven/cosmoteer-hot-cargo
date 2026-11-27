@@ -1,3 +1,4 @@
+using System.Globalization;
 using Cosmoteer;
 using Cosmoteer.Factions;
 using Cosmoteer.GalaxyMap;
@@ -21,9 +22,18 @@ public static class FactionsArea
 {
     public static void Register()
     {
-        Run.Hooks.TimeHeatFactor = run =>
-            FactionsModel.TimeHeatFactor(ZoneOf(run, run.Game.CurrentMapNode), run.T.Factions.AllyHeatFactor, run.T.Factions.ShelterHeatFactor,
-                run.T.Factions.WatchHeatFactor);
+        var timeHeat = Run.Hooks.TimeHeatTerms;
+        Run.Hooks.TimeHeatTerms = (run, b) =>
+        {
+            timeHeat(run, b);
+            var node = run.Game.CurrentMapNode;
+            var zone = ZoneOf(run, node);
+            var t = run.T.Factions;
+            string? name = node is not null && Controller(node) is { } f ? Name(f) : null;
+            // Spec 2582: leaving a hot zone takes its factor away; shelter is good, so it has no hint.
+            b.Times("Zone" + zone, FactionsModel.TimeHeatFactor(zone, t.AllyHeatFactor, t.ShelterHeatFactor, t.WatchHeatFactor), name,
+                zone is Zone.Ally or Zone.Watch ? "HintLeave" + zone : null);
+        };
         Run.Hooks.NotorietyFactor = run => FactionsModel.NotorietyFactor(ZoneOf(run, run.Game.CurrentMapNode), run.T.Factions.AllyNotorietyFactor);
         // Spec 2559: a jump to a closed system of the run map cuts no heat.
         Run.Hooks.JumpHeatKept = run => Lockdown.ArrivalClosed(run) ? 1f : HeatKept(run, Jumps.PendingKind(run));
@@ -131,6 +141,18 @@ public static class FactionsArea
     {
         var t = run.T.Factions;
         return run.PressureActive ? FactionsModel.MarkupFactor(run.State.Heat, t.MarkupStartHeat, t.MarkupMaxFactor, t.PriceHeatStep) : 1f;
+    }
+
+    /// <summary>
+    /// Spec 644, 655, 2586: the Hot Cargo steps of a station's buy price: the heat markup (hint: cool down), and for tech at the rival
+    /// faction the fence premium. The price patch multiplies by their total; the trade tab shows them after the vanilla standing.
+    /// </summary>
+    public static Breakdown BuyTerms(Run run, Breakdown b, bool tech, FactionRules faction)
+    {
+        var t = run.T.Factions;
+        b.Times("HeatMarkup", Markup(run), FactionsModel.SteppedHeat(run.State.Heat, t.PriceHeatStep).ToString("0", CultureInfo.InvariantCulture), "HintCoolDown");
+        if (tech && run.PressureActive && IsRival(run, faction)) b.Times("RivalFence", t.RivalFencePremium);
+        return b;
     }
 
     /// <summary>Spec 656: the crew hire price factor now. 1 while heat is off.</summary>

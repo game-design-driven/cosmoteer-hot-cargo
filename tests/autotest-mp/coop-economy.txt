@@ -413,6 +413,20 @@ wait 2
 @3p on 1 expect tech == 3
 @3p on 1 expect techleftlost == 5
 
+step tech.left-all
+# Spec 2527: the host drops its tech as crates, and its ships jump on. No tech arrives, so both machines lose the run at the same
+# switch, without the loss timer.
+@2p mp tech drop 4
+@3p mp tech drop 3
+wait 2
+expect tech == 0
+on 1 expect tech == 0
+mp tech_leave 0
+waitfor lost == 1 90
+on 1 waitfor lost == 1 60
+expect techleftlost == 8
+on 1 expect techleftlost == 8
+
 step tech.trade-loss
 # Spec 17, 443, 1011: a new run. Each player's starter ship has 2 vaults and a share of the tech (4 + 4, or 3 + 3 + 2 with
 # 3 players); each player sells from their own ship. The last sale loses the run for all.

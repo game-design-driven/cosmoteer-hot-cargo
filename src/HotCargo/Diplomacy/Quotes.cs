@@ -21,20 +21,26 @@ public static class Quotes
     public static int BluffUnits(Run run, SimRoot sim) => DiplomacyModel.BluffUnits(Situation.VaultTech(sim), T(run).BluffShare);
 
     /// <summary>Spec 565. 0 when the stock is too small to bluff.</summary>
-    public static float Bluff(Run run, SimRoot sim, int player)
+    public static float Bluff(Run run, SimRoot sim, int player) => BluffTerms(run, sim, player) is { } b ? (float)b.Total : 0f;
+
+    /// <summary>Spec 565, 2584: the steps of the bluff chance. Null when the stock is too small to bluff.</summary>
+    public static Breakdown? BluffTerms(Run run, SimRoot sim, int player)
     {
         var t = T(run);
         int units = BluffUnits(run, sim);
-        if (units == 0) return 0f;
-        return DiplomacyModel.BluffChance(units, Situation.VaultTech(sim), Situation.Concentration(run, sim, player, units), t.BluffChanceBase, t.BluffPerShare, t.BluffVisiblePenalty);
+        if (units == 0) return null;
+        return DiplomacyModel.BluffTerms(units, Situation.VaultTech(sim), Situation.Concentration(run, sim, player, units), t.BluffChanceBase, t.BluffPerShare, t.BluffVisiblePenalty);
     }
 
-    public static float DemandSurrender(Run run, SimRoot sim, int player, Ship ai)
+    public static float DemandSurrender(Run run, SimRoot sim, int player, Ship ai) => (float)DemandSurrenderTerms(run, sim, player, ai).Total;
+
+    /// <summary>Spec 567, 2584: the steps of the chance that the ship surrenders to the players' demand.</summary>
+    public static Breakdown DemandSurrenderTerms(Run run, SimRoot sim, int player, Ship ai)
     {
         var t = T(run);
         var inputs = new DiplomacyModel.SurrenderInputs(Situation.Leverage(run, sim, ai), 1f - HunterOrders.HealthFraction(ai), Situation.Fame(run),
             Situation.Reputation(run, ai), Situation.Allies(run, sim, ai), Situation.Wanted(sim, player, ai), Situation.IsHunter(ai), run.State.Heat);
-        return DiplomacyModel.SurrenderChance(inputs, t.SurrenderChanceBase, t.SurrenderPerLeverage, t.SurrenderPerDamage, t.SurrenderPerFame,
+        return DiplomacyModel.SurrenderTerms(inputs, t.SurrenderChanceBase, t.SurrenderPerLeverage, t.SurrenderPerDamage, t.SurrenderPerFame,
             t.SurrenderPerReputation, t.SurrenderPerAlly, t.SurrenderWantedPenalty, t.HunterSurrenderPerHeat);
     }
 
@@ -183,10 +189,15 @@ public static class Quotes
     }
 
     /// <summary>Spec 594: chance = min(PayChanceCap, crowd × the sum of the selected rows).</summary>
-    public static float PayOff(Run run, SimRoot sim, Ship hunter, IReadOnlyList<Pick> picks)
+    public static float PayOff(Run run, SimRoot sim, Ship hunter, IReadOnlyList<Pick> picks) => (float)PayOffTerms(run, sim, hunter, picks).Total;
+
+    /// <summary>Spec 594, 2584: the steps of the pay-off chance: each selected row, the crowd factor, the cap.</summary>
+    public static Breakdown PayOffTerms(Run run, SimRoot sim, Ship hunter, IReadOnlyList<Pick> picks)
     {
+        int others = Situation.OtherHunters(run, sim, hunter);
         float crowd = PayCrowd(run, sim, hunter);
-        return MultiChoiceModel.Combine(picks.Select(p => crowd * PayPart(run, sim, (PayOption)p.Option, p.Value)), T(run).PayChanceCap);
+        return MultiChoiceModel.CombineTerms(picks.Select(p => ("Pay" + (PayOption)p.Option, PayPart(run, sim, (PayOption)p.Option, p.Value),
+            (string?)PayValueText(run, sim, (PayOption)p.Option, p.Value))), crowd, "Crowd", T(run).PayChanceCap, others.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     /// <summary>The value text right of a row slider: tech of the stock, credits, or a crew count.</summary>

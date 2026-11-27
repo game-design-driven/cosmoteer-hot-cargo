@@ -18,16 +18,16 @@ expect fa_plainsell == 1
 # Spec 641, 642: this system becomes corporate ally space.
 fa_roles here other
 expect fa_zone == 1
-expect fa_timefactor == 1.5
-expect fa_offerratio >= 1.29
-expect fa_offerratio <= 1.31
+expect fa_timefactor == fa_allyheat
+expect fa_offervsally >= 0.99
+expect fa_offervsally <= 1.01
 fa_mark
 wait 20
 log ally
 expect fa_rateratio >= 0.97
 expect fa_rateratio <= 1.03
-expect fa_notorietyratio >= 1.49
-expect fa_notorietyratio <= 1.51
+expect fa_notorietyvsally >= 0.99
+expect fa_notorietyvsally <= 1.01
 # Spec 643: shelter needs reputation with a faction that is not the ally.
 fa_roles other -
 expect fa_zone == 0

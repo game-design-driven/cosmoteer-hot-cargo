@@ -1,0 +1,65 @@
+# Number breakdowns on hover (spec 2580 to 2586): the heat rate and tech value lines of the heat panel, the trade tab price line, and the
+# surrender, bluff and pay-off buttons of a hunter's demand page. Each check opens the tooltip of the real widget through the game's
+# tooltip box, reads the real tooltip label, and needs its total line to show the number that the sim adds, the roll uses or the price
+# patch applies.
+newgame
+wait 8
+# The demand page fits a 1920x1080 window without a scroll.
+window 1920 1080
+ev_set Enabled false
+closepanel
+godmode on
+aiset FleeEnabled false
+aiset CallEnabled false
+aiset RegroupEnabled false
+dip_set DemandHailChance 0
+dip_set HunterYieldChance 0
+pause on
+wait 1
+hovertip heatrate
+wait 1
+expect hovertip_ok == 1
+hovertip techvalue
+wait 1
+expect hovertip_ok == 1
+hovertip_clear
+pause off
+# Spec 2586: the trade tab price line, with a heat markup. The markup starts at heat 0 here, so no stage starts.
+fa_set MarkupStartHeat 0
+heat 20
+tostation
+wait 2
+comms open
+wait 1
+commstab trade
+wait 2
+pause on
+hovertip tradeprice
+wait 1
+expect hovertip_ok == 1
+hovertip_clear
+comms close
+wait 1
+pause off
+openspace 5000
+dip_shield hunters
+spawnstage Warning
+wait 2
+dip_near hunter 250
+wait 1
+pause on
+dip_pick hunter tech 3
+wait 1
+dip_open hunter
+wait 2
+dip_hovertip surrender hunter
+wait 1
+expect hovertip_ok == 1
+dip_hovertip bluff hunter
+wait 1
+expect hovertip_ok == 1
+dip_hovertip payoff hunter
+wait 1
+expect hovertip_ok == 1
+hovertip_clear
+quit

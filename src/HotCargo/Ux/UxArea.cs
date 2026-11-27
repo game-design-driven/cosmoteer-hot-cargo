@@ -26,6 +26,7 @@ public static class UxArea
         Run.Hooks.Frame += run => UxKit.Guard("tech watch", () => TechWatch.OnFrame(run));
         AddAutotestCommands();
         UxAutotest.Register();
+        BreakdownAutotest.Register();
         TechWatch.RegisterAutotest();
     }
 
@@ -92,7 +93,7 @@ public static class UxArea
                 Halfling.App.Director.PopState(dialog);
         };
         Autotest.Commands["screenshot"] = arg => { Screenshot.Capture(arg); Autotest.Wait(1.5); };
-        // ux <Field> on|off|<number>: sets one UxTunables field for this run (before/after screenshots, thresholds in tests).
+        // ux <Field> on|off|<number>|<enum name>: sets one UxTunables field for this run (before/after screenshots, thresholds in tests).
         Autotest.Commands["ux"] = arg =>
         {
             var parts = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -106,6 +107,7 @@ public static class UxArea
                     _ => throw new InvalidOperationException($"ux field '{parts[0]}' needs on or off"),
                 }
                 : field.FieldType == typeof(float) ? float.Parse(parts[1], CultureInfo.InvariantCulture)
+                : field.FieldType.IsEnum ? Enum.Parse(field.FieldType, parts[1], ignoreCase: true)
                 : throw new InvalidOperationException($"ux field '{parts[0]}' has type {field.FieldType.Name}");
             field.SetValue(Autotest.RequireRun().T.Ux, value);
         };

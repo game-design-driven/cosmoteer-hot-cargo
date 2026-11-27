@@ -4,16 +4,22 @@ namespace HotCargo.MultiChoice;
 public static class MultiChoiceModel
 {
     /// <summary>The chances of the selected options add up, capped at <paramref name="cap"/> and kept in 0..1.</summary>
-    public static float Combine(IEnumerable<float> chances, float cap)
+    public static float Combine(IEnumerable<float> chances, float cap) =>
+        (float)CombineTerms(chances.Select(c => ("Option", c, (string?)null)), 1f, null, cap).Total;
+
+    /// <summary>
+    /// Spec 594, 2584: the steps of a combined chance: one addend for each option (text key, chance, text argument), then the factor
+    /// on the whole offer (key, or null for none), then the cap and the 0..1 range.
+    /// </summary>
+    public static Core.Breakdown CombineTerms(IEnumerable<(string Key, float Chance, string? Arg)> options, float factor, string? factorKey, float cap,
+        string? factorArg = null)
     {
-        if (float.IsNaN(cap)) throw new ArgumentOutOfRangeException(nameof(cap));
-        float sum = 0f;
-        foreach (float c in chances)
-        {
-            if (float.IsNaN(c)) throw new ArgumentOutOfRangeException(nameof(chances), "a chance is NaN");
-            sum += c;
-        }
-        return Math.Clamp(Math.Min(sum, cap), 0f, 1f);
+        if (float.IsNaN(cap) || float.IsNaN(factor)) throw new ArgumentOutOfRangeException(nameof(cap), $"cap {cap}, factor {factor}");
+        var b = new Core.Breakdown(Core.BreakdownUnit.Chance).Base("OfferNone", 0);
+        foreach (var (key, chance, arg) in options) b.Plus(key, chance, arg);
+        if (factorKey is not null) b.Times(factorKey, factor, factorArg);
+        else if (factor != 1f) throw new ArgumentException("a factor needs a text key", nameof(factorKey));
+        return b.Clamp("Clamp", 0, Math.Clamp(cap, 0f, 1f));
     }
 
     /// <summary>A slider option's chance: 0 at <paramref name="min"/>, <paramref name="atMax"/> at <paramref name="max"/>, linear between.</summary>
