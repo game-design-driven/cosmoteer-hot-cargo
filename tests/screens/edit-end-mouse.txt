@@ -1,0 +1,21 @@
+# Spec 2477: the test edit-end in a game that draws (Mac runner or a windowed PC slot), where every click is the real mouse on the
+# widget's place (RealInput). The headless sim cannot hit widgets by position. RUNNER=mac scripts/screens.sh tests/screens/edit-end-mouse.txt <out-dir>
+render on
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+scav_set Enabled false
+pause off
+wait 3
+cut_mark
+edit_end cut
+weld_build arm
+wait 1
+weld_build piece
+edit_end weld
+expect edit_end_checked == 84
+expect edit_end_failed == 0
+quit

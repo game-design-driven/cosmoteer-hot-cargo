@@ -20,7 +20,7 @@ A change in the player's running game on request is `hot-cargo-tune`. This skill
 
 1. Read the finding in `BALANCE.md` that the value belongs to, and the dependencies on other areas.
 2. Change the default in the area's `*Tunables.cs` or in `mod/balance/actions.rules` (CLAUDE.md, Rules for code).
-3. If the value is in the model, set it in `NEW` in `model.py`. Then run the model and `render.py` (commands in `BALANCE.md`, Method).
+3. If the value is in the model, set it in `NEW` in `model.py`. Then run the model and `render.py` (commands in `BALANCE.md`, Method). The model exits with an error when a zone beats neutral by more than `ZONE_LEAD_LIMIT` (spec 306); CI `build` runs the same check.
 4. If the change alters the mission offers or the hunter ships, run the measurement scripts again first. They run on the PC.
 5. Update the numbers in `BALANCE.md`: the finding and the row of the table of changes. Update the lines of spec 35 and of the area's own spec.
 6. Update the expectations in `tests/autotest/balance-*.txt` and the unit tests of the `*Model.cs` files that the value changes. Run them (`hot-cargo-testing`).

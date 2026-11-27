@@ -229,6 +229,8 @@ ZONES = dict(
     watch=(cs_default("Factions/FactionsTunables.cs", "WatchHeatFactor"), 1.0, 1.0),
 )
 UNITS_HELD = 8  # the tech units that MULT assumes
+# Spec 306 (pillar 2209, no dominant choice): no zone may beat neutral by more than this share of the total value per sector.
+ZONE_LEAD_LIMIT = 0.20
 
 
 def zone_sector(p, heat_f, money_f, notoriety_f):
@@ -277,3 +279,11 @@ for z, r in result["zones"]["sector"].items():
 print("board after", board_after, "fuel after", fuel_after)
 print("pick money", PICK_MONEY, "mission fame", MISSION_FAME, "contract heat", CONTRACT_HEAT, "techs", TECH_BASE, TECH_OVERCLOCK)
 print("hunters", HUNTER)
+
+# Spec 306: the balance check (CI build). It fails when a zone beats neutral by more than ZONE_LEAD_LIMIT.
+leaders = {z: r["vsNeutral"] for z, r in result["zones"]["sector"].items() if r["vsNeutral"] > ZONE_LEAD_LIMIT}
+for z, lead in leaders.items():
+    print(f"BALANCE CHECK FAILED: zone '{z}' beats neutral by {lead:+.1%} per sector, above the limit of {ZONE_LEAD_LIMIT:.0%} "
+          f"(spec 306). Change its factors in FactionsTunables.cs.", file=sys.stderr)
+if leaders:
+    sys.exit(1)
