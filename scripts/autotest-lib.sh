@@ -125,6 +125,8 @@ sim_jobs() {
 # prints their lock folders. A co-op session runs two game processes.
 take_sim_slots() {
   local i lock got=() jobs; jobs="$(sim_jobs)"
+  # A request above the cap never fits: fail at once instead of a wait without end (a co-op session needs 2 slots).
+  if (( $2 > jobs )); then echo "take_sim_slots: $2 Mac sim slots needed, the cap HOT_CARGO_SIM_JOBS is $jobs; run it on the PC" >&2; return 1; fi
   while :; do
     got=()
     for ((i = 1; i <= jobs && ${#got[@]} < $2; i++)); do
