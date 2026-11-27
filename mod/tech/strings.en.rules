@@ -22,6 +22,7 @@ HotCargoTech
 	StartShortFmt = "<bad><b>TOO FEW VAULTS!</b></bad>\n{0} tech is in normal storage. Air and heat destroy it in <b>{1}</b>. Build more Tech Vaults."
 	VaultOutside = "A Tech Vault has no door. Add one so that crew can reach the tech."
 	LossNoTech = "The fleet held no Stolen Tech for too long."
+	LossLeftBehindFmt = "All the tech stayed behind in {0}."
 	LossTimerStarted = "No tech left! Get some back within {0}, or the run is lost."
 	LossTimerNoTech = "Get tech back: crates in space, a friendly ship, an event."
 	LossTimerFmt = "<bad><b>NO TECH</b>   run lost in <b>{0}</b></bad>\n<gray>{1}</gray>"

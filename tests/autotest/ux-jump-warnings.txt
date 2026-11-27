@@ -38,6 +38,9 @@ jw_engage
 wait 1
 expect ux_jump_dialogs == 1
 expect ux_jump_dialog_lines == 2
+# Spec 2527: the twin with the drive holds no tech and the starter with the tech stays, so the first button is "Lose the run".
+# Godmode blocks the loss of the run after "yes"; tech-left-behind checks it.
+expect ux_dialog_lose == 1
 jw_answer no
 wait 3
 expect fa_jumpstarts == 0

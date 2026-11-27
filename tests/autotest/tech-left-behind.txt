@@ -1,5 +1,6 @@
-# Spec 2520 to 2529: tech that stays in a system when the players leave it is lost. A move that leaves all of it behind loses
-# the run at once on arrival (spec 2527), not after the loss timer (600 s here).
+# Spec 2520 to 2529, 12: tech that stays in a system when the players leave it is lost. Some of it: the run goes on. All of it: the
+# question says the run is lost and needs "Lose the run" (spec 2527), and a move that still leaves all of it behind loses the run at
+# once on arrival, not after the loss timer (600 s here).
 newgame
 wait 8
 ev_set Enabled false
@@ -9,9 +10,44 @@ jw_twin save
 jw_twin spawn
 wait 2
 expect tech == 8
-# Only the twin without tech jumps; the carrier stays with all the tech.
-jw_jump_split
+# ENGAGE when only the twin without tech can jump: no tech comes along, so the first button is "Lose the run". Cancel keeps the fleet.
+jw_drive notech
+wait 2
+jw_gatejump
+waitfor jw_ready >= 1 120
+jw_engage
+wait 1
+expect ux_dialog_lose == 1
+jw_answer no
+wait 3
+expect fa_jumpstarts == 0
+# The carrier drops 2 tech as crates. No ship is ready to jump, so ENGAGE would leave all of it behind: 6 aboard and 2 crates.
+tech drop 2
+wait 1
+expect ux_jump_techleft == 8
+# Some tech stays: the carrier jumps, the twin and the crates stay. The 2 crates are lost, the run goes on.
+jw_jump_split carrier
 waitfor sector == 2 30
+wait 2
+expect techleftlost == 2
+expect tech == 6
+expect losstimer == 0
+expect lost == 0
+# A switch back to the twin takes no ship along, so all the tech would stay: the question says the run is lost. "Cancel" keeps it.
+expect ux_switch_techleft == 6
+jw_switch back
+wait 1
+expect ux_switch_dialogs == 1
+expect ux_dialog_lose == 1
+jw_answer no
+wait 3
+expect tech == 6
+expect lost == 0
+# "Lose the run": the switch goes, and the run is lost on arrival.
+jw_switch back
+wait 1
+expect ux_switch_dialogs == 2
+jw_answer yes
+waitfor lost == 1 30
 expect techleftlost == 8
-waitfor lost == 1 10
 quit
