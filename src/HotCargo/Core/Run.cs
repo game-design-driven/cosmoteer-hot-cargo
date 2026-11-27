@@ -62,8 +62,11 @@ public sealed class Run
         public static event Action<Run, float>? HeatGainBlocked;
         /// <summary>Factor on StrikeWaveIntervalSeconds (spec 30). Set by the Pursuit area: longer early in the run (spec 901).</summary>
         public static Func<Run, float> StrikeWaveIntervalFactor = _ => 1f;
-        /// <summary>Changes the score of requirement 7 (spec 1411). Arguments: run, the score of money and held units. Set by the Debt area.</summary>
-        public static Func<Run, long, long> ScoreAdjust = (_, score) => score;
+        /// <summary>
+        /// Steps of the score of requirement 7 after money and held units (spec 1411, 2590): each area adds its own step and chains the
+        /// step before it. Set by the Debt area.
+        /// </summary>
+        public static Action<Run, Breakdown> ScoreTerms = (_, _) => { };
 
         /// <summary>Runs in each UI frame of the run. UI only: change the sim only through MP inputs or the single-player tunables path.</summary>
         public static event Action<Run>? Frame;

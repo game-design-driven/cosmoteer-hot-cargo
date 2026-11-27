@@ -1,0 +1,12 @@
+// Icon of the "Past Runs" main menu button (spec 1227), drawn by tools/sprites/make_ui_icons.py. Read by RunRecord/PastRunsButton.cs.
+// Same texture settings and size as the vanilla main menu icons (gui/menus.rules, ContinueGameIcon).
+MenuButton
+{
+	Texture
+	{
+		File = "sprites/menu_past_runs.png"
+		MipLevels = 2
+		SampleMode = Linear
+	}
+	Size = [48, 48]
+}

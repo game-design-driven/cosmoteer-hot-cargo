@@ -4,7 +4,6 @@ using Halfling;
 using Halfling.Gui;
 using HarmonyLib;
 using HotCargo.Core;
-using HotCargo.Tech;
 
 namespace HotCargo.RunRecord;
 
@@ -26,8 +25,8 @@ static class PastRunsButton
         var bar = __instance.RootWidget.Children.OfType<LayoutBox>().SelectMany(b => b.DockedChildren.OfType<LayoutBox>())
             .FirstOrDefault(b => b.DockedChildren.Contains(__instance._continueGameBtn))
             ?? throw new InvalidOperationException("no main menu bar holds the Continue button");
-        var icon = GameApp.Rules.GetResourceRules(Vaults.TechId).Icon ?? throw new InvalidDataException("the Stolen Tech resource has no icon");
-        var button = new ImageButton(icon, WidgetRules.Instance.MainMenuIconButton)
+        // A flat glyph in the style of the vanilla main menu icons (blue, glow, 48 x 48), from mod/runrecord/icons.rules.
+        var button = new ImageButton(Ui.ModSprite.Read("runrecord/icons.rules", "MenuButton"), WidgetRules.Instance.MainMenuIconButton)
         {
             DockMode = DockMode.Left,
             Text = RecordRows.Text("MenuButton"),

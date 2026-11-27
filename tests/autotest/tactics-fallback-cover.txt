@@ -7,6 +7,8 @@ ev_set Enabled false
 scav_set Enabled false
 fr_set PayForwardChance 0
 godmode on
+# The player ship must not shoot the damaged ship, as in tactics-fallback-pool: a wreck in cover fails the health check (#377).
+playerweapons off
 tacticlog on
 aiset FleeOnVanilla false
 aiset RegroupOnVanilla false
@@ -24,12 +26,19 @@ airocks 6 900
 fr_kill_enemies
 # A pinned hull: the random pick uses the sim random stream (#277 moved it), and some hulls never repair in cover in time.
 aispawn pirates 1 3 trade hull=Gannet
+# Alone with the player: in the fixed test galaxy a faction ship (Recusant), an enemy of the pirates, came and killed the Gannet's
+# crew in cover (#377), as in the other fall back tests.
+aialone
 wait 3
+# Well inside the Gannet's radar (1,362). aispawn puts it about 1,360 away, and when the player ship was just off its radar, it saw
+# no threat, had no rock to hide behind, and fell back Away (#377, CI jitter seed 2136). +X has a rock of the ring between them.
+aiaway 1200
 aistrip 0 resources
 aidamage 0 0.3
 aigivelacking 0 0
 waitfor ai_fb_cover >= 1 30
 waitfor ai_fb_in_cover >= 1 90
 waitfor ai_fb_active == 0 400
+ai_spawned_diag
 expect ai_new_min_health >= 0.6
 quit

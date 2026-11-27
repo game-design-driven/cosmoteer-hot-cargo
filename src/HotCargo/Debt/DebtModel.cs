@@ -53,8 +53,8 @@ public static class DebtModel
         Enum.IsDefined((DebtChoice)(option / Span)) ? ((DebtChoice)(option / Span), option % Span)
             : throw new ArgumentOutOfRangeException(nameof(option), option, "no debt choice");
 
-    /// <summary>Spec 1411: the score minus the debt factor × the sum of the balances.</summary>
-    public static long Score(long score, long debt, float factor) => score - (long)Math.Ceiling(debt * (double)factor);
+    /// <summary>Spec 1411: what debt takes off the score: the debt factor × the sum of the balances, rounded up.</summary>
+    public static long ScoreCut(long debt, float factor) => (long)Math.Ceiling(debt * (double)factor);
 
     /// <summary>Spec 1420: a pay-off reward of this many credits takes what it can off the balance; the rest pays as money.</summary>
     public static (long Off, long Money) PayoffSplit(long amount, long balance) =>

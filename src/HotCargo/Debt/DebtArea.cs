@@ -25,8 +25,13 @@ public static class DebtArea
         SharedChoice.SharedChoices.Register(DebtChoiceDomain.Instance);
         Run.Hooks.Tick += DebtTick.OnTick;
         Run.Hooks.SystemEntered += DebtTick.OnSystemEntered;
-        var score = Run.Hooks.ScoreAdjust;
-        Run.Hooks.ScoreAdjust = (run, s) => DebtModel.Score(score(run, s), run.State.Debt.Total, run.T.Debt.ScoreDebtFactor);
+        var score = Run.Hooks.ScoreTerms;
+        Run.Hooks.ScoreTerms = (run, b) =>
+        {
+            score(run, b);
+            long debt = run.State.Debt.Total;
+            b.Plus("ScoreDebt", -DebtModel.ScoreCut(debt, run.T.Debt.ScoreDebtFactor), debt.ToString("N0", System.Globalization.CultureInfo.InvariantCulture));
+        };
         // Spec 1425: time heat rises a little faster while anyone in the crew owes money. Only the heat rate tooltip names it (spec 2582).
         var timeHeat = Run.Hooks.TimeHeatTerms;
         Run.Hooks.TimeHeatTerms = (run, b) =>

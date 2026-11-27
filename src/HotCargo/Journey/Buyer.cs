@@ -107,7 +107,11 @@ public static class Buyer
         var players = new List<PlayerState>();
         run.Game.GetHumanPlayerStates(players, deterministic: true);
         int held = Run.Hooks.CountFleetTech(run.Game.Sim);
-        s.Score = Run.Hooks.ScoreAdjust(run, Score(players.Sum(p => (long)p.Money), held, UnitPrice(run)));
+        // Spec 7, 2590: the score and its saved parts come from one breakdown.
+        var score = ScoreModel.Terms(players.Sum(p => (long)p.Money), held, UnitPrice(run));
+        Run.Hooks.ScoreTerms(run, score);
+        s.Score = (long)score.Total;
+        s.ScoreParts = [.. score.SumParts().Select(ScorePartState.From)];
         Log.Info($"Buyer delivery: {units} units, {s.DeliveredUnits} in total, {held} still held, score {s.Score}");
         run.Win(Strings.GetText("HotCargoJourney/WinReason"));
     }
@@ -116,7 +120,7 @@ public static class Buyer
     /// Spec 7: money + units still held × the Buyer price of one unit. Delivered units are already in the money (at the Buyer price),
     /// so each unit counts once, and an unsold unit is worth what the Buyer would pay for it.
     /// </summary>
-    internal static long Score(long money, int heldUnits, long unitPrice) => money + heldUnits * unitPrice;
+    internal static long Score(long money, int heldUnits, long unitPrice) => (long)ScoreModel.Terms(money, heldUnits, unitPrice).Total;
 
     /// <summary>What the Buyer pays for one unit now: the tech value × PriceFactor, as PricePatch computes it.</summary>
     internal static long UnitPrice(Run run) => (long)(TechPrice.Sell(run) * PriceFactor(run));

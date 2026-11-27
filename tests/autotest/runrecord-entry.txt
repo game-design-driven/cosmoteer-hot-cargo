@@ -28,6 +28,9 @@ wait 2
 expect rr_entries == 1
 expect rr_score > 184500
 expect rr_delivered == 5
+# Spec 2590: a real delivery saves the parts of the score (money, held units, debt), and they add up to it.
+expect rr_parts >= 3
+expect rr_parts_gap == 0
 careerlog
 wait 2
 expect rr_tab_rows == 1

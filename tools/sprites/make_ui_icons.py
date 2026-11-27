@@ -5,7 +5,7 @@
 """
 Draws the HUD icons of Hot Cargo buttons in the vanilla HUD icon style. Run: uv run tools/sprites/make_ui_icons.py
 Writes mod/tactics/sprites/share_on.png and share_off.png (spec 1318), mod/shipai/sprites/ai_on.png, ai_off.png and
-ai_mixed.png (spec 410), mod/cut/sprites/tool_cut.png (spec 2460), and mod/weld/sprites/tool_weld.png (spec 2480).
+ai_mixed.png (spec 410), mod/cut/sprites/tool_cut.png (spec 2460), mod/weld/sprites/tool_weld.png (spec 2480), and mod/runrecord/sprites/menu_past_runs.png (spec 1227).
 
 The vanilla HUD icons (gui/game/*/hud_*.png and the *_on/*_off tool icons), measured, no art copied: 96 x 96 px, a flat glyph
 about 55 px wide, blue 0,183,255 when off or neutral, green 10,212,97 when on, and a soft glow of the same hue around the glyph.
@@ -123,6 +123,28 @@ def weld_glyph():
     return np.asarray(m.resize((SIZE, SIZE), Image.LANCZOS), np.float32) / 255
 
 
+def trophy_glyph():
+    """A trophy cup with two handles, a stem and a two-step base: the score of past runs (spec 1227), as the vanilla title icons."""
+    s = SIZE * K
+    m = Image.new("L", (s, s), 0)
+    d = ImageDraw.Draw(m)
+    c = s / 2
+
+    def p(x, y):
+        return (c + x * K, c + y * K)
+
+    # The cup: a flat rim and a bowl that narrows to the stem, about 40 px wide, like the 56 to 60 px vanilla glyphs with handles.
+    d.polygon([p(-20, -28), p(20, -28), p(20, -12), p(13, 2), p(4, 8), p(-4, 8), p(-13, 2), p(-20, -12)], fill=255)
+    # The handles: open rings on both sides of the cup.
+    for side in (-1, 1):
+        box = [p(side * 20 - 9, -25), p(side * 20 + 9, -5)]
+        d.arc(box, -90 if side > 0 else 90, 90 if side > 0 else 270, fill=255, width=int(4.5 * K))
+    d.rectangle([p(-3.5, 7), p(3.5, 19)], fill=255)  # stem
+    d.rectangle([p(-12, 18), p(12, 23)], fill=255)  # base, upper step
+    d.rectangle([p(-17, 24), p(17, 30)], fill=255)  # base, lower step
+    return np.asarray(m.resize((SIZE, SIZE), Image.LANCZOS), np.float32) / 255
+
+
 def icon(glyph, color):
     """The glyph in its colour with a soft glow of a darker shade of the same hue, as vanilla HUD icons."""
     glow = np.clip(ndimage.gaussian_filter(glyph, 3.5) * 1.6, 0, 1) * 0.75
@@ -151,4 +173,5 @@ if __name__ == "__main__":
     save("shipai", "ai_mixed", Image.fromarray(mixed.astype(np.uint8), "RGBA"))
     save("cut", "tool_cut", icon(cut_glyph(), OFF))
     save("weld", "tool_weld", icon(weld_glyph(), OFF))
+    save("runrecord", "menu_past_runs", icon(trophy_glyph(), OFF))
     print(f"icons written under {MOD}")

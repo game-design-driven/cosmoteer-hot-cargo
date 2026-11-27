@@ -243,6 +243,11 @@ HotCargoBreakdown
 	PayCrewFmt = "Crew ({0})"
 	CrowdFmt = "{0} other hunters near"
 
+	// Score (spec 7, 1411, 2590)
+	ScoreMoney = "Money"
+	ScoreHeldFmt = "Tech still held ({0} at the Buyer price)"
+	ScoreDebtFmt = "Debt ({0} owed)"
+
 	// Station prices (spec 644, 655, 2586)
 	Vanilla = "Price"
 	StandingFmt = "Your standing ({0})"

@@ -25,7 +25,11 @@ internal sealed class PastRunsDialog : DialogBase
     readonly Label _summary;
     readonly SimpleBox _header;
     readonly ScrollBox _rows;
+    readonly Label _detail;
     readonly List<RunEntry> _runs;
+
+    /// <summary>Spec 2591: the run whose score parts show under the table. The best run at first; a click on a score picks another.</summary>
+    internal RunEntry? Selected { get; private set; }
 
     internal RunColumn Column { get; private set; } = RunSort.DefaultColumn;
     internal bool Descending { get; private set; } = true;
@@ -40,6 +44,10 @@ internal sealed class PastRunsDialog : DialogBase
     {
         if (Widths.Length != Enum.GetValues<RunColumn>().Length) throw new InvalidOperationException("Past Runs: one width for each column");
         _runs = Recorder.Load() ?? [];
+        // Spec 2591: the window's own tooltip box, like the vanilla dialogs (LoadSaveGameDialog), for the score tooltips.
+        var toolTipBox = new ToolTipBox();
+        AddDropTarget(toolTipBox);
+        ToolTipDisplay = toolTipBox;
 
         _window = new WindowBox();
         _window.Size = new Vector2(1100f, 640f);
@@ -81,6 +89,14 @@ internal sealed class PastRunsDialog : DialogBase
         close.Clicked += (_, _) => Close();
         bottom.AddChild(close);
         layout.DockedChildren.Add(bottom);
+
+        // Spec 2591: the parts of the selected run's score, under the table, in the style of the number breakdowns (spec 2581).
+        _detail = new Label { DockMode = DockMode.Bottom };
+        _detail.TextRenderer.XmlFormatting = true;
+        _detail.TextRenderer.OversizeMode = OversizeMode.Wrap;
+        _detail.AutoSize.AutoHeightMode = AutoSizeMode.Enable;
+        layout.DockedChildren.Add(_detail);
+        Selected = RunRecordModel.Best(_runs);
 
         _rows = new ScrollBox();
         _rows.AnchorRect = AnchorPresets.Fill;
@@ -149,10 +165,28 @@ internal sealed class PastRunsDialog : DialogBase
 
         _rows.Children.Clear();
         for (int i = 0; i < Shown.Count; i++) _rows.AddChild(Row(Shown[i], i == BestRow));
+        _detail.Text = RecordRows.ScoreDetail(Selected);
+        _detail.SelfActive = _detail.Text.Length > 0;
     }
 
-    /// <summary>One table row. Spec 1231: the best run gets a BEST mark next to its score.</summary>
-    static SimpleBox Row(RunEntry e, bool best)
+    /// <summary>The score button of a table row. For the test commands.</summary>
+    internal Button ScoreButton(int row) => ((SimpleBox)_rows.Children[row]).Children.OfType<Button>().Single();
+
+    /// <summary>The score parts text under the table. For the test commands.</summary>
+    internal string DetailText => _detail.Text ?? "";
+
+    /// <summary>Spec 2591: a click on a run's score shows its parts under the table.</summary>
+    internal void Select(RunEntry entry)
+    {
+        Selected = entry;
+        Fill();
+    }
+
+    /// <summary>
+    /// One table row. Spec 1231: the best run gets a BEST mark next to its score. Spec 2591: the score is a button with the parts of the
+    /// score in its tooltip; a click shows them under the table.
+    /// </summary>
+    SimpleBox Row(RunEntry e, bool best)
     {
         var row = new SimpleBox { Height = 28f };
         row.NineSlice.Flags = best ? NineSliceFlags.All : NineSliceFlags.None;
@@ -160,6 +194,20 @@ internal sealed class PastRunsDialog : DialogBase
         {
             string text = RecordRows.Cell(e, column);
             if (best && column == RunColumn.Score) text += "  " + RecordRows.Text("BestMark");
+            if (column == RunColumn.Score)
+            {
+                var score = new Button(WidgetRules.Instance.FlatButton) { PercentileRect = CellRect(column), Text = text };
+                // The BEST mark is XML, and the score stays on one line like the other cells.
+                foreach (var r in new[] { score.StateNormalTextRenderer, score.StateHighlightedTextRenderer, score.StatePressedTextRenderer, score.StateDisabledTextRenderer })
+                {
+                    r.XmlFormatting = true;
+                    r.OversizeMode = OversizeMode.Ellipses;
+                }
+                score.ToolTips.Text = RecordRows.ScoreTip(e);
+                score.Clicked += (_, _) => Errors.Guard("past runs score", () => Select(e));
+                row.AddChild(score);
+                continue;
+            }
             var label = new Label { PercentileRect = CellRect(column), Text = text };
             label.TextRenderer.XmlFormatting = true;
             label.TextRenderer.HAlignment = HAlignment.Center;

@@ -1,10 +1,16 @@
-# Past Runs window of the main menu (spec 1227 to 1231), with three sample runs. Windowed test slot (needs graphics).
+# Past Runs on the main menu (spec 1227 to 1231, 2591): the menu bar with the button, the window with three sample runs and the
+# score parts of the best run, and the score tooltip. Windowed test slot (needs graphics).
 render on
 wait 6
+screenshot runrecord-menu
 pr_sample
 pr_click
 wait 2
 screenshot runrecord-pastruns
+pr_hoverscore 0
+wait 1
+rm_tipshot runrecord-score-tip
+hovertip_clear
 pr_close
 rr_clear
 quit

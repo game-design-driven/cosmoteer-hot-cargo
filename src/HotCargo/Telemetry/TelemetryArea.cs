@@ -168,6 +168,26 @@ public static class TelemetryArea
             TestShield.On = arg != "off";
             Log.Info($"AUTOTEST shieldplayers {TestShield.On}");
         };
+        // crewkill <player index>: every crew of that player's ships dies by fire (vanilla CrewSoul.Kill), the death that hits and fires
+        // bring. The shield of "shieldplayers on" stops it (#410). Test only. In co-op only with "mp".
+        Autotest.Commands["crewkill"] = arg =>
+        {
+            if (Autotest.RequireRun().IsMultiplayer && Autotest.SimPlayer is null)
+                throw new InvalidOperationException("crewkill in co-op needs \"mp\" (it changes the sim)");
+            int player = int.Parse(arg, CultureInfo.InvariantCulture);
+            var sim = Autotest.RequireRun().Game.Sim;
+            var crew = sim.Ships.HumanPlayerShips.Where(s => s.Metadata.PlayerIndex == player).OrderBy(s => s.UniqueID)
+                .SelectMany(s => s.Crew.Assigned).ToList();
+            if (crew.Count == 0) throw new InvalidOperationException($"player {player} has no crew on its ships");
+            foreach (var soul in crew) soul.Kill(Cosmoteer.Crew.DeathCause.Fire);
+            Log.Info($"AUTOTEST crewkill {player}: {crew.Count} crew");
+        };
+        // The crew on the ships of this machine's player.
+        Autotest.Fields["crew_mine"] = () =>
+        {
+            var game = Autotest.RequireRun().Game;
+            return game.Sim.Ships.HumanPlayerShips.Where(s => s.Metadata.PlayerIndex == game.LocalPlayerIndex).Sum(s => s.Crew.Assigned.Count);
+        };
         // shieldhunters on|off: the parts of corporate hunters lose no health (TestShield). Test only. In co-op only with "mp".
         Autotest.Commands["shieldhunters"] = arg =>
         {
