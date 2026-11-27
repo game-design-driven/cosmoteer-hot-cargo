@@ -15,7 +15,7 @@ public sealed record RunEntry(
         other is not null && Fields() == other.Fields()
         && (Parts ?? []).SequenceEqual(other.Parts ?? []) && (Parts is null) == (other.Parts is null);
 
-    public override int GetHashCode() => Fields().GetHashCode();
+    public override int GetHashCode() => Fields().GetHashCode(); // determinism: the run record file is local UI data, never sim state
 
     (string, DateTimeOffset, bool, long, int, double, int, int, float, int, int) Fields() =>
         (Id, Ended, Won, Score, Delivered, Seconds, Sector, Sectors, PeakHeat, VaultsLost, Players);
