@@ -163,10 +163,10 @@ HotCargoUx
 	JumpCarriesFmt = "(carries {0} tech)"
 	// Tech left behind (spec 2522): {0} units, {1} system
 	TechLeftFmt = "<bad><b>{0} tech will be left behind and lost.</b></bad>"
-	TechLeftAllFmt = "<bad><b>All your tech stays behind: {0} tech will be lost.</b></bad>"
+	TechLeftAll = "<bad><s20><b>All your tech stays behind. You lose the run.</b></s20></bad>"
+	LoseRunButton = "Lose the run"
 	PaymentsLostFmt = "<bad>Unpaid missions here: {0}. Their pay is lost with the jump.</bad> Collect it at a station first."
 	SwitchAskFmt = "Go to {0} anyway?"
-	StrandedTechFmt = "{0} tech here is lost when you go."
 	// Tech watch (spec 2120 to 2129): {0} units, {1} ship name, {2} time left
 	WatchHeadFmt = "<bad><b>{0} TECH OUTSIDE YOUR VAULTS</b></bad>"
 	WatchHeadDesign = "<bad><b>TECH WILL LEAVE YOUR VAULTS</b></bad>"

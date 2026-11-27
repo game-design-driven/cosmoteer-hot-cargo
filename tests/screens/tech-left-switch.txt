@@ -1,4 +1,4 @@
-# Spec 2522: a switch back to the waiting fleet asks first, because the tech of this system is lost.
+# Spec 2527: a switch back to the waiting fleet with all the tech here asks with "Lose the run".
 # RUNNER=mac scripts/screens.sh tests/screens/tech-left-switch.txt <out-dir>
 render on
 newgame
