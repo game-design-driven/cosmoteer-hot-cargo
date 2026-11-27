@@ -11,7 +11,7 @@ A change in the player's running game on request is `hot-cargo-tune`. This skill
 
 - `BALANCE.md`: the method, the findings, the table of changes, the dependencies on other areas and the open questions.
 - `spec/35-balance.md` (requirements 300 to 305): the balance rules.
-- `tools/balance/model.py`: the economy model. It reads the vanilla rules from `../.game/Data`, the heat stages from `src/HotCargo/Core/Tunables.cs` and three measurement logs. It writes `tools/balance/model.json`. Limit: the other tunable values are in its `OLD` and `NEW` sets, not read from the code.
+- `tools/balance/model.py`: the economy model. It reads the vanilla rules from `../.game/Data`, the heat stages from `src/HotCargo/Core/Tunables.cs`, the zone factors from `src/HotCargo/Factions/FactionsTunables.cs` (the route choice table) and three measurement logs. It writes `tools/balance/model.json`. Limit: the other tunable values are in its `OLD` and `NEW` sets, not read from the code.
 - `tools/balance/render.py`: writes `docs/balance.html` from `model.json`.
 - `tests/balance/*.txt`: the measurement scripts (mission boards, hunters). They are not game tests: CI and `autotest-affected.sh` do not run them. Their logs are in `tools/balance/logs/`.
 - `tests/autotest/balance-*.txt`: the game tests of the balance rules. `balance-rules` is the smoke test.

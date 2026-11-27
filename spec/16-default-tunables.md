@@ -126,7 +126,7 @@
 | `Hunters.RouteTierFloor` | on | 305 |
 | `RunModes.StrikeMusic` | on | 688 |
 | `Factions.AllyFaction`, `RivalFaction` | picked from the galaxy seed | 640 |
-| `Factions.AllyHeatFactor`, `AllyMoneyFactor`, `AllyNotorietyFactor` | 1.2, 1.3, 1.5 | 641, 642 |
+| `Factions.AllyHeatFactor`, `AllyMoneyFactor`, `AllyNotorietyFactor` | 1.2, 1.2, 1.5 | 641, 642 |
 | `Factions.ShelterReputation`, `ShelterHeatFactor` | 500, 0.6 | 643 |
 | `Factions.WatchHeatFactor` | 1.1 | 664 |
 | `Factions.RivalFencePremium` | 1.5 | 644 |

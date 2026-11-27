@@ -147,6 +147,13 @@ summary = [
     ("Station fuel floor (new)", "none", "one worst-case jump per trade station", "A run never gets stuck on fuel."),
 ]
 
+Z = M["zones"]
+ZONE_NAMES = dict(neutral="Neutral", ally="Corporate ally space (hot zone)", shelter="Shelter", watch="Corporate watch")
+zone_rows = "".join(
+    f"<tr><td>{html.escape(ZONE_NAMES[z])}</td><td>×{Z['factors'][z]['heat']:g}, ×{Z['factors'][z]['money']:g}, ×{Z['factors'][z]['notoriety']:g}</td>"
+    f"<td>{r['heatPerMinute']}</td><td>{r['missionsToStrike']}</td><td>{r['minutes']}</td><td>{r['missionMoneyTvm']}</td>"
+    f"<td>{r['techGainTvm']}</td><td>{r['totalTvm']} ({r['vsNeutral'] * 100:+.0f} %)</td></tr>" for z, r in Z["sector"].items())
+
 page = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hot Cargo Balance</title>
@@ -179,6 +186,12 @@ th, td {{ text-align:left; padding:6px 8px; border-bottom:1px solid var(--line);
 <h2>Changes</h2>
 <div class="scroll"><table><tr><th>What</th><th>Before</th><th>After</th><th>Why</th></tr>
 {"".join(f"<tr><td>{html.escape(a)}</td><td>{html.escape(b)}</td><td>{html.escape(c)}</td><td>{html.escape(d)}</td></tr>" for a, b, c, d in summary)}
+</table></div>
+<h2 id="zones">Route choice: zones</h2>
+<p class="note">One sector after a watched relay, to the Strike, with the typical mission mix and 8 tech units held. Money and tech value in the tier's ship value (TVM), the mean over the route.
+Not in the numbers: in a hot zone, local ships do not fight the hunters and take no hire contract; shelter needs reputation with the controlling faction.</p>
+<div class="scroll"><table><tr><th>Zone</th><th>Heat, money, notoriety</th><th>Heat per minute</th><th>Missions to Strike</th><th>Minutes</th><th>Mission money</th><th>Tech value gain</th><th>Total</th></tr>
+{zone_rows}
 </table></div>
 {"".join(f'<h2 id="{cid}">{html.escape(name)}</h2><div class="grid2">{"".join(figs)}</div>' for cid, name, figs in charts)}
 <h2>Open questions</h2>
