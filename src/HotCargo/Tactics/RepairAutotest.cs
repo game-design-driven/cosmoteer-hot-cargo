@@ -40,6 +40,10 @@ static class RepairAutotest
                     ? $"{(ship.IsJunk ? "wreck" : "live")} {ship.Metadata.PlainShipName} parts={ship.Parts.Count} crew={ship.Crew.Assigned.Count} health={HunterOrders.HealthFraction(ship):0.00}"
                     : sim.Stasis.Any(st => st.ReservedObjectID == id) ? "in stasis" : "gone";
                 Log.Info($"AUTOTEST spawned {id}: {state}");
+                if (sim.Ships[id] is not { } at) continue;
+                foreach (var near in sim.Ships.Where(o => o != at && !o.IsJunk && o.DetWorldCenter.DistanceTo(at.DetWorldCenter) < 2000f).OrderBy(o => o.UniqueID))
+                    Log.Info($"AUTOTEST   near: {near.Metadata.PlainShipName} player={near.Metadata.PlayerIndex} at {near.DetWorldCenter.DistanceTo(at.DetWorldCenter):0} " +
+                             $"target={(near.Commands.CurConfirmedCommand as Cosmoteer.Ships.Commands.AttackCommand)?.Target?.Metadata.PlainShipName ?? "-"} enemy={near.IsEnemiesWith(at)}");
             }
         };
         Autotest.Fields["ai_new_min_health"] = () => New().Select(s => (double)HunterOrders.HealthFraction(s)).DefaultIfEmpty(-1).Min();
