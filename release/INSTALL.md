@@ -25,6 +25,8 @@ Hot Cargo also runs in Cosmoteer for macOS, the Mac app of the Windows game.
 2. Open Terminal and run: `bash <unzipped folder>/install-mac.sh`
 3. Start the game. Hot Cargo is turned on already.
 
+To play, start Cosmoteer for macOS as usual, or run `bash <unzipped folder>/play-mac.sh`: it also deletes a test script that a test run may have left, which would start the game in test mode.
+
 After a Cosmoteer update, run `install-mac.sh` again. In co-op, every player installs the same zip. To check the version, look at the line `Hot Cargo v<version>` at the bottom left of the title screen. From the repo, give the release tag: `release/install-mac.sh v0.6.0-dev.233`.
 
 ## What the installer changes
