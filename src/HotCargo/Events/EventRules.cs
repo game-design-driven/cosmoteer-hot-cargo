@@ -127,6 +127,8 @@ public sealed class CostRules
     [Serialize(Optional = true)] public ResourceAmount[] Resources = [];
     /// <summary>True: the choice costs the tech units of the page's research trade.</summary>
     [Serialize(Optional = true)] public bool OfferUnits;
+    /// <summary>Spec 2506: true: the choice costs the page's join price (free or discounted). Needs JoinDeal on the page.</summary>
+    [Serialize(Optional = true)] public bool JoinDeal;
 }
 
 /// <summary>One possible result of a choice. The weights pick one outcome when the player chooses.</summary>
@@ -325,6 +327,11 @@ public sealed class EventRules
     [Serialize(Optional = true)] public MemoryKind Recalls;
     /// <summary>Spec 2504: a callback's own chance (above 0, at most 1) at each new sector, once the pick chose it. Only on callbacks.</summary>
     [Serialize(Optional = true)] public float CallbackChance;
+    /// <summary>
+    /// Spec 2506: a callback whose crew offers to join. When the page opens, a roll from the page seed decides free or discounted;
+    /// the players' standing with the memory's faction sets the odds. The text shows the result with {join_deal}.
+    /// </summary>
+    [Serialize(Optional = true)] public bool JoinDeal;
     [Serialize(Optional = true)] public float Weight = 10f;
     [Serialize(Optional = true)] public float WeightPerHeat;
     [Serialize(Optional = true)] public float WeightPerTech;
@@ -431,6 +438,9 @@ public static class EventLibrary
         if ((e.Trigger == EventTrigger.Callback) != (e.Recalls != MemoryKind.None)) throw new InvalidDataException($"{at}: Trigger = Callback and Recalls go together");
         if (e.Recalls != MemoryKind.None ? e.CallbackChance is not (> 0f and <= 1f) : e.CallbackChance != 0f)
             throw new InvalidDataException($"{at}: a callback needs a CallbackChance above 0 and at most 1, and other events none");
+        if (e.JoinDeal && e.Recalls == MemoryKind.None) throw new InvalidDataException($"{at}: JoinDeal needs Recalls");
+        if (e.JoinDeal) _ = JoinRequestUnits(all);
+        if (e.Choices.Any(c => c.Cost?.JoinDeal == true) && !e.JoinDeal) throw new InvalidDataException($"{at}: Cost.JoinDeal needs JoinDeal on the page");
         if (e.Recalls != MemoryKind.None && e.Carrier.Length == 0) throw new InvalidDataException($"{at}: a callback needs a Carrier, the ship that comes back");
         if (e.Recalls == MemoryKind.None && UsesMemoryTokens(e)) throw new InvalidDataException($"{at}: {{mem_ship}} and {{mem_system}} need Recalls");
         if (e.Choices.Length is < 1 or > MaxChoices) throw new InvalidDataException($"{at} needs 1 to {MaxChoices} choices");
@@ -492,6 +502,16 @@ public static class EventLibrary
             }
         }
     }
+
+    /// <summary>Spec 2506: the event whose join choice sets the normal join price.</summary>
+    public const string JoinRequestId = "join_request";
+
+    /// <summary>Spec 2506: the money cost of the Join Request choice that makes the ship join (Effect join), in event money units.</summary>
+    internal static float JoinRequestUnits(IReadOnlyDictionary<string, EventRules> all) =>
+        (all.TryGetValue(JoinRequestId, out var e) ? e : throw new InvalidDataException($"JoinDeal needs the event {JoinRequestId}"))
+        .Choices.SingleOrDefault(c => c.Outcomes.Any(o => o.Effect == "join"))?.Cost?.Money is > 0f and var units
+            ? units
+            : throw new InvalidDataException($"{JoinRequestId} needs one choice with Effect join and a money Cost");
 
     /// <summary>True when a text of the page or of its outcomes names the recalled memory.</summary>
     static bool UsesMemoryTokens(EventRules e) =>

@@ -50,6 +50,20 @@ public static class MemoryModel
         return -1;
     }
 
+    /// <summary>
+    /// Spec 2506: the chance that a spared crew joins for free: freeBase + freePerReputation × the players' standing with its faction
+    /// (−1 to 1), kept in 0..1 (user decision 2026-11-27: "chance based and dependent on factions").
+    /// </summary>
+    public static float JoinFreeChance(float reputation, float freeBase, float freePerReputation) =>
+        Math.Clamp(freeBase + freePerReputation * Math.Clamp(reputation, -1f, 1f), 0f, 1f);
+
+    /// <summary>Spec 2506: the join price in event money units: nothing when free, else discountedShare (above 0, below 1) of the Join Request price.</summary>
+    public static float JoinUnits(bool free, float joinRequestUnits, float discountedShare)
+    {
+        if (discountedShare is not (> 0f and < 1f)) throw new ArgumentOutOfRangeException(nameof(discountedShare), discountedShare, "a discount keeps a share above 0 and below 1");
+        return free ? 0f : joinRequestUnits * discountedShare;
+    }
+
     /// <summary>Spec 2501: the kind of memory that an accepted surrender leaves. A hunter's surrender leaves none.</summary>
     public static MemoryKind SparedKind(bool hunter, bool hasFaction) =>
         hunter ? MemoryKind.None : hasFaction ? MemoryKind.Spared : MemoryKind.SparedPirate;

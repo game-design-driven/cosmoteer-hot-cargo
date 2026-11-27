@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Starts Cosmoteer for macOS for play: the normal app start, as a double click does, never the test mode.
+# Starts Cosmoteer for macOS for play: the normal app start, never the test mode, with the Steam save folder that holds Hot Cargo.
+# Without Steam running, a plain app start uses ~/Library/Application Support/Cosmoteer itself, where the mod is off, so the
+# game starts vanilla. The script passes --rootsavepath <Steam save folder> (install-paths-mac.sh) for that reason.
 # Before the start it deletes a test script that a test run left in the mod folder (Mods/hot_cargo/autotest.txt): with that
 # file the game starts in test mode, where an error ends the game.
 # Usage: play-mac.sh. Exit code 1 when the game runs already or a folder is missing.
@@ -12,5 +14,5 @@ if pgrep -x MacHost > /dev/null; then fail "Cosmoteer for macOS runs already"; f
 source "$HERE/install-paths-mac.sh"
 LEFT="$SAVE/Mods/hot_cargo/autotest.txt"
 if [[ -f "$LEFT" ]]; then rm -f "$LEFT"; echo "play-mac: deleted a test script left by a test run ($LEFT)"; fi
-open -a "Cosmoteer for macOS"
-echo "play-mac: started Cosmoteer for macOS"
+open -a "Cosmoteer for macOS" --args --rootsavepath "$SAVE"
+echo "play-mac: started Cosmoteer for macOS with $SAVE"

@@ -369,7 +369,7 @@ What you did comes back. A surrender you accept, a hunter you pay off or fool, a
 
 | Callback | Trigger | Chance | Choices | Tone |
 |---|---|---|---|---|
-| An Old Debt (`cb_spared`) | You accepted a faction ship's surrender. | 40 % | Fly with us: the ship joins your fleet. Share what you can spare: 0.5 money. Tell the patrols: heat −10. Go in peace. | good |
+| An Old Debt (`cb_spared`) | You accepted a faction ship's surrender. | 40 % | Fly with us: the ship joins your fleet, free or at half the Join Request price. Better standing with its faction makes free likelier (10 % at the worst standing, 50 % at neutral, 90 % at the best); the hail names the price and the odds. Share what you can spare: 0.5 money. Tell the patrols: heat −10. Go in peace. | good |
 | Pirate's Honor (`cb_pirate_debt`) | You accepted a pirate's surrender (an even pick with Unfinished Business). | 40 % | Take the pod: processors and steel drift beside them. Keep your pod. | good |
 | Unfinished Business (`cb_pirate_grudge`) | You accepted a pirate's surrender (an even pick with Pirate's Honor). | 25 % | Pay the boss: 0.6 money. Come and take it: three pirates attack. | bad |
 | Sold Out (`cb_route_sold`) | A hunter took your pay-off. | 20 % | Top it: 0.5 money. Come and take it: a corporate patrol. Let them talk: heat +15. | bad |
