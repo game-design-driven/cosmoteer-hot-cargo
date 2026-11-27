@@ -20,18 +20,9 @@ REPO=game-design-driven/cosmoteer-hot-cargo
 fail() { echo "install-mac: $*" >&2; exit 1; }
 
 if pgrep -x MacHost > /dev/null; then fail "close Cosmoteer for macOS first"; fi
-GAME="${GAME:-$(cat "$HOME/Library/Application Support/cosmoteer-macos/game-folder.txt" 2>/dev/null || true)}"
-[[ -n "$GAME" ]] || fail "no game folder: start Cosmoteer for macOS once and choose the game folder, or set GAME=<folder>"
+source "$HERE/install-paths-mac.sh"
 RC="$GAME/Bin/Cosmoteer.runtimeconfig.json"
 [[ -f "$RC" ]] || fail "not a Cosmoteer folder: $GAME (no Bin/Cosmoteer.runtimeconfig.json)"
-SAVES="$HOME/Library/Application Support/Cosmoteer"
-if [[ -z "${SAVE:-}" ]]; then
-  # The game makes a save folder per Steam account, named after the Steam id (digits only). The newest one wins.
-  for dir in $(ls -t "$SAVES" 2>/dev/null); do
-    [[ -d "$SAVES/$dir" && "$dir" != *[!0-9]* ]] && { SAVE="$SAVES/$dir"; break; }
-  done
-fi
-[[ -n "${SAVE:-}" && -d "$SAVE" ]] || fail "no Steam save folder in $SAVES: start the game once through Steam, close it, and run this again"
 
 SRC="$HERE"
 TAG="${1:-}"

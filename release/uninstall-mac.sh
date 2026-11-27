@@ -11,15 +11,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 fail() { echo "uninstall-mac: $*" >&2; exit 1; }
 if pgrep -x MacHost > /dev/null; then fail "close Cosmoteer for macOS first"; fi
 [[ -d "$HERE/hot_cargo" ]] || fail "no hot_cargo folder next to this script: run it from the unzipped release"
-GAME="${GAME:-$(cat "$HOME/Library/Application Support/cosmoteer-macos/game-folder.txt" 2>/dev/null || true)}"
-[[ -n "$GAME" && -d "$GAME/Bin" ]] || fail "no game folder: set GAME=<folder>"
-SAVES="$HOME/Library/Application Support/Cosmoteer"
-if [[ -z "${SAVE:-}" ]]; then
-  for dir in $(ls -t "$SAVES" 2>/dev/null); do
-    [[ -d "$SAVES/$dir" && "$dir" != *[!0-9]* ]] && { SAVE="$SAVES/$dir"; break; }
-  done
-fi
-[[ -n "${SAVE:-}" && -d "$SAVE" ]] || fail "no Steam save folder in $SAVES: set SAVE=<folder>"
+source "$HERE/install-paths-mac.sh"
 
 RC="$GAME/Bin/Cosmoteer.runtimeconfig.json"
 if [[ -f "$RC.hot_cargo_orig" ]]; then cp "$RC.hot_cargo_orig" "$RC" && rm "$RC.hot_cargo_orig"; fi
