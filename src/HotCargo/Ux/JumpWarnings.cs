@@ -138,17 +138,19 @@ static class JumpWarnings
     /// <summary>Spec 2522: the ships that come along on ENGAGE, like GameRoot.DoHumanPlayersFtlJump: significant human ships that are ready.</summary>
     static bool JumpsOnEngage(Ship ship) => ship.IsSignificant && ship.IsHumanPlayerShip && ship.Ftl.IsReadyToJump;
 
-    /// <summary>Spec 2522: the red line about the tech that a move leaves behind, or null when none stays.</summary>
-    internal static string? TechLeftLine(Run run, Func<Ship, bool> jumps)
+    /// <summary>Spec 2522, 2527: what a move leaves behind now when only the ships in <paramref name="jumps"/> go, and the units that stay.</summary>
+    static (TechLeft Kind, int Stays) TechLeftNow(Run run, Func<Ship, bool> jumps)
     {
         var (stays, goes) = Tech.LeftBehind.Split(run, run.Game.Sim, jumps);
-        return JumpWarningsModel.LeftKind(stays, goes) switch
-        {
-            TechLeft.None => null,
-            TechLeft.All => UxKit.Format("TechLeftAllFmt", stays),
-            _ => UxKit.Format("TechLeftFmt", stays),
-        };
+        return (JumpWarningsModel.LeftKind(stays, goes), stays);
     }
+
+    /// <summary>
+    /// Spec 2522, 2527: the question before a move. Some tech stays: the line of JumpLines and the normal buttons. All of it stays: the
+    /// run is lost on arrival, so a separate first line says so, and the first button says "Lose the run".
+    /// </summary>
+    static Task<TwoButtonDialog.DialogResponse> Ask(string text, bool losesRun) =>
+        losesRun ? TwoButtonDialog.Show(UxKit.Text("TechLeftAll") + "\n\n" + text, UxKit.Text("LoseRunButton")) : TwoButtonDialog.Show(text);
 
     /// <summary>
     /// Spec 1565: the warning lines of the ENGAGE dialog, top first. This is the one place for them: each line also makes the dialog
@@ -157,7 +159,9 @@ static class JumpWarnings
     internal static List<string> JumpLines(GameRoot game)
     {
         var lines = new List<string>();
-        if (Run.Current is { } run && run.Game == game && TechLeftLine(run, JumpsOnEngage) is { } techLeft) lines.Add(techLeft);
+        // Spec 2522: some tech stays and is lost. When all of it stays, Ask shows the loss of the run on its own (spec 2527).
+        if (Run.Current is { } run && run.Game == game && TechLeftNow(run, JumpsOnEngage) is (TechLeft.Some, var stays))
+            lines.Add(UxKit.Format("TechLeftFmt", stays));
         // Spec 2567: on the run map, pay that waits here is lost with the jump.
         if (Run.Current is { } p && p.Game == game && Journey.Lockdown.Active(p) && Journey.LeftPayments.Here(p).Count is > 0 and var pays)
             lines.Add(UxKit.Format("PaymentsLostFmt", pays));
@@ -201,10 +205,11 @@ static class JumpWarnings
             var game = gui.Game;
             bool ready = gui.AreAllShipsReadyToJump(onlyWithCommands: false);
             var lines = JumpLines(game);
-            if (!ready || lines.Count > 0)
+            bool losesRun = Run.Current is { } run && run.Game == game && TechLeftNow(run, JumpsOnEngage).Kind == TechLeft.All;
+            if (!ready || lines.Count > 0 || losesRun)
             {
                 DialogsShown++;
-                if (await TwoButtonDialog.Show(DialogText(game, lines)) == TwoButtonDialog.DialogResponse.Option2) return;
+                if (await Ask(DialogText(game, lines), losesRun) == TwoButtonDialog.DialogResponse.Option2) return;
             }
             game.NetManager.EnqueueInput(new MPReadyFtlJumpInput());
         }
@@ -278,8 +283,8 @@ static class JumpWarnings
     {
         if (!On || run.State.Result != RunResult.Running || Stranded(run) is not { } s) return null;
         string line = $"<bad>{StrandedText(s.Node, s.Ships)}</bad>";
-        // Spec 2522: the recall leaves the tech of this system behind (derelicts, crates).
-        if (Tech.LeftBehind.OnSwitch(run, run.Game.Sim) is > 0 and var here) line += "\n" + UxKit.Format("StrandedTechFmt", here);
+        // Spec 2527: no ship here can take the tech of this system along (derelicts, crates), so the recall loses the run.
+        if (TechLeftNow(run, _ => false).Kind == TechLeft.All) line += "\n" + UxKit.Text("TechLeftAll");
         if (RecallLeft(run) is { } left)
             line += "\n" + UxKit.Format("RecallInFmt", Halfling.StringTools.EscapeForXml(s.Node.Name), Math.Max(0, (int)Math.Ceiling(left)));
         return line;
@@ -341,19 +346,23 @@ static class JumpWarnings
     internal static int SwitchDialogsShown;
 
     /// <summary>
-    /// Spec 2522: a switch without a jump (the map click, the recall button) asks first when tech stays in this system, because it is lost.
-    /// Without such tech it goes at once, like vanilla.
+    /// Spec 2522, 2527: a switch without a jump (the map click, the recall button) asks first when tech stays in this system, because it is
+    /// lost. No ship comes along, so any such tech is all of it, and the question is the loss of the run. Without such tech it goes at
+    /// once, like vanilla.
+    /// Limit: in co-op only the player who clicks sees the question; the others vote in the vanilla vote window without the tech line.
+    /// Revisit if co-op players switch by accident.
     /// </summary>
     static async void ConfirmSwitch(GameRoot game, MapNode node, string why)
     {
         // async void: an exception here would end the game, so it reports instead.
         try
         {
-            if (Run.Current is { } run && run.Game == game && TechLeftLine(run, _ => false) is { } techLeft)
+            if (Run.Current is { } run && run.Game == game && TechLeftNow(run, _ => false) is var (kind, stays) && kind != TechLeft.None)
             {
                 SwitchDialogsShown++;
                 string ask = UxKit.Format("SwitchAskFmt", Halfling.StringTools.EscapeForXml(node.Name));
-                if (await TwoButtonDialog.Show(techLeft + "\n\n" + ask) == TwoButtonDialog.DialogResponse.Option2) return;
+                string text = kind == TechLeft.Some ? UxKit.Format("TechLeftFmt", stays) + "\n\n" + ask : ask;
+                if (await Ask(text, kind == TechLeft.All) == TwoButtonDialog.DialogResponse.Option2) return;
             }
             Recall(game, node, why);
         }

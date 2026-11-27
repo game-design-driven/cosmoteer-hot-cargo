@@ -7,7 +7,8 @@
 #        LIST_ONLY=1 RUNNER=pc autotest-affected.sh   the tests outside CI that a PR's owner checks before auto-merge.
 #        CHANGED_FILE=<file> reads the changed paths from that file (one per line) in place of git; CI uses it with the
 #        file list of a pull request (scripts/ci-test-set.sh).
-# --detach: run the suite detached (see autotest-all.sh).
+# --detach: only start. The PC tests run as a suite on the PC (collect: scripts/pc-suite.sh wait), the Mac tests in their
+#   own session (scripts/detach.sh; wait: scripts/suite-wait.sh <log>).
 # Runner: tests run on this Mac (scripts/autotest-sim.sh; co-op sessions as two sim processes on 127.0.0.1), and tests with
 # the line "# runner: pc" on the PC (scripts/autotest-all.sh), both at the same time.
 #   AUTOTEST_SIM=0 runs every test on the PC.
@@ -37,13 +38,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/autotest-lib.sh
-if [[ "${1:-}" == "--detach" ]]; then
-  shift
-  LOG="$(scripts/detach.sh "autotest-affected-$(basename "$PWD")" scripts/autotest-affected.sh "$@")"
-  echo "== suite runs detached. Log: $LOG"
-  echo "== wait for it: scripts/suite-wait.sh $LOG"
-  exit 0
-fi
+DETACH=no
+if [[ "${1:-}" == "--detach" ]]; then DETACH=yes; shift; fi
 BASE="${1:-origin/main}"
 TIMEOUT="${2:-400}"
 
@@ -153,6 +149,7 @@ echo "== affected${RUNNER:+ (runner $RUNNER)}: ${TESTS[*]:-none}"
 sim_ready() { command -v dotnet >/dev/null && [[ -n "$(find ../.game/Data -name '*.ship.png' -print -quit 2>/dev/null)" ]]; }
 if [[ "${AUTOTEST_SIM:-1}" == 0 ]] || ! sim_ready; then
   [[ "${AUTOTEST_SIM:-1}" == 0 ]] || echo "== no game files on this Mac (scripts/pull-game.sh): every test runs on the PC"
+  if [[ "$DETACH" == yes ]]; then exec scripts/autotest-all.sh --detach "$TIMEOUT" "${TESTS[@]}"; fi
   exec scripts/autotest-all.sh "$TIMEOUT" "${TESTS[@]}"
 fi
 
@@ -162,6 +159,15 @@ for t in "${TESTS[@]}"; do
 done
 echo "== on the Mac: ${MAC[*]:-none}"
 echo "== on the PC: ${PC[*]:-none}"
+if [[ "$DETACH" == yes ]]; then
+  # The PC suite needs this turn only for its start; the Mac tests run in their own session.
+  if [[ ${#PC[@]} -gt 0 ]]; then scripts/autotest-all.sh --detach "$TIMEOUT" "${PC[@]}" || exit $?; fi
+  if [[ ${#MAC[@]} -gt 0 ]]; then
+    LOG="$(scripts/detach.sh "autotest-sim-$(basename "$PWD")" scripts/autotest-sim.sh "$TIMEOUT" "${MAC[@]}")"
+    echo "== the Mac tests run detached. Wait for them: scripts/suite-wait.sh $LOG"
+  fi
+  exit 0
+fi
 PC_OUT="$(mktemp)" PC_PID="" rc=0
 if [[ ${#PC[@]} -gt 0 ]]; then scripts/autotest-all.sh "$TIMEOUT" "${PC[@]}" > "$PC_OUT" 2>&1 & PC_PID=$!; fi
 MAC_OUT="$(mktemp)"

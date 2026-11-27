@@ -55,7 +55,9 @@ refuse_if_player_hold() {
 # - a test slot: only games with this slot's --rootsavepath folder (the closing quote keeps t1 apart from t10), windowed
 #   (scripts/screens.sh) or headless. So a windowed test game is never taken for the player's game.
 #   $slotArgs extra game arguments for the slot: test slots run headless, or with a window when SLOT_WINDOWED=1
-PS_PATHS='$game="'"$PC_GAME_DIR"'"; $slot="'"$SLOT"'"; $windowed = "'"${SLOT_WINDOWED:-}"'" -eq "1";
+# PS_PATHS_BODY is the part after $slot and $windowed: the PC-side suite runner (scripts/pc-suite.ps1) sets those two itself
+# and runs the body once for each slot that it uses.
+PS_PATHS_BODY='$game="'"$PC_GAME_DIR"'";
 $mainRoot = Get-ChildItem "$env:USERPROFILE\Saved Games\Cosmoteer" -Directory | Where-Object { Test-Path (Join-Path $_.FullName "Mods") } | Select-Object -First 1 -ExpandProperty FullName
 if (-not $mainRoot) { throw "Cosmoteer save folder not found" }
 $mainMods = Join-Path $mainRoot "Mods"
@@ -63,6 +65,34 @@ if ($slot -eq "main") { $root = $mainRoot; $slotArgs = @() }
 else { $root = Join-Path $env:USERPROFILE "HotCargoSlots\$slot"; $slotArgs = @("--nosteam", "--cores", "2", "--rootsavepath", "`"$root`"", "--rootcachepath", "`"$root\Caches`""); if (-not $windowed) { $slotArgs = @("--headless") + $slotArgs } }
 $mods = Join-Path $root "Mods"; $modDir = Join-Path $mods "hot_cargo"; $pidFile = Join-Path $root "hot_cargo.pid";
 function Get-SlotProcess { $all = @(Get-CimInstance Win32_Process -Filter ("Name = " + [char]39 + "Cosmoteer.exe" + [char]39)); if ($slot -eq "main") { $all | Where-Object { -not ($_.CommandLine -like "*HotCargoSlots\*") } | ForEach-Object { Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue } } else { $mark = "HotCargoSlots\" + $slot + [char]34; $all | Where-Object { $_.CommandLine -like "*$mark*" } | ForEach-Object { Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue } } }
+'
+PS_PATHS='$slot="'"$SLOT"'"; $windowed = "'"${SLOT_WINDOWED:-}"'" -eq "1";'"$PS_PATHS_BODY"
+
+# PowerShell snippet that reads a tar from stdin into the new folder $unpackDir and makes sure that the build $hash is in the
+# build cache (%USERPROFILE%\HotCargoSlots\_builds\<hash>, the 30 newest stay). Set $hash and $unpackDir before it. It sets
+# $cache and $cacheState. When the cache has no such build and the tar has no "build" folder, it removes $unpackDir, prints
+# NEED_UPLOAD and ends the PC call: the caller then sends the tar again with the build. A complete build folder has the file
+# "ok" and moves into place in one step. Used by deploy.sh and pc-suite.sh.
+PS_RECEIVE_BUILD='
+$builds = Join-Path $env:USERPROFILE "HotCargoSlots\_builds"; $cache = Join-Path $builds $hash; $cacheState = "cached build " + $hash
+if (Test-Path $unpackDir) { Remove-Item $unpackDir -Recurse -Force }
+New-Item -ItemType Directory -Force $unpackDir | Out-Null
+$tar = Join-Path $unpackDir "in.tar"; $in = [Console]::OpenStandardInput(); $out = [IO.File]::Create($tar); $in.CopyTo($out); $out.Close()
+tar.exe -xf $tar -C $unpackDir; if ($LASTEXITCODE -ne 0) { throw "tar failed" }
+Remove-Item $tar -Force
+$new = Join-Path $unpackDir "build"
+if (-not (Test-Path (Join-Path $cache "ok"))) {
+  if (-not (Test-Path $new)) { Remove-Item $unpackDir -Recurse -Force; "NEED_UPLOAD"; return }
+  New-Item -ItemType File (Join-Path $new "ok") | Out-Null
+  if ((Test-Path $cache) -and -not (Test-Path (Join-Path $cache "ok"))) { Remove-Item $cache -Recurse -Force }
+  # Another slot can upload the same build at the same time. Then its copy wins.
+  try { Move-Item $new $cache } catch { }
+  if (-not (Test-Path (Join-Path $cache "ok"))) { throw "build $hash is not in the cache after the upload" }
+  $cacheState = "uploaded build " + $hash
+  Get-ChildItem $builds -Directory | Where-Object { $_.Name -notlike "tmp-*" } | Sort-Object LastWriteTime -Descending | Select-Object -Skip 30 | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+}
+if (Test-Path $new) { Remove-Item $new -Recurse -Force }
+(Get-Item $cache).LastWriteTime = Get-Date
 '
 
 # PowerShell snippet that starts the slot's game (needs PS_PATHS before it). run.sh and deploy.sh (autotest mode) use it.

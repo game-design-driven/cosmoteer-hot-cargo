@@ -33,7 +33,7 @@ Generic:
 Hot Cargo:
 - Beta: each run is a new save. Breaking old saves is fine. Agents write no save migration and no old-save compatibility code, and a PR does not list a save break as a risk (`CLAUDE.md`, Agents).
 - An area is a folder `src/HotCargo/<Area>/` and `mod/<area>/` with its own entry point, tunables and rules (`CONTRIBUTING.md`, Layout; skill `hot-cargo-new-area`). Areas own separate files, so parallel work rarely edits the same file.
-- The agents run as Claude threads in T3 Code. PC calls go over the T3 link and work only while the calling thread has an active turn (`CLAUDE.md`, Agents).
+- The agents run as Claude threads in T3 Code. PC calls go over the T3 link and work only while the calling thread has an active turn (`CLAUDE.md`, Agents). Game tests run on the PC by themselves and need the link only for their start and for the results (`scripts/pc-suite.sh`).
 
 ## Branches and worktrees
 
@@ -46,7 +46,7 @@ Generic:
 | Folder | Holds |
 |---|---|
 | `.state/logs/<worktree>/` | full test logs |
-| `.state/suites/` | logs of detached runs (`scripts/detach.sh`) |
+| `.state/suites/` | logs of detached Mac runs (`scripts/detach.sh`) |
 | `.state/flaky.log` | tests that passed only on their retry |
 | `.state/player-hold` | the player hold (see "The player's machine") |
 | `.state/installed_sha` | the commit in the player's game |
