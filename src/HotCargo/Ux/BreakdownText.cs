@@ -16,7 +16,7 @@ public static class BreakdownText
     /// <summary>The tooltip without its title: a line for each step, the total and the hints, each line after a line break.</summary>
     public static string Steps(Breakdown b, bool higherIsGood)
     {
-        var view = BreakdownTextModel.View(b, UxKit.Switches?.BreakdownFactors ?? FactorStyle.Percent, higherIsGood);
+        var view = BreakdownTextModel.View(b, Style, higherIsGood);
         var sb = new StringBuilder();
         foreach (var line in view.Lines)
             sb.Append('\n').Append(Label(line.Key, line.Arg)).Append(": ").Append(Toned(line.Value, line.Tone));
@@ -29,7 +29,10 @@ public static class BreakdownText
     static string TotalLine(string total) => Format("TotalFmt", total);
 
     /// <summary>The total line for a value, as a tooltip shows it. Tests build it from the value that the game uses.</summary>
-    public static string TotalLine(BreakdownUnit unit, double value) => TotalLine(BreakdownTextModel.Total(unit, value));
+    public static string TotalLine(BreakdownUnit unit, double value) => TotalLine(BreakdownTextModel.Total(unit, value, Style));
+
+    /// <summary>The factor style of tooltips now (spec 2581).</summary>
+    public static FactorStyle Style => UxKit.Switches?.BreakdownFactors ?? FactorStyle.Percent;
 
     static string Label(string key, string? arg) => arg is null ? Text(key) : Format(key + "Fmt", arg);
 

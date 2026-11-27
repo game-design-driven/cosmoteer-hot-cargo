@@ -1,4 +1,4 @@
-# Number breakdowns on hover (spec 2580 to 2585): heat rate and tech value on the heat panel, surrender, bluff and pay-off chances on a
+# Number breakdowns on hover (spec 2580 to 2586): heat rate and tech value on the heat panel, the trade tab price line, surrender, bluff and pay-off chances on a
 # hunter's demand page. Corporate ally space and a loan give the heat rate more steps. Windowed test slot (needs graphics).
 render on
 newgame run
@@ -31,6 +31,22 @@ hovertip techvalue
 wait 1
 rm_tipshot breakdown-tech
 hovertip_clear
+pause off
+fa_set MarkupStartHeat 0
+heat 20
+tostation
+wait 2
+comms open
+wait 1
+commstab trade
+wait 2
+pause on
+hovertip tradeprice
+wait 1
+rm_tipshot breakdown-tradeprice
+hovertip_clear
+comms close
+wait 1
 pause off
 openspace 5000
 dip_shield hunters

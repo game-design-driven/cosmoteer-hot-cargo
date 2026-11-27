@@ -1,7 +1,7 @@
 namespace HotCargo.Core;
 
 /// <summary>What a breakdown counts. The UI formats the total, the base and each addend in this unit.</summary>
-public enum BreakdownUnit { HeatPerMinute, Chance, Credits }
+public enum BreakdownUnit { HeatPerMinute, Chance, Credits, Factor }
 
 /// <summary>Spec 2580: how one step changes the total, in the order of the steps.</summary>
 public enum TermOp

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Cosmoteer;
 using Cosmoteer.Factions;
 using Cosmoteer.GalaxyMap;
@@ -140,6 +141,18 @@ public static class FactionsArea
     {
         var t = run.T.Factions;
         return run.PressureActive ? FactionsModel.MarkupFactor(run.State.Heat, t.MarkupStartHeat, t.MarkupMaxFactor, t.PriceHeatStep) : 1f;
+    }
+
+    /// <summary>
+    /// Spec 644, 655, 2586: the Hot Cargo steps of a station's buy price: the heat markup (hint: cool down), and for tech at the rival
+    /// faction the fence premium. The price patch multiplies by their total; the trade tab shows them after the vanilla standing.
+    /// </summary>
+    public static Breakdown BuyTerms(Run run, Breakdown b, bool tech, FactionRules faction)
+    {
+        var t = run.T.Factions;
+        b.Times("HeatMarkup", Markup(run), FactionsModel.SteppedHeat(run.State.Heat, t.PriceHeatStep).ToString("0", CultureInfo.InvariantCulture), "HintCoolDown");
+        if (tech && run.PressureActive && IsRival(run, faction)) b.Times("RivalFence", t.RivalFencePremium);
+        return b;
     }
 
     /// <summary>Spec 656: the crew hire price factor now. 1 while heat is off.</summary>

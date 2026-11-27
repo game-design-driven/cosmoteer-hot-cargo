@@ -43,10 +43,10 @@ public static class BreakdownTextModel
             switch (t.Op)
             {
                 case TermOp.Base:
-                    lines.Add(new(t.Key, t.Arg, Value(b.Unit, t.Value), Tone.Plain));
+                    lines.Add(new(t.Key, t.Arg, Value(b.Unit, t.Value, style), Tone.Plain));
                     break;
                 case TermOp.Plus:
-                    if (factorShown) lines.Add(new(SubtotalKey, null, Value(b.Unit, before), Tone.Gray));
+                    if (factorShown) lines.Add(new(SubtotalKey, null, Value(b.Unit, before, style), Tone.Gray));
                     factorShown = false;
                     lines.Add(new(t.Key, t.Arg, Signed(b.Unit, t.Value), tone));
                     break;
@@ -55,8 +55,8 @@ public static class BreakdownTextModel
                     lines.Add(new(t.Key, t.Arg, Factor(style, t.Value), tone));
                     break;
                 case TermOp.Clamp:
-                    lines.Add(change < 0 ? new(t.Key + "Max", Value(b.Unit, t.Upper), Signed(b.Unit, change), tone)
-                        : new(t.Key + "Min", Value(b.Unit, t.Value), Signed(b.Unit, change), tone));
+                    lines.Add(change < 0 ? new(t.Key + "Max", Value(b.Unit, t.Upper, style), Signed(b.Unit, change), tone)
+                        : new(t.Key + "Min", Value(b.Unit, t.Value, style), Signed(b.Unit, change), tone));
                     break;
             }
         }
@@ -66,13 +66,13 @@ public static class BreakdownTextModel
             if (b.Terms[i].Hint is not { } key) continue;
             double change = b.WithHint(i) - b.Total;
             if (Math.Abs(change) < Epsilon(b.Unit)) continue;
-            hints.Add(new(key, Signed(b.Unit, change) + Suffix(b.Unit), ToneOf(change, higherIsGood)));
+            hints.Add(new(key, b.Unit == BreakdownUnit.Factor ? Factor(style, b.WithHint(i)) : Signed(b.Unit, change) + Suffix(b.Unit), ToneOf(change, higherIsGood)));
         }
-        return new(lines, Total(b.Unit, b.Total), hints);
+        return new(lines, Total(b.Unit, b.Total, style), hints);
     }
 
     /// <summary>The total text of a value: the value with its unit.</summary>
-    public static string Total(BreakdownUnit unit, double v) => Value(unit, v) + Suffix(unit);
+    public static string Total(BreakdownUnit unit, double v, FactorStyle style) => Value(unit, v, style) + Suffix(unit);
 
     static Tone ToneOf(double change, bool higherIsGood) =>
         change == 0 ? Tone.Plain : (change > 0) == higherIsGood ? Tone.Good : Tone.Bad;
@@ -83,18 +83,23 @@ public static class BreakdownTextModel
         BreakdownUnit.HeatPerMinute => 0.005,
         BreakdownUnit.Chance => 0.005,
         BreakdownUnit.Credits => 0.5,
+        BreakdownUnit.Factor => 0.0005,
         _ => throw new ArgumentOutOfRangeException(nameof(unit), unit, null),
     };
 
-    public static string Value(BreakdownUnit unit, double v) => unit switch
+    /// <summary>A value as its line shows it. A factor value follows the style: "-10%" or "x0.90".</summary>
+    public static string Value(BreakdownUnit unit, double v, FactorStyle style = FactorStyle.Percent) => unit switch
     {
+        BreakdownUnit.Factor => Factor(style, v),
         BreakdownUnit.HeatPerMinute => v.ToString("0.00", CultureInfo.InvariantCulture),
         BreakdownUnit.Chance => (v * 100).ToString("0", CultureInfo.InvariantCulture) + "%",
         BreakdownUnit.Credits => v.ToString("N0", CultureInfo.InvariantCulture),
         _ => throw new ArgumentOutOfRangeException(nameof(unit), unit, null),
     };
 
-    public static string Signed(BreakdownUnit unit, double v) => (v < 0 ? "-" : "+") + Value(unit, Math.Abs(v));
+    public static string Signed(BreakdownUnit unit, double v) => unit == BreakdownUnit.Factor
+        ? throw new ArgumentException("a factor breakdown has no addends", nameof(unit))
+        : (v < 0 ? "-" : "+") + Value(unit, Math.Abs(v));
 
     static string Suffix(BreakdownUnit unit) => unit == BreakdownUnit.HeatPerMinute ? "/min" : "";
 

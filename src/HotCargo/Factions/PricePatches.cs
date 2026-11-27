@@ -34,9 +34,8 @@ static class PricePatches
         static void Postfix(CareerSimModeManager __instance, ID<ResourceRules> resourceType, int? sourcePlayerIndex, ref int __result)
         {
             if (For(__instance.Game) is not { } run || Station(sourcePlayerIndex) is not { } faction) return;
-            float factor = FactionsArea.Markup(run);
-            if (resourceType == Vaults.TechId && run.PressureActive && FactionsArea.IsRival(run, faction)) factor *= run.T.Factions.RivalFencePremium;
-            __result = FactionsModel.Scale(__result, factor);
+            var steps = FactionsArea.BuyTerms(run, new Breakdown(BreakdownUnit.Factor).Base("Vanilla", 1), resourceType == Vaults.TechId, faction);
+            __result = FactionsModel.Scale(__result, (float)steps.Total);
         }
     }
 
