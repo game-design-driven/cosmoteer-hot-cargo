@@ -60,4 +60,23 @@ public class MemoryModelTests
         Assert.Equal(PaceVerdict.Ok, PursuitModel.MayStart(four.Take(3).ToList(), "Callback", 5000, MemoryModel.CallbackMaxPerRun, 900, 0));
         Assert.Equal(PaceVerdict.RunLimit, PursuitModel.MayStart(four, "Callback", 5000, MemoryModel.CallbackMaxPerRun, 900, 0));
     }
+
+    [Fact]
+    public void A_spared_crew_joins_free_more_often_the_better_the_standing_with_its_faction()
+    {
+        // User decision 2026-11-27: free or discounted, by a roll whose odds depend on the faction (spec 2506).
+        Assert.Equal(0.5f, MemoryModel.JoinFreeChance(reputation: 0f, freeBase: 0.5f, freePerReputation: 0.4f), 3);
+        Assert.Equal(0.9f, MemoryModel.JoinFreeChance(reputation: 1f, freeBase: 0.5f, freePerReputation: 0.4f), 3);
+        Assert.Equal(0.1f, MemoryModel.JoinFreeChance(reputation: -1f, freeBase: 0.5f, freePerReputation: 0.4f), 3);
+        Assert.Equal(1f, MemoryModel.JoinFreeChance(reputation: 1f, freeBase: 0.9f, freePerReputation: 0.5f), 3);
+        Assert.Equal(0f, MemoryModel.JoinFreeChance(reputation: -1f, freeBase: 0.1f, freePerReputation: 0.5f), 3);
+    }
+
+    [Fact]
+    public void A_join_that_is_not_free_costs_a_share_of_the_join_request_price()
+    {
+        Assert.Equal(0f, MemoryModel.JoinUnits(free: true, joinRequestUnits: 1f, discountedShare: 0.5f));
+        Assert.Equal(0.5f, MemoryModel.JoinUnits(free: false, joinRequestUnits: 1f, discountedShare: 0.5f));
+        Assert.Throws<ArgumentOutOfRangeException>(() => MemoryModel.JoinUnits(free: false, joinRequestUnits: 1f, discountedShare: 1f));
+    }
 }

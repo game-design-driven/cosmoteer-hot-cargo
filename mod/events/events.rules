@@ -1606,12 +1606,14 @@ Events
 		CallbackChance = 0.4
 		Recalls = Spared
 		Carrier = Returning
+		JoinDeal = true
 		Title = "An Old Debt"
-		Text = "{mem_ship} hails you. \"You let us live at {mem_system}. We have not forgotten. Say the word.\""
+		Text = "{mem_ship} hails you. \"You let us live at {mem_system}. We have not forgotten. Say the word.\" {join_deal}"
 		Choices
 		[
 			{
 				Text = "Fly with us."
+				Cost { JoinDeal = true }
 				Outcomes [ { Text = "They paint your colors over their old ones."; Effect = join } ]
 			}
 			{

@@ -99,6 +99,9 @@ public sealed class PendingEvent
     [Serialize(Optional = true)] public string Lead = "";
     /// <summary>Spec 2503: the memory that this callback page recalls (a copy), or null for any other page.</summary>
     [Serialize(Optional = true)] public Memory? Recall;
+    /// <summary>Spec 2506: the join price in credits (0: free) and the free-join chance it was rolled at, or -1 on a page without JoinDeal.</summary>
+    [Serialize(Optional = true)] public int JoinPrice = -1;
+    [Serialize(Optional = true)] public float JoinFreeChance = -1f;
 }
 
 /// <summary>Spec 2500: one past act of the players: what it was, the other ship, its faction, and where and when it happened.</summary>
