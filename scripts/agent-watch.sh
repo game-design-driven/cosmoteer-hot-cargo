@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Coordinator's agent watch: one compact line per agent worktree, plus the slot and main-slot locks.
-# Columns: minutes since the last commit, ahead/pushed, uncommitted files, running tests, held PC test slots, and how many
-# of the 5 newest logs show a refused PC link (the agent's turn was not active). Running tests: scripts/autotest.sh processes
-# (PC runs) and headless sim games (one per single-player test, two per co-op session).
+# Columns: minutes since the last commit, ahead/pushed, uncommitted files, running Mac tests, held PC test slots, and how many
+# of the 5 newest logs show a refused PC link (the agent's turn was not active). Running tests: PC suites that hold slots
+# (the suite locks of the worktree; they run on the PC with no process here) and headless sim games (one per single-player test, two per co-op session).
 # Usage: agent-watch.sh   (from any worktree; it reads the container folder that holds .bare)
 # Exit code 0. It only reads state, except one action: PRs that the merge queue dropped on a known flake go back into the
 # queue (scripts/requeue-flakes.sh, once per commit, with a PR comment).
@@ -21,7 +21,7 @@ sims=()
 for p in $(pgrep -f 'headless-sim/run.sh autotest' 2>/dev/null); do
   [[ "$(basename "$(ps -o comm= -p "$p" 2>/dev/null)")" == timeout ]] && sims+=("$p")
 done
-for p in $(pgrep -f 'scripts/autotest.sh' 2>/dev/null) "${sims[@]}"; do
+for p in "${sims[@]}"; do
   w=$(worktree_of "$p")
   [[ -n "$w" ]] && tests[$w]=$(( ${tests[$w]:-0} + 1 ))
 done
