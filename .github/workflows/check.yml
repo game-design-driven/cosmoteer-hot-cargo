@@ -96,6 +96,8 @@ jobs:
           repository: Yarden-zamir/cosmoteer-hot-cargo-game-refs
           ssh-key: ${{ secrets.GAME_REFS_DEPLOY_KEY }}
           path: .game-refs
+      # Spec 306: the balance model fails when a zone beats neutral by more than its limit (no dominant route).
+      - run: python3 tools/balance/model.py .game-refs/Data tools/balance/logs/census-before.log tools/balance/logs/hunters-before.log tools/balance/logs/census-after.log > /dev/null
       - uses: actions/setup-dotnet@v6.1.0
         with:
           global-json-file: global.json
