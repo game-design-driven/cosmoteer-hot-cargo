@@ -23,6 +23,9 @@ static class HashTrail
 
     static readonly Queue<Entry> _trail = new();
 
+    /// <summary>Trail entries recorded since the start. A profile records none (spec 875, test field "hashtrail_since_mark").</summary>
+    internal static int Recorded;
+
     static void Postfix(GameRoot __instance, IntegrityHash iHash)
     {
         // A profile ("selfprof on") measures the cost of play, so this test-only trail stays off then, like the run state hash
@@ -71,6 +74,7 @@ static class HashTrail
         }.Select(p => $"{p.Name}={p.Hash:X8}"));
         string ships = string.Join(" ", sim.Ships.Select(s => $"{s.UniqueID}:{(sim.Mode.IncludeInIntegrityHash(s) ? Part(s.GetIntegrityHash) : 0):X8}"));
         _trail.Enqueue(new Entry(MpAutotest._mpGames, iHash.InputTick, iHash.Tick, parts, ships));
+        Recorded++;
         while (_trail.Count > Ticks) _trail.Dequeue();
     }
 

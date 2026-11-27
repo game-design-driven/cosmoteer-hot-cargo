@@ -73,8 +73,13 @@ public static class MpAutotest
     const double LostHostSeconds = 30;
     const double JoinSeconds = 45;
 
+    static int _hashTrailMark;
+
     internal static void AddCommands()
     {
+        // hashtrail_mark, hashtrail_since_mark: hash trail entries recorded since the mark. A profile records none (spec 875).
+        Autotest.Commands["hashtrail_mark"] = _ => _hashTrailMark = HashTrail.Recorded;
+        Autotest.Fields["hashtrail_since_mark"] = () => HashTrail.Recorded - _hashTrailMark;
         Autotest.Commands["mphost"] = arg => Host(int.Parse(arg, CultureInfo.InvariantCulture));
         Autotest.Commands["mpjoin"] = Join;
         Autotest.Commands["mpready"] = Ready;
