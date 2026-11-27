@@ -34,9 +34,11 @@ public static class BreakdownTextModel
         {
             var t = b.Terms[i];
             // A base of 0 (a sum of options) says nothing; its addends follow.
-            if (t.Op == TermOp.Round || b.IsNeutral(i) || (t.Op == TermOp.Base && t.Value == 0)) continue;
+            if (t.Op == TermOp.Round || (t.Op == TermOp.Base && t.Value == 0)) continue;
             double before = b.Before(i);
             double change = b.Before(i + 1) - before;
+            // A step whose change the value text cannot show (a factor of 1, an addend of 0, or less than the last digit) does not show.
+            if (t.Op != TermOp.Base && (t.Op == TermOp.Times ? Math.Abs(t.Value - 1) < 0.0005 : Math.Abs(change) < Epsilon(b.Unit))) continue;
             var tone = ToneOf(change, higherIsGood);
             switch (t.Op)
             {
@@ -53,8 +55,8 @@ public static class BreakdownTextModel
                     lines.Add(new(t.Key, t.Arg, Factor(style, t.Value), tone));
                     break;
                 case TermOp.Clamp:
-                    double bound = change < 0 ? t.Upper : t.Value;
-                    lines.Add(new(t.Key, Value(b.Unit, bound), Signed(b.Unit, change), tone));
+                    lines.Add(change < 0 ? new(t.Key + "Max", Value(b.Unit, t.Upper), Signed(b.Unit, change), tone)
+                        : new(t.Key + "Min", Value(b.Unit, t.Value), Signed(b.Unit, change), tone));
                     break;
             }
         }
@@ -66,8 +68,11 @@ public static class BreakdownTextModel
             if (Math.Abs(change) < Epsilon(b.Unit)) continue;
             hints.Add(new(key, Signed(b.Unit, change) + Suffix(b.Unit), ToneOf(change, higherIsGood)));
         }
-        return new(lines, Value(b.Unit, b.Total) + Suffix(b.Unit), hints);
+        return new(lines, Total(b.Unit, b.Total), hints);
     }
+
+    /// <summary>The total text of a value: the value with its unit.</summary>
+    public static string Total(BreakdownUnit unit, double v) => Value(unit, v) + Suffix(unit);
 
     static Tone ToneOf(double change, bool higherIsGood) =>
         change == 0 ? Tone.Plain : (change > 0) == higherIsGood ? Tone.Good : Tone.Bad;

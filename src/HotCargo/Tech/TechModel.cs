@@ -27,7 +27,7 @@ public static class TechModel
             .Base("TechBase", shipValue * (double)baseFraction, tier.ToString(inv))
             .Plus("TechTime", shipValue * fractionPerGameHour * steppedHours, steppedHours.ToString("0.0", inv))
             .Plus("TechNotoriety", shipValue * fractionPer100Notoriety * steppedNotoriety / 100.0, steppedNotoriety.ToString("0", inv))
-            .Clamp("Floor", 0, double.MaxValue)
+            .Clamp("Clamp", 0, double.MaxValue)
             .Round("Round", 100);
     }
 

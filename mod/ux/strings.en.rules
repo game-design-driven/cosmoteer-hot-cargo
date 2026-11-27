@@ -191,8 +191,8 @@ HotCargoBreakdown
 {
 	TotalFmt = "Total: {0}"
 	Subtotal = "Subtotal"
-	ClampFmt = "Limited to {0}"
-	FloorFmt = "At least {0}"
+	ClampMinFmt = "At least {0}"
+	ClampMaxFmt = "At most {0}"
 	Option = "Option"
 	OfferNone = "Nothing offered"
 
@@ -225,8 +225,8 @@ HotCargoBreakdown
 
 	// Surrender, bluff and pay-off chances (spec 565, 567, 594)
 	SurrenderBase = "Base"
-	LeverageUpFmt = "You outgun them ({0})"
-	LeverageDownFmt = "They outgun you ({0})"
+	LeverageUpFmt = "You are {0} stronger"
+	LeverageDownFmt = "They are {0} stronger"
 	DamageFmt = "Their hull at {0}"
 	FameFmt = "Your fame title ({0})"
 	ReputationFmt = "Their standing with you ({0})"

@@ -40,7 +40,6 @@ public class BreakdownModelTests
     {
         var b = new Breakdown(BreakdownUnit.Chance).Base("A", 0.9).Plus("B", 0.3).Clamp("Clamp", 0, 1);
         Assert.Equal(1, b.Total, 9);
-        Assert.False(b.IsNeutral(2));
         var r = new Breakdown(BreakdownUnit.Credits).Base("A", 103_150).Round("Round", 100);
         Assert.Equal(103_200, r.Total); // halves away from zero
         Assert.Equal(r.Total, r.Fold());

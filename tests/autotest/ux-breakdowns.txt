@@ -1,0 +1,47 @@
+# Number breakdowns on hover (spec 2580 to 2585): the heat rate and tech value lines of the heat panel, and the surrender, bluff and
+# pay-off buttons of a hunter's demand page. Each check opens the tooltip of the real widget through the game's tooltip box, reads the
+# real tooltip label, and needs its total line to show the number that the sim adds or the roll uses.
+newgame
+wait 8
+# The demand page fits a 1920x1080 window without a scroll.
+window 1920 1080
+ev_set Enabled false
+closepanel
+godmode on
+aiset FleeEnabled false
+aiset CallEnabled false
+aiset RegroupEnabled false
+dip_set DemandHailChance 0
+dip_set HunterYieldChance 0
+openspace 5000
+dip_shield hunters
+pause on
+wait 1
+hovertip heatrate
+wait 1
+expect hovertip_ok == 1
+hovertip techvalue
+wait 1
+expect hovertip_ok == 1
+hovertip_clear
+pause off
+spawnstage Warning
+wait 2
+dip_near hunter 250
+wait 1
+pause on
+dip_pick hunter tech 3
+wait 1
+dip_open hunter
+wait 2
+dip_hovertip surrender hunter
+wait 1
+expect hovertip_ok == 1
+dip_hovertip bluff hunter
+wait 1
+expect hovertip_ok == 1
+dip_hovertip payoff hunter
+wait 1
+expect hovertip_ok == 1
+hovertip_clear
+quit

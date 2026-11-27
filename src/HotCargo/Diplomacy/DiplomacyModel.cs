@@ -57,6 +57,10 @@ public static class DiplomacyModel
             .Clamp("Clamp", 0, 1);
     }
 
+    /// <summary>The strength ratio of a leverage (spec 563: log4 of it), as "1.5x". At the clamp it is "4x or more".</summary>
+    static string StrengthRatio(float leverage) =>
+        Math.Abs(leverage) >= 1f ? "4x+" : MathF.Pow(4f, Math.Abs(leverage)).ToString("0.0", Inv) + "x";
+
     static string Pct(float share) => (share * 100f).ToString("0", Inv) + "%";
     static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
 
@@ -90,7 +94,7 @@ public static class DiplomacyModel
         if (float.IsNaN(s.Leverage) || float.IsNaN(s.Damage) || float.IsNaN(s.Fame) || float.IsNaN(s.Reputation) || float.IsNaN(s.Heat))
             throw new ArgumentOutOfRangeException(nameof(s), $"surrender inputs {s}");
         return new Breakdown(BreakdownUnit.Chance).Base("SurrenderBase", baseChance)
-            .Plus(s.Leverage >= 0 ? "LeverageUp" : "LeverageDown", perLeverage * (double)s.Leverage, s.Leverage.ToString("+0.00;-0.00", Inv))
+            .Plus(s.Leverage >= 0 ? "LeverageUp" : "LeverageDown", perLeverage * (double)s.Leverage, StrengthRatio(s.Leverage))
             .Plus("Damage", perDamage * (double)s.Damage, Pct(1f - s.Damage))
             .Plus("Fame", perFame * (double)s.Fame, Pct(s.Fame))
             .Plus("Reputation", perReputation * (double)s.Reputation, s.Reputation.ToString("+0.00;-0.00", Inv))

@@ -104,13 +104,4 @@ public sealed class Breakdown(BreakdownUnit unit)
         for (int i = 0; i < index; i++) total = Apply(total, _terms[i], _terms[i].Value);
         return total;
     }
-
-    /// <summary>True when the step changes nothing at this point: a factor of 1, an addend of 0, a clamp or round with no effect.</summary>
-    public bool IsNeutral(int index)
-    {
-        var t = _terms[index];
-        if (t.Op == TermOp.Base) return false;
-        double before = Before(index);
-        return Math.Abs(Apply(before, t, t.Value) - before) < 1e-9;
-    }
 }

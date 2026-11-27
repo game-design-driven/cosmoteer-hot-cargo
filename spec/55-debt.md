@@ -37,7 +37,7 @@ A faction station lends money. The debt grows with interest, collectors come to 
 
 ### Debt pressure
 
-1425. **Debt heat.** While any player in the crew owes money, time heat (requirement 24) × `DebtHeatFactor` (1.1). It is one factor for the crew: more debts or more lenders do not raise it. Fame, contract, event and other heat do not change. The heat panel does not call it out (decision, user 2026-11-16). Decision: a flat factor, not one that rises with the stage, because the stages already have their own effect (3× brings hunters) and a flat factor stays easy to read in the heat rate.
+1425. **Debt heat.** While any player in the crew owes money, time heat (requirement 24) × `DebtHeatFactor` (1.1). It is one factor for the crew: more debts or more lenders do not raise it. Fame, contract, event and other heat do not change. The heat panel line does not call it out (decision, user 2026-11-16); the heat rate tooltip lists it as a step (requirement 2582, mockup approved by the user 2026-11-27). Decision: a flat factor, not one that rises with the stage, because the stages already have their own effect (3× brings hunters) and a flat factor stays easy to read in the heat rate.
 1426. **Interest notice.** When interest grows a player's debts (requirement 1404), only that player hears the vanilla money tick-down sound (`GameGui.MoneyTickDownSound`) once and sees one notice for the tick: a red center line with the total added ("INTEREST +N"), and a chat line for each lender with the amount added and the new balance in red (requirement 1419). Several steps or several lenders in one tick give one sound and one center line.
 ### Paid help
 
