@@ -279,8 +279,8 @@ public static class MpAutotest
         (_lastFrame, _lastGen2, _lastPause) = (now, gen2, pause);
     }
 
-    /// <summary>Host: the human ships and their players at the last frame, in _watchedSim.</summary>
-    static Dictionary<Ship, int> _humanShips = [];
+    /// <summary>Host: the human ships, their players and their crew at the last frame, in _watchedSim.</summary>
+    static Dictionary<Ship, (int Player, int Crew)> _humanShips = [];
     static SimRoot? _watchedSim;
     static bool _allowLoss;
 
@@ -295,13 +295,15 @@ public static class MpAutotest
     {
         if (_allowLoss || Autotest.Following || Autotest.Game is not { NetManager: BaseMPManager } game || game.Sim is not { } sim) return;
         if (sim != _watchedSim) { _humanShips.Clear(); _watchedSim = sim; }
-        var now = sim.Ships.HumanPlayerShips.ToDictionary(s => s, s => s.Metadata.PlayerIndex);
-        foreach (var (ship, player) in _humanShips)
+        var now = sim.Ships.HumanPlayerShips.ToDictionary(s => s, s => (Player: s.Metadata.PlayerIndex, Crew: s.Crew.Assigned.Count));
+        foreach (var (ship, (player, crew)) in _humanShips)
         {
-            if (now.ContainsKey(ship) || now.ContainsValue(player)) continue;
+            if (now.ContainsKey(ship) || now.Values.Any(v => v.Player == player)) continue;
             string how = ship.IsDisposed || ship.Parts.Count == 0 ? "destroyed" : ship.IsJunk ? "derelict" : "";
             if (how == "") continue;
-            Autotest.StopSession($"player {player} lost its last ship {ship.Metadata.PlainShipName} ({how}) at sim tick {sim.Tick}");
+            // The crew and part counts tell a ship whose crew died (#410: derelict with every part) from one that a fight broke up.
+            Autotest.StopSession($"player {player} lost its last ship {ship.Metadata.PlainShipName} ({how}, crew {crew} at the frame before, " +
+                                 $"{ship.Parts.Count} parts) at sim tick {sim.Tick}");
             now.Clear();
             break;
         }
