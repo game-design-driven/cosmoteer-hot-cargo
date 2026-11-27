@@ -46,7 +46,8 @@ static class TradeHints
         box.AutoSize.AutoHeightMode = AutoSizeMode.Enable;
         box.Children.LayoutAlgorithm = LayoutAlgorithms.StretchTopToBottom;
         box.Children.BorderPadding = new Borders(24f, 8f, 24f, 8f);
-        var label = new Label { InputBlockMode = InputBlockMode.Never };
+        // Spec 2586: the label takes hover input for the buy price breakdown tooltip.
+        var label = new Label { InputBlockMode = InputBlockMode.Auto };
         label.TextRenderer.FontSize = 16;
         label.TextRenderer.XmlFormatting = true;
         label.TextRenderer.HAlignment = HAlignment.Left;
@@ -67,6 +68,7 @@ static class TradeHints
             {
                 string text = Text(__instance);
                 label.Text = text;
+                label.ToolTips.Text = BuyTip(__instance);
                 box.SelfActive = text.Length > 0;
             });
         });
@@ -106,10 +108,28 @@ static class TradeHints
 
     static void PriceLine(CommTradeTab tab, List<string> lines)
     {
-        if (FactionRules.GetFaction(tab.Callee.Metadata.PlayerIndex) is not { } faction) return;
-        var mode = tab.SimMode.GameMode;
-        var title = mode.GetCurrentReputationTitle(faction.ID);
+        if (BuySteps(tab) is not { } buy) return;
+        var faction = FactionRules.GetFaction(tab.Callee.Metadata.PlayerIndex)!;
+        var title = tab.SimMode.GameMode.GetCurrentReputationTitle(faction.ID);
         float sell = tab.SimMode.EconDifficulty.ResourceSaleRefund * title.ResourceSellCostFactor;
-        lines.Add(UxKit.Format("TradePricesFmt", faction.NameKey.Text, title.NameKey.Text, title.ResourceBuyCostFactor, sell));
+        var style = BreakdownText.Style;
+        lines.Add(UxKit.Format("TradePricesFmt", faction.NameKey.Text, title.NameKey.Text,
+            BreakdownTextModel.Value(BreakdownUnit.Factor, buy.Total, style), BreakdownTextModel.Value(BreakdownUnit.Factor, sell, style)));
     }
+
+    /// <summary>
+    /// Spec 2586: the steps of the station's buy price factor for a resource other than tech: the vanilla standing factor
+    /// (CareerSimModeManager.GetResourceBuyCost), then the Hot Cargo steps that the price patch applies. Null for a station without a faction.
+    /// </summary>
+    internal static Breakdown? BuySteps(CommTradeTab tab)
+    {
+        if (FactionRules.GetFaction(tab.Callee.Metadata.PlayerIndex) is not { } faction) return null;
+        var title = tab.SimMode.GameMode.GetCurrentReputationTitle(faction.ID);
+        var b = new Breakdown(BreakdownUnit.Factor).Base("Standing", title.ResourceBuyCostFactor, title.NameKey.Text);
+        return Run.Current is { } run && run.Game == tab.Game ? Factions.FactionsArea.BuyTerms(run, b, tech: false, faction) : b;
+    }
+
+    static string BuyTip(CommTradeTab tab) => UxKit.On(s => s.TradeHints) && BuySteps(tab) is { } b
+        ? BreakdownText.Tooltip(UxKit.Text("BuyTipTitle"), b, higherIsGood: false)
+        : "";
 }

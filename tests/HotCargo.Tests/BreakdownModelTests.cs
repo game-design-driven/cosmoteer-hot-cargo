@@ -79,6 +79,18 @@ public class BreakdownModelTests
         Assert.Equal("x1.20", BreakdownTextModel.Factor(FactorStyle.Multiplier, 1.2));
     }
 
+    [Fact]
+    public void A_factor_breakdown_shows_factors_in_the_style()
+    {
+        var b = new Breakdown(BreakdownUnit.Factor).Base("Standing", 0.8, "Friendly").Times("HeatMarkup", 1.2, "80", "HintCoolDown");
+        var view = BreakdownTextModel.View(b, FactorStyle.Percent, higherIsGood: false);
+        Assert.Equal("-20%", view.Lines[0].Value);
+        Assert.Equal("-4%", view.Total); // 0.8 × 1.2 = 0.96
+        Assert.Equal("-20%", view.Hints[0].Change); // the factor with no heat
+        Assert.Equal("x0.96", BreakdownTextModel.View(b, FactorStyle.Multiplier, false).Total);
+        Assert.Throws<ArgumentException>(() => BreakdownTextModel.Signed(BreakdownUnit.Factor, 0.1));
+    }
+
     // One test for each number: the game value is the breakdown total, and the total is the formula of its spec requirement.
 
     [Fact]

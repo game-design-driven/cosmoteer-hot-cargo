@@ -129,7 +129,9 @@ HotCargoUx
 	// Trade tab
 	TechSaleFmt = "<fame_color>Sell {0} tech:</fame_color> heat <bad>+{1:0.0}</bad> → <good>+{2:0.0}</good>/min, score <bad>{3}</bad> <gray>(today's price)</gray>"
 	TechSaleBuyer = "The Buyer: sell tech here to win."
-	TradePricesFmt = "<gray>{0} ({1}): buy x{2:0.00}, sell x{3:0.00}</gray>"
+	TradePricesFmt = "<gray>{0} ({1}): buy {2}, sell {3}</gray>"
+	// Spec 2586: the title of the buy price breakdown tooltip
+	BuyTipTitle = "Buy prices here"
 
 	// Wanted
 	WantedSeenFmt = "{0}   <bad>seen, timer paused</bad>"
@@ -240,4 +242,11 @@ HotCargoBreakdown
 	PayMoneyFmt = "Money ({0})"
 	PayCrewFmt = "Crew ({0})"
 	CrowdFmt = "{0} other hunters near"
+
+	// Station prices (spec 644, 655, 2586)
+	Vanilla = "Price"
+	StandingFmt = "Your standing ({0})"
+	HeatMarkupFmt = "Heat markup (heat {0})"
+	RivalFence = "Rival fence premium"
+	HintCoolDown = "With no heat"
 }

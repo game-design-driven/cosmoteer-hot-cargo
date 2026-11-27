@@ -46,22 +46,33 @@ static class BreakdownAutotest
         Autotest.Commands["hovertip"] = arg =>
         {
             var run = Autotest.RequireRun();
-            var panel = Walk(run.Game.Gui.RootWidget).OfType<HeatPanel>().FirstOrDefault(p => p.IsActive)
+            HeatPanel Panel() => Walk(run.Game.Gui.RootWidget).OfType<HeatPanel>().FirstOrDefault(p => p.IsActive)
                 ?? throw new InvalidOperationException("the player cannot see the heat panel");
             switch (arg.Trim())
             {
                 // The rate that the sim adds: time heat and the contract trail (Run.OnTick, ContractBook.OnTick).
                 case "heatrate":
-                    Hover(panel.StatusLabel, "heat rate", BreakdownUnit.HeatPerMinute, () =>
+                    Hover(Panel().StatusLabel, "heat rate", BreakdownUnit.HeatPerMinute, () =>
                     {
                         var r = Autotest.RequireRun();
                         return r.TimeHeatPerMinute(r.State.FleetTech) + Contracts.ContractBook.TrailPerMinute(r, Contracts.ContractBook.OpenWeight(r));
                     });
                     break;
                 case "techvalue":
-                    Hover(panel.TechLabel, "tech value", BreakdownUnit.Credits, () => Autotest.RequireRun().TechValue());
+                    Hover(Panel().TechLabel, "tech value", BreakdownUnit.Credits, () => Autotest.RequireRun().TechValue());
                     break;
-                default: throw new InvalidOperationException("hovertip needs: heatrate | techvalue");
+                // The trade tab price line of the open comms window (spec 2586). The patch scales each buy price by the markup.
+                case "tradeprice":
+                    var box = TradeHints.LastBox?.TryGetTarget(out var b) == true ? b : throw new InvalidOperationException("no trade tab opened");
+                    var tab = TradeHints.Last?.TryGetTarget(out var t) == true ? t : throw new InvalidOperationException("no trade tab opened");
+                    Hover(box.Children.OfType<Label>().Single(), "trade price", BreakdownUnit.Factor, () =>
+                    {
+                        var faction = Cosmoteer.Factions.FactionRules.GetFaction(tab.Callee.Metadata.PlayerIndex)
+                            ?? throw new InvalidOperationException("the trade station has no faction");
+                        return tab.SimMode.GameMode.GetCurrentReputationTitle(faction.ID).ResourceBuyCostFactor * Factions.FactionsArea.Markup(Autotest.RequireRun());
+                    });
+                    break;
+                default: throw new InvalidOperationException("hovertip needs: heatrate | techvalue | tradeprice");
             }
         };
         // 1 when the game's tooltip box shows the hovered widget's tooltip and its total line is the number that the game uses.

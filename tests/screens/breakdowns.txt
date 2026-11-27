@@ -53,4 +53,18 @@ rm_tipshot breakdown-bluff
 dip_hovertip payoff hunter
 wait 1
 rm_tipshot breakdown-payoff
+hovertip_clear
+dip_close
+pause off
+heat 85
+tostation
+wait 2
+comms open
+wait 1
+commstab trade
+wait 2
+pause on
+hovertip tradeprice
+wait 1
+rm_tipshot breakdown-tradeprice
 quit
