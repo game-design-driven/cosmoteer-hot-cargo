@@ -47,7 +47,7 @@ run_mp() {
   local name="${1#mp:}" locks out rc=0 me=$BASHPID
   # Read $BASHPID out here: inside "$(...)" it is the pid of the command substitution, which exits at once,
   # so every other taker would judge the lock stale and remove it.
-  locks="$(take_sim_slots "$me" 2)"
+  locks="$(take_sim_slots "$me" 2)" || { echo "FAIL $1 (no Mac sim slot pair: run co-op sessions on the PC)"; return 1; }
   out="$RUN_DIR/$1.out"
   # The real-time budget of a session: its timeout (the "# timeout:" line or the runner's), doubled. Its waits count game
   # seconds (requirement 1007), so a sim that runs at half speed on a loaded machine needs twice the wall time. Revisit if
@@ -63,7 +63,7 @@ run_once() {
   local name="$1" log save lock rc=0 t0=$SECONDS me=$BASHPID t
   t="$(test_timeout "tests/autotest/$name.txt" "$TIMEOUT")" || return 1
   # $me: this run's process. Inside "$(...)" $BASHPID is the short-lived substitution subshell (see run_mp).
-  lock="$(take_sim_slots "$me" 1)"
+  lock="$(take_sim_slots "$me" 1)" || { echo "FAIL $1 (no Mac sim slot)"; return 1; }
   log="$LOG_DIR/$name.$(date +%Y%m%d-%H%M%S).sim.log"
   save="$(mktemp -d)"
   { echo "telename $name"; speed_line "tests/autotest/$name.txt"; cat "tests/autotest/$name.txt"; } > "$save/script.txt"
