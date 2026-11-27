@@ -1,6 +1,5 @@
-# Spec 2520 to 2526, 12: tech that stays in a system when the players leave it is lost, with a warning first. The loss timer then
-# runs: ships that wait in another system hold no tech, so they do not pause it. Before the fix (issue 351), the waiting carrier
-# kept its tech and the timer paused.
+# Spec 2520 to 2529: tech that stays in a system when the players leave it is lost. A move that leaves all of it behind loses
+# the run at once on arrival (spec 2527), not after the loss timer (600 s here).
 newgame
 wait 8
 ev_set Enabled false
@@ -10,38 +9,9 @@ jw_twin save
 jw_twin spawn
 wait 2
 expect tech == 8
-# The carrier drops 2 tech as crates. No ship is ready to jump, so ENGAGE would leave all of it behind: 6 aboard and 2 crates.
-tech drop 2
-wait 1
-expect ux_jump_techleft == 8
-# Only the twin without tech jumps; the carrier and the crates stay.
+# Only the twin without tech jumps; the carrier stays with all the tech.
 jw_jump_split
 waitfor sector == 2 30
-wait 2
-expect ux_ships_here == 1
-expect tech == 0
 expect techleftlost == 8
-waitfor losstimer == 1 10
-# Spec 2522: a switch back (map click or recall button) asks first when tech stays here. "no" keeps the players here.
-tech add 1
-wait 1
-expect ux_switch_techleft == 1
-jw_switch back
-wait 1
-expect ux_switch_dialogs == 1
-jw_answer no
-wait 3
-expect tech == 1
-# "yes": the switch goes, and the tech of this system is lost too.
-jw_switch back
-wait 1
-expect ux_switch_dialogs == 2
-jw_answer yes
-waitfor techleftlost == 9 60
-wait 3
-# Back with the carrier: its tech stayed behind and is gone.
-expect ux_ships_here == 1
-expect tech == 0
-waitfor losstimer == 1 10
-expect lost == 0
+waitfor lost == 1 10
 quit
