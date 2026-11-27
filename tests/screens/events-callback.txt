@@ -1,4 +1,5 @@
-# Callbacks (spec 2503, 2506): a spared ship comes back under its old name, and its page names the system where the players let it go.
+# Callbacks (spec 2503, 2506): a spared ship comes back under its old name, its page names the system where the players let it go,
+# and it shows its join deal: here a discounted price, and the standing that set the odds.
 render on
 newgame run 0
 wait 10
@@ -7,6 +8,7 @@ wait 1
 ev_set StationEventChance 0
 ev_set ArrivalEventChance 0
 ev_set CourierChance 0
+ev_set CallbackJoinFreeBase 0
 ev_remember Spared 1 Wren's Lantern
 event cb_spared
 ev_carrier_goto

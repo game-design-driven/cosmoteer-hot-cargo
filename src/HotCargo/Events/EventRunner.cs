@@ -302,6 +302,7 @@ public static class EventRunner
         {
             memory.Recalled = true;
             s.Pending.Recall = memory.Copy();
+            if (e.JoinDeal) FillJoinDeal(run, s.Pending, memory);
         }
         if (carrier is null && e.Carrier.Length > 0)
         {
@@ -317,6 +318,25 @@ public static class EventRunner
         if (carrier is { } c && carrierHails) EventText.ShowCalling(run.Game, sim.Ships[c]?.Metadata.PlainShipName ?? e.Title);
         Log.Info($"event opened: {e.ID} serial {s.Pending.Serial} tier {s.Pending.Tier} heat {run.State.Heat:0.0} tech {run.State.FleetTech}");
         return true;
+    }
+
+    /// <summary>Salt of the join deal roll (spec 2506), so it does not share a draw with the outcome rolls.</summary>
+    const ulong JoinSalt = 0x4A4F_494E_0000UL;
+
+    /// <summary>
+    /// Spec 2506: the join deal of a spared crew. The standing with the memory's faction (the diplomacy reputation share, −1 to 1; 0 for no
+    /// faction) sets the free-join chance; a roll from the page seed decides; a join that is not free costs a share of the Join Request price.
+    /// </summary>
+    static void FillJoinDeal(Run run, PendingEvent p, Memory m)
+    {
+        var t = run.T.Events;
+        float reputation = m.Faction.Length == 0 ? 0f
+            : Diplomacy.DiplomacyModel.ReputationShare(run.Mode.GetFactionReputation(new ID<Cosmoteer.Factions.FactionRules>(m.Faction)), run.T.Diplomacy.ReputationScale);
+        p.JoinFreeChance = MemoryModel.JoinFreeChance(reputation, t.CallbackJoinFreeBase, t.CallbackJoinFreePerReputation);
+        bool free = new FastRand(p.Seed, JoinSalt).Single() < p.JoinFreeChance;
+        float units = MemoryModel.JoinUnits(free, EventLibrary.JoinRequestUnits(EventLibrary.Events), t.CallbackJoinPriceShare);
+        p.JoinPrice = Credits(run, units, 0f, p.Tier, p.TechValue);
+        Log.Info($"join deal: standing {reputation:0.00} with {(m.Faction.Length > 0 ? m.Faction : "no faction")}, free chance {p.JoinFreeChance:0.00} -> {(free ? "free" : $"{p.JoinPrice} credits")}");
     }
 
     /// <summary>
@@ -471,7 +491,8 @@ public static class EventRunner
 
     /// <summary>Credits of a sure money cost, with the heat part from when the page opened.</summary>
     public static int CostCredits(Run run, CostRules cost, PendingEvent p) =>
-        Credits(run, EventModel.HeatScaledUnits(cost.Money, cost.MoneyPerHeat, p.Heat), 0f, p.Tier, p.TechValue);
+        Credits(run, EventModel.HeatScaledUnits(cost.Money, cost.MoneyPerHeat, p.Heat), 0f, p.Tier, p.TechValue)
+        + (cost.JoinDeal ? p.JoinPrice >= 0 ? p.JoinPrice : throw new InvalidOperationException($"event {p.EventId}: Cost.JoinDeal on a page without a join price") : 0);
 
     /// <summary>The fleet as a pending page's choices see it: Snap with the page's tier and tech value.</summary>
     public static Snapshot PageSnap(Run run, SimRoot sim, int money, PendingEvent p) => Snap(run, sim, money, p.Tier, p.TechValue);

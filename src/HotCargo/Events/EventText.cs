@@ -117,6 +117,8 @@ public static class EventText
         if (p?.Recall is { } m)
             text = text.Replace("{mem_ship}", Halfling.StringTools.EscapeForXml(m.Ship), StringComparison.Ordinal)
                 .Replace("{mem_system}", Halfling.StringTools.EscapeForXml(m.System), StringComparison.Ordinal);
+        if (p is { JoinFreeChance: >= 0f } deal && text.Contains("{join_deal}", StringComparison.Ordinal))
+            text = text.Replace("{join_deal}", JoinDeal(deal), StringComparison.Ordinal);
         if (p is null || !text.Contains("{offer_", StringComparison.Ordinal)) return text;
         return text
             .Replace("{offer_techs}", ResearchOffers.Names(p), StringComparison.Ordinal)
@@ -124,6 +126,16 @@ public static class EventText
             .Replace("{offer_worth}", $"{p.OfferUnits * p.TechValue:n0}", StringComparison.Ordinal)
             .Replace("{offer_value}", $"{p.OfferValue:n0}", StringComparison.Ordinal)
             .Replace("{offer_price}", $"{p.OfferPrice:n0}", StringComparison.Ordinal);
+    }
+
+    /// <summary>Spec 2506: the join deal of the page: free or its price, and the standing that set the odds.</summary>
+    static string JoinDeal(PendingEvent p)
+    {
+        string faction = p.Recall?.Faction is { Length: > 0 } id ? GameApp.Rules.GetFactionRules(new ID<Cosmoteer.Factions.FactionRules>(id)).NameKey.Text
+            : Strings.GetText("HotCargoEvents/JoinNoFaction");
+        int percent = (int)MathF.Round(p.JoinFreeChance * 100f);
+        return p.JoinPrice == 0 ? Strings.FormatText("HotCargoEvents/JoinFreeFmt", Halfling.StringTools.EscapeForXml(faction), percent)
+            : Strings.FormatText("HotCargoEvents/JoinPriceFmt", $"{p.JoinPrice:n0}", Halfling.StringTools.EscapeForXml(faction), percent);
     }
 
     public static string Researched(IEnumerable<string> techs) => W.GoodTextColor.FormatWithXml($"Researched: {string.Join(", ", techs)}");

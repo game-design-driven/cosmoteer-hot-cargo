@@ -18,7 +18,7 @@ expect fa_plainsell == 1
 # Spec 641, 642: this system becomes corporate ally space.
 fa_roles here other
 expect fa_zone == 1
-expect fa_timefactor == 1.5
+expect fa_timefactor == fa_allyheat
 expect fa_offerratio >= 1.29
 expect fa_offerratio <= 1.31
 fa_mark
