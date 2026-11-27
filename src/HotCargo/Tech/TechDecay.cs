@@ -78,6 +78,9 @@ public static class TechDecay
             string group = ShipKey(ship);
             foreach (var tile in Vaults.OnShip(ship).SelectMany(g => g).Where(x => x.Resources > 0))
                 spots.Add(new TechSpot(Key(tile), Exposed: false, Group: group));
+            // Every wreck holds for the players, and StorageTiles sorts all its tiles: in coop-stress (60 wrecks and a fight) that cost
+            // 0.26 ms of each tick (#367). The grid totals are a lookup, so a ship without tech in normal storage skips the sort.
+            if (Vaults.StorageTech(ship) == 0) continue;
             foreach (var tile in Vaults.StorageTiles(ship).Where(x => x.ResourceType == Vaults.TechId && x.Resources > 0))
             {
                 string key = Key(tile);
