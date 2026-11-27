@@ -4,6 +4,8 @@
 tunablesfile Heat { HeatPerGameMinute = 30 }  Events { Enabled = false }
 mphost {PORT}
 mpstart {PLAYERS}
+# The player ships take no damage and lose no crew (SessionRulesModel.ShieldProblem, #410): no step here tests who wins a fight.
+mp shieldplayers on
 
 step core.restart-sync
 # The same lines as the start of tech.move in coop-economy: sim inputs right after the new game starts.

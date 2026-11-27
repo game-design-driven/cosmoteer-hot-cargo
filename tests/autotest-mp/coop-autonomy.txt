@@ -5,6 +5,8 @@ mphost {PORT}
 mpstart 2
 mp ev_set Enabled false
 mp godmode on
+# The player ships take no damage and lose no crew (SessionRulesModel.ShieldProblem, #410): no step here tests who wins a fight.
+mp shieldplayers on
 # Decision traces in the log (ship tactics [...] lines), for a failed step.
 mp shipai Log on
 closepanel
