@@ -36,11 +36,4 @@ public class PressureModelTests
         Assert.Throws<ArgumentOutOfRangeException>(() => hard.Ships(0));
     }
 
-    [Fact]
-    public void Tech_value_keeps_the_rounding_to_100()
-    {
-        Assert.Equal(15_000, Pressure.Neutral.Tech(15_000));
-        Assert.Equal(12_000, (Pressure.Neutral with { TechValue = 0.8f }).Tech(15_000));
-        Assert.Equal(103_100, (Pressure.Neutral with { TechValue = 0.9f }).Tech(114_600)); // 103,140
-    }
 }

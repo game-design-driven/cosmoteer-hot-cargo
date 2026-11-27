@@ -110,4 +110,8 @@ public sealed class UxTunables
     /// Alt + left click then does what it does in the vanilla game.
     /// </summary>
     [Serialize(Optional = true)] public float PingSeconds = 30f;
+    /// <summary>
+    /// How number breakdowns on hover show a factor: Percent shows x1.20 as +20%, Multiplier shows x1.20.
+    /// </summary>
+    [Serialize(Optional = true)] public FactorStyle BreakdownFactors = FactorStyle.Percent;
 }

@@ -3,6 +3,7 @@ using Cosmoteer.Ships;
 using Cosmoteer.Ships.AI.CommsModules;
 using Cosmoteer.Simulation;
 using HotCargo.Core;
+using HotCargo.Ux;
 using HotCargo.Ui;
 
 namespace HotCargo.Diplomacy;
@@ -136,12 +137,17 @@ public sealed class DiplomacyHail : IHailProvider
         else FriendPage(run, sim, player, caller, callee, page);
     }
 
-    void Button(Run run, SimRoot sim, int player, Ship caller, Ship callee, HailPage page, Offer offer, int amount, string xml, bool close = false)
+    /// <summary>chance: the steps of the option's chance (spec 2584); its tooltip shows them, under the reason when the option is greyed.</summary>
+    void Button(Run run, SimRoot sim, int player, Ship caller, Ship callee, HailPage page, Offer offer, int amount, string xml, bool close = false,
+        Breakdown? chance = null)
     {
         if (S(run).WasUsed(callee.UniqueID, offer)) return;
         bool ok = Allowed(run, sim, player, caller, callee, offer, amount, out string why);
+        string? tip = chance is null ? null : BreakdownText.Tooltip(DipText.Format("ChanceTipFmt", Percent((float)chance.Total)), chance, higherIsGood: true);
+        string? whyNot = ok ? null : DipText.Format("WhyNotFmt", why);
         // The pay-off button sends the page's multiselect draft: Enter picks it (UX V15).
-        page.AddChoice(xml, DiplomacyChoiceDomain.Option(offer, amount), ok, ok ? null : DipText.Format("WhyNotFmt", why), close, submit: offer == Offer.PayOff);
+        page.AddChoice(xml, DiplomacyChoiceDomain.Option(offer, amount), ok, whyNot is null ? tip : tip is null ? whyNot : $"{whyNot}\n\n{tip}", close,
+            submit: offer == Offer.PayOff);
     }
 
     /// <summary>An option row of a shared choice with its own slider (spec 591). The text is built for the slider value.</summary>
@@ -175,12 +181,12 @@ public sealed class DiplomacyHail : IHailProvider
             page.AddText(stock > 0 ? DipText.Format("DemandFmt", name, stock) : DipText.Format("DemandEmptyFmt", name));
             AlliesText(run, sim, hunter, page);
             PayRows(run, sim, hunter, page);
-            float pay = Quotes.PayOff(run, sim, hunter, Deals.PayDraft(run, hunter));
-            Button(run, sim, player, caller, hunter, page, Offer.PayOff, 0, DipText.Format("PayOffFmt", Percent(pay), drop));
+            var pay = Quotes.PayOffTerms(run, sim, hunter, Deals.PayDraft(run, hunter));
+            Button(run, sim, player, caller, hunter, page, Offer.PayOff, 0, DipText.Format("PayOffFmt", Percent((float)pay.Total), drop), chance: pay);
             int units = Quotes.BluffUnits(run, sim);
-            if (units > 0)
+            if (units > 0 && Quotes.BluffTerms(run, sim, player) is { } bluff)
                 Button(run, sim, player, caller, hunter, page, Offer.Bluff, units,
-                    DipText.Format("BluffFmt", units, Percent(Quotes.Bluff(run, sim, player)), drop, (int)MathF.Round(t.BluffCaughtHeat)));
+                    DipText.Format("BluffFmt", units, Percent((float)bluff.Total), drop, (int)MathF.Round(t.BluffCaughtHeat)), chance: bluff);
         }
         if (S(run).Rolled.Contains(DiplomacyState.Key(hunter.UniqueID, "yieldok")))
         {
@@ -190,7 +196,7 @@ public sealed class DiplomacyHail : IHailProvider
                 payout > 0 ? DipText.Format("AcceptYieldFmt", Events.EventText.Money(payout)) : DipText.Text("AcceptYieldFuel"));
         }
         // Spec 2221: no demand to a hunter that already offers its surrender.
-        else Button(run, sim, player, caller, hunter, page, Offer.DemandSurrender, 0, DipText.Format("DemandSurrenderFmt", Pct(Quotes.DemandSurrender(run, sim, player, hunter))));
+        else DemandButton(run, sim, player, caller, hunter, page);
         if (!talked) Button(run, sim, player, caller, hunter, page, Offer.Refuse, 0, DipText.Text("Fight"), close: true);
     }
 
@@ -225,13 +231,20 @@ public sealed class DiplomacyHail : IHailProvider
     static bool OffersSurrender(Run run, SimRoot sim, Ship caller, Ship ai) =>
         S(run).Rolled.Contains(DiplomacyState.Key(ai.UniqueID, "yieldok")) || Situation.Career(sim).GetSurrenderForPrice(ai, caller).HasValue;
 
+    /// <summary>Spec 567, 2584: "Surrender now" with its chance, and the steps of that chance in its tooltip.</summary>
+    void DemandButton(Run run, SimRoot sim, int player, Ship caller, Ship ai, HailPage page)
+    {
+        var chance = Quotes.DemandSurrenderTerms(run, sim, player, ai);
+        Button(run, sim, player, caller, ai, page, Offer.DemandSurrender, 0, DipText.Format("DemandSurrenderFmt", Pct((float)chance.Total)), chance: chance);
+    }
+
     void EnemyPage(Run run, SimRoot sim, int player, Ship caller, Ship ai, HailPage page)
     {
         if (page.PrimaryDialogue.Length == 0) page.AddText(DipText.Format("EnemyFmt", ai.Metadata.XmlShipName));
         AlliesText(run, sim, ai, page);
         // Spec 2221: a ship that offers its own surrender shows only the vanilla accept and decline, not the players' surrender or a demand.
         if (OffersSurrender(run, sim, caller, ai)) return;
-        Button(run, sim, player, caller, ai, page, Offer.DemandSurrender, 0, DipText.Format("DemandSurrenderFmt", Pct(Quotes.DemandSurrender(run, sim, player, ai))));
+        DemandButton(run, sim, player, caller, ai, page);
         Button(run, sim, player, caller, ai, page, Offer.OfferSurrender, 0,
             DipText.Format("OfferSurrenderFmt", Cost(run, Quotes.OfferPrice(run, sim, player, ai)), Pct(Quotes.OfferSurrender(run, sim, player, ai))));
     }

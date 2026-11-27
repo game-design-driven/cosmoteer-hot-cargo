@@ -161,6 +161,29 @@ static class DiplomacyAutotest
         };
         // dip_open <target>: opens the comms window to the target (for screenshots). dip_close closes every comms window.
         Autotest.Commands["dip_open"] = arg => R().Game.Gui.FloatingWindows.AddChild(new CommWindow(R().Game, Me(), Target(arg.Trim())));
+        // dip_hovertip surrender|bluff|payoff <target>: opens the chance breakdown tooltip of that button on the open comms page (spec 2584),
+        // as a hover does. The check reads the chance that the roll uses (Deals). Then: wait 1, expect hovertip_ok == 1.
+        Autotest.Commands["dip_hovertip"] = arg =>
+        {
+            var p = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (p.Length != 2) throw new InvalidOperationException("dip_hovertip needs: surrender|bluff|payoff target");
+            var ship = Target(p[1]);
+            int player = R().Game.LocalPlayerIndex;
+            (Func<Breakdown> terms, Func<double> roll) = p[0] switch
+            {
+                "surrender" => (() => Quotes.DemandSurrenderTerms(R(), Sim(), player, ship), () => Quotes.DemandSurrender(R(), Sim(), player, ship)),
+                "bluff" => (() => Quotes.BluffTerms(R(), Sim(), player) ?? throw new InvalidOperationException("no bluff"), () => Quotes.Bluff(R(), Sim(), player)),
+                "payoff" => ((Func<Breakdown>)(() => Quotes.PayOffTerms(R(), Sim(), ship, Deals.PayDraft(R(), ship))),
+                    (Func<double>)(() => Quotes.PayOff(R(), Sim(), ship, Deals.PayDraft(R(), ship)))),
+                _ => throw new InvalidOperationException($"unknown chance '{p[0]}'"),
+            };
+            // The button of this chance: its tooltip holds the steps of the chance now.
+            string steps = Ux.BreakdownText.Steps(terms(), higherIsGood: true);
+            var button = R().Game.Gui.RootWidget.GetChainedWidgets(recursive: true).OfType<Halfling.Gui.ImageButton>()
+                .FirstOrDefault(b => b.IsActive && b.ToolTips.Text?.Contains(steps, StringComparison.Ordinal) == true)
+                ?? throw new InvalidOperationException($"the player cannot see a {p[0]} button with its chance tooltip on an open comms page");
+            Ux.BreakdownAutotest.Hover(button, p[0], BreakdownUnit.Chance, roll);
+        };
         // comms_rows_overflow: option rows of open comms pages whose text is taller than their box (a layout check, also headless).
         Autotest.Fields["comms_rows_overflow"] = () => CommsHail.OverflowingRows();
         // dip_pick <target> <option> [value] | dip_unpick <target> <option>: changes a hunter's pay-off draft through its MP input, like a click on a row.

@@ -47,11 +47,15 @@ public static class TechTunablesExtensions
     /// Spec 19 and 683: the tech value of one unit now, times the difficulty tech factor. Every input is saved sim state or a confirmed
     /// difficulty level, so all clients compute the same value.
     /// </summary>
-    public static long TechValue(this Core.Run run)
+    public static long TechValue(this Core.Run run) => (long)run.TechValueTerms().Total;
+
+    /// <summary>Spec 19, 683, 2583: the steps of the tech value: the model's steps, then the difficulty tech factor and the round to 100.</summary>
+    public static Core.Breakdown TechValueTerms(this Core.Run run)
     {
         var (t, s) = (run.T.Tech, run.State);
-        long value = TechModel.Value(Core.GameData.TierValueMaximum(s.PeakTier), t.TechShipFraction, t.TechShipFractionPerGameHour,
-            t.TechShipFractionPer100Notoriety, t.PriceStepMinutes, t.NotorietyStep, s.GameSeconds, s.Notoriety);
-        return RunModes.Difficulty.Pressure(run).Tech(value);
+        return TechModel.ValueTerms(Core.GameData.TierValueMaximum(s.PeakTier), s.PeakTier, t.TechShipFraction, t.TechShipFractionPerGameHour,
+                t.TechShipFractionPer100Notoriety, t.PriceStepMinutes, t.NotorietyStep, s.GameSeconds, s.Notoriety)
+            .Times("TechDifficulty", RunModes.Difficulty.Pressure(run).TechValue, RunModes.Difficulty.LevelNames(run.Mode))
+            .Round("Round", 100);
     }
 }

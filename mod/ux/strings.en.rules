@@ -19,6 +19,9 @@ HotCargoUx
 	StatusWonFmt = "DELIVERED   score {0}"
 	StatusLost = "TECH LOST"
 	StatusHeatOff = "Heat is off"
+	// Spec 2582, 2583: the titles of the heat rate and tech value breakdown tooltips
+	RateTipFmt = "Heat {0:+0.00;-0.00}/min"
+	TechTipFmt = "Tech value {0} each"
 
 	// Stage alerts: one line for each stage name in Heat.Stages
 	StageWarning = "Corporate scouts found your trail."
@@ -181,4 +184,60 @@ HotCargoUx
 	WatchChatFmt = "<bad><b>{0} tech at risk outside your vaults!</b></bad> {1}. Click the lines under the heat panel to find it."
 	WatchDesignBannerFmt = "{0}: NO VAULT FOR {1} TECH IN THE NEW DESIGN"
 	WatchDesignChatFmt = "<bad><b>{0}: the new design has no vault for {1} tech.</b></bad> Crew will move it to normal storage, where it decays. Undo, or add Tech Vaults."
+}
+
+// Spec 2580 to 2584: the steps of number breakdowns in tooltips. A step with a text argument uses the key with "Fmt".
+HotCargoBreakdown
+{
+	TotalFmt = "Total: {0}"
+	Subtotal = "Subtotal"
+	ClampMinFmt = "At least {0}"
+	ClampMaxFmt = "At most {0}"
+	Option = "Option"
+	OfferNone = "Nothing offered"
+
+	// Heat rate (spec 24, 101, 1425)
+	HeatBase = "Base rate"
+	HeatTechFmt = "{0} tech held"
+	HeatDifficultyFmt = "Difficulty ({0})"
+	ZoneNeutral = "Neutral space"
+	ZoneNeutralFmt = "Neutral space ({0})"
+	ZoneAlly = "Corporate ally space"
+	ZoneAllyFmt = "Corporate ally space ({0})"
+	ZoneShelter = "Shelter"
+	ZoneShelterFmt = "Shelter ({0})"
+	ZoneWatch = "Corporate watch"
+	ZoneWatchFmt = "Corporate watch ({0})"
+	Debt = "You owe money"
+	Outage = "Network outage: no heat gain"
+	TrailFmt = "Contract trail ({0} open)"
+	HintSellOne = "Sell 1 tech"
+	HintLeaveAlly = "Leave corporate ally space"
+	HintLeaveWatch = "Leave corporate watch"
+	HintPayDebt = "Pay your debts"
+	HintCloseContracts = "Finish or drop the contracts"
+
+	// Tech value (spec 19, 683)
+	TechBaseFmt = "Base share of a tier {0} ship"
+	TechTimeFmt = "Game time ({0} h)"
+	TechNotorietyFmt = "Notoriety ({0})"
+	TechDifficultyFmt = "Difficulty ({0})"
+
+	// Surrender, bluff and pay-off chances (spec 565, 567, 594)
+	SurrenderBase = "Base"
+	LeverageUpFmt = "You are {0} stronger"
+	LeverageDownFmt = "They are {0} stronger"
+	DamageFmt = "Their hull at {0}"
+	FameFmt = "Your fame title ({0})"
+	ReputationFmt = "Their standing with you ({0})"
+	AlliesFmt = "{0} allies of theirs near"
+	Wanted = "Their faction wants you"
+	HunterHeatFmt = "Hunter pride at heat {0}"
+	BluffBase = "Base"
+	BluffShareFmt = "Share you hand over ({0})"
+	BluffPileFmt = "Biggest pile left ({0})"
+	PayTechFmt = "Tech ({0})"
+	PayMoneyFmt = "Money ({0})"
+	PayCrewFmt = "Crew ({0})"
+	CrowdFmt = "{0} other hunters near"
 }

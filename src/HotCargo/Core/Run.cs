@@ -40,8 +40,11 @@ public sealed class Run
         public static event Action<Run, SimRoot, double>? Tick;
         /// <summary>Runs once when the run is won or lost, after State.Result and State.EndReason are set. Sim logic.</summary>
         public static event Action<Run>? RunEnded;
-        /// <summary>Factor on time heat in the current system (spec 24). Set by the Factions area: shelter and corporate ally space.</summary>
-        public static Func<Run, float> TimeHeatFactor = _ => 1f;
+        /// <summary>
+        /// Factors on time heat (spec 24, 2582): each area adds its own step to the breakdown, and chains the step before it.
+        /// The Factions area adds the zone, the Debt area the debt.
+        /// </summary>
+        public static Action<Run, Breakdown> TimeHeatTerms = (_, _) => { };
         /// <summary>Spec 2555: the sector of the run (1 = the start). The Journey area sets it from the run map; else the sector index.</summary>
         public static Func<Run, int> Step = run => run.State.SectorIndex;
         /// <summary>Spec 2555: the sectors of the run, the start and the Buyer counted. The Journey area sets it from the run map.</summary>
@@ -209,9 +212,28 @@ public sealed class Run
         TickStrikeWaves(sim, dt);
     }
 
-    /// <summary>Time heat per game minute with this fleet tech count, in the current system (spec 24 and the Factions factor).</summary>
-    public float TimeHeatPerMinute(int fleetTech) =>
-        HeatModel.TimeHeat(T.Heat.HeatPerGameMinute, HeatMultiplier(fleetTech), 60.0) * Hooks.TimeHeatFactor(this);
+    /// <summary>Time heat per game minute with this fleet tech count, in the current system (spec 24, 2582).</summary>
+    public float TimeHeatPerMinute(int fleetTech) => (float)TimeHeat(fleetTech).Total;
+
+    /// <summary>
+    /// Spec 24, 2582: the steps of the time heat rate: the base, the heat multiplier, then the factors of the areas. The sim tick and
+    /// the heat rate tooltip both use it.
+    /// </summary>
+    public Breakdown TimeHeat(int fleetTech)
+    {
+        var b = new Breakdown(BreakdownUnit.HeatPerMinute).Base("HeatBase", T.Heat.HeatPerGameMinute);
+        HeatMultiplierTerms(b, fleetTech);
+        Hooks.TimeHeatTerms(this, b);
+        return b;
+    }
+
+    /// <summary>The factor of the time heat that the areas add (zone, debt): 1 without any.</summary>
+    public float TimeHeatFactor()
+    {
+        var b = new Breakdown(BreakdownUnit.HeatPerMinute).Base("HeatBase", 1);
+        Hooks.TimeHeatTerms(this, b);
+        return (float)b.Total;
+    }
 
     void OnFameChanged(object? sender, ValueChangedEventArgs<int> e)
     {
@@ -225,7 +247,17 @@ public sealed class Run
     /// Multiplier of time and fame heat (spec 24, 25) for a fleet tech count: the tech table (spec 26) × the difficulty heat rate (spec 681).
     /// Every heat gain from time or fame and every shown heat rate uses it.
     /// </summary>
-    public float HeatMultiplier(int units) => HeatModel.Multiplier(T.Heat.HeatMultiplierByUnits, units) * this.Pressure().HeatRate;
+    public float HeatMultiplier(int units) => (float)HeatMultiplierTerms(new Breakdown(BreakdownUnit.HeatPerMinute).Base("HeatBase", 1), units).Total;
+
+    /// <summary>Spec 26, 681: the tech table step (with the hint to sell one unit) and the difficulty step.</summary>
+    Breakdown HeatMultiplierTerms(Breakdown b, int units)
+    {
+        var table = T.Heat.HeatMultiplierByUnits;
+        bool sell = units > 0;
+        return b.Times("HeatTech", HeatModel.Multiplier(table, units), units.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                sell ? "HintSellOne" : null, sell ? HeatModel.Multiplier(table, units - 1) : null)
+            .Times("HeatDifficulty", this.Pressure().HeatRate, RunModes.Difficulty.LevelNames(Mode));
+    }
 
     /// <summary>
     /// Fame that a standard mission of the tier pays: the vanilla table value times the same factors as the payout

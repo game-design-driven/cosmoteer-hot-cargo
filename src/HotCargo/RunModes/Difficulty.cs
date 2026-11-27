@@ -56,7 +56,7 @@ public static class Difficulty
         return Fmt("TipFmt", LevelNames(run.Mode), parts.Count == 0 ? Text("TipNeutral") : string.Join("\n", parts));
     }
 
-    static string LevelNames(CareerGameModeManager m) =>
+    public static string LevelNames(CareerGameModeManager m) =>
         $"{m.CombatDifficulty.NameKey.Text} / {m.EconDifficulty.NameKey.Text} / {m.CrewScarcity.NameKey.Text}";
 
     /// <summary>One text for each factor that differs from 1.</summary>

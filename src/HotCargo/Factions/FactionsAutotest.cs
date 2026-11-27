@@ -218,7 +218,7 @@ static class FactionsAutotest
             Autotest.JumpWhenAllowed(run, next, "fa_jump_watched", () => Autotest.Wait(8));
         };
         Autotest.Fields["fa_zone"] = () => (int)FactionsArea.ZoneOf(R(), R().Game.CurrentMapNode);
-        Autotest.Fields["fa_timefactor"] = () => Run.Hooks.TimeHeatFactor(R());
+        Autotest.Fields["fa_timefactor"] = () => R().TimeHeatFactor();
         Autotest.Fields["fa_allyheat"] = () => R().T.Factions.AllyHeatFactor;
         Autotest.Fields["fa_heatrate"] = () => R().TimeHeatPerMinute(R().State.FleetTech);
         // Heat per game minute since fa_mark, divided by the rate that the heat panel shows. 1 when the tick applies the zone factor.

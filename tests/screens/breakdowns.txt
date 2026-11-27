@@ -1,0 +1,56 @@
+# Number breakdowns on hover (spec 2580 to 2585): heat rate and tech value on the heat panel, surrender, bluff and pay-off chances on a
+# hunter's demand page. Corporate ally space and a loan give the heat rate more steps. Windowed test slot (needs graphics).
+render on
+newgame run
+wait 8
+closepanel
+ev_set Enabled false
+godmode on
+aiset FleeEnabled false
+aiset CallEnabled false
+aiset RegroupEnabled false
+dip_set DemandHailChance 0
+dip_set HunterYieldChance 0
+fa_roles here other
+debt_set LoanStationChance 1
+debt_goto loan
+wait 2
+debt_loan
+wait 1
+pause on
+hovertip heatrate
+wait 1
+rm_tipshot breakdown-heat
+ux BreakdownFactors Multiplier
+wait 1
+hovertip heatrate
+wait 1
+rm_tipshot breakdown-heat-multiplier
+ux BreakdownFactors Percent
+hovertip techvalue
+wait 1
+rm_tipshot breakdown-tech
+hovertip_clear
+pause off
+openspace 5000
+dip_shield hunters
+spawnstage Warning
+wait 2
+dip_near hunter 250
+wait 1
+pause on
+dip_pick hunter tech 3
+dip_pick hunter money 8
+wait 1
+dip_open hunter
+wait 2
+dip_hovertip surrender hunter
+wait 1
+rm_tipshot breakdown-surrender
+dip_hovertip bluff hunter
+wait 1
+rm_tipshot breakdown-bluff
+dip_hovertip payoff hunter
+wait 1
+rm_tipshot breakdown-payoff
+quit

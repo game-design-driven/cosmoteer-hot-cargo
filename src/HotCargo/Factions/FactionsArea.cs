@@ -21,9 +21,18 @@ public static class FactionsArea
 {
     public static void Register()
     {
-        Run.Hooks.TimeHeatFactor = run =>
-            FactionsModel.TimeHeatFactor(ZoneOf(run, run.Game.CurrentMapNode), run.T.Factions.AllyHeatFactor, run.T.Factions.ShelterHeatFactor,
-                run.T.Factions.WatchHeatFactor);
+        var timeHeat = Run.Hooks.TimeHeatTerms;
+        Run.Hooks.TimeHeatTerms = (run, b) =>
+        {
+            timeHeat(run, b);
+            var node = run.Game.CurrentMapNode;
+            var zone = ZoneOf(run, node);
+            var t = run.T.Factions;
+            string? name = node is not null && Controller(node) is { } f ? Name(f) : null;
+            // Spec 2582: leaving a hot zone takes its factor away; shelter is good, so it has no hint.
+            b.Times("Zone" + zone, FactionsModel.TimeHeatFactor(zone, t.AllyHeatFactor, t.ShelterHeatFactor, t.WatchHeatFactor), name,
+                zone is Zone.Ally or Zone.Watch ? "HintLeave" + zone : null);
+        };
         Run.Hooks.NotorietyFactor = run => FactionsModel.NotorietyFactor(ZoneOf(run, run.Game.CurrentMapNode), run.T.Factions.AllyNotorietyFactor);
         // Spec 2559: a jump to a closed system of the run map cuts no heat.
         Run.Hooks.JumpHeatKept = run => Lockdown.ArrivalClosed(run) ? 1f : HeatKept(run, Jumps.PendingKind(run));
