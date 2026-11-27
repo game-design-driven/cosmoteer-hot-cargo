@@ -1,0 +1,24 @@
+# Past Runs window (spec 1227 to 1233, 2591) on the main menu: the score of a run opens its parts in a tooltip on the real widget, and a
+# click on a score shows its parts under the table. Each total is the stored score of that run.
+wait 6
+pr_sample
+pr_click
+wait 2
+expect pr_open == 1
+expect pr_rows == 3
+# The best run is selected at first and its parts show under the table.
+expect pr_detail_ok == 1
+pr_hoverscore 0
+wait 1
+expect hovertip_ok == 1
+hovertip_clear
+pr_pickscore 1
+wait 1
+expect pr_detail_ok == 1
+pr_hoverscore 1
+wait 1
+expect hovertip_ok == 1
+hovertip_clear
+pr_close
+rr_clear
+quit

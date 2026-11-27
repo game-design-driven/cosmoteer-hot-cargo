@@ -14,10 +14,8 @@ namespace HotCargo.Ux;
 /// </summary>
 static class BreakdownAutotest
 {
-    static (MultiToolTipBox Box, WidgetToolTips Source, string Name, BreakdownUnit Unit, Func<double> GameValue)? _hover;
-
-    /// <summary>The text that the open hover tooltip shows. For screenshots of the other areas.</summary>
-    internal static string Shown => _hover is { } h ? h.Box.PrimaryToolTip.TooltipLabel.Text ?? "" : "";
+    /// <summary>Display: where the widget's tooltips go (the game GUI's multi box, or a dialog's own box). Box: the box with the label.</summary>
+    static (IToolTipDisplay Display, ToolTipBox Box, WidgetToolTips Source, string Name, BreakdownUnit Unit, Func<double> GameValue)? _hover;
 
     /// <summary>
     /// Opens the tooltip of <paramref name="w"/> as a hover does. gameValue: the number that the game uses (the sim or the roll),
@@ -33,9 +31,15 @@ static class BreakdownAutotest
             if (p is ScrollBox scroll) onScreen = r.Top >= scroll.ScreenRect.Top && r.Bottom <= scroll.ScreenRect.Bottom;
         if (!w.IsActive || !onScreen) throw new InvalidOperationException($"the player cannot see '{name}' (active {w.IsActive}, rect {r}, screen {screen})");
         if (string.IsNullOrEmpty(w.ToolTips.Text)) throw new InvalidOperationException($"'{name}' has no tooltip");
-        var box = w.GetToolTipDisplay() as MultiToolTipBox ?? throw new InvalidOperationException($"'{name}' has no tooltip box");
-        box.SetToolTipSource(w.ToolTips);
-        _hover = (box, w.ToolTips, name, unit, gameValue);
+        var display = w.GetToolTipDisplay() ?? throw new InvalidOperationException($"'{name}' has no tooltip box");
+        var box = display switch
+        {
+            MultiToolTipBox multi => multi.PrimaryToolTip,
+            ToolTipBox single => single,
+            _ => throw new InvalidOperationException($"'{name}' shows tooltips in a {display.GetType().Name}"),
+        };
+        display.SetToolTipSource(w.ToolTips);
+        _hover = (display, box, w.ToolTips, name, unit, gameValue);
         Log.Info($"ux: hover {name}");
     }
 
@@ -78,16 +82,16 @@ static class BreakdownAutotest
         // 1 when the game's tooltip box shows the hovered widget's tooltip and its total line is the number that the game uses.
         Autotest.Fields["hovertip_ok"] = () =>
         {
-            var (box, source, name, unit, value) = _hover ?? throw new InvalidOperationException("no hovertip open");
-            string shown = box.PrimaryToolTip.TooltipLabel.Text ?? "";
+            var (_, box, source, name, unit, value) = _hover ?? throw new InvalidOperationException("no hovertip open");
+            string shown = box.TooltipLabel.Text ?? "";
             string total = BreakdownText.TotalLine(unit, value());
-            bool ok = box.IsActive && box.ToolTipDisplayController.CurrentSource == source && shown.Contains(total, StringComparison.Ordinal);
+            bool ok = box.IsActive && box.TooltipLabel.ToolTipDisplayController.CurrentSource == source && shown.Contains(total, StringComparison.Ordinal);
             Log.Info($"ux: hovertip {name} ok={ok} expects '{total}' shows:\n{shown}");
             return ok ? 1 : 0;
         };
         Autotest.Commands["hovertip_clear"] = _ =>
         {
-            if (_hover is { } h) h.Box.ClearToolTipSource(h.Source);
+            if (_hover is { } h) h.Display.ClearToolTipSource(h.Source);
             _hover = null;
         };
     }

@@ -2,10 +2,24 @@ using System.Text.Json;
 
 namespace HotCargo.RunRecord;
 
-/// <summary>Spec 1221: one past run. Id is the galaxy seed of the career. Score is 0 for a loss.</summary>
+/// <summary>
+/// Spec 1221, 2590: one past run. Id is the galaxy seed of the career. Score is 0 for a loss. Parts: the parts of the score of a won
+/// run (they add up to Score), or null for a loss and for an entry that a build without parts wrote.
+/// </summary>
 public sealed record RunEntry(
     string Id, DateTimeOffset Ended, bool Won, long Score, int Delivered, double Seconds,
-    int Sector, int Sectors, float PeakHeat, int VaultsLost, int Players);
+    int Sector, int Sectors, float PeakHeat, int VaultsLost, int Players, List<Core.SumPart>? Parts = null)
+{
+    /// <summary>Equal fields and equal parts in order: a list compares by reference, so Upsert would write in every check.</summary>
+    public bool Equals(RunEntry? other) =>
+        other is not null && Fields() == other.Fields()
+        && (Parts ?? []).SequenceEqual(other.Parts ?? []) && (Parts is null) == (other.Parts is null);
+
+    public override int GetHashCode() => Fields().GetHashCode();
+
+    (string, DateTimeOffset, bool, long, int, double, int, int, float, int, int) Fields() =>
+        (Id, Ended, Won, Score, Delivered, Seconds, Sector, Sectors, PeakHeat, VaultsLost, Players);
+}
 
 /// <summary>Spec 1220: the file content. Version changes when an entry field changes its meaning.</summary>
 public sealed record RunRecordFile(int Version, List<RunEntry> Runs)
@@ -47,7 +61,11 @@ public static class RunRecordModel
     {
         var file = JsonSerializer.Deserialize<RunRecordFile>(json, Json) ?? throw new InvalidDataException("the run record file is empty");
         if (file.Version != RunRecordFile.CurrentVersion) throw new InvalidDataException($"the run record file has version {file.Version}; this build reads {RunRecordFile.CurrentVersion}");
-        return file.Runs ?? throw new InvalidDataException("the run record file has no runs list");
+        var runs = file.Runs ?? throw new InvalidDataException("the run record file has no runs list");
+        // Spec 2590: the parts of a score add up to it, so the window never shows parts of another number.
+        if (runs.FirstOrDefault(r => r.Parts is { } parts && parts.Sum(x => x.Value) != r.Score) is { } bad)
+            throw new InvalidDataException($"the score parts of run {bad.Id} do not add up to its score {bad.Score}");
+        return runs;
     }
 }
 

@@ -147,7 +147,6 @@ RunModes Hunters
 RunModes Tech
 RunModes Ux
 RunRecord Onboarding
-RunRecord Tech
 RunRecord Ux
 Scaling Missions
 Scavenge Ai
