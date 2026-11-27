@@ -47,6 +47,32 @@ sealed class HeatPanel : LayoutBox
     /// <summary>The extra lines as the panel last showed them. For autotests.</summary>
     internal static string ExtraText = "";
 
+    /// <summary>The breakdown tooltips of the heat rate and the tech value as the panel last set them. For autotests.</summary>
+    internal static string StatusTip = "", TechTip = "";
+
+    /// <summary>The label that shows the heat rate, and the one that shows the tech value. For autotests.</summary>
+    internal Label StatusLabel => _status;
+    internal Label TechLabel => _tech;
+
+    /// <summary>
+    /// Spec 24, 101, 2582: the heat rate that the panel shows: the time heat steps, then the contract trail. During a network outage
+    /// every gain is blocked (spec 921), so the rate is 0.
+    /// </summary>
+    internal static Breakdown HeatRate(Run run)
+    {
+        var b = run.TimeHeat(run.State.FleetTech);
+        if (Pursuit.Outage.Active(run)) return b.Times("Outage", 0);
+        int open = Contracts.ContractBook.Open(run).Count();
+        return b.Plus("Trail", Contracts.ContractBook.TrailPerMinute(run, Contracts.ContractBook.OpenWeight(run)),
+            open.ToString(System.Globalization.CultureInfo.InvariantCulture), "HintCloseContracts");
+    }
+
+    static string RateTip(Run run)
+    {
+        var b = HeatRate(run);
+        return BreakdownText.Tooltip(UxKit.Format("RateTipFmt", b.Total), b, higherIsGood: false);
+    }
+
     ObjectID? _node;
     int _seenStages = -1;
     double _alertUntil;
@@ -81,8 +107,11 @@ sealed class HeatPanel : LayoutBox
         AddChild(bar);
 
         _status = NewLabel(16, "");
+        // Spec 2582: the heat rate and the tech value have their own breakdown tooltips. The rest of the panel shows the difficulty tooltip.
+        _status.InputBlockMode = InputBlockMode.Auto;
         AddChild(_status);
         _tech = NewLabel(14, "");
+        _tech.InputBlockMode = InputBlockMode.Auto;
         AddChild(_tech);
         _contracts = NewLabel(14, "");
         AddChild(_contracts);
@@ -138,9 +167,11 @@ sealed class HeatPanel : LayoutBox
             // Spec 923: during an outage the panel turns blue, shows the time left and a heat rate of 0.
             _ when Pursuit.Outage.Active(run) => Pursuit.PursuitText.Blue(Pursuit.PursuitText.Format("PanelOutageFmt", Pursuit.PursuitModel.Clock(Pursuit.Outage.SecondsLeft(run))))
                 + "\n" + StatusLine(s, t.Heat, 0f),
-            _ => StatusLine(s, t.Heat, run.TimeHeatPerMinute(s.FleetTech) + Contracts.ContractBook.TrailPerMinute(run, Contracts.ContractBook.OpenWeight(run))),
+            _ => StatusLine(s, t.Heat, (float)HeatRate(run).Total),
         };
+        _status.ToolTips.Text = StatusTip = s.Result == RunResult.Running && s.HeatEnabled ? RateTip(run) : "";
         long value = run.TechValue();
+        _tech.ToolTips.Text = TechTip = BreakdownText.Tooltip(UxKit.Format("TechTipFmt", value.ToString("N0")), run.TechValueTerms(), higherIsGood: true);
         // Spec 1550: tech in normal storage decays; its line goes under the tech line.
         _tech.Text = TechText = (LossTimer.PanelLine(run) ?? UxKit.Format("TechFmt", s.FleetTech, value.ToString("N0")) + TechSplit(run, s.FleetTech))
             + (TechDecay.PanelLine(run) is { } decay ? "\n" + decay : "");

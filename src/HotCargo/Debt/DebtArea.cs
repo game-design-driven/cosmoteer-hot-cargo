@@ -27,9 +27,13 @@ public static class DebtArea
         Run.Hooks.SystemEntered += DebtTick.OnSystemEntered;
         var score = Run.Hooks.ScoreAdjust;
         Run.Hooks.ScoreAdjust = (run, s) => DebtModel.Score(score(run, s), run.State.Debt.Total, run.T.Debt.ScoreDebtFactor);
-        // Spec 1425: time heat rises a little faster while anyone in the crew owes money. Not shown on the heat panel.
-        var timeHeat = Run.Hooks.TimeHeatFactor;
-        Run.Hooks.TimeHeatFactor = run => timeHeat(run) * (run.State.Debt.Debts.Count > 0 ? run.T.Debt.DebtHeatFactor : 1f);
+        // Spec 1425: time heat rises a little faster while anyone in the crew owes money. Only the heat rate tooltip names it (spec 2582).
+        var timeHeat = Run.Hooks.TimeHeatTerms;
+        Run.Hooks.TimeHeatTerms = (run, b) =>
+        {
+            timeHeat(run, b);
+            b.Times("Debt", run.State.Debt.Debts.Count > 0 ? run.T.Debt.DebtHeatFactor : 1f, hint: "HintPayDebt");
+        };
         RegisterAutotest();
     }
 
@@ -215,8 +219,8 @@ public static class DebtArea
         // debt_limits: logs the credit limit of tiers 1 to 8 (the scale for the PR text).
         Autotest.Commands["debt_limits"] = _ => Log.Info("AUTOTEST debt limits: " + string.Join(", ", Enumerable.Range(1, 8).Select(t => $"tier {t} {Lenders.CreditLimit(R(), t):N0}")));
         // Spec 1425, 1426: debt_mark_pressure notes the time heat factor and the interest notices; the fields give the change since.
-        Autotest.Commands["debt_mark_pressure"] = _ => { _heatMark = Run.Hooks.TimeHeatFactor(R()); _noticeMark = DebtTick.InterestNotices; };
-        Autotest.Fields["debt_heat_ratio"] = () => Run.Hooks.TimeHeatFactor(R()) / _heatMark;
+        Autotest.Commands["debt_mark_pressure"] = _ => { _heatMark = R().TimeHeatFactor(); _noticeMark = DebtTick.InterestNotices; };
+        Autotest.Fields["debt_heat_ratio"] = () => R().TimeHeatFactor() / _heatMark;
         Autotest.Fields["debt_notices"] = () => DebtTick.InterestNotices - _noticeMark;
         Autotest.Fields["debt_hail_due"] = () => Mine().HailAt is null ? 0 : 1;
         Autotest.Fields["debt_overdraft_collectors"] = () => R().State.Debt.Collectors.Count(c => c.Overdraft);

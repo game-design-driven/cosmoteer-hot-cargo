@@ -1,3 +1,5 @@
+using HotCargo.Core;
+
 namespace HotCargo.Diplomacy;
 
 /// <summary>A pile of tech: one vault at a position, with the units left in it.</summary>
@@ -41,11 +43,22 @@ public static class DiplomacyModel
     }
 
     /// <summary>"That's all we have": works more often for a big share and when the rest is spread out.</summary>
-    public static float BluffChance(int units, int stock, float concentration, float baseChance, float perShare, float visiblePenalty)
+    public static float BluffChance(int units, int stock, float concentration, float baseChance, float perShare, float visiblePenalty) =>
+        (float)BluffTerms(units, stock, concentration, baseChance, perShare, visiblePenalty).Total;
+
+    /// <summary>Spec 565, 2584: the steps of <see cref="BluffChance"/>.</summary>
+    public static Breakdown BluffTerms(int units, int stock, float concentration, float baseChance, float perShare, float visiblePenalty)
     {
         if (units <= 0 || units > stock) throw new ArgumentOutOfRangeException(nameof(units));
-        return Clamp01(baseChance + perShare * units / stock - visiblePenalty * concentration);
+        if (float.IsNaN(concentration)) throw new ArgumentOutOfRangeException(nameof(concentration));
+        return new Breakdown(BreakdownUnit.Chance).Base("BluffBase", baseChance)
+            .Plus("BluffShare", perShare * units / (double)stock, $"{units}/{stock}")
+            .Plus("BluffPile", -visiblePenalty * (double)concentration, Pct(concentration))
+            .Clamp("Clamp", 0, 1);
     }
+
+    static string Pct(float share) => (share * 100f).ToString("0", Inv) + "%";
+    static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
 
     /// <summary>
     /// Spec 594: how much more hunters around make a pay-off harder. 1 alone, falling linearly, 0 with more other hunters than the limit.
@@ -68,8 +81,24 @@ public static class DiplomacyModel
 
     public static float SurrenderChance(SurrenderInputs s, float baseChance, float perLeverage, float perDamage, float perFame, float perReputation,
         float perAlly, float wantedPenalty, float hunterPerHeat) =>
-        Clamp01(baseChance + perLeverage * s.Leverage + perDamage * s.Damage + perFame * s.Fame + perReputation * s.Reputation
-                - perAlly * s.Allies - (s.Wanted ? wantedPenalty : 0f) - (s.Hunter ? hunterPerHeat * s.Heat / 100f : 0f));
+        (float)SurrenderTerms(s, baseChance, perLeverage, perDamage, perFame, perReputation, perAlly, wantedPenalty, hunterPerHeat).Total;
+
+    /// <summary>Spec 567, 2584: the steps of <see cref="SurrenderChance"/>. Steps that are 0 here do not show in the tooltip.</summary>
+    public static Breakdown SurrenderTerms(SurrenderInputs s, float baseChance, float perLeverage, float perDamage, float perFame, float perReputation,
+        float perAlly, float wantedPenalty, float hunterPerHeat)
+    {
+        if (float.IsNaN(s.Leverage) || float.IsNaN(s.Damage) || float.IsNaN(s.Fame) || float.IsNaN(s.Reputation) || float.IsNaN(s.Heat))
+            throw new ArgumentOutOfRangeException(nameof(s), $"surrender inputs {s}");
+        return new Breakdown(BreakdownUnit.Chance).Base("SurrenderBase", baseChance)
+            .Plus(s.Leverage >= 0 ? "LeverageUp" : "LeverageDown", perLeverage * (double)s.Leverage, s.Leverage.ToString("+0.00;-0.00", Inv))
+            .Plus("Damage", perDamage * (double)s.Damage, Pct(1f - s.Damage))
+            .Plus("Fame", perFame * (double)s.Fame, Pct(s.Fame))
+            .Plus("Reputation", perReputation * (double)s.Reputation, s.Reputation.ToString("+0.00;-0.00", Inv))
+            .Plus("Allies", -perAlly * (double)s.Allies, s.Allies.ToString(Inv))
+            .Plus("Wanted", s.Wanted ? -wantedPenalty : 0)
+            .Plus("HunterHeat", s.Hunter ? -hunterPerHeat * (double)s.Heat / 100.0 : 0, s.Heat.ToString("0", Inv))
+            .Clamp("Clamp", 0, 1);
+    }
 
     /// <summary>The enemy accepts the players' surrender: likelier when it is stronger (negative leverage) and likes the players.</summary>
     public static float OfferChance(float leverage, float reputation, bool wanted, float baseChance, float perLeverage, float perReputation, float wantedPenalty) =>

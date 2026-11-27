@@ -10,6 +10,11 @@ public static class TechModel
     /// The result is rounded to a multiple of 100.
     /// </summary>
     public static long Value(int shipValue, float baseFraction, float fractionPerGameHour, float fractionPer100Notoriety,
+        float priceStepMinutes, float notorietyStep, double gameSeconds, float notoriety) =>
+        (long)ValueTerms(shipValue, 0, baseFraction, fractionPerGameHour, fractionPer100Notoriety, priceStepMinutes, notorietyStep, gameSeconds, notoriety).Total;
+
+    /// <summary>Spec 19, 2583: the steps of <see cref="Value"/>: the base share, game time and notoriety, each as credits; then the round to 100.</summary>
+    public static Core.Breakdown ValueTerms(int shipValue, int tier, float baseFraction, float fractionPerGameHour, float fractionPer100Notoriety,
         float priceStepMinutes, float notorietyStep, double gameSeconds, float notoriety)
     {
         if (shipValue <= 0) throw new ArgumentOutOfRangeException(nameof(shipValue), "must be above 0");
@@ -17,8 +22,13 @@ public static class TechModel
         double steppedHours = Math.Floor(Math.Max(0, gameSeconds) / stepSeconds) * stepSeconds / 3600.0;
         double step = Math.Max(1.0, notorietyStep);
         double steppedNotoriety = Math.Floor(Math.Max(0, notoriety) / step) * step;
-        double fraction = baseFraction + fractionPerGameHour * steppedHours + fractionPer100Notoriety * steppedNotoriety / 100.0;
-        return (long)Math.Round(shipValue * Math.Max(0, fraction) / 100.0) * 100;
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        return new Core.Breakdown(Core.BreakdownUnit.Credits)
+            .Base("TechBase", shipValue * (double)baseFraction, tier.ToString(inv))
+            .Plus("TechTime", shipValue * fractionPerGameHour * steppedHours, steppedHours.ToString("0.0", inv))
+            .Plus("TechNotoriety", shipValue * fractionPer100Notoriety * steppedNotoriety / 100.0, steppedNotoriety.ToString("0", inv))
+            .Clamp("Floor", 0, double.MaxValue)
+            .Round("Round", 100);
     }
 
     /// <summary>Spec 1541: the vaults that hold the units, with perVault units in each (from the vault part rules). Rounded up.</summary>

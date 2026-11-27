@@ -2,6 +2,8 @@ HotCargoDiplomacy
 {
 	ChanceFmt = "<gray>({0}%)</gray>"
 	WhyNotFmt = "Not possible: {0}"
+	// Spec 2584: the title of a chance breakdown tooltip
+	ChanceTipFmt = "Chance {0}%"
 	SliderUnits = "Tech"
 	SliderOffer = "Offer"
 	SliderMinutes = "Time"
