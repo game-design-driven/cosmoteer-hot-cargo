@@ -14,8 +14,8 @@ The whole workflow and which parts are generic: `docs/WORKFLOW.md`. Each rule be
 - Signs that an agent needs a message:
   - No commit for a long time, with no running tests.
   - Commits that are not pushed (ahead).
-  - Refused logs: the agent ran PC work without an active turn (CLAUDE.md, Agents).
-  - Slots held with no running tests: a dead run. Its lock goes stale when its owner process ends.
+  - Refused logs: the agent called the PC without an active turn (CLAUDE.md, Agents). A test suite is not lost by that: `scripts/pc-suite.sh wait` in its worktree collects it.
+  - Slots held for hours: a PC suite that nobody collects. Its locks end when the suite ends on the PC, at the latest at its time limit; `scripts/pc-suite.sh stop` in its worktree ends it sooner.
 - To reach a running agent thread, send with `t3_thread_send` mode `steer`. Put "do this after your current step" in the text for follow-up work. Use `auto` only for idle or finished threads. Reason: a queued message waits for the end of a long turn, and T3 often drops it.
 
 ## Brief the agents

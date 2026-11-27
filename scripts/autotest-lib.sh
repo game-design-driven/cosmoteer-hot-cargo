@@ -141,7 +141,7 @@ take_sim_slots() {
 
 # While the player's own game runs (slot main), tests use at most HOT_CARGO_SLOTS_WHILE_PLAYING slots (default 4), so
 # the player's game keeps its frame rate. The check is cached for 60 s in a shared file, so it costs one PC call a minute.
-PLAYING_CACHE=/tmp/hot_cargo_player_playing
+PLAYING_CACHE="$LOCK_DIR/hot_cargo_player_playing"
 usable_slots() {
   local now age
   now="$(date +%s)"
