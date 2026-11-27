@@ -127,8 +127,8 @@ static class CutAutotest
 
     /// <summary>Selects the ship, opens its build window and clicks a vanilla button of it (cut_apply and the weld tests).</summary>
     /// <summary>
-    /// A click on a vanilla button of the ship's build window, as the mouse makes it (spec 2475). It fails when the player cannot see
-    /// or click the button. A window that this opens gets the UI update of a frame first, as the game runs it before each input.
+    /// A real click (RealInput) on a vanilla button of the ship's build window, or on the mod's button that stands in for it (spec 2475).
+    /// It fails when the player cannot see or click the button. The script waits for the click.
     /// </summary>
     internal static void Buttons(Ship ship, string button)
     {
@@ -136,12 +136,13 @@ static class CutAutotest
         Sim().PlayerInput.SelectSingleShip(ship);
         game.Gui.ShipGui.BuildButton.IsSelected = true;
         var box = game.Gui.ShipGui.BuildToolbox;
-        box.OnUpdatingUIState(null, EventArgs.Empty);
         switch (button)
         {
-            case "_constructBtn": EditEndAutotest.Click(box._constructBtn, "Make it so"); break;
-            case "_discardBtn": EditEndAutotest.Click(box._discardBtn, "Discard changes", via: box._menu); break;
-            case "_cancelAllBtn": EditEndAutotest.Click(box._cancelAllBtn, "Cancel all"); break;
+            case "_constructBtn": EditEndAutotest.Click("Make it so", EditEndAutotest.Construct(box)); break;
+            case "_discardBtn":
+                EditEndAutotest.Clicks(hit => { if (!hit) throw new InvalidOperationException("the player cannot click 'Discard changes' now"); }, EditEndAutotest.Discard(box));
+                break;
+            case "_cancelAllBtn": EditEndAutotest.Click("Cancel all", EditEndAutotest.CancelAll(box)); break;
             default: throw new InvalidOperationException($"unknown button {button}");
         }
     }
