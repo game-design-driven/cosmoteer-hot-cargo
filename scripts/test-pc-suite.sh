@@ -40,8 +40,9 @@ ID="$(scripts/pc-suite.sh start 100 core mp:coop-core 2> "$T/start.err")"
 check "the start prints the suite id" '[[ -n "$ID" ]]'
 check "the suite holds 3 slots (the session's 2, and 1 more that was free)" '[[ "$(locks)" == 3 ]]'
 LOCK="$(ls -d "$T"/locks/hot_cargo_slot_[0-9]*.lock | head -1)"
-check "a suite lock names the suite, and its pid is not the pid of the start" '[[ "$(cat "$LOCK/suite")" == "$ID" ]] && ! pgrep -f "pc-suite.sh start" | grep -qx "$(cat "$LOCK/pid" 2>/dev/null || echo none)"'
+check "a suite lock names the suite, and its holder process lives after the start ended" '[[ "$(cat "$LOCK/suite")" == "$ID" ]] && kill -0 "$(cat "$LOCK/pid")"'
 check "a suite lock holds while the suite runs" '! lock_is_stale "$LOCK"'
+HOLDER="$(cat "$LOCK/pid")"
 
 echo "wait while the PC refuses the calls (the turn is not active)"
 touch "$T/refuse"
@@ -71,7 +72,7 @@ OUT="$(scripts/pc-suite.sh wait "$ID" 30 2>&1)"; RC=$?
 check "exit code 1: the session failed" '[[ $RC == 1 && "$OUT" == *"FAIL mp:coop-core"* && "$OUT" == *"== failed: mp:coop-core"* ]]'
 check "each result is fetched once" '[[ "$(grep -c "^fetch core$" "$T/calls")" == 1 && "$(grep -c "^fetch mp-coop-core$" "$T/calls")" == 1 ]]'
 check "the summary has both tests" '[[ "$(sort "$T"/state/logs/run-*/summary.txt | tr "\n" ,)" == "FAIL mp:coop-core,PASS core," ]]'
-check "the slots are free" '[[ "$(locks)" == 0 ]]'
+check "the slots are free and the holder is gone" '[[ "$(locks)" == 0 ]] && ! kill -0 "$HOLDER" 2>/dev/null'
 OUT="$(scripts/pc-suite.sh wait "$ID" 30 2>&1)"; RC=$?
 check "one more wait prints the same verdict with no PC call" '[[ $RC == 1 && "$(grep -c "^fetch" "$T/calls")" == 2 ]]'
 
@@ -84,5 +85,6 @@ check "its lock ends when the suite ended on the PC" 'lock_is_stale "$LOCK"'
 echo "suite=open" > "$T/lock-answer"; rm -f "$T"/locks/hot_cargo_suite_*.checked; echo 1 > "$LOCK/until"
 check "its lock ends at its time limit" 'lock_is_stale "$LOCK"'
 
+kill "$(cat "$LOCK/pid" 2>/dev/null)" 2>/dev/null
 if [[ $FAILED -eq 0 ]]; then echo "== pc suite test: all checks hold"; else echo "== pc suite test: FAILED"; cat "$T/start.err"; fi
 exit $FAILED

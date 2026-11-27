@@ -32,7 +32,7 @@ Every PC script sources `scripts/pc.sh`. Its header names the settings: `PC_MACH
 
 ## Locks (on the Mac, in /tmp)
 
-- `hot_cargo_slot_<n>.lock`: one for each test slot, with `owner` (the worktree) and `pid`, or, for a slot of a PC suite, `suite` (the suite id) and `until` (its time limit) in place of `pid`. A suite lock ends when its suite ended on the PC or at that time. `take_slot` and `take_slots` in `scripts/autotest-lib.sh` take them. Co-op takers queue on `hot_cargo_slot_pair.lock`.
+- `hot_cargo_slot_<n>.lock`: one for each test slot, with `owner` (the worktree) and `pid`, or, for a slot of a PC suite, `suite` (the suite id) and `until` (its time limit); its `pid` is a holder process that only sleeps, for worktrees with older scripts. A suite lock ends when its suite ended on the PC or at that time. `take_slot` and `take_slots` in `scripts/autotest-lib.sh` take them. Co-op takers queue on `hot_cargo_slot_pair.lock`.
 - `hot_cargo_main_slot.lock`: `install-player.sh` and `vault-saved-ships.sh` take it.
 - `hot_cargo_build_<hash>.lock`: one build at a time in each worktree (`stage.sh`).
 - A lock whose pid is gone is stale, and the next taker takes it over. Never remove a lock whose owner process lives.

@@ -164,12 +164,13 @@ if (Test-Path (Join-Path $suite "started")) { "SUITE_STARTED " + $cacheState } e
 
   # From here the suite owns its slots: the locks name the suite and end with it (suite_lock_ended in autotest-lib.sh).
   # A worktree with the scripts from before the suite locks reads only "pid" and takes a lock whose process is gone. So the
-  # pid file names a process of this login session that outlives every suite (loginwindow). Limit: without such a process the
-  # pid of this short start stays, and old scripts can take the slots. Revisit (drop the pid) when no old worktree is left.
-  local holder; holder="$(pgrep -x -u "$(id -u)" loginwindow 2>/dev/null | head -1)"
+  # pid file names a holder: a process in its own session (as scripts/detach.sh) that only sleeps until the suite's time limit.
+  # Revisit (drop the holder) when no worktree with the old lock code is left.
+  local holder
+  nohup perl -MPOSIX -e 'POSIX::setsid() or die "setsid: $!"; sleep $ARGV[0]' "$((deadline + 120))" > /dev/null 2>&1 < /dev/null &
+  holder=$!
   for s in "${pool[@]}"; do
-    echo "$(( $(date +%s) + deadline + 120 ))" > "$(slot_lock "$s")/until"; echo "$id" > "$(slot_lock "$s")/suite"
-    [[ -n "$holder" ]] && echo "$holder" > "$(slot_lock "$s")/pid"
+    echo "$(( $(date +%s) + deadline + 120 ))" > "$(slot_lock "$s")/until"; echo "$id" > "$(slot_lock "$s")/suite"; echo "$holder" > "$(slot_lock "$s")/pid"
   done
   trap - EXIT
   echo "$id" > "$run_dir/suite"; echo "${pool[*]}" > "$run_dir/slots"; date -u +%Y-%m-%dT%H:%M:%S > "$run_dir/started-utc"
@@ -278,6 +279,7 @@ release_locks() {
   for s in $(cat "$run_dir/slots" 2>/dev/null); do
     lock="$(slot_lock "$s")"
     [[ "$(cat "$lock/suite" 2>/dev/null)" == "$id" ]] || continue
+    kill "$(cat "$lock/pid" 2>/dev/null)" 2>/dev/null
     if [[ "${2:-}" == stop ]]; then release_slot "$s"; else rm -rf "$lock"; fi
   done
 }
