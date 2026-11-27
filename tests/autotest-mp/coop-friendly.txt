@@ -3,6 +3,8 @@
 mphost {PORT}
 mpstart {PLAYERS}
 mp godmode on
+# The player ships take no damage and lose no crew (SessionRulesModel.ShieldProblem, #410): no step here tests who wins a fight.
+mp shieldplayers on
 mp ev_set Enabled false
 closepanel
 on 1 closepanel

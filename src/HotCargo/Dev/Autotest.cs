@@ -131,6 +131,12 @@ public static class Autotest
         TestWorld.RandomMissions = lines.Any(l => l.Trim() == TestWorld.RandomMissionsLine);
         File.Move(path, Path.Combine(Mod.ModRoot, "autotest.done"), overwrite: true);
         _script = new(Parse(lines, firstLine: 1));
+        // Load-time session rules: a broken rule fails the run before its first command.
+        if (SessionRulesModel.ShieldProblem(_script.Select(c => (c.Name, c.Arg))) is { } problem)
+        {
+            Log.Error($"AUTOTEST FAIL session rule: {problem}");
+            _script = new([("quit", "", 0)]);
+        }
         AddBaseCommands();
         MpAutotest.AddCommands();
         TestGalaxy.Add();
@@ -603,6 +609,8 @@ public static class Autotest
                 }
             throw new InvalidOperationException($"no point {clearance:0} from every station and {shipClearance:0} from every ship within 19,500 of the fleet");
         };
+        // noshield <reason>: a co-op session that does not turn the player shield on states why (SessionRulesModel.ShieldProblem).
+        Commands["noshield"] = arg => Log.Info($"AUTOTEST no player shield: {arg}");
         Commands["godmode"] = arg =>
         {
             // Test only: keeps human ships at full part health each sim tick, so long AI tests are not cut short by a lost ship.

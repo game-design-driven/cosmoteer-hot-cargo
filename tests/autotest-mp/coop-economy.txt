@@ -4,6 +4,9 @@
 mphost {PORT}
 mpstart {PLAYERS}
 mp godmode on
+# The player ships take no damage and lose no crew (SessionRulesModel.ShieldProblem, #410) until tactics.share-resources.
+# From there on the steps need real damage: a rebuilt part, crew that take a vault apart, vault damage, a lost run.
+mp shieldplayers on
 # Loan offers make stations answer with a dialogue page (spec 1402), which changes the listen and comms checks. Only debt.loan turns them on.
 mp debt_set LoanStationChance 0
 # The event window opens after the run intro closes (GUI only). The client's hover needs its window.
@@ -303,6 +306,7 @@ step tactics.share-resources
 # part with player 0's steel.
 # Godmode completes a part under construction at once (it sets full health), so it is off while the part is rebuilt.
 mp godmode off
+mp shieldplayers off
 mp share_steel 0 100
 mp share_steel 1 0
 mp share_near 1
