@@ -17,7 +17,17 @@ public enum EditStage
 }
 
 /// <summary>Spec 2477: each control that a player can use while a cut or weld order exists.</summary>
-public enum EditControl { CancelAll, DiscardChanges, RightClick, Esc, OtherTool, CloseEditor }
+public enum EditControl
+{
+    CancelAll,
+    DiscardChanges,
+    /// <summary>Ctrl+Enter, the hotkey of "Make it so" and "Cancel all" (Inputs.Design.Construct).</summary>
+    Hotkey,
+    RightClick,
+    Esc,
+    OtherTool,
+    CloseEditor,
+}
 
 /// <summary>Spec 2477: what a control does to the order.</summary>
 public enum EditOutcome
@@ -28,6 +38,8 @@ public enum EditOutcome
     Stays,
     /// <summary>The control is hidden or disabled, and the order goes on.</summary>
     Unavailable,
+    /// <summary>The order goes on, whether the control shows or not.</summary>
+    GoesOn,
 }
 
 public readonly record struct EditCase(EditMode Mode, EditStage Stage, EditControl Control)
@@ -61,7 +73,10 @@ public static class EditEndModel
     {
         // Spec 2475: "Cancel all" cancels an order that runs, in both modes. A pending order has "Make it so" and "Discard changes".
         EditControl.CancelAll => c.Stage == EditStage.Pending ? EditOutcome.Unavailable : EditOutcome.Ends,
-        EditControl.DiscardChanges => c.Stage == EditStage.Pending ? EditOutcome.Ends : EditOutcome.Unavailable,
+        // Vanilla's "Discard changes" can be enabled by other design changes; it never stops work that runs.
+        EditControl.DiscardChanges => c.Stage == EditStage.Pending ? EditOutcome.Ends : EditOutcome.GoesOn,
+        // The hotkey presses the button that shows: "Make it so" applies a pending order, which then goes on; "Cancel all" ends it.
+        EditControl.Hotkey => c.Stage == EditStage.Pending ? EditOutcome.Stays : EditOutcome.Ends,
         // Spec 2484, 2473: a right click with the tool, with nothing picked or dragged, cancels the ship's order.
         EditControl.RightClick => EditOutcome.Ends,
         // Esc, another tool and closing the build window change only the tool, as for vanilla construction.

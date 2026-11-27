@@ -17,6 +17,6 @@ weld_build arm
 wait 1
 weld_build piece
 edit_end weld
-expect edit_end_checked == 72
+expect edit_end_checked == 84
 expect edit_end_failed == 0
 quit

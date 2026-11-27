@@ -2,6 +2,7 @@ using Cosmoteer.Game;
 using Cosmoteer.Game.Gui.Build;
 using Cosmoteer.Ships;
 using Halfling.Gui;
+using Halfling.Input;
 using HotCargo.Core;
 using HotCargo.Dev;
 
@@ -38,7 +39,8 @@ internal interface IEditUnderTest
 /// Spec 2477: the test `edit-end`. "edit_end cut|weld" puts one block of script lines for each case of <see cref="EditEndModel.Cases"/>
 /// in front of the script: set up the mode and the stage, press the control through the real widget, check the result. A control
 /// that a player cannot see or click (hidden or disabled widget) is not pressed: its result is <see cref="EditOutcome.Unavailable"/>.
-/// The setup takes shortcuts (the order goes through the tool without a mouse; the last edge is set); the controls do not.
+/// The setup takes shortcuts (the order goes through the tool without a mouse; the last edge is set). The controls go through real
+/// input (<see cref="RealInput"/>): the cursor on the widget, a press frame and a release frame, or the keys.
 /// </summary>
 internal static class EditEndAutotest
 {
@@ -50,16 +52,27 @@ internal static class EditEndAutotest
     static IEditUnderTest Area(string name) => Areas.TryGetValue(name, out var a) ? a : throw new InvalidOperationException($"no edit area '{name}' (cut or weld)");
     static BuildToolbox Box() => Game().Gui.ShipGui.BuildToolbox;
 
+    /// <summary>The first of the widgets that shows, or null: the player sees only that one.</summary>
+    static Widget? Showing(IEnumerable<Widget> widgets) => widgets.FirstOrDefault(w => w.IsActive);
+
     /// <summary>
-    /// A click on a widget, as the mouse makes it: only on a widget that shows and takes input (all its parents too). For a menu item,
-    /// <paramref name="via"/> is the menu that the player opens first. False when the player cannot click it.
+    /// Real clicks (<see cref="RealInput"/>) on the widgets in order, then the script waits for them. <paramref name="then"/> gets true
+    /// when every widget showed and took input at its click.
     /// </summary>
-    internal static bool Press(Button button, Widget? via = null)
+    internal static void Clicks(Action<bool> then, params Func<Widget?>[] targets)
     {
-        bool can = via is null ? button.IsActive && button.IsInputActive : via.IsActive && via.IsInputActive && button.SelfActive && button.SelfInputActive;
-        if (can) button.ClickController.InvokeClicked();
-        return can;
+        foreach (var t in targets) RealInput.Click(t);
+        Autotest.WaitForReal(() => !RealInput.Busy, 10, "real input", () => then(RealInput.AllHit));
     }
+
+    /// <summary>A real click that the test needs: it fails when the player cannot click the widget.</summary>
+    internal static void Click(string name, Func<Widget?> target) =>
+        Clicks(hit => { if (!hit) throw new InvalidOperationException($"the player cannot click '{name}' now (hidden or disabled)"); }, target);
+
+    /// <summary>"Make it so", vanilla or the mod's (CutApplyHooks), whichever shows.</summary>
+    internal static Func<Widget?> Construct(BuildToolbox box) => () => Showing(CutApplyHooks.ConstructButtons(box));
+    internal static Func<Widget?> CancelAll(BuildToolbox box) => () => Showing(CutApplyHooks.CancelButtons(box));
+    internal static Func<Widget?>[] Discard(BuildToolbox box) => [() => box._menu, () => Showing(CutApplyHooks.DiscardItems(box))];
 
     /// <summary>
     /// Opens the ship's build window in live or blueprint mode with the real mode toggle, so orders and buttons come from the mode
@@ -72,12 +85,6 @@ internal static class EditEndAutotest
         game.Gui.ShipGui.BuildButton.IsSelected = true;
         Box()._blueprintsToggle.IsSelected = blueprint;
         Autotest.Commands["pause"]("off");
-    }
-
-    /// <summary>A click that the test needs: it fails when the player cannot click the widget.</summary>
-    internal static void Click(Button button, string name, Widget? via = null)
-    {
-        if (!Press(button, via)) throw new InvalidOperationException($"the player cannot click '{name}' now (hidden or disabled)");
     }
 
     static IEnumerable<string> Lines(string area, EditCase c)
@@ -126,24 +133,31 @@ internal static class EditEndAutotest
             area.Prepare(stage);
             area.Order();
         };
-        Autotest.Commands["edit_apply"] = _ => Click(Box()._constructBtn, "Make it so");
+        Autotest.Commands["edit_apply"] = _ => Click("Make it so", Construct(Box()));
         Autotest.Commands["edit_last"] = arg => Area(arg.Trim()).ToLastEdge();
+        // edit_press <area> <control>: the control through real input (RealInput); the script waits until the input ends.
         Autotest.Commands["edit_press"] = arg =>
         {
             var w = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             var area = Area(w[0]);
             var game = Game();
             var box = Box();
-            _available = Enum.Parse<EditControl>(w[1]) switch
+            Action<bool> record = hit => _available = hit;
+            switch (Enum.Parse<EditControl>(w[1]))
             {
-                EditControl.CancelAll => Press(box._cancelAllBtn),
-                EditControl.DiscardChanges => Press(box._discardBtn, via: box._menu),
-                EditControl.RightClick => area.ToolSelected(game) && Do(() => area.RightClick(Autotest.RequireRun())),
-                EditControl.Esc => Do(() => Esc(game)),
-                EditControl.OtherTool => Press(box._selectPartsBtn),
-                EditControl.CloseEditor => game.Gui.ShipGui.BuildButton.IsActive && Do(() => game.Gui.ShipGui.BuildButton.IsSelected = false),
-                var k => throw new InvalidOperationException($"no press for {k}"),
-            };
+                case EditControl.CancelAll: Clicks(record, CancelAll(box)); break;
+                case EditControl.DiscardChanges: Clicks(record, Discard(box)); break;
+                case EditControl.Hotkey: Keys(record, [InputButtonID.ViKeyControl, InputButtonID.HwKeyLeftControl], InputButtonID.ViKeyEnter, InputButtonID.HwKeyEnter); break;
+                case EditControl.RightClick:
+                    bool tool = area.ToolSelected(game);
+                    RealInput.RightClickAt(() => game.Sim.Viewport.TransformScreenPointFromWorld(area.Ship.WorldCenter));
+                    Autotest.WaitForReal(() => !RealInput.Busy, 10, "real input", () => _available = tool);
+                    break;
+                case EditControl.Esc: Keys(record, [], InputButtonID.ViKeyEscape, InputButtonID.HwKeyEscape); break;
+                case EditControl.OtherTool: Clicks(record, () => box._selectPartsBtn); break;
+                case EditControl.CloseEditor: Clicks(record, () => game.Gui.ShipGui.BuildButton); break;
+                case var k: throw new InvalidOperationException($"no press for {k}");
+            }
         };
         Autotest.Commands["edit_check"] = arg =>
         {
@@ -155,7 +169,7 @@ internal static class EditEndAutotest
             var want = EditEndModel.Expected(c);
             _checked++;
             var harm = area.Harm();
-            if (got == want && harm is null) { Log.Info($"AUTOTEST edit_end {w[0]} {c}: {want} ({area.Describe()})"); return; }
+            if ((got == want || want == EditOutcome.GoesOn && !ended) && harm is null) { Log.Info($"AUTOTEST edit_end {w[0]} {c}: {want} ({area.Describe()})"); return; }
             _failed++;
             Log.Error($"AUTOTEST edit_end {w[0]} {c}: expected {want}, got {got?.ToString() ?? "the order ended without a control"}"
                 + $"{(harm is null ? "" : $", {harm}")} ({area.Describe()})");
@@ -175,17 +189,9 @@ internal static class EditEndAutotest
 
     static double Stage(string area) => Area(area).Stage() is { } s ? (int)s : -1;
 
-    static bool Do(Action a)
+    static void Keys(Action<bool> then, InputButtonID[] modifiers, params InputButtonID[] keys)
     {
-        a();
-        return true;
-    }
-
-    /// <summary>Esc as GameGui.HandleHotkeys handles it for the selected tool: its reset, else the tool closes.</summary>
-    static void Esc(GameRoot game)
-    {
-        var gui = game.Gui;
-        if (gui.GetSelectionState() is not { } state || state.TryReset()) return;
-        if (state.ClearOnEscape) gui.StateSelectionManager.ClearSelected();
+        RealInput.Keys(modifiers, keys);
+        Autotest.WaitForReal(() => !RealInput.Busy, 10, "real input", () => then(true));
     }
 }
