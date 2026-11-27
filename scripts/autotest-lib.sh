@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared parts of autotest.sh and autotest-mp.sh. Source it; it does not run anything.
+# Shared parts of the test runners (pc-suite.sh, autotest-sim.sh, screens.sh). Source it; it does not run anything.
 # Slots t1..tN (N = HOT_CARGO_SLOTS, default 6) are headless test instances on the PC (see pc.sh).
 # Sourced by every script that takes PC or sim slots or reads test lists (grep -l autotest-lib.sh scripts/).
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -61,9 +61,25 @@ mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null; }
 # True when a lock folder's owner process is gone. A lock with no pid yet is being created, so it is stale only when it
 # is older than 60 s (its owner died between mkdir and the pid write; otherwise it would block a slot forever).
 lock_is_stale() {
+  if [[ -f "$1/suite" ]]; then suite_lock_ended "$1"; return; fi
   local pid; pid="$(cat "$1/pid" 2>/dev/null)"
   if [[ -n "$pid" ]]; then ! kill -0 "$pid" 2>/dev/null; return; fi
   [[ -d "$1" ]] && (( $(date +%s) - $(mtime "$1" || echo 0) > 60 ))
+}
+# A slot lock of a PC suite (scripts/pc-suite.sh start) names the suite in the file "suite": the suite runs on the PC, with no
+# process on this Mac. Such a lock ends when its suite ended on the PC (one PC call for each suite, at most once in 60 s), or at
+# the time in its file "until" (the longest time that the suite can take), whichever comes first. So a suite that nobody
+# collects frees its slots for the next taker. A failed PC call counts as not ended.
+suite_lock_ended() {
+  local id until check out
+  id="$(cat "$1/suite" 2>/dev/null)"; until="$(cat "$1/until" 2>/dev/null)"
+  [[ -n "$id" && -n "$until" ]] || return 1
+  (( $(date +%s) > until )) && return 0
+  check="$LOCK_DIR/hot_cargo_suite_$id.checked"
+  (( $(date +%s) - $(mtime "$check" || echo 0) < 60 )) && return 1
+  touch "$check"
+  out="$(bash -c 'source "$0/pc.sh"; pc "$1"' "$LIB_DIR" 'if (Test-Path (Join-Path $env:USERPROFILE "HotCargoSlots\_suites\'"$id"'\done")) { "suite=ended" } else { "suite=open" }' 2>/dev/null)" || return 1
+  [[ "$out" == *suite=ended* ]]
 }
 # Writes this shell's pid into a lock folder in one rename, so a reader never sees an empty pid file.
 lock_write_pid() { echo $$ > "$1/pid.tmp" && mv -f "$1/pid.tmp" "$1/pid"; }
@@ -212,56 +228,9 @@ start_slot() {
   return $rc
 }
 
-# T3 refuses PC calls from an agent thread that has no active turn (the agent ended its turn while its tests run).
-# Every later call fails the same way, so a run that sees this text stops at once (exit code 3, no retry).
+# T3 refuses PC calls from an agent thread that has no active turn (the agent ended its turn). Every later call fails the
+# same way. Tests do not need the link while they run (scripts/pc-suite.sh); a refused call there exits with code 3.
 LINK_REFUSED_TEXT="no longer owns an active thread run"
-
-# Prints one line about the slot's game: "running=0|1 started=0|1 done=0|1 match=0|1".
-# started: the log has a script line. done: the log has AUTOTEST DONE. match: the log has the text in $2 (optional).
-# A small PC call, so polls can be frequent. When the PC call fails, it prints the error text in place of the line.
-slot_status() {
-  (
-    export SLOT="$1"
-    source "$LIB_DIR/pc.sh"
-    pc "$PS_PATHS"'$l = Join-Path $modDir "csharp\hot_cargo_log.txt"; $t = if (Test-Path $l) { [string](Get-Content $l -Raw) } else { "" }
-$m = "'"${2:-}"'"
-"running=" + [int][bool](Get-SlotProcess) + " started=" + [int]$t.Contains("AUTOTEST line") + " done=" + [int]$t.Contains("AUTOTEST DONE") + " match=" + [int]($m -ne "" -and $t.Contains($m))'
-  ) 2>&1 || true
-}
-
-# Waits until the slot's game exits or its log has AUTOTEST DONE for two polls in a row (the game then had time to
-# exit by itself), or until $2 seconds pass. Polls every AUTOTEST_POLL seconds (default 3).
-# Stops early when the PC refuses calls (sets LINK_REFUSED=yes) or after 5 failed status calls in a row.
-# Sets STARTED_AT (SECONDS when the first script line showed, empty if never) and ENDED_AT.
-wait_slot_end() {
-  local slot="$1" timeout="$2" from=$SECONDS status dones=0 fails=0
-  STARTED_AT="" LINK_REFUSED=no
-  while (( SECONDS - from < timeout )); do
-    sleep "${AUTOTEST_POLL:-3}"
-    status="$(slot_status "$slot")"
-    if [[ "$status" == *"$LINK_REFUSED_TEXT"* ]]; then LINK_REFUSED=yes; break; fi
-    if [[ "$status" != *running=* ]]; then fails=$((fails + 1)); [[ $fails -ge 5 ]] && break; continue; fi
-    fails=0
-    if [[ -z "$STARTED_AT" && "$status" == *started=1* ]]; then STARTED_AT=$SECONDS; fi
-    if [[ "$status" == *running=0* ]]; then break; fi
-    if [[ "$status" == *done=1* ]]; then dones=$((dones + 1)); [[ $dones -ge 2 ]] && break; fi
-  done
-  ENDED_AT=$SECONDS
-}
-
-# Test slots only: stops the slot's game and prints its Hot Cargo log, then the line <<<VANILLA LOG>>> and the tail of
-# its newest vanilla log, in one PC call. Fails when the PC call fails (then the game may still run).
-slot_finish() {
-  [[ "$1" != main ]] || { echo "slot_finish: never for the main slot" >&2; return 1; }
-  (
-    export SLOT="$1"
-    source "$LIB_DIR/pc.sh"
-    pc "$PS_PATHS"'$p = Get-SlotProcess; if ($p) { $p | Stop-Process -Force; $p | Wait-Process -Timeout 20 -ErrorAction SilentlyContinue }; if (Test-Path $pidFile) { Remove-Item $pidFile -Force }
-$l = Join-Path $modDir "csharp\hot_cargo_log.txt"; if (Test-Path $l) { Get-Content $l -Raw }
-"<<<VANILLA LOG>>>"
-$cl = Get-ChildItem (Join-Path $root "Logs") -Filter "*.txt" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1; if ($cl) { "=== " + $cl.Name; Get-Content $cl.FullName -Tail 150 }'
-  )
-}
 
 # Prints the slot's Hot Cargo log, and the line <<GAME EXITED>> when the slot's game no longer runs.
 slot_log() {
