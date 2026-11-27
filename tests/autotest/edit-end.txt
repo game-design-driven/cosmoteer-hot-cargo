@@ -1,0 +1,22 @@
+# Spec 2477: every way to end a cut and a weld (EditEndModel.Cases): live and blueprint mode, each stage of the order, each control,
+# pressed through the real widget only when the player can click it. Issue #393: in blueprint mode a running weld had no button
+# that ended it.
+newgame run
+wait 8
+ev_set StationEventChance 0
+ev_set ArrivalEventChance 0
+ev_set CourierChance 0
+godmode on
+# No scavengers: they salvage the derelict test piece, and the test checks that no case harms it.
+scav_set Enabled false
+pause off
+wait 3
+cut_mark
+edit_end cut
+weld_build arm
+wait 1
+weld_build piece
+edit_end weld
+expect edit_end_checked == 72
+expect edit_end_failed == 0
+quit

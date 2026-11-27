@@ -46,7 +46,9 @@ static class WeldAutotest
                      select p;
         foreach (var p in places)
             if (WeldShip.Check(ship, target, p).Verdict == WeldVerdict.Ok) return p;
-        throw new InvalidOperationException($"no valid place for {target.Metadata.PlainShipName} on {ship.Metadata.PlainShipName}");
+        var verdicts = string.Join(", ", places.GroupBy(p => WeldShip.Check(ship, target, p).Verdict).Select(g => $"{g.Key} {g.Count()}"));
+        throw new InvalidOperationException($"no valid place for {target.Metadata.PlainShipName} on {ship.Metadata.PlainShipName} near {snap}: {verdicts}; "
+            + $"target {target.Parts.Count} parts at {ship.DetTransformPointFromWorld(target.DetLocation)}, ship {ship.Parts.Count} parts, {ship.BlueprintParts.Count} design parts");
     }
 
     /// <summary>
@@ -94,8 +96,85 @@ static class WeldAutotest
         return new Placement(0, shipTile.X - targetTile.X, shipTile.Y - targetTile.Y);
     }
 
+    /// <summary>
+    /// The weld of "me" for the test `edit-end` (spec 2477): the target at its nearest valid place, through the Weld tool. Each case
+    /// starts with the target back at the place where the test first saw it, so every case has a pull.
+    /// </summary>
+    sealed class WeldUnderTest : IEditUnderTest
+    {
+        bool _lastEdge;
+        (Vector2 Location, float Rotation)? _home;
+        public bool Pulls => true;
+        public Ship Ship => Me();
+        public void SelectTool() => WeldTool.Select(true);
+
+        public void Prepare(EditStage stage)
+        {
+            var t = Autotest.RequireRun().T.Weld;
+            t.PullSpeed = stage == EditStage.Pull ? 0.2f : 30f;
+            t.EdgeSeconds = 120f;
+            var (ship, target) = (Me(), Target());
+            // The ship at rest: a weld that ends with the piece in place pushes the ship a little, and many cases would move it far.
+            ship.Physics.Body.LinearVelocity = default;
+            ship.Physics.Body.AngularVelocity = 0f;
+            // In the ship's frame: the ship drifts a little over the cases.
+            _home ??= (ship.DetTransformPointFromWorld(target.DetLocation), (float)target.DetRotation - (float)ship.DetRotation);
+            if (WeldAutotest.Order() is not null) throw new InvalidOperationException("a weld order is left from the case before");
+            var wrapper = target.Physics.PhysicsWrapper;
+            wrapper.Location = ship.DetTransformPointToWorld(_home.Value.Location);
+            wrapper.Rotation = new Direction((float)ship.DetRotation + _home.Value.Rotation);
+            target.Physics.Body.LinearVelocity = ship.Physics.Body.LinearVelocity;
+            target.Physics.Body.AngularVelocity = 0f;
+            target.Sim.Ships.RefreshShipPosition(target);
+        }
+
+        public void Order()
+        {
+            var tool = WeldToolState.RequireCurrent();
+            tool.Show(Me(), Target(), NearestValid(Me(), Target()));
+            tool.Click(Me());
+        }
+
+        public EditStage? Stage() => WeldAutotest.Order() switch
+        {
+            null => null,
+            { Pending: true } => EditStage.Pending,
+            { Phase: WeldPhase.Pull } => EditStage.Pull,
+            _ => _lastEdge ? EditStage.LastEdge : EditStage.Work,
+        };
+
+        public void ToLastEdge()
+        {
+            var left = (WeldAutotest.Order() ?? throw new InvalidOperationException("no weld order")).Joints.Where(e => !e.Done).ToList();
+            if (left.Count == 0) throw new InvalidOperationException("the weld has no joint with work");
+            foreach (var e in left.SkipLast(1)) e.Done = true;
+            left[^1].Work = 0f;
+            _lastEdge = true;
+        }
+
+        public void RightClick(Run run) => WeldToolState.RequireCurrent().RightClick(run, Me());
+        public bool ToolSelected(GameRoot game) => game.Gui.GetSelectionState() is WeldToolState;
+        (long Ship, long Piece)? _health;
+        static long Health(Ship s) => s.Parts.Sum(p => (long)p.Health);
+        public string Describe() => $"ship {Me().Parts.Count} parts, design {Me().BlueprintParts.Count}; piece {Target().Parts.Count} parts";
+
+        public string? Harm()
+        {
+            var now = (Health(Me()), Health(Target()));
+            var first = _health ??= now;
+            return now.Item1 < first.Ship || now.Item2 < first.Piece ? $"health went from ship {first.Ship}, piece {first.Piece} to ship {now.Item1}, piece {now.Item2}" : null;
+        }
+
+        public void Reset(GameRoot game)
+        {
+            _lastEdge = false;
+            if (WeldAutotest.Order() is not null) game.NetManager.EnqueueInput(new WeldCancelInput(Me()));
+        }
+    }
+
     internal static void Register()
     {
+        EditEndAutotest.Areas["weld"] = new WeldUnderTest();
         // weld_mark cut|acting: "me" is the cut tests' ship or the acting player's first ship.
         Autotest.Commands["weld_mark"] = arg => _me = arg.Trim() switch
         {
@@ -173,7 +252,7 @@ static class WeldAutotest
             Log.Info($"AUTOTEST weld: the target took {added} steel");
         };
         Autotest.Commands["weld_note"] = _ => _noted = Totals(Me(), Target());
-        Autotest.Commands["weld_blueprint"] = arg => _blueprint = arg.Trim() == "on";
+        Autotest.Commands["weld_blueprint"] = arg => EditEndAutotest.SetMode(Me(), _blueprint = arg.Trim() == "on");
         // weld_auto [<turns>|far]: the nearest valid place (with the given quarter turns in the ship's grid; or the place whose joints lie
         // farthest from the walkable tiles) becomes an order through the MP input, as a click of the Weld tool does.
         Autotest.Commands["weld_auto"] = arg =>

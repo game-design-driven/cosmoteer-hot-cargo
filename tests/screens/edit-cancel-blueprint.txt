@@ -1,0 +1,51 @@
+# Spec 2475, 2477: in blueprint mode, a running cut and a running weld show the vanilla "Cancel all" in place of "No work needed".
+# Mac: RUNNER=mac scripts/screens.sh tests/screens/edit-cancel-blueprint.txt <out-dir>
+render on
+newgame run
+wait 10
+ev_set Enabled false
+scav_set Enabled false
+closepanel
+wait 1
+pause off
+godmode on
+cut_set EdgeSeconds 30
+weld_set EdgeSeconds 30
+cut_mark
+cut_tool
+wait 1
+cut_frame 30
+wait 1
+cut_frame 30
+cut_blueprint on
+cut_tool
+wait 0.5
+cut_drag clean
+cut_release
+wait 1
+cut_apply
+wait 3
+screenshot cancel-1-cut-blueprint
+cut_cancelall
+wait 1
+screenshot cancel-2-cut-canceled
+cut_blueprint off
+weld_build arm
+wait 1
+weld_build piece
+weld_tool
+weld_frame 40
+wait 0.5
+weld_frame 40
+weld_blueprint on
+weld_tool
+weld_auto
+wait 1
+weld_button apply
+waitfor weld_phase == 1 60
+wait 2
+screenshot cancel-3-weld-blueprint
+weld_button cancelall
+wait 1
+screenshot cancel-4-weld-canceled
+quit

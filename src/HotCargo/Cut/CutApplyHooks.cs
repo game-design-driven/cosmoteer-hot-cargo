@@ -65,15 +65,27 @@ static class CutApplyHooks
     static void CancelAll(BuildToolbox __instance) => Ux.UxKit.Guard("edit cancel all", () =>
         Send(__instance, (run, ship, e) => e.Running(run, ship) ? e.Cancel(ship) : null));
 
-    /// <summary>Blueprint mode: "Make it so" and "Discard changes" work when a pending cut or weld is the only edit.</summary>
+    /// <summary>
+    /// Blueprint mode: "Make it so" and "Discard changes" work when a pending cut or weld is the only edit. While a cut or weld runs
+    /// and the design has no other change, "Cancel all" shows in place of the disabled "No work needed", as in live mode (issue #393).
+    /// Vanilla hides "Cancel all" in blueprint mode, and both buttons have the same hotkey, so it never shows next to "Make it so".
+    /// </summary>
     [HarmonyPostfix, HarmonyPatch("OnBlueprintModeUpdatingUIState")]
     static void BlueprintButtons(BuildToolbox __instance) => Ux.UxKit.Guard("edit buttons", () =>
     {
-        if (!Any(__instance, (run, ship, e) => e.Pending(run, ship))) return;
-        __instance._discardBtn.SelfInputActive = true;
-        if (__instance._constructBtn.Text != Strings.GetText("BuildBox/NoWorkNeeded")) return;
-        __instance._constructBtn.SelfInputActive = __instance._ship!.IsConstructionLegal;
-        __instance._constructBtn.Text = Strings.GetText("BuildBox/Construct");
+        bool noWork = __instance._constructBtn.Text == Strings.GetText("BuildBox/NoWorkNeeded");
+        if (Any(__instance, (run, ship, e) => e.Pending(run, ship)))
+        {
+            __instance._discardBtn.SelfInputActive = true;
+            if (!noWork) return;
+            __instance._constructBtn.SelfInputActive = __instance._ship!.IsConstructionLegal;
+            __instance._constructBtn.Text = Strings.GetText("BuildBox/Construct");
+            return;
+        }
+        if (!noWork || !Any(__instance, (run, ship, e) => e.Running(run, ship))) return;
+        __instance._constructBtn.SelfActive = false;
+        __instance._cancelAllBtn.SelfActive = true;
+        __instance._cancelAllBtn.Text = Strings.GetText("BuildBox/CancelAll");
     });
 
     /// <summary>Live mode: "Cancel all" shows while a cut or weld runs, as it does while construction is queued.</summary>
