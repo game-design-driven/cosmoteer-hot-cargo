@@ -26,6 +26,9 @@ public readonly record struct Term(TermOp Op, string Key, double Value, string? 
     public double Neutral => Op == TermOp.Times ? 1 : 0;
 }
 
+/// <summary>Spec 2590: one addend of a sum, saved (the score in the run state and the run record). The UI resolves Key like a step's.</summary>
+public sealed record SumPart(string Key, string? Arg, long Value);
+
 /// <summary>
 /// Spec 2580: a number as the ordered list of its steps. The steps are the only way to change the total, so the total that the game
 /// uses and the steps that a tooltip shows come from one computation and cannot drift apart.
@@ -95,6 +98,20 @@ public sealed class Breakdown(BreakdownUnit unit)
         var t = _terms[index];
         if (t.Hint is null) throw new InvalidOperationException($"step '{t.Key}' has no hint");
         return Fold(index, t.Alt ?? t.Neutral);
+    }
+
+    /// <summary>Spec 2590: the steps as saved parts. Only a sum of whole numbers (a base and addends) can be saved.</summary>
+    public List<SumPart> SumParts() => [.. _terms.Select(t => t.Op is TermOp.Base or TermOp.Plus && t.Value == Math.Floor(t.Value)
+        ? new SumPart(t.Key, t.Arg, (long)t.Value)
+        : throw new InvalidOperationException($"step '{t.Key}' ({t.Op} {t.Value}) is not a whole addend"))];
+
+    /// <summary>Spec 2590: a breakdown again from saved parts: the first part is the base, the others are addends.</summary>
+    public static Breakdown FromParts(BreakdownUnit unit, IReadOnlyList<SumPart> parts)
+    {
+        if (parts.Count == 0) throw new ArgumentException("no parts", nameof(parts));
+        var b = new Breakdown(unit).Base(parts[0].Key, parts[0].Value, parts[0].Arg);
+        foreach (var p in parts.Skip(1)) b.Plus(p.Key, p.Value, p.Arg);
+        return b;
     }
 
     /// <summary>The total before step <paramref name="index"/>: the subtotal that a tooltip shows above a change of kind.</summary>

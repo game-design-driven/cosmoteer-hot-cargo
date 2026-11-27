@@ -47,6 +47,8 @@ public sealed partial class RunState
     [Serialize(Optional = true)] public int DeliveredUnits;
     /// <summary>Run score (spec 7). Set at the win and updated by later Buyer deliveries.</summary>
     [Serialize(Optional = true)] public long Score;
+    /// <summary>Spec 2590: the parts of Score, from the same breakdown (money, held units, the debt cut). They add up to Score.</summary>
+    [Serialize(Optional = true)] public List<ScorePartState> ScoreParts = [];
     /// <summary>Spec 19: sum of every heat gain in the run. It never goes down.</summary>
     [Serialize(Optional = true)] public float Notoriety;
     /// <summary>Spec 19: highest low tier of a system that the players were in. It never goes down.</summary>
@@ -57,4 +59,15 @@ public sealed partial class RunState
     [Serialize(Optional = true)] public float BuyerPriceMultiplier = 1f;
     /// <summary>Spec 330: the new-game enemy scaling setting, the enemy multiplier with 2 players. Set once at run start.</summary>
     [Serialize(Optional = true)] public float EnemyScale = Scaling.ScalingModel.DefaultSetting;
+}
+
+/// <summary>Spec 2590: one saved part of the score (Core.SumPart in the run state).</summary>
+public sealed class ScorePartState
+{
+    [Serialize] public string Key = "";
+    [Serialize(Optional = true)] public string? Arg;
+    [Serialize] public long Value;
+
+    public static ScorePartState From(SumPart p) => new() { Key = p.Key, Arg = p.Arg, Value = p.Value };
+    public SumPart ToPart() => new(Key, Arg, Value);
 }

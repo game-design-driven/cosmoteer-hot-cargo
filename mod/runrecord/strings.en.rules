@@ -14,7 +14,7 @@ HotCargoRunRecord
 	// Past Runs window on the main menu (spec 1227 to 1233).
 	MenuButton = "PAST RUNS"
 	Title = "Past Runs"
-	SummaryFmt = "{0} runs on this machine. Click a column to sort by it."
+	SummaryFmt = "{0} runs on this machine. Click a column to sort by it. Click a score to see its parts."
 	BestMark = "<good>BEST</good>"
 	Close = "Close"
 	ColDate = "Date"
@@ -25,4 +25,12 @@ HotCargoRunRecord
 	ColPeakHeat = "Peak heat"
 	ColVaultsLost = "Lost vaults"
 	ColPlayers = "Players"
+
+	// Score parts (spec 2590, 2591). The part names are in HotCargoBreakdown (mod/ux/strings.en.rules).
+	ScoreTipFmt = "Score {0}"
+	ScoreNoParts = "This run was recorded before scores kept their parts."
+	ScoreLost = "A lost run scores 0."
+	DetailFmt = "<b>Score of the run of {0}</b>"
+	DetailNoPartsFmt = "<gray>The run of {0} was recorded before scores kept their parts.</gray>"
+	DetailLostFmt = "<gray>The run of {0} was lost: it scores 0.</gray>"
 }

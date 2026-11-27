@@ -38,6 +38,9 @@ public static class RunRecordArea
         Autotest.Fields["rr_delivered"] = () => ThisRun()?.Delivered ?? -1;
         Autotest.Fields["rr_sectors"] = () => ThisRun()?.Sectors ?? -1;
         Autotest.Fields["rr_tab_rows"] = () => RecordRows.Shown;
+        // Spec 2590: |the sum of this run's saved score parts − its score|, and the count of parts (money, held units, debt).
+        Autotest.Fields["rr_parts_gap"] = () => ThisRun() is { Parts: { } parts } e ? Math.Abs(parts.Sum(p => p.Value) - e.Score) : -1;
+        Autotest.Fields["rr_parts"] = () => ThisRun()?.Parts?.Count ?? 0;
         AddPastRunsAutotest();
     }
 
@@ -47,14 +50,19 @@ public static class RunRecordArea
     static void AddPastRunsAutotest()
     {
         // pr_sample: writes three sample runs to this test slot's record file (scores 120,000 won, 340,000 won, 0 lost; newest last).
+        // The won runs have score parts (spec 2590), with the keys of the score code: 340,000 = 160,000 money + 2 units x 120,000 - a
+        // 30,000 debt x 2. Each score is the total of its parts.
         Autotest.Commands["pr_sample"] = _ =>
         {
             var day = new DateTimeOffset(2026, 11, 10, 20, 0, 0, TimeSpan.Zero);
+            var best = new Core.Breakdown(Core.BreakdownUnit.Credits).Base("ScoreMoney", 160_000).Plus("ScoreHeld", 240_000, "2 x 120,000")
+                .Plus("ScoreDebt", -60_000, "30,000");
+            var other = new Core.Breakdown(Core.BreakdownUnit.Credits).Base("ScoreMoney", 120_000).Plus("ScoreHeld", 0, "0 x 90,000");
             List<RunEntry> runs =
             [
                 new("3", day.AddDays(2), false, 0, 0, 1500, 4, 6, 100f, 3, 2),
-                new("2", day.AddDays(1), true, 340_000, 6, 5400, 10, 10, 95f, 1, 1),
-                new("1", day, true, 120_000, 4, 4200, 8, 8, 80f, 0, 1),
+                new("2", day.AddDays(1), true, (long)best.Total, 6, 5400, 10, 10, 95f, 1, 1, best.SumParts()),
+                new("1", day, true, (long)other.Total, 4, 4200, 8, 8, 80f, 0, 1, other.SumParts()),
             ];
             Directory.CreateDirectory(Path.GetDirectoryName(Recorder.FilePath)!);
             File.WriteAllText(Recorder.FilePath, RunRecordModel.Write(runs));
@@ -75,6 +83,28 @@ public static class RunRecordArea
             Autotest.Wait(1);
         };
         // pr_sort <column>: clicks the header of a RunColumn.
+        // pr_hoverscore <row>: opens the score tooltip of a table row as a hover does (spec 2591). Then: wait 1, expect hovertip_ok == 1.
+        Autotest.Commands["pr_hoverscore"] = arg =>
+        {
+            int row = int.Parse(arg.Trim(), System.Globalization.CultureInfo.InvariantCulture);
+            Ux.BreakdownAutotest.Hover(Window().ScoreButton(row), $"score of row {row}", Core.BreakdownUnit.Credits, () => Window().Shown[row].Score);
+        };
+        // pr_pickscore <row>: clicks the score of a table row like a player; it fails when the player cannot click it.
+        Autotest.Commands["pr_pickscore"] = arg =>
+        {
+            var button = Window().ScoreButton(int.Parse(arg.Trim(), System.Globalization.CultureInfo.InvariantCulture));
+            if (!button.IsActive || !button.IsInputActive) throw new InvalidOperationException("the player cannot click that score");
+            button.ClickController.InvokeClicked();
+        };
+        // 1 when the score parts under the table belong to the selected run and end with its score as the total.
+        Autotest.Fields["pr_detail_ok"] = () =>
+        {
+            var w = Window();
+            var picked = w.Selected ?? throw new InvalidOperationException("no run is selected");
+            bool ok = w.DetailText.Contains(Ux.BreakdownText.TotalLine(Core.BreakdownUnit.Credits, picked.Score), StringComparison.Ordinal);
+            Log.Info($"run record: detail ok={ok} for run {picked.Id}:\n{w.DetailText}");
+            return ok ? 1 : 0;
+        };
         Autotest.Commands["pr_sort"] = arg => Window().SortBy(Enum.Parse<RunColumn>(arg.Trim()));
         Autotest.Commands["pr_close"] = _ => { Window().Close(); Autotest.Wait(1); };
         Autotest.Fields["pr_button"] = () => PastRunsButton.Shown is null ? 0 : 1;

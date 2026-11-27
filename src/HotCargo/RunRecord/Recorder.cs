@@ -82,7 +82,8 @@ public static class Recorder
             Sectors: run.Steps,
             PeakHeat: MathF.Round(s.RunRecord.PeakHeat),
             VaultsLost: s.Log.Count(e => e.Kind == Onboarding.RunLogKind.Loss),
-            Players: run.Game.HumanPlayerCount);
+            Players: run.Game.HumanPlayerCount,
+            Parts: won && s.ScoreParts.Count > 0 ? [.. s.ScoreParts.Select(p => p.ToPart())] : null);
     }
 
     /// <summary>Autotests: forgets the last checked entry and a broken file, so a test starts clean.</summary>

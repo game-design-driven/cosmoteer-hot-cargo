@@ -69,7 +69,7 @@ public class DebtModelTests
     [Fact]
     public void Score_loses_the_debt_times_the_factor()
     {
-        Assert.Equal(80_000, DebtModel.Score(100_000, 10_000, 2f));
-        Assert.Equal(100_000, DebtModel.Score(100_000, 0, 2f));
+        Assert.Equal(20_000, DebtModel.ScoreCut(10_000, 2f));
+        Assert.Equal(0, DebtModel.ScoreCut(0, 2f));
     }
 }
