@@ -40,7 +40,7 @@ ID="$(scripts/pc-suite.sh start 100 core mp:coop-core 2> "$T/start.err")"
 check "the start prints the suite id" '[[ -n "$ID" ]]'
 check "the suite holds 3 slots (the session's 2, and 1 more that was free)" '[[ "$(locks)" == 3 ]]'
 LOCK="$(ls -d "$T"/locks/hot_cargo_slot_[0-9]*.lock | head -1)"
-check "a suite lock names the suite and has no process" '[[ "$(cat "$LOCK/suite")" == "$ID" && ! -e "$LOCK/pid" ]]'
+check "a suite lock names the suite, and its pid is not the pid of the start" '[[ "$(cat "$LOCK/suite")" == "$ID" ]] && ! pgrep -f "pc-suite.sh start" | grep -qx "$(cat "$LOCK/pid" 2>/dev/null || echo none)"'
 check "a suite lock holds while the suite runs" '! lock_is_stale "$LOCK"'
 
 echo "wait while the PC refuses the calls (the turn is not active)"

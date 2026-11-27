@@ -162,9 +162,14 @@ if (Test-Path (Join-Path $suite "started")) { "SUITE_STARTED " + $cacheState } e
     echo "== pc-suite: the PC did not start the suite" >&2; exit 1
   fi
 
-  # From here the suite owns its slots: the locks name the suite and end with it.
+  # From here the suite owns its slots: the locks name the suite and end with it (suite_lock_ended in autotest-lib.sh).
+  # A worktree with the scripts from before the suite locks reads only "pid" and takes a lock whose process is gone. So the
+  # pid file names a process of this login session that outlives every suite (loginwindow). Limit: without such a process the
+  # pid of this short start stays, and old scripts can take the slots. Revisit (drop the pid) when no old worktree is left.
+  local holder; holder="$(pgrep -x -u "$(id -u)" loginwindow 2>/dev/null | head -1)"
   for s in "${pool[@]}"; do
-    echo "$(( $(date +%s) + deadline + 120 ))" > "$(slot_lock "$s")/until"; echo "$id" > "$(slot_lock "$s")/suite"; rm -f "$(slot_lock "$s")/pid"
+    echo "$(( $(date +%s) + deadline + 120 ))" > "$(slot_lock "$s")/until"; echo "$id" > "$(slot_lock "$s")/suite"
+    [[ -n "$holder" ]] && echo "$holder" > "$(slot_lock "$s")/pid"
   done
   trap - EXIT
   echo "$id" > "$run_dir/suite"; echo "${pool[*]}" > "$run_dir/slots"; date -u +%Y-%m-%dT%H:%M:%S > "$run_dir/started-utc"
