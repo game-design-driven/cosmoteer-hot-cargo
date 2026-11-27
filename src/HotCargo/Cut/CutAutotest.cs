@@ -126,23 +126,76 @@ static class CutAutotest
     };
 
     /// <summary>Selects the ship, opens its build window and clicks a vanilla button of it (cut_apply and the weld tests).</summary>
+    /// <summary>
+    /// A click on a vanilla button of the ship's build window, as the mouse makes it (spec 2475). It fails when the player cannot see
+    /// or click the button. A window that this opens gets the UI update of a frame first, as the game runs it before each input.
+    /// </summary>
     internal static void Buttons(Ship ship, string button)
     {
         var game = Autotest.RequireRun().Game;
         Sim().PlayerInput.SelectSingleShip(ship);
         game.Gui.ShipGui.BuildButton.IsSelected = true;
         var box = game.Gui.ShipGui.BuildToolbox;
+        box.OnUpdatingUIState(null, EventArgs.Empty);
         switch (button)
         {
-            case "_constructBtn": box.OnConstructClicked(null, EventArgs.Empty); break;
-            case "_discardBtn": box.OnDiscardBlueprintChangesClicked(null, EventArgs.Empty); break;
-            case "_cancelAllBtn": box.OnCancelAllClicked(null, EventArgs.Empty); break;
+            case "_constructBtn": EditEndAutotest.Click(box._constructBtn, "Make it so"); break;
+            case "_discardBtn": EditEndAutotest.Click(box._discardBtn, "Discard changes", via: box._menu); break;
+            case "_cancelAllBtn": EditEndAutotest.Click(box._cancelAllBtn, "Cancel all"); break;
             default: throw new InvalidOperationException($"unknown button {button}");
+        }
+    }
+
+    /// <summary>The cut of "me" for the test `edit-end` (spec 2477): the clean line through the Cut tool.</summary>
+    sealed class CutUnderTest : IEditUnderTest
+    {
+        bool _lastEdge;
+        public bool Pulls => false;
+        public Ship Ship => Me();
+        public void SelectTool() => CutTool.Select();
+        public void Prepare(EditStage stage) => Autotest.RequireRun().T.Cut.EdgeSeconds = 120f;
+
+        public void Order()
+        {
+            var tool = CutToolState.RequireCurrent();
+            tool.ShowLine(CleanLine(Grid()), null);
+            tool.Release(Me());
+        }
+
+        public EditStage? Stage() => CutAutotest.Order() switch
+        {
+            null => null,
+            { Pending: true } => EditStage.Pending,
+            _ => _lastEdge ? EditStage.LastEdge : EditStage.Work,
+        };
+
+        public void ToLastEdge()
+        {
+            var left = (CutAutotest.Order() ?? throw new InvalidOperationException("no cut order")).Edges.Where(e => !e.Done).ToList();
+            if (left.Count < 2) throw new InvalidOperationException("the cut has fewer than 2 edges with work");
+            foreach (var e in left.SkipLast(1)) e.Done = true;
+            left[^1].Work = 0f;
+            _lastEdge = true;
+        }
+
+        public void RightClick(Run run) => CutToolState.RequireCurrent().RightClick(run, Me());
+        public bool ToolSelected(GameRoot game) => game.Gui.GetSelectionState() is CutToolState;
+        long? _health;
+        static long Health() => Me().Parts.Sum(p => (long)p.Health);
+        public string Describe() => $"ship {Me().Parts.Count} parts, design {Me().BlueprintParts.Count}";
+        public string? Harm() => Health() is var h && h < (_health ??= h) ? $"the ship lost {_health - h} health" : null;
+
+        public void Reset(GameRoot game)
+        {
+            _lastEdge = false;
+            if (CutAutotest.Order() is not null) game.NetManager.EnqueueInput(new CutCancelInput(Me()));
         }
     }
 
     internal static void Register()
     {
+        EditEndAutotest.Register();
+        EditEndAutotest.Areas["cut"] = new CutUnderTest();
         Autotest.Commands["cut_mark"] = arg =>
         {
             // cut_mark biggest: the human player ship with the most parts (screenshots with several own ships).
@@ -236,8 +289,8 @@ static class CutAutotest
             _verdict = CutArea.Refusal(Me(), edges, out _);
             Log.Info($"AUTOTEST cut: {arg.Trim()} line of {edges.Count} edges, verdict {_verdict?.ToString() ?? "Ok"}");
         };
-        // cut_blueprint on|off: later test orders come as from blueprint mode (pending) or live mode.
-        Autotest.Commands["cut_blueprint"] = arg => _blueprint = arg.Trim() == "on";
+        // cut_blueprint on|off: the build window of "me" in blueprint or live mode (the real toggle); later test orders come from that mode.
+        Autotest.Commands["cut_blueprint"] = arg => EditEndAutotest.SetMode(Me(), _blueprint = arg.Trim() == "on");
         // cut_apply | cut_discard | cut_cancelall: the vanilla buttons "Make it so", "Discard changes" and "Cancel all" of "me",
         // clicked in its build window (spec 2475).
         Autotest.Commands["cut_apply"] = _ => Buttons(Me(), "_constructBtn");

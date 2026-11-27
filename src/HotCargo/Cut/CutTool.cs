@@ -120,12 +120,16 @@ internal sealed class CutToolState : BaseBuildState
             Submit(ship, _line);
             OnDeselected();
         }
-        if (Inputs.Game.CancelTool.WasPressed && run.State.Cut.Orders.Any(o => o.Ship == ship.UniqueID))
-        {
-            OnDeselected();
-            Game.NetManager.EnqueueInput(new CutCancelInput(ship));
-            App.Audio.Play(Rules.CancelConstructionSound, AudioGroups.Interface);
-        }
+        if (Inputs.Game.CancelTool.WasPressed) RightClick(run, ship);
+    }
+
+    /// <summary>Spec 2473, 2475: a right click drops the line and cancels the ship's cut order.</summary>
+    internal void RightClick(Run run, Ship ship)
+    {
+        if (!run.State.Cut.Orders.Any(o => o.Ship == ship.UniqueID)) return;
+        OnDeselected();
+        Game.NetManager.EnqueueInput(new CutCancelInput(ship));
+        App.Audio.Play(Rules.CancelConstructionSound, AudioGroups.Interface);
     }
 
     void Submit(Ship ship, List<Corner> line)

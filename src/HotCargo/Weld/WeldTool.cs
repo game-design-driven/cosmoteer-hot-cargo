@@ -173,7 +173,7 @@ internal sealed class WeldToolState : BaseBuildState
         }
         if (Inputs.Game.CancelTool.WasPressed)
         {
-            TryReset();
+            RightClick(run, ship);
             return;
         }
         if (App.Keyboard.HotkeyPressed(ViKey.R))
@@ -187,12 +187,19 @@ internal sealed class WeldToolState : BaseBuildState
         if (Inputs.Game.UseTool.WasPressed) Submit(ship, target);
     }
 
+    /// <summary>Spec 2482, 2484: a right click goes back from a picked piece to picking; with no piece picked it cancels the ship's order.</summary>
+    internal void RightClick(Run run, Ship ship)
+    {
+        if (TryReset() || !run.State.Weld.Orders.Any(o => o.Ship == ship.UniqueID)) return;
+        Game.NetManager.EnqueueInput(new WeldCancelInput(ship));
+        App.Audio.Play(Rules.CancelConstructionSound, AudioGroups.Interface);
+    }
+
     void InputPicking(Run run, Ship ship)
     {
-        if (Inputs.Game.CancelTool.WasPressed && run.State.Weld.Orders.Any(o => o.Ship == ship.UniqueID))
+        if (Inputs.Game.CancelTool.WasPressed)
         {
-            Game.NetManager.EnqueueInput(new WeldCancelInput(ship));
-            App.Audio.Play(Rules.CancelConstructionSound, AudioGroups.Interface);
+            RightClick(run, ship);
             return;
         }
         if (!Inputs.Game.UseTool.WasPressed || Hovered(run, ship) is not var (hovered, verdict)) return;
