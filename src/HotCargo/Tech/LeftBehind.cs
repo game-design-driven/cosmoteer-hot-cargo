@@ -4,6 +4,7 @@ using Cosmoteer.Resources;
 using Cosmoteer.Ships;
 using Cosmoteer.Ships.Resources;
 using Cosmoteer.Simulation;
+using Cosmoteer.Simulation.Stasis;
 using HotCargo.Core;
 
 namespace HotCargo.Tech;
@@ -30,17 +31,30 @@ public static class LeftBehind
             if (crew.ShipCrew?.Ship is { } ship && jumps(ship)) goes += units; else stays += units;
         }
         var node = sim.NodeId();
-        stays += Vaults.CrateUnits(sim)
+        stays += Vaults.CrateUnits(sim) + StasisCrates(sim).Sum(n => n._quantity)
             + run.State.Diplomacy.Held.Where(h => h.Node == node).Sum(h => h.Units)
             + run.State.Tech.HunterHeld.Where(h => h.Node == node).Sum(h => h.Units);
         return (stays, goes);
     }
+
+    /// <summary>
+    /// Tech crates that vanilla put into stasis, because no player is near them (SimStasisManager.StasisNugget). They are not in
+    /// sim.Nuggets, and they come back as crates when a player comes near again.
+    /// </summary>
+    static IEnumerable<SimStasisManager.StasisNugget> StasisCrates(SimRoot sim) =>
+        sim.Stasis.OfType<SimStasisManager.StasisNugget>().Where(n => n._resourceType == Vaults.TechId);
 
     /// <summary>Spec 2522: the tech that a switch without a jump (the vanilla map switch, the recall) leaves in this system.</summary>
     public static int OnSwitch(Run run, SimRoot sim) => Split(run, sim, _ => false).Stays;
 
     /// <summary>Units lost by this rule since start. For autotests.</summary>
     internal static int Lost;
+
+    /// <summary>
+    /// Spec 2527: the run and the system of a switch that left tech behind, for the arrival check of the same switch (OnSystemEntered).
+    /// Not saved: a save never holds a switch.
+    /// </summary>
+    static (Run Run, string System)? _leftFrom;
 
     /// <summary>
     /// Spec 2521: removes every unit of <see cref="Split"/> that stays from the old sim and the run state, in a stable order, and
@@ -75,6 +89,11 @@ public static class LeftBehind
             units += n.Quantity;
             old.Nuggets.RemoveNugget(n);
         }
+        foreach (var crate in StasisCrates(old).OrderBy(n => n.ReservedObjectID).ToList())
+        {
+            units += crate._quantity;
+            old.Stasis.RemoveStasisSpawner(crate);
+        }
         bool simChanged = units > 0;
         // Waiting tech of a ship that is still in the old sim stays with it. A ship that jumped is in the new sim, and its entry goes along.
         units += Take(run.State.Tech.Waiting, w => old.Ships[w.Ship] is not null, w => w.Units);
@@ -91,6 +110,7 @@ public static class LeftBehind
             run.Game.SimArchive.SaveSim(old.MapNode, old);
         }
         Lost += units;
+        _leftFrom = (run, system);
         Log.Info($"left behind: {units} tech stayed in {system} and is lost");
         if (Telemetry.Tele.On(Telemetry.Cat.Tech)) Telemetry.Session.Current?.AddTechHint("left_behind");
         string line = Strings.FormatText("HotCargoTech/LeftBehindFmt", units, Halfling.StringTools.EscapeForXml(system));
@@ -101,6 +121,19 @@ public static class LeftBehind
             Ux.UxKit.CenterText(run.Game, line);
             Ux.UxKit.ChatLine(run.Game, line);
         });
+    }
+
+    /// <summary>
+    /// Spec 2527: when the switch left tech behind and the fleet holds none on arrival, the run is lost at once, without the loss timer.
+    /// Runs on every machine at the same point of the switch (Run.Hooks.SystemEntered). Other tech losses keep the timer (spec 443).
+    /// </summary>
+    internal static void OnSystemEntered(Run run, bool firstVisit)
+    {
+        var left = _leftFrom;
+        _leftFrom = null;
+        if (left is not { } l || l.Run != run || Run.Hooks.CountFleetTech(run.Game.Sim) > 0) return;
+        Log.Info($"left behind: no tech arrived from {l.System}, the run is lost");
+        run.Lose(Strings.FormatText("HotCargoTech/LossLeftBehindFmt", Halfling.StringTools.EscapeForXml(l.System)));
     }
 
     /// <summary>Removes the entries that match and returns their units.</summary>

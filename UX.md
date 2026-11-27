@@ -83,7 +83,7 @@ Look at each image before you commit it. Crop anything that shows a user name, a
 | `readability.txt` | each Hot Cargo window and panel at each window size and UI scale of the readability pass, with a fit report in the log (spec 1480, 1481) |
 | `jump-warnings.txt` | the join notice, the hover line, TOO BIG with its tooltip, the spin-up window, the ENGAGE dialog, the stranded line (spec 1560 to 1569) |
 | `breakdowns.txt` | the heat rate (percent and multiplier style), tech value, surrender, bluff and pay-off breakdown tooltips (spec 2580 to 2585) |
-| `jump-carrier.txt` | the tech carrier stays behind: "(carries N tech)" in the jump window tooltip, "All your tech stays behind: N tech will be lost." in the ENGAGE dialog (spec 1602, 2522) |
+| `jump-carrier.txt` | the tech carrier stays behind: "(carries N tech)" in the jump window tooltip, "All your tech stays behind. You lose the run." and the "Lose the run" button in the ENGAGE dialog (spec 1602, 2527) |
 
 ### How the capture works (no focus, no visible window)
 

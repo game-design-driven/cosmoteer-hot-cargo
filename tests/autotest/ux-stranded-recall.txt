@@ -1,6 +1,7 @@
-# The stuck run of the 2026-11-15 playtest (spec 12, 1566, 1601): a captured ship jumped alone, the tech carrier stayed, and the ship
-# that jumped died. The run then stayed with no own ship in the system. The recall takes the players back. The carrier's tech stayed
-# behind and is lost (spec 2520), so the loss timer runs.
+# The stuck run of the 2026-11-15 playtest (spec 12, 1566, 1601): a captured ship jumped alone and died, and the run stayed with no own
+# ship in the system. The recall takes the players back to the waiting fleet. Here the carrier jumps with all the tech, and the twin
+# without tech waits. The carrier dies, its tech stays in its wreck or in crates, and no ship here can take it along: the stranded line
+# says that the run is lost, and the recall loses it on arrival (spec 2527).
 newgame
 wait 8
 ev_set Enabled false
@@ -10,24 +11,20 @@ jw_twin save
 jw_twin spawn
 wait 2
 expect tech > 0
-jw_jump_split
+jw_jump_split carrier
 waitfor sector == 2 30
 wait 2
 expect ux_ships_here == 1
-expect tech == 0
-expect techleftlost > 0
+expect tech > 0
+expect techleftlost == 0
 ux RecallSeconds 8
-# The ship that jumped dies: no own ship here, the fleet and the tech wait in the first system.
 kill
 waitfor ux_ships_here == 0 30
 waitfor ux_stranded == 1 10
+expect ux_stranded_loses == 1
 expect lost == 0
 expect ux_recalls == 0
 waitfor ux_recalls == 1 30
-# The vanilla switch brings the players back to the carrier. Its tech stayed behind and is gone.
-waitfor ux_ships_here >= 1 60
-expect ux_stranded == 0
-expect tech == 0
-expect losstimer == 1
-expect lost == 0
+waitfor lost == 1 60
+expect techleftlost > 0
 quit

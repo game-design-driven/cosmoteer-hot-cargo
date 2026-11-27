@@ -29,27 +29,12 @@ trap 'rm -rf "$SEND_DIR"; if [[ -n "$OWN_STAGE" ]]; then rm -rf "$OWN_STAGE"; fi
 if [[ -n "${AUTOTEST_SCRIPT:-}" ]]; then cp "$AUTOTEST_SCRIPT" "$SEND_DIR/autotest.txt"; else touch "$SEND_DIR/none"; fi
 send() { COPYFILE_DISABLE=1 tar -cf - -C "$SEND_DIR" . "$@"; }
 
-# The PC side: unpack stdin, move a new build into the cache (a complete build folder has the file "ok" and moves into
-# place in one step), then run the build's slot-install.ps1. Kept short: the T3 link allows 8192 characters.
+# The PC side: unpack stdin and put a new build into the cache (PS_RECEIVE_BUILD in pc.sh), then run the build's
+# slot-install.ps1. Kept short: the T3 link allows 8192 characters.
 PS_BOOT='$ErrorActionPreference = "Stop"
-$builds = Join-Path $env:USERPROFILE "HotCargoSlots\_builds"; $cache = Join-Path $builds $hash; $cacheState = "cached build " + $hash
-$tmpDir = Join-Path $builds ("tmp-" + $slot + "-" + $PID); if (Test-Path $tmpDir) { Remove-Item $tmpDir -Recurse -Force }
-New-Item -ItemType Directory -Force $tmpDir | Out-Null
-$tar = Join-Path $tmpDir "in.tar"; $in = [Console]::OpenStandardInput(); $out = [IO.File]::Create($tar); $in.CopyTo($out); $out.Close()
-tar.exe -xf $tar -C $tmpDir; if ($LASTEXITCODE -ne 0) { throw "tar failed" }
+$tmpDir = Join-Path $env:USERPROFILE ("HotCargoSlots\_builds\tmp-" + $slot + "-" + $PID); $unpackDir = $tmpDir
+'"$PS_RECEIVE_BUILD"'
 $autotestFile = Join-Path $tmpDir "autotest.txt"; if (-not (Test-Path $autotestFile)) { $autotestFile = $null }
-$new = Join-Path $tmpDir "build"
-if (-not (Test-Path (Join-Path $cache "ok"))) {
-  if (-not (Test-Path $new)) { Remove-Item $tmpDir -Recurse -Force; "NEED_UPLOAD"; return }
-  New-Item -ItemType File (Join-Path $new "ok") | Out-Null
-  if ((Test-Path $cache) -and -not (Test-Path (Join-Path $cache "ok"))) { Remove-Item $cache -Recurse -Force }
-  # Another slot can upload the same build at the same time. Then its copy wins.
-  try { Move-Item $new $cache } catch { }
-  if (-not (Test-Path (Join-Path $cache "ok"))) { throw "build $hash is not in the cache after the upload" }
-  $cacheState = "uploaded build " + $hash
-  Get-ChildItem $builds -Directory | Where-Object { $_.Name -notlike "tmp-*" } | Sort-Object LastWriteTime -Descending | Select-Object -Skip 30 | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-}
-(Get-Item $cache).LastWriteTime = Get-Date
 $startGame = {'"$PS_START"'}
 try { . ([scriptblock]::Create((Get-Content (Join-Path $cache "slot-install.ps1") -Raw))) } finally { Remove-Item $tmpDir -Recurse -Force -ErrorAction SilentlyContinue }
 '
