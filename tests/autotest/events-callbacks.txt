@@ -81,4 +81,22 @@ expect ev_recall_kind == 5
 expect ev_recall_named == 1
 choose 1
 expect ev_pending == 0
+# User decision 2026-11-27 (spec 2506): a spared crew joins free or at a discount; its faction standing sets the odds. Sure free:
+ev_set CallbackJoinFreeBase 1
+ev_set CallbackJoinFreePerReputation 0
+ev_remember Spared
+event cb_spared
+expect ev_join_price == 0
+ev_mark
+choose 1
+expect ev_money_gain == 0
+# Sure not free: the button costs the discounted price, and the chooser pays it.
+ev_set CallbackJoinFreeBase 0
+ev_remember Spared
+event cb_spared
+expect ev_join_price > 0
+ev_mark
+choose 1
+expect ev_money_gain < 0
+expect ev_pending == 0
 quit

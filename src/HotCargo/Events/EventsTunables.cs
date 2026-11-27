@@ -154,6 +154,12 @@ public sealed class EventsTunables
     [Serialize(Optional = true)] public float RelicBoardDistance = 900f;
     /// <summary>Spec 2503: a memory comes back at least this many sectors after the act. 1: the next sector at the earliest.</summary>
     [Serialize(Optional = true)] public int CallbackMinSectors = 1;
+    /// <summary>Spec 2506: the chance that a spared crew joins for free at neutral standing with its faction.</summary>
+    [Serialize(Optional = true)] public float CallbackJoinFreeBase = 0.5f;
+    /// <summary>Spec 2506: the free-join chance changes this much per unit of standing (−1 to 1) with the crew's faction.</summary>
+    [Serialize(Optional = true)] public float CallbackJoinFreePerReputation = 0.4f;
+    /// <summary>Spec 2506: a join that is not free costs this share (above 0, below 1) of the Join Request price.</summary>
+    [Serialize(Optional = true)] public float CallbackJoinPriceShare = 0.5f;
     /// <summary>Events of the Unavoidable category (every choice costs something) per run.</summary>
     [Serialize(Optional = true)] public int MaxUnavoidablePerRun = 1;
     /// <summary>Global scales on event outcomes, on top of the per-event amounts.</summary>
