@@ -52,9 +52,6 @@ internal static class EditEndAutotest
     static IEditUnderTest Area(string name) => Areas.TryGetValue(name, out var a) ? a : throw new InvalidOperationException($"no edit area '{name}' (cut or weld)");
     static BuildToolbox Box() => Game().Gui.ShipGui.BuildToolbox;
 
-    /// <summary>The first of the widgets that shows, or null: the player sees only that one.</summary>
-    static Widget? Showing(IEnumerable<Widget> widgets) => widgets.FirstOrDefault(w => w.IsActive);
-
     /// <summary>
     /// Real clicks (<see cref="RealInput"/>) on the widgets in order, then the script waits for them. <paramref name="then"/> gets true
     /// when every widget showed and took input at its click.
@@ -69,10 +66,10 @@ internal static class EditEndAutotest
     internal static void Click(string name, Func<Widget?> target) =>
         Clicks(hit => { if (!hit) throw new InvalidOperationException($"the player cannot click '{name}' now (hidden or disabled)"); }, target);
 
-    /// <summary>"Make it so", vanilla or the mod's (CutApplyHooks), whichever shows.</summary>
-    internal static Func<Widget?> Construct(BuildToolbox box) => () => Showing(CutApplyHooks.ConstructButtons(box));
-    internal static Func<Widget?> CancelAll(BuildToolbox box) => () => Showing(CutApplyHooks.CancelButtons(box));
-    internal static Func<Widget?>[] Discard(BuildToolbox box) => [() => box._menu, () => Showing(CutApplyHooks.DiscardItems(box))];
+    /// <summary>The vanilla controls of the build window that cuts and welds use (spec 2475).</summary>
+    internal static Func<Widget?> Construct(BuildToolbox box) => () => box._constructBtn;
+    internal static Func<Widget?> CancelAll(BuildToolbox box) => () => box._cancelAllBtn;
+    internal static Func<Widget?>[] Discard(BuildToolbox box) => [() => box._menu, () => box._discardBtn];
 
     /// <summary>
     /// Opens the ship's build window in live or blueprint mode with the real mode toggle, so orders and buttons come from the mode
@@ -103,6 +100,8 @@ internal static class EditEndAutotest
         }
         yield return $"waitfor edit_stage_{area} == {stage} 120";
         if (c.Stage == EditStage.LastEdge) yield return $"edit_last {area}";
+        // "Make it so" closes the build window when the setting ConstructExitsBuild is on, as in vanilla: the player opens it again.
+        yield return $"edit_open {area} {c.Mode}";
         // One UI frame, so the build window shows the buttons of this stage.
         yield return "wait 0.2";
         yield return $"edit_press {area} {c.Control}";
@@ -132,6 +131,14 @@ internal static class EditEndAutotest
             area.SelectTool();
             area.Prepare(stage);
             area.Order();
+        };
+        // edit_open <area> <mode>: the build window of the edit's ship open in the mode, with the area's tool.
+        Autotest.Commands["edit_open"] = arg =>
+        {
+            var w = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var area = Area(w[0]);
+            SetMode(area.Ship, Enum.Parse<EditMode>(w[1]) == EditMode.Blueprint);
+            area.SelectTool();
         };
         Autotest.Commands["edit_apply"] = _ => Click("Make it so", Construct(Box()));
         Autotest.Commands["edit_last"] = arg => Area(arg.Trim()).ToLastEdge();

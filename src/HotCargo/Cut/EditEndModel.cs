@@ -71,12 +71,14 @@ public static class EditEndModel
 
     public static EditOutcome Expected(EditCase c) => c.Control switch
     {
-        // Spec 2475: "Cancel all" cancels an order that runs, in both modes. A pending order has "Make it so" and "Discard changes".
-        EditControl.CancelAll => c.Stage == EditStage.Pending ? EditOutcome.Unavailable : EditOutcome.Ends,
-        // Vanilla's "Discard changes" can be enabled by other design changes; it never stops work that runs.
-        EditControl.DiscardChanges => c.Stage == EditStage.Pending ? EditOutcome.Ends : EditOutcome.GoesOn,
-        // The hotkey presses the button that shows: "Make it so" applies a pending order, which then goes on; "Cancel all" ends it.
-        EditControl.Hotkey => c.Stage == EditStage.Pending ? EditOutcome.Stays : EditOutcome.Ends,
+        // Spec 2475: vanilla shows "Cancel all" only in live mode, for work that runs. A pending order has "Make it so".
+        EditControl.CancelAll => c.Mode == EditMode.Live && c.Stage != EditStage.Pending ? EditOutcome.Ends : EditOutcome.Unavailable,
+        // In blueprint mode "Discard changes" drops pending edits and work in progress, as for vanilla construction. In live mode it
+        // can be enabled by other design changes; it never stops work that runs there.
+        EditControl.DiscardChanges => c.Mode == EditMode.Blueprint ? EditOutcome.Ends : EditOutcome.GoesOn,
+        // The hotkey presses the button that shows: "Make it so" applies a pending order, which then goes on; "Cancel all" (live
+        // mode) ends one that runs; in blueprint mode the "No work needed" button takes no press.
+        EditControl.Hotkey => c.Stage == EditStage.Pending ? EditOutcome.Stays : c.Mode == EditMode.Live ? EditOutcome.Ends : EditOutcome.GoesOn,
         // Spec 2484, 2473: a right click with the tool, with nothing picked or dragged, cancels the ship's order.
         EditControl.RightClick => EditOutcome.Ends,
         // Esc, another tool and closing the build window change only the tool, as for vanilla construction.

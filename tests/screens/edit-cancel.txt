@@ -1,0 +1,64 @@
+# Spec 2475, 2477: a running cut in live mode shows the vanilla "Cancel all"; in blueprint mode "Discard changes" ends a running cut
+# or weld, as for vanilla construction. Mac: RUNNER=mac scripts/screens.sh tests/screens/edit-cancel.txt <out-dir>
+render on
+newgame run
+wait 10
+ev_set Enabled false
+scav_set Enabled false
+closepanel
+wait 1
+pause off
+godmode on
+cut_set EdgeSeconds 30
+weld_set EdgeSeconds 30
+cut_mark
+cut_tool
+wait 1
+cut_frame 30
+wait 1
+cut_frame 30
+cut_tool
+wait 0.5
+cut_drag clean
+cut_release
+wait 3
+screenshot cancel-1-cut-live
+cut_cancelall
+wait 1
+screenshot cancel-2-cut-canceled
+cut_blueprint on
+cut_tool
+wait 0.5
+cut_drag clean
+cut_release
+wait 1
+cut_apply
+wait 3
+cut_blueprint on
+wait 0.5
+screenshot cancel-3-cut-blueprint
+cut_discard
+wait 1
+screenshot cancel-4-cut-discarded
+cut_blueprint off
+weld_build arm
+wait 1
+weld_build piece
+weld_tool
+weld_frame 40
+wait 0.5
+weld_frame 40
+weld_blueprint on
+weld_tool
+weld_auto
+wait 1
+weld_button apply
+waitfor weld_phase == 1 60
+wait 2
+weld_blueprint on
+wait 0.5
+screenshot cancel-5-weld-blueprint
+weld_button discard
+wait 1
+screenshot cancel-6-weld-discarded
+quit
