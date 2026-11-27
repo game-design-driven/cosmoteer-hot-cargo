@@ -7,7 +7,21 @@ client: enemysetting 1.0
 mphost {PORT}
 mpstart {PLAYERS}
 mp godmode on
+# For the whole session the player ships take no damage and lose no crew, as in coop-core: no step tests who wins a fight.
+# godmode alone refills part health, but crew still die, and a ship without crew is derelict: queue run 45999757528 (#410) lost
+# the client's only ship to the doubled mining escort waves. Before, only ai.personalities and journey.buyer-win had the shield
+# (a Mac run 2026-11-18 and full suite 44186766891 lost the client's ship). The flag stays on through mprestart.
+# A step that needs damage turns it off and on again itself.
+mp shieldplayers on
 mp ev_set Enabled false
+
+step telemetry.crew-shield
+# #410: the session shield keeps the crew alive, so no ship turns derelict because its crew died. Without it, this step stops the
+# session: the client's only ship has no crew left.
+on 1 expect crew_mine > 0
+mp crewkill 1
+wait 2
+on 1 expect crew_mine > 0
 
 step scaling.generation
 # Spec 330 to 336: the host's value reaches the client. Both machines generate the first system with factor 2:
@@ -129,8 +143,6 @@ mp debt_kill_enemies
 step ai.personalities
 # Spec 369: hostile pirates and hunters with personalities, cover rocks and teams fight both players' ships.
 # Spec 1303: the starting control room stands in for the sensor array, so calls in this fight are intercepted on both machines.
-# The player ships take no damage and lose no crew: the step tests the AI, not who wins (a Mac run 2026-11-18 lost the client's ship).
-mp shieldplayers on
 mp tacticlog on
 mp aiset CallInterceptParts cosmoteer.control_room_small
 mp airocks 6 600
@@ -151,7 +163,6 @@ expect ai_call_intercept >= 1
 on 1 expect ai_call_intercept >= 1
 expect tactic_fallback >= 1
 on 1 expect tactic_fallback >= 1
-mp shieldplayers off
 
 step pursuit.coop
 # Spec 912, 934, in a new run: the client's stage start sends a reporting scout, and its report raises heat on both machines.
@@ -239,9 +250,6 @@ step journey.buyer-win
 mprestart
 # The loss steps before turned godmode off. Without it, ships near the Buyer can destroy the client's vaults before the sale.
 mp godmode on
-# The player ships take no damage and lose no crew: the step tests the sale and the win, not a fight near the Buyer.
-# Full suite 44186766891: the client's ship became a wreck after the win.
-mp shieldplayers on
 mp ev_set Enabled false
 mp buyer spawn
 waitfor buyers == 1 30
