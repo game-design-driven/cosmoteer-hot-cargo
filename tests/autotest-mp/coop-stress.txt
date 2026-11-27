@@ -22,6 +22,8 @@ on 1 selfprof on
 wait 20
 selfprof reset
 on 1 selfprof reset
+# Spec 875: a profile measures play, so the test-only hash trail records nothing from here on (#367: it took 0.5 ms of each tick).
+hashtrail_mark
 frameprof on
 on 1 frameprof on
 wait 90
@@ -31,6 +33,7 @@ on 1 selfprof report client
 on 1 frameprof report client
 telestats
 expect desyncs == 0
+expect hashtrail_since_mark == 0
 expect selfprof_pct_tick < 25
 
 end

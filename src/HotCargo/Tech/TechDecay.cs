@@ -73,11 +73,14 @@ public static class TechDecay
     {
         var spots = new List<TechSpot>();
         var storage = new Dictionary<string, FlexResourceGrid.ResourceTile>();
-        foreach (var ship in sim.Ships.AllShips.Where(s => Vaults.HoldsForPlayers(sim, s)).OrderBy(s => s.UniqueID))
+        // Every wreck holds for the players, and the vault and storage tiles come sorted: in coop-stress (60 wrecks and a fight) that cost
+        // 0.26 ms of each tick (#367). The grid totals are lookups, so a ship without tech skips both sorts.
+        foreach (var ship in sim.Ships.AllShips.Where(s => Vaults.HoldsForPlayers(sim, s) && Vaults.StoredTech(s) > 0).OrderBy(s => s.UniqueID))
         {
             string group = ShipKey(ship);
             foreach (var tile in Vaults.OnShip(ship).SelectMany(g => g).Where(x => x.Resources > 0))
                 spots.Add(new TechSpot(Key(tile), Exposed: false, Group: group));
+            if (Vaults.StorageTech(ship) == 0) continue;
             foreach (var tile in Vaults.StorageTiles(ship).Where(x => x.ResourceType == Vaults.TechId && x.Resources > 0))
             {
                 string key = Key(tile);

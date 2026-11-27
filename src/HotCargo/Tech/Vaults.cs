@@ -29,7 +29,7 @@ public static class Vaults
     public static int ShipTech(Ship ship) => StoredTech(ship) + VaultWait.Units(ship);
 
     /// <summary>Tech stored on one ship: its vaults and its normal storage (spec 1543), the same units that the storage art shows.</summary>
-    public static int StoredTech(Ship ship) => OnShip(ship).Sum(g => g.Resources) + StorageTech(ship);
+    public static int StoredTech(Ship ship) => Grids(ship).Sum(g => g.Resources) + StorageTech(ship);
 
     /// <summary>Spec 1543: tech in the normal storage (flexible grids) of one ship. It decays (spec 1547).</summary>
     public static int StorageTech(Ship ship) => FlexResourceGrid.GetAllOnShip(ship).Sum(g => g.GetTotalQuantity(TechId));
@@ -102,8 +102,11 @@ public static class Vaults
 
     /// <summary>Tech Vault grids on one ship, in part location order.</summary>
     public static IEnumerable<TypedResourceGrid> OnShip(Ship ship) =>
-        TypedResourceGrid.GetAllOnShip(ship).Where(g => g.ResourceType == TechId && g.Part is not null)
-            .OrderBy(g => g.Part!.Location.Y).ThenBy(g => g.Part!.Location.X);
+        Grids(ship).OrderBy(g => g.Part!.Location.Y).ThenBy(g => g.Part!.Location.X);
+
+    /// <summary>The vault grids of the ship in no set order: for sums, which need no sort (#367: the tick counts every wreck).</summary>
+    static IEnumerable<TypedResourceGrid> Grids(Ship ship) =>
+        TypedResourceGrid.GetAllOnShip(ship).Where(g => g.ResourceType == TechId && g.Part is not null);
 
     /// <summary>
     /// Adds tech to vaults in order, then to normal storage of the human ships in the same order (spec 1543).
