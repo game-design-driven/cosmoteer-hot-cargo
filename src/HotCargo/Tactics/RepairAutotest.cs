@@ -30,6 +30,18 @@ static class RepairAutotest
         Autotest.Fields["ai_flee_supplied"] = () => Hostile().Count(s => s.AI?.GetStrategyModule<Ai.FleeStrategy>() is { Supplied: true });
         Autotest.Fields["ai_fb_supplied"] = () => Modules().Count(m => m.Supplied);
         // The lowest health fraction (spec 47) and the lowest crew count of the ships of the last aispawn.
+        // ai_spawned_diag: logs what became of each ship that aispawn spawned: live, a wreck, in stasis or gone. Test only.
+        Autotest.Commands["ai_spawned_diag"] = _ =>
+        {
+            var sim = Autotest.RequireRun().Game.Sim;
+            foreach (var id in PersonalityAutotest.LastSpawned)
+            {
+                string state = sim.Ships[id] is { } ship
+                    ? $"{(ship.IsJunk ? "wreck" : "live")} {ship.Metadata.PlainShipName} parts={ship.Parts.Count} crew={ship.Crew.Assigned.Count} health={HunterOrders.HealthFraction(ship):0.00}"
+                    : sim.Stasis.Any(st => st.ReservedObjectID == id) ? "in stasis" : "gone";
+                Log.Info($"AUTOTEST spawned {id}: {state}");
+            }
+        };
         Autotest.Fields["ai_new_min_health"] = () => New().Select(s => (double)HunterOrders.HealthFraction(s)).DefaultIfEmpty(-1).Min();
         Autotest.Fields["ai_new_first_health"] = () => New().Select(s => (double)HunterOrders.HealthFraction(s)).DefaultIfEmpty(-1).First();
         Autotest.Fields["ai_new_first_jobs"] = () => New().Select(s => (double)Resupply.QueuedRepairs(s)).DefaultIfEmpty(-1).First();

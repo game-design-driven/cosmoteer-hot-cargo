@@ -163,7 +163,8 @@ internal sealed class FallBackStrategy : AIStrategyModule
             _ => default,
         }, plan == RepairPlan.Cover ? rock : null);
         string lacks = lacking.Count == 0 ? "nothing" : string.Join(", ", lacking.Select(kv => $"{kv.Value} {kv.Key}"));
-        TacticsLog.Event(ship, Tactic.FallBack, $"plan {plan}: lacks {lacks}, crew {ship.Crew.Assigned.Count}/{ship.Crew.TotalCrewCapacity}");
+        TacticsLog.Event(ship, Tactic.FallBack, $"plan {plan}: lacks {lacks}, crew {ship.Crew.Assigned.Count}/{ship.Crew.TotalCrewCapacity}, " +
+            $"threat {threat?.Metadata.PlainShipName ?? "none"}{(threat is null ? "" : $" at {threat.DetWorldCenter.DistanceTo(ship.DetWorldCenter):0}")}, rock {(rock is null ? "none" : "found")}");
     }
 
     /// <summary>Holds still while the vanilla module queues repairs. True: this module drives the ship.</summary>
