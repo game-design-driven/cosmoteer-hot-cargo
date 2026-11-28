@@ -114,17 +114,20 @@ internal sealed class MaydayObjective : Objective, IMissionMarkers
         lines.Add(new DisplayLine { Text = text, State = Completion, CanFocus = CanFocusDisplayLine, OnFocused = OnDisplayLineFocused });
     }
 
+    EventHandler<SimRoot>? _tick;
+    EventHandler<EventArgs>? _victimKilled;
+
     public override void RegisterEvents(GameRoot game, bool isLoading)
     {
-        Victim.Killed += OnVictimKilled;
-        game.EventHub.Tick += OnTick;
+        Victim.Killed += _victimKilled ??= Errors.Guarded<EventArgs>("mayday victim killed", OnVictimKilled);
+        game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("mayday tick", OnTick);
         if (!isLoading && !Victim.IsAlive) OnVictimKilled(null, EventArgs.Empty);
     }
 
     public override void UnregisterEvents(GameRoot game)
     {
-        Victim.Killed -= OnVictimKilled;
-        game.EventHub.Tick -= OnTick;
+        Victim.Killed -= _victimKilled;
+        game.EventHub.Tick -= _tick;
     }
 
     void OnVictimKilled(object? sender, EventArgs e) => End(fail: true, "the victim died");

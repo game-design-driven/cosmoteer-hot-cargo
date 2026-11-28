@@ -322,17 +322,20 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
         OnDisplayLinesChanged();
     }
 
+    EventHandler<SimRoot>? _tick;
+    EventHandler<EventArgs>? _minerKilled;
+
     public override void RegisterEvents(GameRoot game, bool isLoading)
     {
-        Escort.Killed += OnMinerKilled;
-        game.EventHub.Tick += OnTick;
+        Escort.Killed += _minerKilled ??= Errors.Guarded<EventArgs>("mining escort miner killed", OnMinerKilled);
+        game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("mining escort tick", OnTick);
         if (!isLoading && !Escort.IsAlive) OnMinerKilled(null, EventArgs.Empty);
     }
 
     public override void UnregisterEvents(GameRoot game)
     {
-        Escort.Killed -= OnMinerKilled;
-        game.EventHub.Tick -= OnTick;
+        Escort.Killed -= _minerKilled;
+        game.EventHub.Tick -= _tick;
     }
 
     void OnMinerKilled(object? sender, EventArgs e)
@@ -449,7 +452,8 @@ internal sealed class MiningEscortObjective : Objective, IMeetingEscort, IMissio
     void Mine(SimRoot sim, Ship ship, MiningEscortTunables t)
     {
         int due = MechanicsModel.WavesReached(Mined, Goal, t.WaveShares) - WavesSent;
-        for (int i = 0; i < due; i++) SpawnWave(sim, ship, t);
+        // As in Hold Out: a wave that fails (no ship with the tags) rests on its own, and the mining goes on.
+        for (int i = 0; i < due; i++) Errors.Guard("mining escort wave", () => SpawnWave(sim, ship, t));
         if (Mined >= Goal)
         {
             SetPhase(MiningEscortPhase.Return, "hold full");

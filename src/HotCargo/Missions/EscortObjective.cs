@@ -222,18 +222,21 @@ internal sealed class EscortObjective : Objective, IMissionMarkers, IMeetingEsco
         OnDisplayLinesChanged();
     }
 
+    EventHandler<SimRoot>? _tick;
+    EventHandler<EventArgs>? _escortKilled;
+
     public override void RegisterEvents(GameRoot game, bool isLoading)
     {
         if (DestinationPoiID is { } poiId && game.Sim?.Doodads[poiId] is POIDoodad poi) poi.IsUndiscovered = false;
-        Escort.Killed += OnEscortKilled;
-        game.EventHub.Tick += OnTick;
+        Escort.Killed += _escortKilled ??= Errors.Guarded<EventArgs>("escort killed", OnEscortKilled);
+        game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("escort tick", OnTick);
         if (!isLoading && !Escort.IsAlive) OnEscortKilled(null, EventArgs.Empty);
     }
 
     public override void UnregisterEvents(GameRoot game)
     {
-        Escort.Killed -= OnEscortKilled;
-        game.EventHub.Tick -= OnTick;
+        Escort.Killed -= _escortKilled;
+        game.EventHub.Tick -= _tick;
     }
 
     void OnEscortKilled(object? sender, EventArgs e)

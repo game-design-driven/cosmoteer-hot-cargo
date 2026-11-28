@@ -274,17 +274,20 @@ internal sealed class HoldOutObjective : Objective
             lines.Add(OrderLine(Strings.KeyStringFmt("HotCargoMechanics/OrderLeaveFmt", LeaveMoney(game)), HoldOutOrder.Leave));
     }
 
+    EventHandler<SimRoot>? _tick;
+    EventHandler<EventArgs>? _targetKilled;
+
     public override void RegisterEvents(GameRoot game, bool isLoading)
     {
-        Target.Killed += OnTargetKilled;
-        game.EventHub.Tick += OnTick;
+        Target.Killed += _targetKilled ??= Errors.Guarded<EventArgs>("hold out target killed", OnTargetKilled);
+        game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("hold out tick", OnTick);
         if (!isLoading && !Target.IsAlive) OnTargetKilled(null, EventArgs.Empty);
     }
 
     public override void UnregisterEvents(GameRoot game)
     {
-        Target.Killed -= OnTargetKilled;
-        game.EventHub.Tick -= OnTick;
+        Target.Killed -= _targetKilled;
+        game.EventHub.Tick -= _tick;
     }
 
     void OnTargetKilled(object? sender, EventArgs e)

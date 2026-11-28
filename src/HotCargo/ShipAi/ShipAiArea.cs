@@ -30,13 +30,15 @@ public static class ShipAiArea
     [HarmonyPatch(typeof(CareerGameModeManager), nameof(CareerGameModeManager.OnGameStarting))]
     static class TickHook
     {
+        static EventHandler<SimRoot>? _tick;
+
         static void Postfix(CareerGameModeManager __instance)
         {
             var game = __instance.Game;
-            game.EventHub.Tick += ShipAiController.OnTick;
+            game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("ship tactics tick", ShipAiController.OnTick);
             game.Popping += (_, _) =>
             {
-                game.EventHub.Tick -= ShipAiController.OnTick;
+                game.EventHub.Tick -= _tick;
                 TacticsEditor.Close();
             };
         }

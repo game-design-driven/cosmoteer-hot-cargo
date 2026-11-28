@@ -492,20 +492,23 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
     /// </summary>
     bool _registered;
 
+    EventHandler<SimRoot>? _tick;
+    EventHandler<EventArgs>? _contactKilled;
+
     public override void RegisterEvents(GameRoot game, bool isLoading)
     {
         _registered = true;
         Log.Info($"hand-over: step {Page} starts (loading: {isLoading})");
-        Contact.Killed += OnContactKilled;
-        game.EventHub.Tick += OnTick;
+        Contact.Killed += _contactKilled ??= Errors.Guarded<EventArgs>("hand-over contact killed", OnContactKilled);
+        game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("hand-over tick", OnTick);
         if (!isLoading && game.Sim is { } sim && ContactGone(sim)) OnContactKilled(null, EventArgs.Empty);
     }
 
     public override void UnregisterEvents(GameRoot game)
     {
         _registered = false;
-        Contact.Killed -= OnContactKilled;
-        game.EventHub.Tick -= OnTick;
+        Contact.Killed -= _contactKilled;
+        game.EventHub.Tick -= _tick;
     }
 
     void OnContactKilled(object? sender, EventArgs e)
@@ -513,7 +516,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
         if (Completion == CompletionState.InProgress) Fail();
     }
 
-    void OnTick(object? sender, SimRoot sim) => Errors.Guard("hand-over tick", () =>
+    void OnTick(object? sender, SimRoot sim)
     {
         if (Mission?.Game is not { } game || Completion != CompletionState.InProgress || sim != game.Sim) return;
         if (DeliveredShipId is { } shipId && sim.NodeId() == Contact.MapNodeID && sim.Ships[shipId] is null && !sim.Stasis.Any(st => st.ReservedObjectID == shipId))
@@ -573,7 +576,7 @@ internal sealed class HandOverObjective : Objective, Missions.IMissionMarkers, I
         Fail();
         // UI only: tell the players why.
         Ux.UxKit.CenterText(game, Strings.FormatText("HotCargoEventMissions/HandOverLostFmt", name));
-    });
+    }
 
     public override int GetTypeIntegrityHash() => 0x4843_484F; // "HCHO"
 }
@@ -648,13 +651,15 @@ public static class MissionCargo
     internal static void Watch(GameRoot game)
     {
         if (Run.Current is not { } run || run.Game != game || _watched == run.Mode.Missions) return;
-        if (_watched is not null) _watched.MissionRemoved -= OnMissionRemoved;
+        if (_watched is not null) _watched.MissionRemoved -= _missionRemoved;
         _watched = run.Mode.Missions;
-        _watched.MissionRemoved += OnMissionRemoved;
+        _watched.MissionRemoved += _missionRemoved ??= Errors.Guarded<Mission>("mission cargo", OnMissionRemoved);
     }
 
     /// <summary>A job without its hand-over (failed or abandoned) takes its unit back, so dead cargo does not block a storage slot.</summary>
-    static void OnMissionRemoved(object? sender, Mission m) => Errors.Guard("mission cargo", () =>
+    static EventHandler<Mission>? _missionRemoved;
+
+    static void OnMissionRemoved(object? sender, Mission m)
     {
         if (Run.Current is not { } run || !ReferenceEquals(sender, run.Mode.Missions) || run.Game.Sim is not { } sim) return;
         var found = new List<Objective>();
@@ -665,7 +670,7 @@ public static class MissionCargo
             int removed = forms.Select(f => FleetHold.Take(sim, f, 1)).FirstOrDefault(n => n > 0);
             Log.Info($"mission cargo: {m.MetatypeID} {m.MissionID} left the log; took back {removed} {forms[0]}");
         }
-    });
+    }
 }
 
 /// <summary>Spec 2380: a surrendered ship that a running hand-over must deliver does not leave the system until the mission ends.</summary>

@@ -15,6 +15,8 @@ public static class AutonomyArea
     /// that joins late runs it on the same ticks. Limit: it assumes the default 60 fixed updates per second (SceneRoot); revisit if the
     /// game changes its fixed rate.
     /// </summary>
+    static EventHandler<SimRoot>? _tick;
+
     static void OnTick(object? sender, SimRoot sim)
     {
         if (Run.Current is not { } run || run.Game.Sim != sim) return;
@@ -31,8 +33,8 @@ public static class AutonomyArea
         static void Postfix(CareerGameModeManager __instance)
         {
             var game = __instance.Game;
-            game.EventHub.Tick += OnTick;
-            game.Popping += (_, _) => game.EventHub.Tick -= OnTick;
+            game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("autonomy tick", OnTick);
+            game.Popping += (_, _) => game.EventHub.Tick -= _tick;
         }
     }
 }
