@@ -89,11 +89,11 @@ internal sealed class FindLairObjective : Objective
     public override void GetDisplayLinesImpl(List<DisplayLine> lines, GameRoot game, CompletionState parentState) =>
         lines.Add(new DisplayLine { Text = Strings.KeyString("HotCargoWorlds/FindLairFmt"), State = Completion });
 
-    public override void RegisterEvents(GameRoot game, bool isLoading) => game.EventHub.Tick += OnTick;
+    EventHandler<SimRoot>? _tick;
 
-    public override void UnregisterEvents(GameRoot game) => game.EventHub.Tick -= OnTick;
+    public override void RegisterEvents(GameRoot game, bool isLoading) => game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("find lair tick", (_, sim) => Tick(sim));
 
-    void OnTick(object? sender, SimRoot sim) => Errors.Guard("find lair tick", () => Tick(sim));
+    public override void UnregisterEvents(GameRoot game) => game.EventHub.Tick -= _tick;
 
     void Tick(SimRoot sim)
     {

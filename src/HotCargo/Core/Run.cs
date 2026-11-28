@@ -106,6 +106,7 @@ public sealed class Run
     public bool IsMultiplayer => Game.NetManager.IsMultiplayer;
 
     ObjectID? _nodeBeforeSwitch;
+    EventHandler<ValueChangedEventArgs<int>>? _fameChanged;
 
     /// <summary>A new multiplayer run waits for the host to send its tunables (TunablesInput). Local, not saved.</summary>
     internal bool HostTunablesPending;
@@ -162,8 +163,8 @@ public sealed class Run
         GameData.StandardMissionFame(1);
         GameData.TierValueMaximum(1);
         run.State.VisitedNodes.Add(mode.Game.CurrentMapNode.UniqueID);
-        mode.Game.EventHub.Tick += run.OnTick;
-        mode.Game.EventHub.PlayerFameChanged += run.OnFameChanged;
+        mode.Game.EventHub.Tick += run.OnTick; // guard: OnTick guards each step itself (State.GameSeconds must count on)
+        mode.Game.EventHub.PlayerFameChanged += run._fameChanged = Errors.Guarded<ValueChangedEventArgs<int>>("fame heat", run.OnFameChanged);
         mode.Game.Popping += (_, _) => Stop(mode.Game);
         Log.Info($"run active: loaded={loaded} sector={state.SectorIndex} heat={state.Heat:0.0} tunables={state.TunablesHash} mp={run.IsMultiplayer}");
         Hooks.RaiseGameStarted(run);
@@ -174,7 +175,7 @@ public sealed class Run
     {
         if (Current?.Game != game) return;
         game.EventHub.Tick -= Current.OnTick;
-        game.EventHub.PlayerFameChanged -= Current.OnFameChanged;
+        game.EventHub.PlayerFameChanged -= Current._fameChanged;
         Current = null;
     }
 
@@ -205,14 +206,21 @@ public sealed class Run
     {
         if (sim != Game.Sim || State.Result != RunResult.Running) return;
         double dt = sim.FixedUpdater.Interval.Seconds;
+        // Outside every guard: a resting step (Errors.Guard) ends when State.GameSeconds passes its time.
         State.GameSeconds += dt;
-        State.FleetTech = Hooks.CountFleetTech(sim);
-        if (CurrentTier > State.PeakTier) State.PeakTier = CurrentTier;
+        Errors.Guard("fleet tech count", () =>
+        {
+            State.FleetTech = Hooks.CountFleetTech(sim);
+            if (CurrentTier > State.PeakTier) State.PeakTier = CurrentTier;
+        });
         Hooks.RaiseTick(this, sim, dt);
-        if (State.HeatBuys > 0f) State.HeatBuys = HeatModel.BuyDecay(State.HeatBuys, dt, T.Heat.HeatBuyHalfLifeMinutes);
-        if (State.Result != RunResult.Running || !State.HeatEnabled) return;
-        AddHeat(TimeHeatPerMinute(State.FleetTech) * (float)(dt / 60.0), sim);
-        TickStrikeWaves(sim, dt);
+        Errors.Guard("heat tick", () =>
+        {
+            if (State.HeatBuys > 0f) State.HeatBuys = HeatModel.BuyDecay(State.HeatBuys, dt, T.Heat.HeatBuyHalfLifeMinutes);
+            if (State.Result != RunResult.Running || !State.HeatEnabled) return;
+            AddHeat(TimeHeatPerMinute(State.FleetTech) * (float)(dt / 60.0), sim);
+            TickStrikeWaves(sim, dt);
+        });
     }
 
     /// <summary>Time heat per game minute with this fleet tech count, in the current system (spec 24, 2582).</summary>

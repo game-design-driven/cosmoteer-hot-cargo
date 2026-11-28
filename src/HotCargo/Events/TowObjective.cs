@@ -123,17 +123,20 @@ internal sealed class TowObjective : Objective
             OnFocused = OnDisplayLineFocused,
         });
 
+    EventHandler<SimRoot>? _tick;
+    EventHandler<EventArgs>? _towedKilled;
+
     public override void RegisterEvents(GameRoot game, bool isLoading)
     {
-        Towed.Killed += OnTowedKilled;
-        game.EventHub.Tick += OnTick;
+        Towed.Killed += _towedKilled ??= Errors.Guarded<EventArgs>("towed ship killed", OnTowedKilled);
+        game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("towed tick", OnTick);
         if (!isLoading && !Towed.IsAlive) OnTowedKilled(null, EventArgs.Empty);
     }
 
     public override void UnregisterEvents(GameRoot game)
     {
-        Towed.Killed -= OnTowedKilled;
-        game.EventHub.Tick -= OnTick;
+        Towed.Killed -= _towedKilled;
+        game.EventHub.Tick -= _tick;
     }
 
     void OnTowedKilled(object? sender, EventArgs e)

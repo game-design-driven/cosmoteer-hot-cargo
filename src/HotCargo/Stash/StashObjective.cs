@@ -150,19 +150,23 @@ internal sealed class StashObjective : Objective, Missions.IMissionMarkers
     internal string FindLine(GameRoot game) =>
         StashArea.Format("FindFmt", StashModel.Percent(FoundFirstNow(game)), StashModel.Percent(StashArea.TunablesFor(game).LootTechChance));
 
+    EventHandler<SimRoot>? _tick;
+    EventHandler<EventArgs>? _switched;
+    EventHandler<EventArgs>? _ambusherKilled;
+
     public override void RegisterEvents(GameRoot game, bool isLoading)
     {
-        game.EventHub.Tick += OnTick;
-        game.SwitchedSimulation += OnSwitchedSimulation;
-        foreach (var a in Ambushers) a.Killed += OnAmbusherKilled;
+        game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("stash tick", OnTick);
+        game.SwitchedSimulation += _switched ??= Errors.Guarded<EventArgs>("stash system switch", OnSwitchedSimulation);
+        foreach (var a in Ambushers) a.Killed += _ambusherKilled ??= Errors.Guarded<EventArgs>("stash ambusher killed", OnAmbusherKilled);
         if (!isLoading && State == StashState.Ambush) OnAmbusherKilled(null, EventArgs.Empty);
     }
 
     public override void UnregisterEvents(GameRoot game)
     {
-        game.EventHub.Tick -= OnTick;
-        game.SwitchedSimulation -= OnSwitchedSimulation;
-        foreach (var a in Ambushers) a.Killed -= OnAmbusherKilled;
+        game.EventHub.Tick -= _tick;
+        game.SwitchedSimulation -= _switched;
+        foreach (var a in Ambushers) a.Killed -= _ambusherKilled;
     }
 
     /// <summary>The found-first percent that the shown lines hold. UI state, not saved.</summary>
@@ -245,7 +249,7 @@ internal sealed class StashObjective : Objective, Missions.IMissionMarkers
             return;
         }
         State = StashState.Ambush;
-        foreach (var a in Ambushers) a.Killed += OnAmbusherKilled;
+        foreach (var a in Ambushers) a.Killed += _ambusherKilled ??= Errors.Guarded<EventArgs>("stash ambusher killed", OnAmbusherKilled);
         Log.Info($"stash ambush: {Ambushers.Count} ships");
         Say(sim.RequireGame(), StashArea.Text("Ambush"));
         App.Audio.Play(GameApp.Rules.CareerMode.Wanted.WantedAlertSound, AudioGroups.Interface);
