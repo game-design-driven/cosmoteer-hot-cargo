@@ -33,7 +33,7 @@ public static class TelemetryArea
         DiplomacyTelemetry.Register();
         PlaytestNotes.Register();
         Log.Written += OnLogWritten;
-        AppDomain.CurrentDomain.ProcessExit += (_, _) => Session.End("process_exit");
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => Errors.Guard("telemetry process exit", () => Session.End("process_exit"));
         AddAutotest();
     }
 

@@ -13,6 +13,5 @@ public static class TacticsArea
         Autotest.Commands["tacticlog"] = arg => Autotest.RequireRun().T.Debug.TacticsLog = arg != "off";
         RepairAutotest.Register();
         PoolAutotest.Register();
-        Ai.AiArea.Register();
     }
 }
