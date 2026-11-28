@@ -184,7 +184,7 @@ internal static class WeldShip
 
     /// <summary>
     /// Spec 2487: the target becomes part of the ship. Each target part is built at once at its place with its health; stored
-    /// resources move by type (the rest drops next to the ship); the crew move over; the target leaves the game without the
+    /// resources move by type (the rest drops next to the ship); the crew move over, except homeless crew that the game culls; the target leaves the game without the
     /// lost-ship handling (spec 2488).
     /// </summary>
     internal static void Merge(Ship ship, Ship target, Placement p)
@@ -232,6 +232,8 @@ internal static class WeldShip
             Log.Info($"weld: {n} {res.ID} from {target.Metadata.PlainShipName} into the ship's storage, {left} dropped");
         }
 
+        // Issue 350: crew with no home that the game culls on the wreck go first. On the live ship the game never culls them.
+        SimQueries.CullHomeless(target);
         foreach (var soul in target.Crew.Assigned.OrderBy(c => c.UniqueID).ToList())
         {
             target.Crew.UnassignCrew(soul, killed: false);
