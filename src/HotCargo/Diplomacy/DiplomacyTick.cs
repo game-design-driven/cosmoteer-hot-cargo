@@ -69,7 +69,7 @@ static class DiplomacyTick
             }
             else if (l.Jumping && now >= l.RemoveAt)
             {
-                sim.EnqueueDeterministic(ship.UniqueID, () => sim.Ships.Remove(ship, dispose: true, handleLostShip: false));
+                sim.RemoveLater(ship);
                 list.RemoveAt(i--);
             }
         }

@@ -365,29 +365,40 @@ public static class Invariants
     /// </summary>
     static class ShownText
     {
+        // A worker thread sets texts too (a co-op resync or join, a save dropped on the window builds GUI there), while the frame
+        // end enumerates the set: every access holds the lock.
         static readonly HashSet<TextRenderer> Pending = [];
+        static readonly Lock Gate = new();
 
         static bool _subscribed;
 
         internal static void Add(TextRenderer r)
         {
             if (!On) return;
-            // The frame director does not exist yet when the mod boots, so the check subscribes at the first shown text.
-            if (!_subscribed)
+            lock (Gate)
             {
-                Halfling.App.Director.FrameEnded += (_, _) => CheckPending();
-                _subscribed = true;
+                // The frame director does not exist yet when the mod boots, so the check subscribes at the first shown text.
+                if (!_subscribed)
+                {
+                    Halfling.App.Director.FrameEnded += (_, _) => CheckPending();
+                    _subscribed = true;
+                }
+                Pending.Add(r);
             }
-            Pending.Add(r);
         }
 
         internal static void CheckPending()
         {
-            if (Pending.Count == 0) return;
-            foreach (var r in Pending)
+            TextRenderer[] batch;
+            lock (Gate)
+            {
+                if (Pending.Count == 0) return;
+                batch = [.. Pending];
+                Pending.Clear();
+            }
+            foreach (var r in batch)
                 if (InvariantsModel.TextProblem(r.Text, r.XmlFormatting) is { } problem)
                     Fail("shown_text", r.Text, $"{problem}: \"{(r.Text.Length > 160 ? r.Text[..160] + "..." : r.Text)}\"");
-            Pending.Clear();
         }
     }
 

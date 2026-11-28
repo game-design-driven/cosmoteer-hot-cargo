@@ -248,9 +248,14 @@ public sealed class TacticsTunables
     /// </summary>
     [Serialize(Optional = true)] public float FirepowerWeaponCap = 8000f;
 
-    /// <summary>Called from TunablesFile.Validate (spec 53).</summary>
-    public void Validate(Action<bool, string> require)
+    /// <summary>Called from TunablesFile.Validate (spec 53). knownNebula is null before the game rules load.</summary>
+    public void Validate(Action<bool, string> require, Func<string, bool>? knownNebula)
     {
+        // The AI ticks read these lists (AiGate.InStorm, CounterKiteStrategy.AnvilNebula): a typo fails here, at load, not there.
+        if (knownNebula is not null)
+            foreach (var (list, types) in new[] { (nameof(CallBlockedInNebulas), CallBlockedInNebulas), (nameof(AnvilNebulas), AnvilNebulas) })
+                foreach (string name in types)
+                    require(knownNebula(name), $"Tactics.{list}: unknown nebula type '{name}'");
         require(FleeHealthFraction is >= 0 and <= 1 && FleeRecoverFraction is >= 0 and <= 1, "Tactics.FleeHealthFraction and FleeRecoverFraction must be 0 to 1");
         require(FleeChance is >= 0 and <= 1, "Tactics.FleeChance must be 0 to 1");
         require(CallSeconds > 0 && CallInterceptSeconds > 0 && CallRange > 0, "Tactics.CallSeconds, CallInterceptSeconds and CallRange must be above 0");

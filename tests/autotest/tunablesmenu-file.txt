@@ -40,6 +40,10 @@ menu value Heat.HeatPerGameMinute == 7
 tunerequest set Heat.NoSuchField 1
 wait 2
 tuneresult has has no tunable 'NoSuchField'
+# An unknown nebula type in a list that the AI tick reads: rejected at load, not in the AI tick (spec 199, 1906).
+tunerequest set Tactics.AnvilNebulas electron, no_such_nebula
+wait 2
+tuneresult has unknown nebula type 'no_such_nebula'
 tunerequest reset Hunters.Stages[0].ShipCount | reset Heat.HeatPerGameMinute
 wait 2
 tuneresult has ok

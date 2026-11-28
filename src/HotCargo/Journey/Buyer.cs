@@ -76,15 +76,20 @@ public static class Buyer
     /// <summary>GUI only: a toast after the jump animation ends, and the Buyer mission tracked on the HUD.</summary>
     static async void ShowWhereAsync(Run run)
     {
-        // The jump shows the system name for about 4 s after the switch. Wait so the two texts do not overlap.
-        await App.Clock.UntilElapsed(6f);
-        if (Run.Current != run) return;
-        Ux.UxKit.CenterText(run.Game, Strings.GetText("HotCargoJourney/BuyerHere"));
-        var missions = run.Mode.Missions;
-        var mission = missions.FirstOrDefault(m => m.MetatypeID == MissionType);
-        if (mission is not null && !missions.IsTracked(mission)
-            && missions.TrackedMissions.Count < GameApp.Rules.CareerMode.Gui.Missions.MaxTrackedMissions)
-            missions.TrackMission(mission);
+        // async void: an exception here would end the game, so it reports instead.
+        try
+        {
+            // The jump shows the system name for about 4 s after the switch. Wait so the two texts do not overlap.
+            await App.Clock.UntilElapsed(6f);
+            if (Run.Current != run) return;
+            Ux.UxKit.CenterText(run.Game, Strings.GetText("HotCargoJourney/BuyerHere"));
+            var missions = run.Mode.Missions;
+            var mission = missions.FirstOrDefault(m => m.MetatypeID == MissionType);
+            if (mission is not null && !missions.IsTracked(mission)
+                && missions.TrackedMissions.Count < GameApp.Rules.CareerMode.Gui.Missions.MaxTrackedMissions)
+                missions.TrackMission(mission);
+        }
+        catch (Exception ex) { Errors.Report("buyer where", ex.Message, ex); }
     }
 
     /// <summary>Spec 7: BuyerPriceFactor × the run's Buyer price multiplier (an advance from the Buyer's agent event lowers it).</summary>
@@ -151,7 +156,7 @@ public static class Buyer
         {
             if (tradeType != TradeType.Sell || amount <= 0 || resourceType != Vaults.TechId || sinkShip is null || !IsBuyer(sinkShip)) return;
             if (Run.Current is not { } run || run.Game.Sim != __instance.Sim) return;
-            OnDelivered(run, amount);
+            Errors.Guard("buyer delivery", () => OnDelivered(run, amount));
         }
     }
 }

@@ -199,7 +199,15 @@ public static class UxKit
 /// <summary>A tooltip text that is computed each time the game reads it.</summary>
 public sealed class LiveText(Func<string> text) : ITextProvider
 {
-    public string Text => text();
+    /// <summary>Vanilla reads it while it draws the tooltip, with no catch: a throw here would end the game, so it reports instead.</summary>
+    public string Text
+    {
+        get
+        {
+            try { return text(); }
+            catch (Exception ex) { Errors.Report($"ux tooltip {text.Method.DeclaringType?.Name}", ex.Message, ex); return ""; }
+        }
+    }
 
     /// <summary>Vanilla formats some providers into a string once (FormattedKeyString), which calls ToString.</summary>
     public override string ToString() => Text;

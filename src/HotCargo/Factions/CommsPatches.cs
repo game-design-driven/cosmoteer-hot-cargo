@@ -22,20 +22,27 @@ static class CommsPatches
     [HarmonyPatch(typeof(CareerSimModeManager), nameof(CareerSimModeManager.WillShipAnswerCall))]
     static class AnswerCall
     {
-        static void Postfix(CareerSimModeManager __instance, Ship caller, Ship callee, ref bool __result)
-        {
-            if (__result && For(__instance) is { } run && FactionsArea.Refuses(run, caller, callee)) __result = false;
-        }
+        static void Postfix(CareerSimModeManager __instance, Ship caller, Ship callee, ref bool __result) => __result = Allowed(__instance, caller, callee, __result);
+    }
+
+    /// <summary>
+    /// The result of a vanilla check that Refuses can turn false. Vanilla calls AllowResourceTrade on FastParallel worker threads, and a
+    /// throw there comes back on the main thread as an AggregateException and ends the game, so it runs in a guard (it never rests on
+    /// a worker). Limit: Refuses only reads sim state, and the sim changes its ship list only on the main thread between parallel
+    /// phases. Revisit if Refuses ever writes state or reads a list that a worker changes.
+    /// </summary>
+    static bool Allowed(CareerSimModeManager mode, Ship caller, Ship callee, bool vanilla)
+    {
+        bool allowed = vanilla;
+        if (vanilla) Errors.Guard("faction refusal", () => allowed = !(For(mode) is { } run && FactionsArea.Refuses(run, caller, callee)));
+        return allowed;
     }
 
     /// <summary>Spec 657: crew cannot trade with a station that refuses, also for parts that the construction buys there.</summary>
     [HarmonyPatch(typeof(CareerSimModeManager), nameof(CareerSimModeManager.AllowResourceTrade))]
     static class Trade
     {
-        static void Postfix(CareerSimModeManager __instance, Ship caller, Ship callee, ref bool __result)
-        {
-            if (__result && For(__instance) is { } run && FactionsArea.Refuses(run, caller, callee)) __result = false;
-        }
+        static void Postfix(CareerSimModeManager __instance, Ship caller, Ship callee, ref bool __result) => __result = Allowed(__instance, caller, callee, __result);
     }
 
     /// <summary>Spec 658: the refusal message on a hail. UI only: the vanilla hail goes on and fails through AnswerCall.</summary>

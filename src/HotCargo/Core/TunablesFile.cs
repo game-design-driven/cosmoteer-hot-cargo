@@ -99,7 +99,7 @@ public static class TunablesFile
             Require(stages.Contains(r.Name), $"Hunters.Stages names '{r.Name}', which is not a Heat.Stages name");
         Require(t.Hunters.SpawnDistanceMin > 0 && t.Hunters.SpawnDistanceMax >= t.Hunters.SpawnDistanceMin, "Hunters.SpawnDistanceMin must be above 0 and at most SpawnDistanceMax");
         t.Hunters.Validate(Require);
-        t.Tactics.Validate(Require);
+        t.Tactics.Validate(Require, Cosmoteer.GameApp.Assets?.Rules is null ? null : static n => Cosmoteer.GameApp.Rules.TryGetNebulaTypeRules(new(n), out _));
         t.Diplomacy.Validate(Require);
         foreach (var tactic in Enum.GetValues<Tactics.Tactic>())
         {

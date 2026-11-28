@@ -162,6 +162,9 @@ public sealed class Run
         // Validates the vanilla tier table now, so that a data problem shows at game start and not mid-run.
         GameData.StandardMissionFame(1);
         GameData.TierValueMaximum(1);
+        // The boot check of the defaults runs before the game rules load, so the checks against the rules (nebula types, difficulty
+        // levels) run here for the tunables of this run. A failure shows in the overlay; the run goes on.
+        Errors.Guard("tunables check", () => TunablesFile.Validate(run.T));
         run.State.VisitedNodes.Add(mode.Game.CurrentMapNode.UniqueID);
         mode.Game.EventHub.Tick += run.OnTick; // guard: OnTick guards each step itself (State.GameSeconds must count on)
         mode.Game.EventHub.PlayerFameChanged += run._fameChanged = Errors.Guarded<ValueChangedEventArgs<int>>("fame heat", run.OnFameChanged);
