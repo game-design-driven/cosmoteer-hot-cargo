@@ -1,14 +1,20 @@
 namespace HotCargo;
 
+/// <summary>
+/// The mod log. Logging never throws: it runs inside the catch of every Errors.Guard, and a throw there ends the game.
+/// A line that the disk refuses (full disk, locked file) is lost; the next line that writes says how many were lost.
+/// </summary>
 public static class Log
 {
     static string? _path;
     static readonly Lock Gate = new();
+    static int _lost;
 
     public static void Init(string modDir)
     {
         _path = Path.Combine(modDir, "hot_cargo_log.txt");
-        File.WriteAllText(_path, $"Hot Cargo log {DateTime.Now:O}\n");
+        try { File.WriteAllText(_path, $"Hot Cargo log {DateTime.Now:O}\n"); }
+        catch (Exception) { _lost++; }
     }
 
     public static void Info(string message) => Write("INFO", message);
@@ -20,7 +26,17 @@ public static class Log
     static void Write(string level, string message)
     {
         if (_path is null) return;
-        lock (Gate) File.AppendAllText(_path, $"{DateTime.Now:HH:mm:ss.fff} {level} {message}\n");
-        Written?.Invoke(level, message);
+        lock (Gate)
+        {
+            try
+            {
+                string lost = _lost > 0 ? $"({_lost} log lines lost before this one) " : "";
+                File.AppendAllText(_path, $"{DateTime.Now:HH:mm:ss.fff} {level} {lost}{message}\n");
+                _lost = 0;
+            }
+            catch (Exception) { _lost++; }
+        }
+        try { Written?.Invoke(level, message); }
+        catch (Exception) { /* A listener (telemetry) that fails loses this line; the log file still has it. */ }
     }
 }

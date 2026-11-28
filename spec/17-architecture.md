@@ -43,6 +43,7 @@ Rules:
 
 - The model files (`*Model.cs`, for example `HeatModel`) have no game types, so that they are testable on the Mac without the game.
 - Patches stay thin. They call into the mod classes.
+- Logging never throws. `Log.Info` and `Log.Error` run inside the catch of every `Errors.Guard`, so a throw there ends the game. A line that the disk refuses (full disk, locked file) is lost, and the next line that writes says how many were lost.
 - One tunables record type. The overlay and the code read the same values.
 - Plan, then apply. Code that changes several things in one step (ship parts, run state, money) checks every condition first and changes nothing until all hold. Reason: `Errors.Guard` keeps the game alive when a step throws, so a step that throws between two changes leaves a half-done state (issue 347: a weld merge). An exception in a test is an ERROR line and fails the test.
 - A failed sim step rests. When the body of an `Errors.Guard` throws inside a sim phase (spec 1009) on the main thread, that place does not run again for `Debug.FailedStepRestSeconds` (60) game seconds, then it tries again. The rest is run state (`RunState.RestingSteps`), so every co-op machine skips the same ticks, also after a join or a load. Frame code (UI callbacks) never rests. The overlay shows the error and the rest. Test `core-errors`. Limit: the failed call itself is not undone.

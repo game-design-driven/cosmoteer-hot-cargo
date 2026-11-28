@@ -99,7 +99,9 @@ sealed class TelemetryWriter
         catch (Exception ex) { Log.Error("telemetry writer failed; telemetry stops for this session", ex); }
         finally
         {
-            _file?.Dispose();
+            // This is a thread of its own: an exception that leaves it ends the game process.
+            try { _file?.Dispose(); }
+            catch (Exception ex) { Log.Error("telemetry writer could not close its file; the last lines can be missing", ex); }
             _file = null;
         }
     }
