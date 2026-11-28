@@ -140,7 +140,24 @@ public static class Invariants
         MarkersEndWithMission(run, sim);
         RivalsSymmetric(run, sim);
         HuntersOneSide(sim);
+        HomelessCrew(sim);
     });
+
+    /// <summary>
+    /// Spec 1971, issue 350: no crew of a side that is not human stand on a live human ship with no home ship. The game culls such crew
+    /// only on a wreck (CareerSimModeManager.AllowCullHomelessCrew), so on a player ship they wander for good, and a wander from a tile
+    /// with no crew path crashed the game (HomelessJob.GetDestination).
+    /// </summary>
+    internal static void HomelessCrew(SimRoot sim)
+    {
+        var game = sim.RequireGame();
+        foreach (var ship in sim.Ships.HumanPlayerShips)
+            foreach (var crew in ship.Crew.OnShipUnassigned)
+                if (crew.Soul.HomeShip is null && !game.Mode.IsHumanPlayerIndex(crew.Soul.PlayerIndex))
+                    Fail("homeless_crew", $"{ship.UniqueID}/{crew.Soul.UniqueID}",
+                        $"{ship.Metadata.PlainShipName} (player {ship.Metadata.PlayerIndex}) carries crew {crew.Soul.Name} of player " +
+                        $"{crew.Soul.PlayerIndex} with no home ship; the game never culls them there");
+    }
 
     /// <summary>
     /// Spec 1002: a hunter that the mod spawns has no human player index and is an enemy of every human ship. Players can take a

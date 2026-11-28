@@ -556,12 +556,16 @@ public static class MechanicsArea
         MissionArea.TeleportPlayers(at + new Vector2(0f, 800f));
     }
 
-    /// <summary>The capture path through crew: the target becomes a wreck, then the first player's crew claim it.</summary>
+    /// <summary>
+    /// The capture path through crew: the target becomes a wreck, the game culls its crew (issue 350), then the first player's crew
+    /// claim it.
+    /// </summary>
     static void TestClaim()
     {
         var sim = RequireSim();
         Ship ship = Capture().Target.Live(sim) ?? throw new InvalidOperationException("capture target is not live");
         Wreck(ship);
+        SimQueries.CullHomeless(ship);
         ship.Metadata.PlayerIndex = RequireRun().Game.HumanPlayersIndexes[0];
         Autotest.Wait(2);
     }

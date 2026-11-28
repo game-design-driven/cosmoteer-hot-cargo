@@ -52,7 +52,7 @@ public static class HunterArea
             HunterSpawner.Hunters(Sim()).Count(h => h.Commands.CurConfirmedCommand is Cosmoteer.Ships.Commands.AttackCommand);
 
         // takehunters: the players take over every live hunter, like the capture claim (mech_capture_claim): it becomes a wreck,
-        // then a ship of the first player. The next sim tick releases it (spec 2280). Test only.
+        // the game culls its crew (issue 350), then it is a ship of the first player. The next sim tick releases it (spec 2280). Test only.
         Autotest.Commands["takehunters"] = _ =>
         {
             var sim = Sim();
@@ -60,6 +60,7 @@ public static class HunterArea
             foreach (var h in HunterSpawner.Hunters(sim).ToList())
             {
                 sim.Mode.SetReducedShipAllegiance(h, Cosmoteer.PlayerIndexes.Junk, -1);
+                SimQueries.CullHomeless(h);
                 h.Metadata.PlayerIndex = player;
                 _taken.Add(h.UniqueID);
                 Log.Info($"AUTOTEST players took over hunter {h.Metadata.PlainShipName} id={h.UniqueID}");
