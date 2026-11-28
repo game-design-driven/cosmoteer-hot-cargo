@@ -39,14 +39,16 @@ public static class WorldsArea
 
     static async void ShowArrivalAsync(Run run, string center, string line)
     {
-        await App.Clock.UntilElapsed(run.T.Worlds.ArrivalLineDelaySeconds);
-        if (Run.Current != run) return;
-        UxKit.Guard("arrival line", () =>
+        // async void: an exception here would end the game, so it reports instead.
+        try
         {
+            await App.Clock.UntilElapsed(run.T.Worlds.ArrivalLineDelaySeconds);
+            if (Run.Current != run) return;
             UxKit.CenterText(run.Game, center);
             UxKit.ChatLine(run.Game, line);
-        });
-        Log.Info($"arrival line: {line}");
+            Log.Info($"arrival line: {line}");
+        }
+        catch (Exception ex) { Errors.Report("ux arrival line", ex.Message, ex); }
     }
 
     /// <summary>Spec 225: the galaxy map tooltip of a system shows its hazard under the vanilla type line.</summary>

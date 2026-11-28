@@ -42,21 +42,38 @@ public static class Errors
     /// </summary>
     public static void Guard(string what, Action body, bool local = false)
     {
-        // Sim steps run on the main thread; a parallel sim bucket on a worker thread never rests, so the order of the entries is the same on every machine.
-        var run = SimPhase.InPhaseOnMain && !local ? Run.Current : null;
-        if (run is not null && run.State.RestingSteps.TryGetValue(what, out double until))
-        {
-            if (run.State.GameSeconds < until) return;
-            run.State.RestingSteps.Remove(what);
-        }
+        var run = RestingRun(local);
+        if (Resting(run, what)) return;
         try { body(); }
-        catch (Exception ex)
-        {
-            float rest = run?.T.Debug.FailedStepRestSeconds ?? 0f;
-            if (run is not null && rest > 0f) run.State.RestingSteps[what] = run.State.GameSeconds + rest;
-            string message = run is not null && rest > 0f ? $"{ex.Message} (this step rests for {rest:0} game seconds)" : ex.Message;
-            if (Expected == what) Log.Info($"{what} failed as the test expects: {message}");
-            else Report(what, message, ex);
-        }
+        catch (Exception ex) { Failed(run, what, ex); }
+    }
+
+    /// <summary>
+    /// For a Harmony prefix and finalizer pair that guards a vanilla call of mod code (AiModuleGuard): the same rest and report as Guard.
+    /// Resting is true while the place rests; the caller then skips its body.
+    /// </summary>
+    internal static bool Resting(string what) => Resting(RestingRun(false), what);
+
+    /// <summary>Reports a failure of the place and starts its rest, as Guard does for a body that throws.</summary>
+    internal static void Failed(string what, Exception ex) => Failed(RestingRun(false), what, ex);
+
+    // Sim steps run on the main thread; a parallel sim bucket on a worker thread never rests, so the order of the entries is the same on every machine.
+    static Run? RestingRun(bool local) => SimPhase.InPhaseOnMain && !local ? Run.Current : null;
+
+    static bool Resting(Run? run, string what)
+    {
+        if (run is null || !run.State.RestingSteps.TryGetValue(what, out double until)) return false;
+        if (run.State.GameSeconds < until) return true;
+        run.State.RestingSteps.Remove(what);
+        return false;
+    }
+
+    static void Failed(Run? run, string what, Exception ex)
+    {
+        float rest = run?.T.Debug.FailedStepRestSeconds ?? 0f;
+        if (run is not null && rest > 0f) run.State.RestingSteps[what] = run.State.GameSeconds + rest;
+        string message = run is not null && rest > 0f ? $"{ex.Message} (this step rests for {rest:0} game seconds)" : ex.Message;
+        if (Expected == what) Log.Info($"{what} failed as the test expects: {message}");
+        else Report(what, message, ex);
     }
 }

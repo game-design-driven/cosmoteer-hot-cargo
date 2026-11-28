@@ -80,6 +80,13 @@ static class ShipAlerts
     /// <summary>A red banner under the area name position. Banners that come together stack instead of overlapping.</summary>
     internal static async void Banner(GameRoot game, string text, Halfling.Graphics.Color color)
     {
+        // async void: an exception here would end the game, so it reports instead.
+        try { await ShowBanner(game, text, color); }
+        catch (Exception ex) { Core.Errors.Report("ux banner", ex.Message, ex); }
+    }
+
+    static async Task ShowBanner(GameRoot game, string text, Halfling.Graphics.Color color)
+    {
         var lbl = new Label
         {
             AnchorRect = AnchorPresets.TopCenter,

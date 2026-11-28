@@ -508,8 +508,13 @@ internal sealed class TacticsEditor : WindowBox
 
     async void ShowLibrary(int slot)
     {
-        string? path = await ShipLibraryDialog.Show(ShipDialogMode.Load);
-        if (path is not null && _open == this) Errors.Guard("tactics editor design pick", () => PickedDesign(slot, path));
+        // async void: an exception here would end the game, so it reports instead.
+        try
+        {
+            string? path = await ShipLibraryDialog.Show(ShipDialogMode.Load);
+            if (path is not null && _open == this) PickedDesign(slot, path);
+        }
+        catch (Exception ex) { Errors.Report("tactics editor design pick", ex.Message, ex); }
     }
 
     /// <summary>Spec 1084: copies the design file into the slot. A design of another ship class is refused, as vanilla refuses it.</summary>

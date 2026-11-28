@@ -33,6 +33,14 @@ public static class SimQueries
             _ => null,
         };
 
+    /// <summary>
+    /// Removes the ship from the sim at the end of this step (sim.EnqueueDeterministic), as a ship that left. Two mod paths can queue the
+    /// same ship in one tick (a flee, a hire that leaves, a pursuit removal); vanilla Remove throws for a ship that is gone, so the second
+    /// does nothing.
+    /// </summary>
+    public static void RemoveLater(this SimRoot sim, Ship ship) =>
+        sim.EnqueueDeterministic(ship.UniqueID, () => { if (sim.Ships.Contains(ship)) sim.Ships.Remove(ship, dispose: true, handleLostShip: false); });
+
     /// <summary>True when a stored ship reference is still a live ship in the same system as <paramref name="self"/>. A ship in jump limbo has no sim.</summary>
     public static bool IsLiveWith(this Ship other, Ship self) => !other.IsDisposed && !other.IsJunk && other.Sim is not null && other.Sim == self.Sim;
 

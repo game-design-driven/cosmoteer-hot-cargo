@@ -101,7 +101,7 @@ internal sealed class FleeStrategy : AIStrategyModule
         if (_removeAt is { } removeAt)
         {
             // Same removal as AIExitSectorModule: the FTL effect plays, then the ship leaves the sim.
-            if (now >= removeAt) sim.EnqueueDeterministic(ship.UniqueID, () => sim.Ships.Remove(ship, dispose: true, handleLostShip: false));
+            if (now >= removeAt) sim.RemoveLater(ship);
             return true;
         }
         if (AiGate.Active(Behavior.Flee, _rules.ForHunters) is not { } t || AiGate.Surrendered(ship) || !AiGate.HostileToPlayers(ship))

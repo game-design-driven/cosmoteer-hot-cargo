@@ -43,7 +43,7 @@ static class Removals
             if (run.State.GameSeconds < r.At) continue;
             list.RemoveAt(i--);
             if (sim.Ships[r.Ship] is not { } ship || !ship.ExistsInSim(sim)) continue;
-            sim.EnqueueDeterministic(ship.UniqueID, () => sim.Ships.Remove(ship, dispose: true, handleLostShip: false));
+            sim.RemoveLater(ship);
         }
     }
 }

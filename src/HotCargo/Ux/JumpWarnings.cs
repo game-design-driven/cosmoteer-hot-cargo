@@ -224,7 +224,8 @@ static class JumpWarnings
         {
             if (!On || !ship.IsLocalPlayerShip || !ship.IsSignificant || ship.IsDisposed) return;
             if (App.Director.States.OfType<GameRoot>().FirstOrDefault() is not { } game || game.Sim != ship.Sim) return;
-            string line = HoverLine(game, ship);
+            string line = "";
+            UxKit.Guard("jump hover text", () => line = HoverLine(game, ship));
             if (line != "") __result += "\n" + line;
         }
     }
