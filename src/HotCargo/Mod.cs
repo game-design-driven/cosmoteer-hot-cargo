@@ -1,3 +1,4 @@
+using System.Reflection;
 using HarmonyLib;
 
 namespace HotCargo;
@@ -68,71 +69,57 @@ public static class Mod
     public static readonly HashSet<string> AreasOff = [];
 
     /// <summary>
-    /// Spec 17, Rules: a failing Harmony patch never stops the game. The base patches first: when it fails, Hot Cargo stays off and the
-    /// game starts as vanilla. Then each area patches and registers on its own: a failure unpatches that area, turns it off and reports
-    /// it in the overlay, and the other areas start.
+    /// Spec 2261: a failing Harmony patch never stops the game. The patch classes apply in the order of Harmony.PatchAll (assembly
+    /// order), so patches of the same priority on one method run in the same order as before. A class of the base that fails removes
+    /// every patch: Hot Cargo stays off, and the game starts as vanilla. A class of an area that fails removes the patches of that area
+    /// and turns the area off; the overlay and the log report it, and the other areas start. Then the areas register in their order.
     /// Limit: an area whose Register throws half-way keeps the hooks that it added before the throw. Revisit if such an area does harm.
     /// </summary>
     public static void Boot(string dllDir)
     {
         ModRoot = Path.GetFullPath(Path.Combine(dllDir, ".."));
         var harmony = new Harmony(HarmonyId);
-        var patchTypes = AccessTools.GetTypesFromAssembly(typeof(Mod).Assembly).ToLookup(t => t.Namespace ?? "");
-        try
+        // Only classes with [HarmonyPatch]: a class processor reads the methods of any other class too, and a method named Prepare or
+        // Prefix there breaks the patch.
+        foreach (var type in AccessTools.GetTypesFromAssembly(typeof(Mod).Assembly).Where(t => t.IsDefined(typeof(HarmonyPatch), false)))
         {
-            foreach (string ns in BaseNamespaces) Patch(harmony, patchTypes[ns]);
-            Core.TunablesDefaults.WriteFile();
-        }
-        catch (Exception ex)
-        {
-            harmony.UnpatchAll(HarmonyId);
-            AreasOff.Add("all");
-            Core.Errors.Report("boot", $"the base failed, Hot Cargo is off: {ex.Message}", ex);
-            return;
-        }
-        var patched = BaseNamespaces.ToHashSet();
-        foreach (var register in Areas)
-        {
-            string ns = register.Method.DeclaringType?.Namespace ?? throw new InvalidOperationException($"area {register.Method.Name} has no namespace");
+            string ns = type.Namespace ?? "";
             if (AreasOff.Contains(ns)) continue;
-            try
-            {
-                if (patched.Add(ns)) Patch(harmony, patchTypes[ns]);
-                register();
-            }
+            try { harmony.CreateClassProcessor(type).Patch(); }
             catch (Exception ex) when (BaseNamespaces.Contains(ns))
             {
-                Core.Errors.Report($"boot {register.Method.DeclaringType?.Name}", $"failed: {ex.Message}", ex);
+                harmony.UnpatchAll(HarmonyId);
+                AreasOff.Add("all");
+                Core.Errors.Report("boot", $"the base failed, Hot Cargo is off: {ex.Message}", ex);
+                return;
             }
-            catch (Exception ex)
-            {
-                Unpatch(harmony, ns);
-                AreasOff.Add(ns);
-                Core.Errors.Report($"boot {ns}", $"failed, this area is off: {ex.Message}", ex);
-            }
+            catch (Exception ex) { TurnOff(harmony, ns, ex); }
         }
-        foreach (var group in patchTypes.Where(g => !patched.Contains(g.Key) && g.Any(t => t.IsDefined(typeof(HarmonyPatch), false))))
-            Core.Errors.Report($"boot {group.Key}", "has Harmony patches but no area in Mod.Areas; they stay off");
+        Core.TunablesDefaults.WriteFile();
+        var areas = Areas.Select(r => r.Method.DeclaringType?.Namespace ?? throw new InvalidOperationException($"area {r.Method.Name} has no namespace")).ToHashSet();
+        foreach (string ns in harmony.GetPatchedMethods().SelectMany(PatchesOf).Select(p => p.PatchMethod.DeclaringType?.Namespace ?? "").Distinct())
+            if (!BaseNamespaces.Contains(ns) && !areas.Contains(ns)) Core.Errors.Report($"boot {ns}", "has Harmony patches but no area in Mod.Areas");
+        foreach (var register in Areas)
+        {
+            string ns = register.Method.DeclaringType!.Namespace!;
+            if (AreasOff.Contains(ns)) continue;
+            try { register(); }
+            catch (Exception ex) when (BaseNamespaces.Contains(ns)) { Core.Errors.Report($"boot {register.Method.DeclaringType.Name}", $"failed: {ex.Message}", ex); }
+            catch (Exception ex) { TurnOff(harmony, ns, ex); }
+        }
         Log.Info($"harmony patched {harmony.GetPatchedMethods().Count()} methods; areas off: {(AreasOff.Count == 0 ? "none" : string.Join(", ", AreasOff))}; mod root {ModRoot}");
     }
 
-    /// <summary>
-    /// Applies the Harmony patch classes of one namespace, as Harmony.PatchAll does for an assembly. Only classes with [HarmonyPatch]:
-    /// a class processor reads the methods of any other class too, and a method named Prepare or Prefix there breaks the patch.
-    /// </summary>
-    static void Patch(Harmony harmony, IEnumerable<Type> types)
-    {
-        foreach (var type in types.Where(t => t.IsDefined(typeof(HarmonyPatch), false))) harmony.CreateClassProcessor(type).Patch();
-    }
-
-    /// <summary>Removes every patch of this mod whose patch method lies in the namespace, also the ones of a class that patched half-way.</summary>
-    static void Unpatch(Harmony harmony, string ns)
+    /// <summary>Removes the patches of the area, also the ones of a class that patched half-way, and turns the area off.</summary>
+    static void TurnOff(Harmony harmony, string ns, Exception ex)
     {
         foreach (var original in harmony.GetPatchedMethods().ToList())
-        {
-            if (Harmony.GetPatchInfo(original) is not { } info) continue;
-            foreach (var p in info.Prefixes.Concat(info.Postfixes).Concat(info.Transpilers).Concat(info.Finalizers))
-                if (p.owner == HarmonyId && p.PatchMethod.DeclaringType?.Namespace == ns) harmony.Unpatch(original, p.PatchMethod);
-        }
+            foreach (var p in PatchesOf(original).Where(p => p.owner == HarmonyId && p.PatchMethod.DeclaringType?.Namespace == ns))
+                harmony.Unpatch(original, p.PatchMethod);
+        AreasOff.Add(ns);
+        Core.Errors.Report($"boot {ns}", $"failed, this area is off: {ex.Message}", ex);
     }
+
+    static IEnumerable<Patch> PatchesOf(MethodBase original) =>
+        Harmony.GetPatchInfo(original) is { } info ? info.Prefixes.Concat(info.Postfixes).Concat(info.Transpilers).Concat(info.Finalizers) : [];
 }
