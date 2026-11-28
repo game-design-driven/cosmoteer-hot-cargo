@@ -109,4 +109,18 @@ public static class SimQueries
     /// <summary>The significant human ship nearest to a point, or null when the players have none in this system.</summary>
     public static Ship? NearestHumanShip(SimRoot sim, Vector2 at) =>
         sim.Ships.HumanPlayerSignificantShips.MinBy(s => s.DetWorldCenter.DistanceSquaredTo(at));
+
+    /// <summary>
+    /// Issue 350: deletes the crew aboard the ship that have no home ship and that the game culls (SimModeManager.AllowCullHomelessCrew;
+    /// in a career: crew of no human player on a wreck). Vanilla culls them one at a time in HomelessJob.GetDestination, but only while
+    /// the ship is a wreck. Call this before a change makes the ship a live ship again (an owner change, a weld merge): on a live ship
+    /// the game never culls them, and they wander there for good.
+    /// </summary>
+    public static void CullHomeless(Ship ship)
+    {
+        var mode = ship.Sim?.Mode ?? throw new InvalidOperationException($"{ship.Metadata.PlainShipName} has no sim");
+        foreach (var soul in ship.Crew.OnShipUnassigned.Select(c => c.Soul).Where(s => s.HomeShip is null && mode.AllowCullHomelessCrew(s))
+                     .OrderBy(s => s.UniqueID).ToList())
+            soul.Delete(killed: true);
+    }
 }

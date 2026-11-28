@@ -6,4 +6,13 @@ vg_search_outside
 expect vanilla_guard_hits == 1
 wait 2
 expect active == 1
+# Issue 350: a homeless crew member of a side that is not human, on a part with no crew path of a player ship, crashed the game
+# (HomelessJob.GetDestination, Rand.Int32). The guard keeps it on its part. The invariant homeless_crew (spec 1971) sees it too.
+invariants_expect homeless_crew
+vg_homeless_pathless
+expect vanilla_guard_hits == 2
+expect invariants_expected == 1
+wait 3
+expect active == 1
+expect vanilla_guard_hits == 2
 quit
