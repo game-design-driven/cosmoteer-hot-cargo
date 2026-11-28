@@ -156,15 +156,15 @@ internal sealed class ClosePassObjective : Objective, IMissionMarkers
         return $"{s / 60}:{s % 60:00}";
     }
 
+    EventHandler<SimRoot>? _tick;
+
     public override void RegisterEvents(GameRoot game, bool isLoading)
     {
         if (PassPoiID is { } poiId && game.Sim?.Doodads[poiId] is POIDoodad poi) poi.IsUndiscovered = false;
-        game.EventHub.Tick += OnTick;
+        game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("close pass tick", (_, sim) => Tick(sim));
     }
 
-    public override void UnregisterEvents(GameRoot game) => game.EventHub.Tick -= OnTick;
-
-    void OnTick(object? sender, SimRoot sim) => Errors.Guard("close pass tick", () => Tick(sim));
+    public override void UnregisterEvents(GameRoot game) => game.EventHub.Tick -= _tick;
 
     void Tick(SimRoot sim)
     {

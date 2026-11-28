@@ -233,33 +233,46 @@ sealed class Session
         }
     }
 
+    // Telemetry is local: its handlers never rest (Errors.Guard), so the run state stays the same on every co-op machine.
+    EventHandler<SimRoot>? _tick;
+    EventHandler<ValueChangedEventArgs<int>>? _fameChanged;
+    EventHandler<FactionReputationChangedEventArgs>? _reputationChanged;
+    EventHandler<Cosmoteer.Simulation.Doodads.POIDoodad>? _poiDiscovered;
+    EventHandler<PlayerState>? _moneyChanged;
+    EventHandler<ResourceTradeEventArgs>? _tradeDelivery;
+    EventHandler<ResourceTradeEventArgs>? _tradePickup;
+    EventHandler<Mission>? _missionAdded;
+    EventHandler<Mission>? _missionRemoved;
+    EventHandler<Ship>? _shipAdded;
+    EventHandler<Cosmoteer.Crew.CrewDeathArgs>? _crewKilled;
+
     void Subscribe()
     {
-        Game.EventHub.Tick += OnTick;
-        Game.EventHub.PlayerFameChanged += OnFameChanged;
-        Game.EventHub.FactionReputationChanged += OnReputationChanged;
-        Game.EventHub.POIDiscovered += OnPoiDiscovered;
-        Game.EventHub.PlayerMoneyChanged += TelemetryPatches.OnMoneyChanged;
-        Game.EventHub.ResourceTradeDelivery += TelemetryPatches.OnTradeDelivery;
-        Game.EventHub.ResourceTradePickup += TelemetryPatches.OnTradePickup;
+        Game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("telemetry tick", OnTick, local: true);
+        Game.EventHub.PlayerFameChanged += _fameChanged ??= Errors.Guarded<ValueChangedEventArgs<int>>("telemetry fame", OnFameChanged, local: true);
+        Game.EventHub.FactionReputationChanged += _reputationChanged ??= Errors.Guarded<FactionReputationChangedEventArgs>("telemetry reputation", OnReputationChanged, local: true);
+        Game.EventHub.POIDiscovered += _poiDiscovered ??= Errors.Guarded<Cosmoteer.Simulation.Doodads.POIDoodad>("telemetry poi", OnPoiDiscovered, local: true);
+        Game.EventHub.PlayerMoneyChanged += _moneyChanged ??= Errors.Guarded<PlayerState>("telemetry money", TelemetryPatches.OnMoneyChanged, local: true);
+        Game.EventHub.ResourceTradeDelivery += _tradeDelivery ??= Errors.Guarded<ResourceTradeEventArgs>("telemetry trade delivery", TelemetryPatches.OnTradeDelivery, local: true);
+        Game.EventHub.ResourceTradePickup += _tradePickup ??= Errors.Guarded<ResourceTradeEventArgs>("telemetry trade pickup", TelemetryPatches.OnTradePickup, local: true);
         Game.Popping += OnPopping;
         _log = Run.Mode.Missions;
-        _log.MissionAdded += OnMissionAdded;
-        _log.MissionRemoved += OnMissionRemoved;
+        _log.MissionAdded += _missionAdded ??= Errors.Guarded<Mission>("telemetry mission added", OnMissionAdded, local: true);
+        _log.MissionRemoved += _missionRemoved ??= Errors.Guarded<Mission>("telemetry mission removed", OnMissionRemoved, local: true);
     }
 
     void Unsubscribe()
     {
-        Game.EventHub.Tick -= OnTick;
-        Game.EventHub.PlayerFameChanged -= OnFameChanged;
-        Game.EventHub.FactionReputationChanged -= OnReputationChanged;
-        Game.EventHub.POIDiscovered -= OnPoiDiscovered;
-        Game.EventHub.PlayerMoneyChanged -= TelemetryPatches.OnMoneyChanged;
-        Game.EventHub.ResourceTradeDelivery -= TelemetryPatches.OnTradeDelivery;
-        Game.EventHub.ResourceTradePickup -= TelemetryPatches.OnTradePickup;
+        Game.EventHub.Tick -= _tick;
+        Game.EventHub.PlayerFameChanged -= _fameChanged;
+        Game.EventHub.FactionReputationChanged -= _reputationChanged;
+        Game.EventHub.POIDiscovered -= _poiDiscovered;
+        Game.EventHub.PlayerMoneyChanged -= _moneyChanged;
+        Game.EventHub.ResourceTradeDelivery -= _tradeDelivery;
+        Game.EventHub.ResourceTradePickup -= _tradePickup;
         Game.Popping -= OnPopping;
-        if (_log is not null) { _log.MissionAdded -= OnMissionAdded; _log.MissionRemoved -= OnMissionRemoved; }
-        if (_hookedSim is not null) { _hookedSim.Ships.Added -= OnShipAdded; _hookedSim.Crew.CrewKilled -= TelemetryPatches.OnCrewKilled; }
+        if (_log is not null) { _log.MissionAdded -= _missionAdded; _log.MissionRemoved -= _missionRemoved; }
+        if (_hookedSim is not null) { _hookedSim.Ships.Added -= _shipAdded; _hookedSim.Crew.CrewKilled -= _crewKilled; }
     }
 
     void OnPopping(object? sender, EventArgs e) => End(Run.State.Result == RunResult.Lost ? "game_closed_after_loss" : "game_closed");
@@ -1022,10 +1035,10 @@ sealed class Session
 
     void HookSim(SimRoot sim)
     {
-        if (_hookedSim is not null) { _hookedSim.Ships.Added -= OnShipAdded; _hookedSim.Crew.CrewKilled -= TelemetryPatches.OnCrewKilled; }
+        if (_hookedSim is not null) { _hookedSim.Ships.Added -= _shipAdded; _hookedSim.Crew.CrewKilled -= _crewKilled; }
         _hookedSim = sim;
-        sim.Ships.Added += OnShipAdded;
-        sim.Crew.CrewKilled += TelemetryPatches.OnCrewKilled;
+        sim.Ships.Added += _shipAdded ??= Errors.Guarded<Ship>("telemetry ship added", OnShipAdded, local: true);
+        sim.Crew.CrewKilled += _crewKilled ??= Errors.Guarded<Cosmoteer.Crew.CrewDeathArgs>("telemetry crew killed", TelemetryPatches.OnCrewKilled, local: true);
         var node = sim.NodeId();
         bool known = _shipsSeen.TryGetValue(node, out var seen);
         _seenHere = seen ??= [];

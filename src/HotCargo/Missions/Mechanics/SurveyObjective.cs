@@ -146,15 +146,17 @@ internal sealed class SurveyObjective : Objective, IMissionMarkers
             });
     }
 
+    EventHandler<SimRoot>? _tick;
+
     public override void RegisterEvents(GameRoot game, bool isLoading)
     {
         if (game.Sim?.MapNode?.UniqueID == NodeId)
             foreach (var m in Markers)
                 if (game.Sim.Doodads[m.PoiId] is POIDoodad poi) poi.IsUndiscovered = false;
-        game.EventHub.Tick += OnTick;
+        game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("survey tick", OnTick);
     }
 
-    public override void UnregisterEvents(GameRoot game) => game.EventHub.Tick -= OnTick;
+    public override void UnregisterEvents(GameRoot game) => game.EventHub.Tick -= _tick;
 
     void OnTick(object? sender, SimRoot sim)
     {

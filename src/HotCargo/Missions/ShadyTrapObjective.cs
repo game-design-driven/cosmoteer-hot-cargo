@@ -130,19 +130,23 @@ internal sealed class ShadyTrapObjective : Objective
         });
     }
 
+    EventHandler<SimRoot>? _tick;
+    EventHandler<EventArgs>? _switched;
+    EventHandler<EventArgs>? _ambusherKilled;
+
     public override void RegisterEvents(GameRoot game, bool isLoading)
     {
-        game.EventHub.Tick += OnTick;
-        game.SwitchedSimulation += OnSwitchedSimulation;
-        foreach (var a in Ambushers) a.Killed += OnAmbusherKilled;
+        game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("shady trap tick", OnTick);
+        game.SwitchedSimulation += _switched ??= Errors.Guarded<EventArgs>("shady trap system switch", OnSwitchedSimulation);
+        foreach (var a in Ambushers) a.Killed += _ambusherKilled ??= Errors.Guarded<EventArgs>("shady trap ambusher killed", OnAmbusherKilled);
         if (!isLoading && State == ShadyTrapState.Sprung) OnAmbusherKilled(null, EventArgs.Empty);
     }
 
     public override void UnregisterEvents(GameRoot game)
     {
-        game.EventHub.Tick -= OnTick;
-        game.SwitchedSimulation -= OnSwitchedSimulation;
-        foreach (var a in Ambushers) a.Killed -= OnAmbusherKilled;
+        game.EventHub.Tick -= _tick;
+        game.SwitchedSimulation -= _switched;
+        foreach (var a in Ambushers) a.Killed -= _ambusherKilled;
     }
 
     void OnTick(object? sender, SimRoot sim)
@@ -194,7 +198,7 @@ internal sealed class ShadyTrapObjective : Objective
             return;
         }
         State = ShadyTrapState.Sprung;
-        foreach (var a in Ambushers) a.Killed += OnAmbusherKilled;
+        foreach (var a in Ambushers) a.Killed += _ambusherKilled ??= Errors.Guarded<EventArgs>("shady trap ambusher killed", OnAmbusherKilled);
         Log.Info($"shady trap sprung: {Ambushers.Count} ambushers");
         // UI and audio only, like a hunter wave alert: the players must read the ambush as a setup, not as random pirates.
         Ux.UxKit.CenterText(sim.RequireGame(), Strings.GetText("HotCargoObjectives/TrapSprung"));

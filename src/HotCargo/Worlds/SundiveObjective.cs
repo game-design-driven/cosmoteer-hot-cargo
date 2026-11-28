@@ -125,18 +125,18 @@ internal sealed class SundiveObjective : Objective, IMissionMarkers, Events.IMis
         if (_noRoom) lines.Add(new DisplayLine { Text = Strings.KeyStringFmt("HotCargoWorlds/SundiveNoRoomFmt", item), State = CompletionState.InProgress });
     }
 
+    EventHandler<SimRoot>? _tick;
+
     public override void RegisterEvents(GameRoot game, bool isLoading)
     {
         if (SitePoiID is { } poiId && game.Sim?.Doodads[poiId] is POIDoodad poi) poi.IsUndiscovered = false;
-        game.EventHub.Tick += OnTick;
+        game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("sundive tick", (_, sim) => Tick(sim));
     }
 
     public override void UnregisterEvents(GameRoot game)
     {
-        game.EventHub.Tick -= OnTick;
+        game.EventHub.Tick -= _tick;
     }
-
-    void OnTick(object? sender, SimRoot sim) => Errors.Guard("sundive tick", () => Tick(sim));
 
     void Tick(SimRoot sim)
     {

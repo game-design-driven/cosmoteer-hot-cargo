@@ -189,18 +189,21 @@ internal sealed class LeadObjective : Objective, IMissionMarkers, IMeetingEscort
         OnDisplayLinesChanged();
     }
 
+    EventHandler<SimRoot>? _tick;
+    EventHandler<EventArgs>? _courierKilled;
+
     public override void RegisterEvents(GameRoot game, bool isLoading)
     {
         if (DestinationPoiID is { } poiId && game.Sim?.Doodads[poiId] is POIDoodad poi) poi.IsUndiscovered = false;
-        Escort.Killed += OnCourierKilled;
-        game.EventHub.Tick += OnTick;
+        Escort.Killed += _courierKilled ??= Errors.Guarded<EventArgs>("lead courier killed", OnCourierKilled);
+        game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("lead tick", OnTick);
         if (!isLoading && !Escort.IsAlive) OnCourierKilled(null, EventArgs.Empty);
     }
 
     public override void UnregisterEvents(GameRoot game)
     {
-        Escort.Killed -= OnCourierKilled;
-        game.EventHub.Tick -= OnTick;
+        Escort.Killed -= _courierKilled;
+        game.EventHub.Tick -= _tick;
     }
 
     void OnCourierKilled(object? sender, EventArgs e)

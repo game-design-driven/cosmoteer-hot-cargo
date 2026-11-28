@@ -15,6 +15,8 @@ public static class ScavengeArea
     /// client that joins late runs it on the same ticks. Limit: it assumes the default 60 fixed updates per second (SceneRoot), like
     /// the autonomy tick; revisit if the game changes its fixed rate.
     /// </summary>
+    static EventHandler<SimRoot>? _tick;
+
     static void OnTick(object? sender, SimRoot sim)
     {
         if (Run.Current is not { } run || run.Game.Sim != sim) return;
@@ -41,8 +43,8 @@ public static class ScavengeArea
         {
             Scavengers.CheckIndex();
             var game = __instance.Game;
-            game.EventHub.Tick += OnTick;
-            game.Popping += (_, _) => game.EventHub.Tick -= OnTick;
+            game.EventHub.Tick += _tick ??= Errors.Guarded<SimRoot>("scavenge tick", OnTick);
+            game.Popping += (_, _) => game.EventHub.Tick -= _tick;
         }
     }
 }

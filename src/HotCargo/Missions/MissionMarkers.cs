@@ -150,17 +150,19 @@ internal static class MissionMarkers
     static void Watch(Run run)
     {
         if (_watched == run.Mode.Missions) return;
-        if (_watched is not null) _watched.MissionRemoved -= OnMissionRemoved;
+        if (_watched is not null) _watched.MissionRemoved -= _missionRemoved;
         _watched = run.Mode.Missions;
-        _watched.MissionRemoved += OnMissionRemoved;
+        _watched.MissionRemoved += _missionRemoved ??= Errors.Guarded<Mission>("mission markers", OnMissionRemoved);
     }
 
-    static void OnMissionRemoved(object? sender, Mission m) => Errors.Guard("mission markers", () =>
+    static EventHandler<Mission>? _missionRemoved;
+
+    static void OnMissionRemoved(object? sender, Mission m)
     {
         if (Run.Current is not { } run || !ReferenceEquals(sender, run.Mode.Missions) || run.Game.Sim is not { } sim) return;
         RemoveOf(run, sim, m, "left the log");
         Remember(run, sim, m);
-    });
+    }
 
     /// <summary>
     /// Spec 2250: the markers of a mission that ended while its objectives are in another system. An objective's markers lie in its

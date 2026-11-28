@@ -330,13 +330,15 @@ public static class ChainRunner
     static void Watch(Run run)
     {
         if (_watched == run.Mode.Missions) return;
-        if (_watched is not null) _watched.MissionRemoved -= OnMissionRemoved;
+        if (_watched is not null) _watched.MissionRemoved -= _missionRemoved;
         _watched = run.Mode.Missions;
-        _watched.MissionRemoved += OnMissionRemoved;
+        _watched.MissionRemoved += _missionRemoved ??= Errors.Guarded<Mission>("chain mission removed", OnMissionRemoved);
     }
 
     /// <summary>A mission left the log: completed, failed or abandoned. Records the result; the next check applies it.</summary>
-    static void OnMissionRemoved(object? sender, Mission m) => Errors.Guard("chain mission removed", () =>
+    static EventHandler<Mission>? _missionRemoved;
+
+    static void OnMissionRemoved(object? sender, Mission m)
     {
         if (Run.Current is not { } run || !ReferenceEquals(sender, run.Mode.Missions)) return;
         var c = State(run).Instances.FirstOrDefault(i => i.MissionId == m.MissionID);
@@ -345,7 +347,7 @@ public static class ChainRunner
         Log.Info($"chain {c.ChainId} stage {c.Stage}: mission {m.MissionID} left the log: {result}");
         c.MissionId = null;
         c.PendingResult = result;
-    });
+    }
 
     static MissionEnd End(Mission m)
     {
